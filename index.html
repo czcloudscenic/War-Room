@@ -1126,9 +1126,53 @@ function AgentChatPage({ agents, content }) {
   const [hists, setHists] = useState({});
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const msgs = hists[sel.id] || [];
+
+  const runAgentAction = async (action, payload = {}) => {
+    if (actionBusy) return;
+    setActionBusy(true);
+    const sysMsg = { role: "system", content: "⏳ Running action…", ts: Date.now(), loading: true };
+    setHists(h => ({ ...h, [sel.id]: [...(h[sel.id]||[]), sysMsg] }));
+    try {
+      const res = await fetch("/api/agent-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentName: sel.name, action, payload }),
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error);
+      // Format result for display
+      let display = d.message || "Action complete.";
+      if (d.briefing) display += "\n\n" + d.briefing;
+      if (d.report) display += "\n\n" + d.report;
+      if (d.calendar) display += "\n\n" + d.calendar;
+      if (d.content) display += "\n\n" + d.content;
+      if (d.flagged && d.flagged.length > 0) {
+        display += "\n\n**Flagged Items:**\n" + d.flagged.map(f => `• "${f.title}" — ${f.violation} [${f.severity}]`).join("\n");
+      }
+      if (d.items && d.items.length > 0 && action === "lacey_advance") {
+        display += "\n\n**Advanced:**\n" + d.items.map(i => `• ${i.title}`).join("\n");
+      }
+      if (d.metrics) {
+        const m = d.metrics;
+        display += `\n\n**Metrics:** ${m.total} total · ${m.missingCopy} missing captions · ${m.missingScript} missing scripts`;
+        if (m.byStatus) display += "\n" + Object.entries(m.byStatus).map(([s,n]) => `${s}: ${n}`).join(" · ");
+      }
+      setHists(h => {
+        const thread = (h[sel.id]||[]).filter(m => !m.loading);
+        return { ...h, [sel.id]: [...thread, { role: "system", content: display, ts: Date.now(), actionResult: true }] };
+      });
+    } catch(e) {
+      setHists(h => {
+        const thread = (h[sel.id]||[]).filter(m => !m.loading);
+        return { ...h, [sel.id]: [...thread, { role: "system", content: `❌ Action failed: ${e.message}`, ts: Date.now(), err: true }] };
+      });
+    }
+    setActionBusy(false);
+  };
 
   useEffect(() => {
     if (bottomRef.current) bottomRef.current.scrollIntoView({ behavior: "smooth" });
@@ -1205,6 +1249,42 @@ function AgentChatPage({ agents, content }) {
           {msgs.length > 0 && <button onClick={() => setHists(h => ({ ...h, [sel.id]: [] }))} style={{ background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:8, color:"rgba(0,0,0,0.35)", fontSize:11, cursor:"pointer", padding:"5px 11px", fontFamily:"Inter,sans-serif" }}>Clear</button>}
         </div>
 
+        {/* ── AGENT ACTION BUTTONS ── */}
+        {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Overseer" || sel.name === "Lacey" || sel.name === "Sam") && (
+          <div style={{ padding:"8px 16px", borderBottom:"1px solid rgba(0,0,0,0.06)", display:"flex", gap:7, flexWrap:"wrap", background:"rgba(0,0,0,0.015)", flexShrink:0 }}>
+            {sel.name === "Sean" && (
+              <button onClick={() => runAgentAction("sean_briefing")} disabled={actionBusy}
+                style={{ fontSize:11, fontWeight:600, color:"#30d158", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
+                {actionBusy ? "⏳ Running…" : "📋 Morning Briefing"}
+              </button>
+            )}
+            {sel.name === "Muse" && (
+              <button onClick={() => runAgentAction("muse_generate_calendar")} disabled={actionBusy}
+                style={{ fontSize:11, fontWeight:600, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
+                {actionBusy ? "⏳ Running…" : "✍️ Generate Calendar"}
+              </button>
+            )}
+            {sel.name === "Overseer" && (
+              <button onClick={() => runAgentAction("overseer_scan")} disabled={actionBusy}
+                style={{ fontSize:11, fontWeight:600, color:"#64d2ff", background:"rgba(100,210,255,0.08)", border:"1px solid rgba(100,210,255,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
+                {actionBusy ? "⏳ Running…" : "🔍 SOP Scan"}
+              </button>
+            )}
+            {sel.name === "Lacey" && (
+              <button onClick={() => runAgentAction("lacey_advance")} disabled={actionBusy}
+                style={{ fontSize:11, fontWeight:600, color:"#ff9f0a", background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
+                {actionBusy ? "⏳ Running…" : "⚡ Advance Pipeline"}
+              </button>
+            )}
+            {sel.name === "Sam" && (
+              <button onClick={() => runAgentAction("sam_health")} disabled={actionBusy}
+                style={{ fontSize:11, fontWeight:600, color:"#ffd60a", background:"rgba(255,214,10,0.08)", border:"1px solid rgba(255,214,10,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
+                {actionBusy ? "⏳ Running…" : "💊 Health Check"}
+              </button>
+            )}
+          </div>
+        )}
+
         <div style={{ flex:1, overflowY:"auto", padding:"20px 22px", display:"flex", flexDirection:"column", gap:14 }}>
           {msgs.length === 0 && (
             <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
@@ -1221,17 +1301,44 @@ function AgentChatPage({ agents, content }) {
             </div>
           )}
 
-          {msgs.map((m, i) => (
-            <div key={i} style={{ display:"flex", gap:9, flexDirection:m.role === "user" ? "row-reverse" : "row", alignItems:"flex-start" }}>
-              {m.role === "assistant" && (
-                <div style={{ width:28, height:28, borderRadius:8, background:sel.grad, border:"1px solid " + sel.color + "40", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:sel.color, flexShrink:0, marginTop:2 }}>{sel.name[0]}</div>
-              )}
-              <div style={{ maxWidth:"76%", background:m.role === "user" ? "#0f0f1a" : m.err ? "rgba(255,69,58,0.07)" : "#f7f7f5", border:m.role === "user" ? "none" : "1px solid " + (m.err ? "rgba(255,69,58,0.18)" : "rgba(0,0,0,0.07)"), borderRadius:m.role === "user" ? "15px 15px 3px 15px" : "3px 15px 15px 15px", padding:"10px 13px" }}>
-                <div style={{ fontSize:13, color:m.role === "user" ? "#fff" : m.err ? "#ff453a" : "#1a1a2e", lineHeight:1.65, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>
-                <div style={{ fontSize:9, color:m.role === "user" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.22)", marginTop:4, textAlign:m.role === "user" ? "right" : "left" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</div>
+          {msgs.map((m, i) => {
+            // System / action result messages
+            if (m.role === "system") {
+              return (
+                <div key={i} style={{ borderRadius:14, padding:"12px 16px", background: m.err ? "rgba(255,69,58,0.06)" : "rgba(48,209,88,0.06)", border:"1px solid " + (m.err ? "rgba(255,69,58,0.18)" : "rgba(48,209,88,0.18)"), animation:"slideIn 0.3s ease" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:m.loading ? 0 : 8 }}>
+                    <div style={{ width:6, height:6, borderRadius:"50%", background: m.err ? "#ff453a" : "#30d158", animation: m.loading ? "livePulse 1s infinite" : "none" }} />
+                    <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", color: m.err ? "#ff453a" : "#30d158" }}>{m.loading ? "Agent Running…" : "Agent Action Result"}</span>
+                    <span style={{ fontSize:9, color:"rgba(0,0,0,0.3)", marginLeft:"auto" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</span>
+                  </div>
+                  {!m.loading && <div style={{ fontSize:12, color:"#1a1a2e", lineHeight:1.7, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>}
+                </div>
+              );
+            }
+            // Regular chat messages
+            const looksLikeCaption = m.role === "assistant" && sel.name === "Muse" && (m.content.includes("#") || m.content.split("\n").length > 3);
+            return (
+              <div key={i} style={{ display:"flex", gap:9, flexDirection:m.role === "user" ? "row-reverse" : "row", alignItems:"flex-start" }}>
+                {m.role === "assistant" && (
+                  <div style={{ width:28, height:28, borderRadius:8, background:sel.grad, border:"1px solid " + sel.color + "40", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:sel.color, flexShrink:0, marginTop:2 }}>{sel.name[0]}</div>
+                )}
+                <div style={{ maxWidth:"76%" }}>
+                  <div style={{ background:m.role === "user" ? "#0f0f1a" : m.err ? "rgba(255,69,58,0.07)" : "#f7f7f5", border:m.role === "user" ? "none" : "1px solid " + (m.err ? "rgba(255,69,58,0.18)" : "rgba(0,0,0,0.07)"), borderRadius:m.role === "user" ? "15px 15px 3px 15px" : "3px 15px 15px 15px", padding:"10px 13px" }}>
+                    <div style={{ fontSize:13, color:m.role === "user" ? "#fff" : m.err ? "#ff453a" : "#1a1a2e", lineHeight:1.65, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>
+                    <div style={{ fontSize:9, color:m.role === "user" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.22)", marginTop:4, textAlign:m.role === "user" ? "right" : "left" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</div>
+                  </div>
+                  {looksLikeCaption && (
+                    <div style={{ marginTop:6, display:"flex", gap:6 }}>
+                      <button onClick={() => { navigator.clipboard.writeText(m.content).catch(()=>{}); }}
+                        style={{ fontSize:10, fontWeight:600, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:8, padding:"4px 10px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>
+                        📋 Copy Caption
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {busy && (
             <div style={{ display:"flex", gap:9, alignItems:"flex-start" }}>
@@ -1271,6 +1378,104 @@ function AgentChatPage({ agents, content }) {
             {"\u2191"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── QUICK ACTIONS DASHBOARD PANEL ───────────────────────────────────────────
+function QuickActionsDashboard() {
+  const [busy, setBusy] = useState(false);
+  const [activeAction, setActiveAction] = useState(null);
+  const [result, setResult] = useState(null);
+  const [expanded, setExpanded] = useState(false);
+
+  const ACTIONS = [
+    { label: "📋 Morning Briefing", action: "sean_briefing", agent: "Sean", color: "#30d158" },
+    { label: "✍️ Generate Captions", action: "muse_generate_calendar", agent: "Muse", color: "#ff375f" },
+    { label: "🔍 SOP Scan", action: "overseer_scan", agent: "Overseer", color: "#64d2ff" },
+    { label: "⚡ Advance Pipeline", action: "lacey_advance", agent: "Lacey", color: "#ff9f0a" },
+    { label: "💊 Health Check", action: "sam_health", agent: "Sam", color: "#ffd60a" },
+  ];
+
+  const run = async (action, agent, color, label) => {
+    if (busy) return;
+    setBusy(true);
+    setActiveAction({ action, agent, label, color });
+    setResult(null);
+    setExpanded(true);
+    try {
+      const res = await fetch("/api/agent-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentName: agent, action, payload: {} }),
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error);
+      let display = d.message || "Action complete.";
+      if (d.briefing) display += "\n\n" + d.briefing;
+      if (d.report) display += "\n\n" + d.report;
+      if (d.calendar) display += "\n\n" + d.calendar;
+      if (d.flagged && d.flagged.length > 0) {
+        display += "\n\nFlagged Items:\n" + d.flagged.map(f => `• "${f.title}" — ${f.violation} [${f.severity}]`).join("\n");
+      }
+      if (d.items && d.items.length > 0) {
+        display += "\n\nAdvanced:\n" + d.items.map(i => `• ${i.title}`).join("\n");
+      }
+      if (d.metrics) {
+        const m = d.metrics;
+        display += `\n\nMetrics: ${m.total} total · ${m.missingCopy} missing captions · ${m.missingScript} missing scripts`;
+        if (m.byStatus) display += "\n" + Object.entries(m.byStatus).map(([s,n]) => `${s}: ${n}`).join(" · ");
+      }
+      setResult({ ok: true, text: display, color });
+    } catch(e) {
+      setResult({ ok: false, text: `❌ ${e.message}`, color: "#ff453a" });
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div style={{ marginBottom:28 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+        <h2 style={{ fontSize:16, fontWeight:600, color:"#0f0f1a", margin:0, letterSpacing:-0.3 }}>Quick Actions</h2>
+        <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)" }}>Agent-powered operations</span>
+      </div>
+      <div style={{ background:"rgba(255,255,255,0.92)", border:"1px solid rgba(0,0,0,0.08)", borderRadius:16, overflow:"hidden", boxShadow:"0 2px 12px rgba(0,0,0,0.05)" }}>
+        <div style={{ padding:"16px 18px", display:"flex", gap:10, flexWrap:"wrap" }}>
+          {ACTIONS.map(({ label, action, agent, color }) => (
+            <button key={action} onClick={() => run(action, agent, color, label)} disabled={busy}
+              style={{ fontSize:12, fontWeight:600, color, background:`${color}0d`, border:`1px solid ${color}30`, borderRadius:10, padding:"9px 16px", cursor:busy?"default":"pointer", fontFamily:"Inter,sans-serif", transition:"all 0.2s", opacity:busy?0.6:1 }}>
+              {busy && activeAction?.action === action ? "⏳ Running…" : label}
+            </button>
+          ))}
+        </div>
+        {expanded && (
+          <div style={{ borderTop:"1px solid rgba(0,0,0,0.06)" }}>
+            <div style={{ padding:"10px 18px", display:"flex", justifyContent:"space-between", alignItems:"center", background:"rgba(0,0,0,0.015)" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={{ width:6, height:6, borderRadius:"50%", background: result ? (result.ok ? "#30d158" : "#ff453a") : activeAction?.color, animation: !result ? "livePulse 1s infinite" : "none" }} />
+                <span style={{ fontSize:11, fontWeight:600, color: result ? (result.ok ? "#30d158" : "#ff453a") : "rgba(0,0,0,0.5)" }}>
+                  {result ? (activeAction?.agent + " — " + activeAction?.label) : "Agent running…"}
+                </span>
+              </div>
+              <button onClick={() => { setExpanded(false); setResult(null); setActiveAction(null); }}
+                style={{ background:"none", border:"none", color:"rgba(0,0,0,0.3)", cursor:"pointer", fontSize:14, padding:"2px 6px", fontFamily:"Inter,sans-serif" }}>✕</button>
+            </div>
+            {result && (
+              <div style={{ padding:"14px 18px", maxHeight:320, overflowY:"auto" }}>
+                <div style={{ fontSize:12, color:"#1a1a2e", lineHeight:1.7, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{result.text}</div>
+              </div>
+            )}
+            {!result && (
+              <div style={{ padding:"20px 18px", display:"flex", gap:6, alignItems:"center" }}>
+                <div style={{ width:7, height:7, borderRadius:"50%", background:activeAction?.color, animation:"livePulse 1.2s 0s infinite" }} />
+                <div style={{ width:7, height:7, borderRadius:"50%", background:activeAction?.color, animation:"livePulse 1.2s 0.2s infinite" }} />
+                <div style={{ width:7, height:7, borderRadius:"50%", background:activeAction?.color, animation:"livePulse 1.2s 0.4s infinite" }} />
+                <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginLeft:8 }}>{activeAction?.agent} is working…</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1483,6 +1688,7 @@ function WarRoom({ onSignOut, userEmail }) {
                 </div>
               </Card>
             )}
+            <QuickActionsDashboard />
             <div style={{ marginBottom:28 }}>
               <h2 style={{ fontSize:16, fontWeight:600, color:"#0f0f1a", margin:"0 0 16px", letterSpacing:-0.3 }}>Operations Board</h2>
               <OpsBoard />
