@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cloud Scenic × VitalLyfe — War Room</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f5f5f7; font-family: Inter, sans-serif; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #f0f0f0; }
+    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+  </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // ─── SUPABASE CONFIG ──────────────────────────────────────────────────────
+    const SUPABASE_URL  = "https://wjcstqqihtebkpyuacop.supabase.co";
+    const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqY3N0cXFpaHRlYmtweXVhY29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MjU1NTgsImV4cCI6MjA4ODQwMTU1OH0.JZV0r7LRQldTVJLz5BOnVx9M4GfW-Xz28PbBS30Vl4o";
+    const DB_CONNECTED  = true;
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ─── LOGIN SCREEN ─────────────────────────────────────────────────────────
+    function LoginScreen({ onLogin }) {
+      const [email, setEmail]       = useState("");
+      const [password, setPassword] = useState("");
+      const [error, setError]       = useState("");
+      const [loading, setLoading]   = useState(false);
+
+      const handleLogin = async () => {
+        if (!email || !password) { setError("Email and password required."); return; }
+        setLoading(true); setError("");
+        const { data, error: err } = await sb.auth.signInWithPassword({ email, password });
+        if (err) { setError(err.message); setLoading(false); return; }
+        // Fetch role from profiles table
+        const { data: profile } = await sb.from("profiles").select("role").eq("id", data.user.id).single();
+        onLogin(data.user, profile?.role || "client");
+        setLoading(false);
+      };
+
+      const inp = { width:"100%", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"12px 14px", fontSize:13, color:"#fff", outline:"none", fontFamily:"Inter, sans-serif", marginBottom:12, boxSizing:"border-box" };
+
+      return (
+        <div style={{ minHeight:"100vh", background:"#0a0a0f", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter, sans-serif" }}>
+          <div style={{ width:380, padding:"40px 36px", background:"#111118", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, boxShadow:"0 32px 80px rgba(0,0,0,0.6)" }}>
+            <div style={{ marginBottom:32 }}>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", letterSpacing:2, textTransform:"uppercase", fontWeight:700, marginBottom:10 }}>Cloud Scenic</div>
+              <h1 style={{ fontSize:24, fontWeight:700, color:"#fff", margin:"0 0 6px", letterSpacing:-0.5 }}>War Room</h1>
+              <p style={{ fontSize:12, color:"rgba(255,255,255,0.35)", margin:0 }}>VitalLyfe Content Operations</p>
+            </div>
+            <div>
+              <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.3)", display:"block", marginBottom:6 }}>Email</label>
+              <input style={inp} type="email" value={email} onChange={e=>setEmail(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="you@email.com" />
+              <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.3)", display:"block", marginBottom:6 }}>Password</label>
+              <input style={inp} type="password" value={password} onChange={e=>setPassword(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="••••••••" />
+              {error && <div style={{ fontSize:11, color:"#ff453a", marginBottom:12, padding:"8px 12px", background:"rgba(255,69,58,0.1)", borderRadius:8 }}>{error}</div>}
+              <button onClick={handleLogin} disabled={loading}
+                style={{ width:"100%", background:loading?"rgba(255,255,255,0.1)":"#fff", color:loading?"rgba(255,255,255,0.3)":"#0a0a0f", border:"none", borderRadius:10, padding:"13px", fontSize:13, fontWeight:700, cursor:loading?"not-allowed":"pointer", fontFamily:"Inter, sans-serif", transition:"all 0.2s" }}>
+                {loading ? "Signing in…" : "Sign In"}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── CLIENT VIEW ──────────────────────────────────────────────────────────
+    function ClientView({ user, content, setContent, onSignOut }) {
+      const STATUS_ORDER = ["Need Copy Approval","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"];
+      const STATUS_COLOR = {
+        "Need Copy Approval":"#3b82f6","Need Content Approval":"#ff453a",
+        "Needs Revisions":"#f97316","Approved":"#30d158",
+        "Ready For Schedule":"#8b5cf6","Scheduled":"#64d2ff",
+        "Ready For Copy Creation":"#f59e0b","Ready For Content Creation":"#10b981",
+      };
+
+      const approve = async (item) => {
+        const updated = { ...item, status:"Approved", stage:"Approved" };
+        setContent(prev => prev.map(x => x.id===item.id ? updated : x));
+        await sb.from("content_items").update(updated).eq("id", item.id);
+      };
+      const revise = async (item) => {
+        const updated = { ...item, status:"Needs Revisions", stage:"Needs Revisions" };
+        setContent(prev => prev.map(x => x.id===item.id ? updated : x));
+        await sb.from("content_items").update(updated).eq("id", item.id);
+      };
+
+      const pending = content.filter(x => ["Need Copy Approval","Need Content Approval"].includes(x.status));
+      const approved = content.filter(x => x.status==="Approved");
+      const scheduled = content.filter(x => x.status==="Scheduled");
+
+      return (
+        <div style={{ minHeight:"100vh", background:"#f7f7f5", fontFamily:"Inter, sans-serif" }}>
+          {/* Header */}
+          <div style={{ height:56, background:"#fff", borderBottom:"1px solid #ebebeb", display:"flex", alignItems:"center", padding:"0 24px", gap:14, position:"sticky", top:0, zIndex:100 }}>
+            <div style={{ width:28, height:28, borderRadius:8, background:"#0a0a0f", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <span style={{ color:"#fff", fontSize:12, fontWeight:800 }}>VL</span>
+            </div>
+            <div>
+              <div style={{ fontSize:13, fontWeight:700, color:"#0f0f1a", letterSpacing:-0.3 }}>VitalLyfe</div>
+              <div style={{ fontSize:9, color:"rgba(0,0,0,0.35)", fontWeight:600, textTransform:"uppercase", letterSpacing:0.8 }}>Content Portal</div>
+            </div>
+            <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:12 }}>
+              <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)" }}>{user.email}</span>
+              <button onClick={onSignOut} style={{ fontSize:11, color:"rgba(0,0,0,0.4)", background:"none", border:"1px solid #e5e5e5", borderRadius:8, padding:"5px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Sign out</button>
+            </div>
+          </div>
+
+          <div style={{ maxWidth:900, margin:"0 auto", padding:"32px 24px" }}>
+            {/* Stats */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:32 }}>
+              {[["Needs Review", pending.length, "#ff9f0a"], ["Approved", approved.length, "#30d158"], ["Scheduled", scheduled.length, "#64d2ff"]].map(([label,val,color])=>(
+                <div key={label} style={{ background:"#fff", border:"1px solid #ebebeb", borderRadius:14, padding:"20px 22px" }}>
+                  <div style={{ fontSize:28, fontWeight:700, color, letterSpacing:-1 }}>{val}</div>
+                  <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", fontWeight:600, marginTop:4 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Needs Review */}
+            {pending.length > 0 && (
+              <div style={{ marginBottom:32 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16 }}>
+                  <div style={{ width:6, height:6, borderRadius:"50%", background:"#ff9f0a" }} />
+                  <h2 style={{ fontSize:15, fontWeight:700, color:"#0f0f1a", margin:0 }}>Needs Your Review</h2>
+                  <span style={{ fontSize:10, color:"#ff9f0a", background:"rgba(255,159,10,0.1)", padding:"2px 8px", borderRadius:20, fontWeight:700 }}>{pending.length}</span>
+                </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                  {pending.map(item => {
+                    const c = STATUS_COLOR[item.status]||"#999";
+                    return (
+                      <div key={item.id} style={{ background:"#fff", border:"1px solid #ebebeb", borderRadius:14, padding:"18px 20px", display:"flex", alignItems:"center", gap:16 }}>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontSize:13, fontWeight:600, color:"#0f0f1a", marginBottom:4 }}>{item.title}</div>
+                          <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginBottom:8 }}>{item.campaign} · {item.format}</div>
+                          <span style={{ fontSize:9, color:c, background:`${c}15`, padding:"3px 8px", borderRadius:20, fontWeight:700, border:`1px solid ${c}25` }}>{item.status}</span>
+                        </div>
+                        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+                          <button onClick={()=>revise(item)} style={{ fontSize:11, fontWeight:600, color:"#ff453a", background:"rgba(255,69,58,0.08)", border:"1px solid rgba(255,69,58,0.2)", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Request Revisions</button>
+                          <button onClick={()=>approve(item)} style={{ fontSize:11, fontWeight:600, color:"#fff", background:"#30d158", border:"none", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Approve ✓</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* All Content */}
+            <div>
+              <h2 style={{ fontSize:15, fontWeight:700, color:"#0f0f1a", margin:"0 0 16px" }}>All Content</h2>
+              <div style={{ background:"#fff", border:"1px solid #ebebeb", borderRadius:14, overflow:"hidden" }}>
+                {content.filter(x=>x.status!=="Scrapped").map((item,i) => {
+                  const c = STATUS_COLOR[item.status]||"#999";
+                  return (
+                    <div key={item.id} style={{ display:"grid", gridTemplateColumns:"1fr auto auto", alignItems:"center", gap:16, padding:"13px 20px", borderBottom:i<content.length-1?"1px solid #f0f0f0":"none" }}>
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:600, color:"#0f0f1a" }}>{item.title}</div>
+                        <div style={{ fontSize:10, color:"rgba(0,0,0,0.35)", marginTop:2 }}>{item.campaign} · {item.format}</div>
+                      </div>
+                      <span style={{ fontSize:9, color:c, background:`${c}12`, padding:"3px 8px", borderRadius:20, fontWeight:700, whiteSpace:"nowrap" }}>{item.status}</span>
+                      {["Need Copy Approval","Need Content Approval"].includes(item.status) && (
+                        <button onClick={()=>approve(item)} style={{ fontSize:10, fontWeight:700, color:"#30d158", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:7, padding:"5px 10px", cursor:"pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap" }}>Approve</button>
+                      )}
+                      {!["Need Copy Approval","Need Content Approval"].includes(item.status) && <div style={{width:60}}/>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── ROOT APP WRAPPER ─────────────────────────────────────────────────────
+    function App() {
+      const [session, setSession] = useState(null);
+      const [role, setRole]       = useState(null);
+      const [checking, setChecking] = useState(true);
+      const [content, setContent] = useState([]);
+
+      useEffect(() => {
+        // Check existing session on load
+        sb.auth.getSession().then(async ({ data: { session: s } }) => {
+          if (s) {
+            const { data: profile } = await sb.from("profiles").select("role").eq("id", s.user.id).single();
+            const { data: items } = await sb.from("content_items").select("*").order("id");
+            if (items) setContent(items.map(r => ({ ...r, platforms: r.platforms || [] })));
+            setSession(s); setRole(profile?.role || "client");
+          }
+          setChecking(false);
+        });
+        sb.auth.onAuthStateChange((_e, s) => { if (!s) { setSession(null); setRole(null); } });
+      }, []);
+
+      const handleLogin = (user, r) => { setSession({ user }); setRole(r); };
+      const handleSignOut = async () => { await sb.auth.signOut(); setSession(null); setRole(null); };
+
+      if (checking) return (
+        <div style={{ minHeight:"100vh", background:"#0a0a0f", display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <div style={{ width:6, height:6, borderRadius:"50%", background:"#30d158", animation:"livePulse 1.5s ease-in-out infinite" }} />
+        </div>
+      );
+      if (!session) return <LoginScreen onLogin={handleLogin} />;
+      if (role === "client") return <ClientView user={session.user} content={content} setContent={setContent} onSignOut={handleSignOut} />;
+      return <WarRoom onSignOut={handleSignOut} userEmail={session.user?.email} />;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+
+const fontLink = document.createElement("link");
+fontLink.rel = "stylesheet";
+fontLink.href = "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital@1&display=swap";
+document.head.appendChild(fontLink);
+
+// ─── SOP DATA ────────────────────────────────────────────────────────────────
+const VITAL_LYFE_SOP = {
+  title: "Master Content Workflow",
+  subtitle: "Cloud Scenic × VitalLyfe",
+  version: "v1.0 · 2026",
+  steps: [
+    { num: "01", phase: "Discovery", title: "Ideation & Concept Alignment", desc: "Cloud Scenic meets with VitalLyfe's Marketing Director to align on creative direction, brand goals, campaign objectives, and overall content strategy. All ideas, angles, and priorities are discussed and confirmed before any content work begins.", tags: ["Ideation", "Strategy Session", "Marketing Director"] },
+    { num: "02", phase: "Planning", title: "Content Tracker Build & Approval", desc: "A comprehensive content tracker is built in Google Sheets covering every planned asset across Reels, Stories, Graphics, and Carousels — including full content breakdowns, Content Pillars, and pre-approved Captions. Submitted to client for approval before production begins.", tags: ["Google Sheets", "Reels", "Stories", "Graphics", "Carousels", "Content Pillars"] },
+    { num: "03", phase: "Pre-Production", title: "Footage Scouting via Art Grid", desc: "With the approved tracker as a reference, the team heads into Art Grid to scout and select footage that aligns with each piece of content. Every clip is chosen intentionally to match the visual tone, Content Pillars, and platform requirements outlined in the tracker.", tags: ["Art Grid", "Footage Research", "Visual Direction"] },
+    { num: "04", phase: "Production", title: "Content Development & Post-Production", desc: "All content is developed and edited across every required format — Reels, Stories, Graphics, and Carousels. Full post-production is completed for each asset, ensuring platform-specific dimensions, pacing, and brand standards are met before moving to review.", tags: ["Post-Production", "Reels", "Stories", "Graphics", "Carousels"] },
+    { num: "05", phase: "Review", title: "Content Review & Client Approval", desc: "All completed content is sent for client review via Google Drive or Wipster. The client provides feedback and approvals on each asset. No content moves to scheduling until explicit approval is received on every deliverable.", tags: ["Google Drive", "Wipster", "Feedback Loop", "Approval Gate"] },
+    { num: "06", phase: "Distribution", title: "Content Scheduling Across All Platforms", desc: "Approved content is loaded into Sprout Social and scheduled across all active social platforms. Captions are pulled directly from the approved tracker to ensure accuracy and brand consistency across every post.", tags: ["Sprout Social", "Multi-Platform", "Approved Captions"] },
+    { num: "07", phase: "Final Sign-Off", title: "Scheduler Review & Final Confirmation", desc: "The completed schedule from Sprout Social is sent back to the client for a final review. Once confirmed, this serves as the final authorization for delegation and publishing.", tags: ["Sprout Social", "Final Approval", "Delegation", "Go-Live"] },
+  ],
+  tools: ["Sprout Social", "Google Drive", "Wipster", "Google Sheets", "Slack"],
+  platforms: ["Instagram", "TikTok", "YouTube"],
+  contentPillars: ["Education", "Entertainment", "Inspiration", "Promotion", "Community"],
+};
+
+// ─── CONTENT LIBRARY ──────────────────────────────────────────────────────────
+const CAMPAIGNS = ["Drip Campaign", "Meet the Makers", "Product Launch"];
+const STATUSES = ["Ready For Copy Creation", "Need Copy Approval", "Ready For Content Creation", "Need Content Approval", "Needs Revisions", "Approved", "Ready For Schedule", "Scheduled", "Scrapped"];
+const FORMATS = ["Reel", "Graphics (IMG)", "Carousel", "Thread", "Story", "YouTube", "Short"];
+const PILLARS_LIST = ["Abundance", "Access", "Innovation", "Tierra Bomba", "Startup Diaries", "Product Launch", "Meet the Makers"];
+const PLATFORMS_LIST = ["IG", "TT", "X", "TH", "LI", "YT", "RD", "EM"];
+
+const INITIAL_CONTENT = [
+  {id:"vl-1", platform:"instagram", type:"reel", stage:"Approved", campaign:"Drip Campaign", status:"Approved", format:"Reel", pillar:"Abundance", platforms:["IG","TT"], title:"The Source", description:"A poetic, meditative reel starting with a single droplet expanding into global flow, showing how small beginnings lead to massive movement.", script:"Opening Scene: A single droplet hits still water in slow motion.\nMiddle: Ripples expand outward, cutting to rainfall, rivers, ocean horizons.\nClosing Frame: \'Every drop is a beginning. This is ours.\'", caption:"Every drop holds potential.", cta:"Join us (Link in bio)", seoKeywords:"water origin, ripple effect, abundance storytelling", hashtags:"#VitalLyfe #TheSource #AbundanceToAccess", startWeek:1, duration:1, notes:"#VLAD"},
+  {id:"vl-2", platform:"instagram", type:"reel", stage:"Approved", campaign:"Drip Campaign", status:"Approved", format:"Reel", pillar:"Access", platforms:["IG","TT"], title:"Access is Freedom", description:"A cinematic human reel connecting water autonomy to universal freedom. Visuals focus on motion — walking, running, working — connected to flowing water.", script:"Opening Scene: Wide, open landscapes with people in motion.\nMiddle: Quick cuts of movement aligned to a heartbeat-like rhythm.\nClosing Frame: \'Nothing changes until water moves.\'", caption:"Freedom isn't given, it's built.", cta:"Join us (Link in bio)", seoKeywords:"water freedom, human autonomy", hashtags:"#VitalLyfe #Access #WaterFreedom", startWeek:1, duration:1, notes:"#VLAC — remove bikes shot"},
+  {id:"vl-3", platform:"instagram", type:"reel", stage:"Approved", campaign:"Drip Campaign", status:"Approved", format:"Reel", pillar:"Access", platforms:["IG","TT"], title:"Nothing Changes Until Water Moves", description:"A poetic cinematic reel about transformation — from stillness to motion, from waiting to change.", script:"Opening Scene: Water begins to flow, light flickers, faces shift.\nMiddle: Still ocean with text: \'Nothing changes until water moves.\'\nClosing Frame: \'Then everything does.\'", caption:"Nothing changes until water moves. Then everything does.", cta:"See the turning point. Join us (Link in bio)", seoKeywords:"cinematic water motion, visual poetry", hashtags:"#VitalLyfe #NothingChanges #InnovationForChange", startWeek:2, duration:1, notes:"#VLAC"},
+  {id:"vl-4", platform:"instagram", type:"reel", stage:"Approved", campaign:"Drip Campaign", status:"Approved", format:"Reel", pillar:"Innovation", platforms:["IG","TT"], title:"Built for Beyond", description:"A cinematic reel showing Vital Lyfe's technology built to perform anywhere — designed for resilience, built for the edge.", script:"Opening Scene: \'Built for movement. Built for now.\'\nMiddle: Arctic coastlines, desert heat, mountain air.\nClosing Frame: \'Built for beyond.\'", caption:"Progress doesn't stop where comfort ends.", cta:"See what's built for beyond. Join us (Link in bio)", seoKeywords:"resilient design, off-grid water technology", hashtags:"#VitalLyfe #BuiltForBeyond #Innovation", startWeek:2, duration:1, notes:"#VLIV — swap last clip?"},
+  {id:"vl-5", platform:"instagram", type:"reel", stage:"Approved", campaign:"Drip Campaign", status:"Approved", format:"Reel", pillar:"Abundance", platforms:["IG","TT"], title:"Water is Everything", description:"A cinematic reel capturing the constant movement of water across oceans, rivers, rainfall, and condensation.", script:"Opening Scene: \'Everything on Earth moves with water.\'\nMiddle: Wide to macro transitions: currents, rain, steam.\nClosing Frame: \'Everything moves with water. So should we.\'", caption:"Water is everything — energy, matter, motion, and life.", cta:"It's the rhythm that keeps the planet alive. Join us (Link in bio)", seoKeywords:"water energy, cinematic water motion", hashtags:"#VitalLyfe #WaterIsEverything #WaterInMotion", startWeek:3, duration:1, notes:"#VLAD"},
+  {id:"vl-6", platform:"instagram", type:"reel", stage:"Approved", campaign:"Drip Campaign", status:"Approved", format:"Reel", pillar:"Abundance", platforms:["IG","TT"], title:"Looped Motion (Water Meditation)", description:"A mesmerizing, looping reel capturing the rhythm of water in its purest form.", script:"Opening Scene: Rivers, droplets, flowing water — looped seamlessly.\nMiddle: Flowing rivers and rain transitions seamlessly.\nClosing Frame: Still water fades into the Vital Lyfe logo.", caption:"This loop is a reminder of what abundance really means.", cta:"Watch the flow. Join us (Link in bio)", seoKeywords:"water flow, visual meditation", hashtags:"#VitalLyfe #Abundance #LoopedMotion", startWeek:3, duration:1, notes:"#VLAD"},
+  {id:"vl-7", platform:"instagram", type:"graphic", stage:"Approved", campaign:"Drip Campaign", status:"Approved", format:"Graphics (IMG)", pillar:"Abundance", platforms:["IG"], title:"The Source (Graphic)", description:"Macro imagery of droplets, condensation, or mist. A cinematic return to origin.", script:"", caption:"What if abundance was never the problem? What if it's been here all along.", cta:"Learn how Vital Lyfe turns abundance into access. Join us (Link in bio)", seoKeywords:"", hashtags:"#VitalLyfe #WaterSource #AbundanceToAccess", startWeek:1, duration:1, notes:"#VLAD"},
+  {id:"vl-8", platform:"instagram", type:"graphic", stage:"Ready For Copy Creation", campaign:"Drip Campaign", status:"Ready For Copy Creation", format:"Graphics (IMG)", pillar:"Access", platforms:["IG"], title:"The Distance Between", description:"Cinematic visual or split-screen contrast — a bridge between two worlds.", script:"", caption:"70% of our planet is covered in water, yet most remains out of reach.", cta:"See how Vital Lyfe is closing the distance. Join us (Link in bio)", seoKeywords:"", hashtags:"#VitalLyfe #Access #WaterForAll", startWeek:4, duration:1, notes:"#VLAC"},
+  {id:"vl-9", platform:"instagram", type:"carousel", stage:"Need Content Approval", campaign:"Drip Campaign", status:"Need Content Approval", format:"Carousel", pillar:"Abundance", platforms:["IG"], title:"What We're Surrounded By", description:"A cinematic storytelling carousel revealing the paradox: we are surrounded by water yet most remains unusable.", script:"", caption:"We live on a planet of water. The problem isn't what we have, it's how we use it.", cta:"Learn how abundance becomes autonomy. Join us (Link in bio)", seoKeywords:"", hashtags:"#VitalLyfe #Abundance #WaterAccess", startWeek:2, duration:2, notes:"#VLAD — Updated Slide 2 copy"},
+  {id:"vl-10", platform:"instagram", type:"carousel", stage:"Approved", campaign:"Drip Campaign", status:"Approved", format:"Carousel", pillar:"Innovation", platforms:["IG"], title:"The Turning Point", description:"A cinematic storytelling carousel visualizing the moment where innovation transforms impossibility into access.", script:"", caption:"Water shapes us. We shape access.", cta:"See the moment everything changes. Join us (Link in bio)", seoKeywords:"", hashtags:"#VitalLyfe #Innovation #WaterTech", startWeek:1, duration:2, notes:"#VLIV — APPROVED"},
+  {id:"vl-11", platform:"instagram", type:"thread", stage:"Approved", campaign:"Drip Campaign", status:"Approved", format:"Thread", pillar:"Abundance", platforms:["X","TH"], title:"5 Myths About the World's Water Supply", description:"Debunks the perception that Earth's water scarcity is about supply rather than access. 6-tweet thread.", script:"1\u20e3 You've been told the world is running out of water.\n2\u20e3 Seventy percent of the planet is covered in water.\n3\u20e3 Ninety-seven percent of that water is salty.\n4\u20e3 Less than one percent is fresh and accessible.\n5\u20e3 The next era of water isn't about finding more.\n6\u20e3 Follow Vital Lyfe for more.", caption:"", cta:"Follow Vital Lyfe for more stories.", seoKeywords:"", hashtags:"#VitalLyfe #WaterAccess #Abundance", startWeek:2, duration:1, notes:"#VLAD"},
+  {id:"vl-12", platform:"instagram", type:"thread", stage:"Approved", campaign:"Drip Campaign", status:"Approved", format:"Thread", pillar:"Innovation", platforms:["X","TH"], title:"The Future Needs Better Questions", description:"A thought-leadership thread redefining innovation as inquiry, not invention.", script:"1\u20e3 The future won't be shaped by those with the most ideas.\n2\u20e3 How do we create progress that everyone can reach?\n3\u20e3 What if innovation started with human spirit?\n4\u20e3 The answers depend on the questions we dare to ask.\n5\u20e3 That's how tomorrow begins.", caption:"", cta:"Follow for more ideas shaping the future of access.", seoKeywords:"", hashtags:"#VitalLyfe #Innovation #ThinkDifferently", startWeek:3, duration:1, notes:"#VLIV"},
+  {id:"vl-13", platform:"instagram", type:"reel", stage:"Ready For Content Creation", campaign:"Meet the Makers", status:"Ready For Content Creation", format:"Reel", pillar:"Startup Diaries", platforms:["IG","TT"], title:"Inside Vital Lyfe (The Process)", description:"A quiet, behind-the-scenes reel filmed inside Vital Lyfe HQ — hands sketching, testing, assembling, refining.", script:"Opening Scene: Macro shot of hands at work.\nMiddle: Sketching, engineering, prototyping, water testing.\nClosing Frame: \'Innovation lives in the details.\'", caption:"Behind every design, there's a team that builds with purpose.", cta:"Step inside Vital Lyfe. Join us (Link in bio)", seoKeywords:"product development, behind the scenes", hashtags:"#TheProcess #DesignWithPurpose", startWeek:3, duration:2, notes:"#VLIV"},
+  {id:"vl-14", platform:"instagram", type:"reel", stage:"Ready For Content Creation", campaign:"Meet the Makers", status:"Ready For Content Creation", format:"Reel", pillar:"Startup Diaries", platforms:["IG","TT"], title:"Vital Lyfe Diaries — CEO Day in the Life", description:"A behind-the-scenes look following the CEO and team through moments of design, testing, and collaboration.", script:"Opening Scene: \'Engineering the future of water.\'\nMiddle: Team workspaces — prototyping, sketching.\nClosing Frame: \'Innovation built by people, for people.\'", caption:"Real innovation starts with real people.", cta:"Join us (Link in bio)", seoKeywords:"behind the build, CEO diary, team process", hashtags:"#VitalLyfe #VitalLyfeDiaries #DesignWithPurpose", startWeek:4, duration:2, notes:"#VLIV"},
+  {id:"vl-15", platform:"instagram", type:"graphic", stage:"Ready For Copy Creation", campaign:"Product Launch", status:"Ready For Copy Creation", format:"Graphics (IMG)", pillar:"Product Launch", platforms:["IG","LI"], title:"The Launch", description:"Hero product reveal graphic. Top of funnel awareness. Clean, editorial product shot with minimal copy overlay.", script:"", caption:"What we've been building toward. Access, engineered.", cta:"The future of water autonomy is here. Learn more (Link in bio)", seoKeywords:"water technology launch, Vital Lyfe product", hashtags:"#VitalLyfe #ProductLaunch #WaterAutonomy", startWeek:5, duration:1, notes:"Top of funnel. Supports all campaigns."},
+  {id:"vl-16", platform:"youtube", type:"reel", stage:"Need Copy Approval", campaign:"Product Launch", status:"Need Copy Approval", format:"Reel", pillar:"Product Launch", platforms:["IG","TT","YT"], title:"How It Works", description:"Product demo reel. Clean, editorial aesthetic. Device in action across environments — no complex tech reveals.", script:"Opening Scene: Product in hand, wide landscape.\nMiddle: Device in use — coast, city, field.\nClosing Frame: Vital Lyfe logo lockup.", caption:"Abundance has always been here. We just built the key.", cta:"See Vital Lyfe in action. Join the movement (Link in bio)", seoKeywords:"water tech demo, Vital Lyfe how it works", hashtags:"#VitalLyfe #HowItWorks #WaterTech", startWeek:5, duration:2, notes:"No complex tech reveals — form, motion, human precision only."},
+
+  // ── NEEDS REVISIONS ──────────────────────────────────────────────────────────
+  {id:"vl-17", platform:"instagram", type:"reel", stage:"Needs Revisions", campaign:"Drip Campaign", status:"Needs Revisions", format:"Reel", pillar:"Tierra Bomba", platforms:["IG","TT"], title:"Tierra Bomba — First Look", description:"Documentary-style reel capturing the team's first arrival on the island. Community portraits, sea horizon, collaboration moments.", script:"Opening Scene: Aerial view of Tierra Bomba island surrounded by ocean.\nMiddle: Team meets Amigos del Mar partners — handshakes, smiles, shared purpose.\nClosing Frame: 'Where innovation meets reality.'", caption:"Surrounded by water. Still waiting for access.", cta:"Follow the mission. Join us (Link in bio)", seoKeywords:"Tierra Bomba, water access, Colombia", hashtags:"#VitalLyfe #TierraBomba #AccessMatters", startWeek:4, duration:2, notes:"Client revision: swap opening clip — use wide ocean shot not drone footage"},
+  {id:"vl-18", platform:"tiktok", type:"reel", stage:"Needs Revisions", campaign:"Meet the Makers", status:"Needs Revisions", format:"Reel", pillar:"Startup Diaries", platforms:["TT","IG"], title:"The Build Room", description:"A fast-cut TikTok-first reel inside VitalLyfe's build lab. Tools, prototypes, hands-on energy.", script:"Fast cut montage — workbench, components, testing rigs.\nOverlay text: 'This is what the future of water looks like.'\nEnd card: VitalLyfe logo.", caption:"This is where it gets built.", cta:"See the full process. Join us (Link in bio)", seoKeywords:"startup behind the scenes, product build", hashtags:"#VitalLyfe #StartupDiaries #BehindTheBuild", startWeek:3, duration:1, notes:"Revise: audio too loud in first 3 seconds, rebalance levels"},
+
+  // ── READY FOR SCHEDULE ────────────────────────────────────────────────────────
+  {id:"vl-19", platform:"instagram", type:"reel", stage:"Ready For Schedule", campaign:"Drip Campaign", status:"Ready For Schedule", format:"Reel", pillar:"Abundance", platforms:["IG","TT"], title:"The River Always Finds a Way", description:"A meditative reel showing rivers navigating obstacles — metaphor for resilience and flow.", script:"Time-lapse river bending around rock formations.\nText overlay: 'The river always finds a way.'\nClose: VitalLyfe wordmark.", caption:"Water doesn't stop. Neither do we.", cta:"Join the movement. (Link in bio)", seoKeywords:"water resilience, flow state, cinematic nature", hashtags:"#VitalLyfe #Abundance #WaterFindsAWay", startWeek:2, duration:1, notes:"Approved — schedule Week 2 IG + TT"},
+  {id:"vl-20", platform:"instagram", type:"graphic", stage:"Ready For Schedule", campaign:"Drip Campaign", status:"Ready For Schedule", format:"Graphics (IMG)", pillar:"Access", platforms:["IG"], title:"Access is a Right (Graphic)", description:"Bold typographic graphic — single statement, clean background, VitalLyfe brand mark.", script:"", caption:"2.2 billion people live without safe drinking water. Access is not a luxury — it's a right.", cta:"Learn more. Join us (Link in bio)", seoKeywords:"water rights, global access", hashtags:"#VitalLyfe #WaterIsARight #AccessForAll", startWeek:2, duration:1, notes:"Approved — schedule Week 2 IG feed"},
+  {id:"vl-21", platform:"tiktok", type:"reel", stage:"Ready For Schedule", campaign:"Drip Campaign", status:"Ready For Schedule", format:"Reel", pillar:"Innovation", platforms:["TT","IG"], title:"From Blueprint to Reality", description:"Split-screen reel showing engineering sketches cross-dissolving to finished product in the field.", script:"Left frame: blueprint/sketch. Right frame: product in use.\nText: 'Blueprint → Reality'\nEnd card: VitalLyfe.", caption:"Every innovation starts with a question. Ours started with water.", cta:"See what we built. (Link in bio)", seoKeywords:"product innovation, engineering, water tech", hashtags:"#VitalLyfe #Innovation #BlueprintToReality", startWeek:3, duration:1, notes:"Approved — queue TikTok Week 3"},
+  {id:"vl-22", platform:"youtube", type:"reel", stage:"Ready For Schedule", campaign:"Product Launch", status:"Ready For Schedule", format:"Reel", pillar:"Product Launch", platforms:["YT","IG"], title:"Product Reveal — 60s Cut", description:"60-second product hero cut for YouTube pre-roll. Wide landscapes, device in hand, zero dialogue.", script:"Opens on coastline. Device revealed in hand.\nMontage: coast, desert, mountain, city.\nEnd: VitalLyfe wordmark. 'Access, engineered.'", caption:"The future of water autonomy. Here now.", cta:"Watch the full film. (Link in bio)", seoKeywords:"product launch, water technology, VitalLyfe", hashtags:"#VitalLyfe #ProductLaunch #AccessEngineered", startWeek:5, duration:1, notes:"Approved for YouTube pre-roll — schedule Week 5"},
+
+  // ── SCHEDULED ─────────────────────────────────────────────────────────────────
+  {id:"vl-23", platform:"instagram", type:"reel", stage:"Scheduled", campaign:"Drip Campaign", status:"Scheduled", format:"Reel", pillar:"Abundance", platforms:["IG","TT"], title:"The Source — Launch Post", description:"The opening reel of the Drip Campaign. First post to go live. Sets the tone for the entire series.", script:"Single droplet hits still water — slow motion.\nRipples expand to ocean.\n'Every drop is a beginning. This is ours.'", caption:"Every drop holds potential.\n\nRipples expand outward — from a single origin to an ocean of movement.\n\nThis is how abundance becomes access.\n\nJoin us (Link in bio)", cta:"Join us (Link in bio)", seoKeywords:"water origin, ripple effect", hashtags:"#VitalLyfe #TheSource #AbundanceToAccess", startWeek:1, duration:1, notes:"Scheduled: Mon Mar 10 · 5:30 PM via Sprout Social"},
+  {id:"vl-24", platform:"instagram", type:"carousel", stage:"Scheduled", campaign:"Drip Campaign", status:"Scheduled", format:"Carousel", pillar:"Innovation", platforms:["IG"], title:"The Turning Point — Carousel", description:"The approved innovation carousel. Scheduled to go out Week 1 alongside The Source reel.", script:"", caption:"Water shapes us. We shape access.\n\nSlide through to see the moment everything changes.", cta:"See the moment everything changes. Join us (Link in bio)", seoKeywords:"water innovation, turning point", hashtags:"#VitalLyfe #Innovation #WaterTech", startWeek:1, duration:2, notes:"Scheduled: Wed Mar 12 · 12:00 PM via Sprout Social"},
+  {id:"vl-25", platform:"tiktok", type:"reel", stage:"Scheduled", campaign:"Drip Campaign", status:"Scheduled", format:"Reel", pillar:"Access", platforms:["TT","IG"], title:"Access is Freedom — TikTok", description:"Adapted cut of Access is Freedom, paced for TikTok. Tighter hook, same cinematic feel.", script:"Hook: 'Freedom isn\'t given — it\'s built.'\nFast montage: landscapes, people moving, water flowing.\nEnd: VitalLyfe handle + follow CTA.", caption:"Freedom isn't given, it's built. #VitalLyfe", cta:"Follow for more. (Link in bio)", seoKeywords:"water freedom, TikTok content", hashtags:"#VitalLyfe #WaterFreedom #AccessIsEverything", startWeek:1, duration:1, notes:"Scheduled: Tue Mar 11 · 7:00 PM via Sprout Social"},
+];
+
+// ─── AGENTS ──────────────────────────────────────────────────────────────────
+const AGENT_TASKS = {
+  Sean: ["Deploying agents on priority tasks...", "Heartbeat check across all nodes", "Orchestrating morning briefing", "Routing new leads to Funnel", "Cross-checking SOP Step 07 compliance", "Spinning up content pipeline", "Monitoring agent uptime — all green"],
+  Lacey: ["Building n8n workflow: lead capture", "Updating SOPs — revenue data v2", "Automating onboarding sequence", "Executing client deliverable batch", "Wiring Zapier → Supabase pipeline", "Running QA on automation flows", "Syncing deliverables to Drive"],
+  Ali: ["Wiring IG feed integration schema", "Debugging TikTok webhook endpoints", "Optimizing DB queries — 40% faster", "Building auth flow for client portal", "Pushing hotfix to staging", "Code review: Sales Hub integration", "Deploying feed sync to prod"],
+  Sam: ["Heartbeat-check — all systems nominal", "Monitoring revenue streams — $0 delta", "Security scan: no anomalies", "Reconciling Finance Q1 projections", "Flagging unusual API spend", "Auditing agent permission levels", "Monthly P&L — compiling report"],
+  Artgrid: ["Scouting Art Grid: lifestyle + wellness clips", "Filtering footage for IG Reel #14", "Matching clips to Content Pillar: Inspiration", "Downloading B-roll batch: 8 clips", "Cross-referencing approved tracker Step 03", "Queuing B-roll for post-production", "Reviewing licensing on selected footage"],
+  Muse: ["Generating March content ideas — all platforms", "Analyzing trending hooks on TikTok", "Writing 5 hook variations for next Reel", "Mapping ideas to Content Pillars framework", "Building April content calendar", "Writing IG caption batch — 12 posts", "Analyzing competitor hooks — Vital Lyfe niche"],
+  Overseer: ["Reviewing Artgrid selections vs SOP Step 03", "Cross-checking Muse output vs Content Pillars", "Verifying tracker approval gate — Step 02", "Routing approved assets to Sprout Social", "Monitoring full SOP compliance — 7 steps", "Coordinating client review via Wipster", "Final sign-off check before go-live"],
+};
+const AGENTS_BASE = [
+  { id:1, name:"Sean", role:"Commander", type:"Orchestrator", color:"#30d158", grad:"linear-gradient(135deg,#1a4028,#0d2018)", taskIdx:0 },
+  { id:2, name:"Lacey", role:"Runner", type:"Executor", color:"#ff9f0a", grad:"linear-gradient(135deg,#3d2800,#1e1400)", taskIdx:2 },
+  { id:3, name:"Ali", role:"Developer", type:"Builder", color:"#0a84ff", grad:"linear-gradient(135deg,#001a3d,#000d20)", taskIdx:0 },
+  { id:4, name:"Sam", role:"Monitor", type:"Security", color:"#ffd60a", grad:"linear-gradient(135deg,#2d2500,#181200)", taskIdx:0 },
+  { id:5, name:"Artgrid", role:"Footage Scout", type:"Creative", color:"#bf5af2", grad:"linear-gradient(135deg,#1e0a35,#100520)", taskIdx:0 },
+  { id:6, name:"Muse", role:"Content Ideation", type:"Strategy", color:"#ff375f", grad:"linear-gradient(135deg,#3d0010,#200008)", taskIdx:0 },
+  { id:7, name:"Overseer", role:"SOP Guardian", type:"Compliance", color:"#64d2ff", grad:"linear-gradient(135deg,#002040,#001020)", taskIdx:0 },
+];
+const ACTION_COLORS = { route:"#30d158", complete:"#30d158", deploy:"#0a84ff", research:"#bf5af2", execute:"#ff9f0a", alert:"#ff453a", success:"#30d158", check:"#64d2ff", optimize:"#0a84ff", schedule:"#ff375f", brief:"#bf5af2", publish:"#30d158", secure:"#ffd60a", metric:"#ff9f0a", spawn:"#64d2ff" };
+const ACTIVITY_POOL = [
+  { agent:"Overseer", action:"SOP Step 03 — Artgrid selections approved", type:"check" },
+  { agent:"Artgrid", action:"downloaded 6 clips for Reel #14", type:"complete" },
+  { agent:"Muse", action:"generated March content calendar", type:"brief" },
+  { agent:"Sean", action:"routed 3 assets to review queue", type:"route" },
+  { agent:"Ali", action:"pushed IG feed integration to staging", type:"deploy" },
+  { agent:"Lacey", action:"triggered n8n: onboarding sequence", type:"execute" },
+  { agent:"Sam", action:"security scan — all clear", type:"secure" },
+  { agent:"Overseer", action:"Content Pillars compliance — 100%", type:"check" },
+  { agent:"Muse", action:"5 hook variations ready for review", type:"brief" },
+  { agent:"Artgrid", action:"B-roll batch queued for post-production", type:"schedule" },
+  { agent:"Ali", action:"TikTok webhook — 200 OK", type:"optimize" },
+  { agent:"Lacey", action:"Sprout Social schedule — synced", type:"publish" },
+  { agent:"Sam", action:"API spend within budget — nominal", type:"metric" },
+  { agent:"Overseer", action:"final sign-off cleared — Step 07 done", type:"success" },
+  { agent:"Sean", action:"spawned Muse: April ideation sprint", type:"spawn" },
+];
+const OPS_INIT = {
+  backlog: [
+    { id:"t1", title:"Scout Art Grid for wellness B-roll", agent:"Artgrid" },
+    { id:"t2", title:"Generate April content calendar", agent:"Muse" },
+    { id:"t3", title:"Review TikTok hook variations", agent:"Overseer" },
+    { id:"t4", title:"Wire Sprout Social API", agent:"Ali" },
+  ],
+  inProgress: [
+    { id:"t5", title:"Build March content tracker", agent:"Lacey" },
+    { id:"t6", title:"Post-production: Reel batch #3", agent:"Sean" },
+  ],
+  completed: [
+    { id:"t7", title:"SOP compliance audit — complete", agent:"Overseer" },
+    { id:"t8", title:"IG caption batch — 12 posts written", agent:"Muse" },
+  ],
+};
+const NAV = [
+  { section:"COMMAND", items:[{ id:"dashboard", icon:"⊞", label:"Dashboard" }, { id:"agents", icon:"◎", label:"Agents" }]},
+  { section:"CONTENT", items:[{ id:"instagram", icon:"◈", label:"Instagram" }, { id:"tiktok", icon:"♪", label:"TikTok" }, { id:"youtube", icon:"▷", label:"YouTube" }, { id:"tracker", icon:"⊟", label:"Content Tracker" }, { id:"taskboard", icon:"⊕", label:"Task Board" }]},
+  { section:"BUSINESS", items:[{ id:"funnel", icon:"◉", label:"Funnel" }, { id:"sales", icon:"◐", label:"Sales Hub" }, { id:"chat", icon:"◷", label:"Chat" }]},
+  { section:"OPERATIONS", items:[{ id:"artgrid", icon:"◭", label:"ArtGrid Scout" }, { id:"references", icon:"◫", label:"References" }, { id:"skills", icon:"◆", label:"Skills" }, { id:"sops", icon:"⊟", label:"SOPs" }]},
+];
+
+// ─── STATUS COLORS ────────────────────────────────────────────────────────────
+const STATUS_COLOR = {
+  "Ready For Copy Creation":    "#f59e0b",
+  "Need Copy Approval":         "#3b82f6",
+  "Ready For Content Creation": "#10b981",
+  "Need Content Approval":      "#ff453a",
+  "Needs Revisions":            "#f97316",
+  "Approved":                   "#30d158",
+  "Ready For Schedule":         "#8b5cf6",
+  "Scheduled":                  "#64d2ff",
+  "Scrapped":                   "#ff453a",
+};
+
+// ─── SHORT STAGE LABELS ───────────────────────────────────────────────────────
+const STAGE_SHORT = {
+  "Ready For Copy Creation":    "Copy Creation",
+  "Need Copy Approval":         "Copy Approval",
+  "Ready For Content Creation": "Content Creation",
+  "Need Content Approval":      "Content Approval",
+  "Needs Revisions":            "Needs Revisions",
+  "Approved":                   "✓ Approved",
+  "Ready For Schedule":         "Ready to Schedule",
+  "Scheduled":                  "Scheduled",
+};
+
+// ─── HOOKS ────────────────────────────────────────────────────────────────────
+function useInterval(cb, delay) {
+  const cbRef = useRef(cb);
+  useEffect(() => { cbRef.current = cb; }, [cb]);
+  useEffect(() => {
+    if (delay == null) return;
+    const id = setInterval(() => cbRef.current(), delay);
+    return () => clearInterval(id);
+  }, [delay]);
+}
+
+// ─── EDIT CONTENT MODAL ───────────────────────────────────────────────────────
+function EditContentModal({ item, onSave, onClose }) {
+  const [form, setForm] = useState({ ...item });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const togglePlatform = (p) => {
+    const cur = form.platforms || [];
+    set("platforms", cur.includes(p) ? cur.filter(x => x !== p) : [...cur, p]);
+  };
+
+  // ── GOOGLE DRIVE UPLOAD ───────────────────────────────────────────────────
+  const GDRIVE_CLIENT_ID = "458336864067-sf7s9meaogm9ltk4qcupv8tu943in6ft.apps.googleusercontent.com";
+  const GDRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState("");
+  const fileRef = useRef(null);
+
+  const getAccessToken = () => new Promise((resolve, reject) => {
+    if (!window.google) { reject(new Error("Google not loaded")); return; }
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: GDRIVE_CLIENT_ID,
+      scope: GDRIVE_SCOPE,
+      callback: (resp) => resp.error ? reject(resp) : resolve(resp.access_token),
+    });
+    client.requestAccessToken({ prompt: "" });
+  });
+
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true); setUploadMsg("Connecting to Google…");
+    try {
+      const token = await getAccessToken();
+      setUploadMsg("Uploading to Drive…");
+
+      // Step 1: Initiate resumable upload session
+      const initRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-Upload-Content-Type": file.type,
+          "X-Upload-Content-Length": file.size,
+        },
+        body: JSON.stringify({ name: `[${form.id}] ${file.name}`, mimeType: file.type }),
+      });
+      const uploadUrl = initRes.headers.get("Location");
+      if (!uploadUrl) throw new Error("Failed to get upload URL");
+
+      // Step 2: Upload the file to the session URL
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type, "Content-Length": file.size },
+        body: file,
+      });
+      const data = await uploadRes.json();
+      if (data.error) throw new Error(data.error.message);
+
+      // Step 3: Make file viewable by anyone with link
+      await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "reader", type: "anyone" }),
+      });
+
+      const files = [...(form.files || []), { name: file.name, url: data.webViewLink, driveId: data.id }];
+      set("files", files);
+      setUploadMsg(`✓ ${file.name} uploaded to Drive`);
+    } catch (err) {
+      setUploadMsg("Upload failed: " + err.message);
+    }
+    setUploading(false);
+  };
+
+  const removeFile = (f) => set("files", (form.files || []).filter(x => x.driveId !== f.driveId));
+
+  const labelStyle = { fontSize: 9, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(0,0,0,0.4)", marginBottom: 5, display: "block" };
+  const inputStyle = { width: "100%", border: "1px solid #e5e5e5", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#0f0f1a", outline: "none", fontFamily: "Inter, sans-serif", background: "#fff", boxSizing: "border-box" };
+  const textareaStyle = { ...inputStyle, resize: "vertical", lineHeight: 1.6 };
+  const selectStyle = { ...inputStyle, appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' fill='none' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", cursor: "pointer" };
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.35)", backdropFilter:"blur(4px)" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background:"#fff", borderRadius:20, width:"100%", maxWidth:660, maxHeight:"92vh", overflowY:"auto", padding:"32px 36px", boxShadow:"0 24px 80px rgba(0,0,0,0.18)", fontFamily:"Inter, sans-serif" }}>
+        {/* Header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
+          <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontStyle:"italic", fontSize:26, fontWeight:400, color:"#0f0f1a", margin:0 }}>Edit Content</h2>
+          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:20, color:"rgba(0,0,0,0.35)", cursor:"pointer", lineHeight:1, padding:4 }}>×</button>
+        </div>
+
+        {/* Row 1: Campaign + Status */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:18 }}>
+          <div>
+            <label style={labelStyle}>Campaign</label>
+            <select style={selectStyle} value={form.campaign} onChange={e => set("campaign", e.target.value)}>
+              {CAMPAIGNS.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Status</label>
+            <select style={selectStyle} value={form.status} onChange={e => set("status", e.target.value)}>
+              {STATUSES.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Row 2: Format + Pillar */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:18 }}>
+          <div>
+            <label style={labelStyle}>Format</label>
+            <select style={selectStyle} value={form.format} onChange={e => set("format", e.target.value)}>
+              {FORMATS.map(f => <option key={f}>{f}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Content Pillar</label>
+            <select style={selectStyle} value={form.pillar} onChange={e => set("pillar", e.target.value)}>
+              {PILLARS_LIST.map(p => <option key={p}>{p}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Platforms */}
+        <div style={{ marginBottom:18 }}>
+          <label style={labelStyle}>Platforms</label>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+            {PLATFORMS_LIST.map(p => {
+              const active = (form.platforms || []).includes(p);
+              return (
+                <button key={p} onClick={() => togglePlatform(p)} style={{ padding:"7px 14px", borderRadius:8, fontSize:12, fontWeight:600, cursor:"pointer", transition:"all 0.15s", border: active ? "none" : "1px solid #e0e0e0", background: active ? "#0f0f1a" : "#fff", color: active ? "#fff" : "rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif" }}>{p}</button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Content Title */}
+        <div style={{ marginBottom:18 }}>
+          <label style={labelStyle}>Content Title</label>
+          <input style={inputStyle} value={form.title} onChange={e => set("title", e.target.value)} />
+        </div>
+
+        {/* Content Description */}
+        <div style={{ marginBottom:18 }}>
+          <label style={{ ...labelStyle, display:"flex", alignItems:"center", gap:6 }}>
+            <strong style={{ color:"rgba(0,0,0,0.65)" }}>Content Description</strong>
+            <span style={{ fontWeight:400, fontSize:9, color:"rgba(0,0,0,0.35)", textTransform:"none", letterSpacing:0 }}>— What is this content?</span>
+          </label>
+          <textarea style={{ ...textareaStyle, minHeight:72 }} value={form.description} onChange={e => set("description", e.target.value)} />
+        </div>
+
+        {/* Script */}
+        <div style={{ marginBottom:18 }}>
+          <label style={labelStyle}>Video Copy / Script</label>
+          <textarea style={{ ...textareaStyle, minHeight:90, fontFamily:"'SF Mono', 'Fira Code', monospace", fontSize:12, color:"rgba(0,0,0,0.55)" }} value={form.script} onChange={e => set("script", e.target.value)} placeholder={"Opening Scene: ...\nMiddle: ...\nClosing Frame: ..."} />
+        </div>
+
+        {/* Caption */}
+        <div style={{ marginBottom:18 }}>
+          <label style={labelStyle}>Caption</label>
+          <textarea style={{ ...textareaStyle, minHeight:80 }} value={form.caption} onChange={e => set("caption", e.target.value)} />
+        </div>
+
+        {/* CTA */}
+        <div style={{ marginBottom:18 }}>
+          <label style={labelStyle}>CTA</label>
+          <input style={inputStyle} value={form.cta} onChange={e => set("cta", e.target.value)} />
+        </div>
+
+        {/* SEO Keywords */}
+        <div style={{ marginBottom:18 }}>
+          <label style={labelStyle}>SEO Keywords</label>
+          <input style={inputStyle} value={form.seoKeywords} onChange={e => set("seoKeywords", e.target.value)} placeholder="water origin, abundance storytelling..." />
+        </div>
+
+        {/* Hashtags */}
+        <div style={{ marginBottom:18 }}>
+          <label style={labelStyle}>Hashtags</label>
+          <input style={inputStyle} value={form.hashtags} onChange={e => set("hashtags", e.target.value)} />
+        </div>
+
+        {/* Start Week + Duration */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:18 }}>
+          <div>
+            <label style={labelStyle}>Start Week</label>
+            <input style={inputStyle} type="number" value={form.startWeek} onChange={e => set("startWeek", e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>Duration (Weeks)</label>
+            <input style={inputStyle} type="number" value={form.duration} onChange={e => set("duration", e.target.value)} />
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div style={{ marginBottom:28 }}>
+          <label style={labelStyle}>Notes / Direction</label>
+          <textarea style={{ ...textareaStyle, minHeight:72 }} value={form.notes} onChange={e => set("notes", e.target.value)} />
+        </div>
+
+        {/* File Assets */}
+        <div style={{ marginBottom:28 }}>
+          <label style={labelStyle}>Assets / Files</label>
+          <div style={{ border:"1.5px dashed #e0e0e0", borderRadius:12, padding:"16px 18px", background:"#fafafa" }}>
+            {/* Existing files */}
+            {(form.files || []).length > 0 && (
+              <div style={{ marginBottom:12, display:"flex", flexDirection:"column", gap:6 }}>
+                {(form.files || []).map(f => (
+                  <div key={f.path} style={{ display:"flex", alignItems:"center", gap:10, background:"#fff", border:"1px solid #ebebeb", borderRadius:8, padding:"8px 12px" }}>
+                    <span style={{ fontSize:16 }}>{f.name.match(/\.(mp4|mov|avi)$/i) ? "🎬" : f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? "🖼" : "📄"}</span>
+                    <a href={f.url} target="_blank" style={{ fontSize:12, color:"#0a84ff", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:"none", fontWeight:500 }}>{f.name}</a>
+                    <button onClick={() => removeFile(f)} style={{ fontSize:11, color:"#ff453a", background:"none", border:"none", cursor:"pointer", padding:"2px 6px", borderRadius:5, fontFamily:"Inter, sans-serif" }}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Upload button */}
+            <input ref={fileRef} type="file" style={{ display:"none" }} onChange={handleUpload}
+              accept="video/*,image/*,.pdf,.psd,.ai,.fig" />
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                style={{ fontSize:12, fontWeight:600, color:"#0f0f1a", background:"#fff", border:"1px solid #e0e0e0", borderRadius:8, padding:"8px 16px", cursor:uploading?"not-allowed":"pointer", fontFamily:"Inter, sans-serif" }}>
+                {uploading ? "Uploading…" : "+ Upload File"}
+              </button>
+              {uploadMsg && <span style={{ fontSize:11, color: uploadMsg.startsWith("✓") ? "#30d158" : "#ff453a" }}>{uploadMsg}</span>}
+              {!uploadMsg && <span style={{ fontSize:10, color:"rgba(0,0,0,0.3)" }}>Video, image, PDF, PSD, Figma</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+          <button onClick={() => onSave(form)} style={{ flex:1, background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:14, fontWeight:600, padding:"14px", cursor:"pointer", fontFamily:"Inter, sans-serif", letterSpacing:-0.2 }}>Save Changes</button>
+          <button onClick={onClose} style={{ padding:"14px 22px", background:"none", border:"none", color:"rgba(0,0,0,0.4)", fontSize:14, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── COMPONENTS ───────────────────────────────────────────────────────────────
+function AgentAvatar({ agent, size=40 }) {
+  const [beat, setBeat] = useState(false);
+  useEffect(() => {
+    const id = setInterval(() => { setBeat(true); setTimeout(() => setBeat(false), 300); }, 3000 + Math.random() * 4000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div style={{ position:"relative", width:size, height:size, flexShrink:0 }}>
+      <div style={{ width:size, height:size, borderRadius:size*0.3, background:agent.grad, border:`1.5px solid ${agent.color}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.38, fontWeight:700, color:agent.color, boxShadow:beat?`0 0 12px ${agent.color}60`:"none", transition:"box-shadow 0.3s" }}>{agent.name[0]}</div>
+      <div style={{ position:"absolute", bottom:-1, right:-1, width:size*0.26, height:size*0.26, borderRadius:"50%", background:"#30d158", border:`2px solid #f5f5f7`, animation:"livePulse 2.5s ease-in-out infinite" }} />
+    </div>
+  );
+}
+function TypingTask({ text, color }) {
+  const [displayed, setDisplayed] = useState("");
+  const [idx, setIdx] = useState(0);
+  useEffect(() => { setDisplayed(""); setIdx(0); }, [text]);
+  useEffect(() => {
+    if (idx >= text.length) return;
+    const id = setTimeout(() => { setDisplayed(text.slice(0, idx+1)); setIdx(i => i+1); }, 16 + Math.random()*12);
+    return () => clearTimeout(id);
+  }, [idx, text]);
+  return <span style={{ color, fontSize:11, letterSpacing:0.1 }}>{displayed}{idx < text.length ? <span style={{ animation:"blink 0.7s step-end infinite", color }}>|</span> : null}</span>;
+}
+function Card({ children, style={}, glowColor, onClick }) {
+  return (
+    <div onClick={onClick} style={{ background:"rgba(255,255,255,0.92)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", border:"1px solid rgba(0,0,0,0.08)", borderRadius:16, boxShadow:glowColor?`0 4px 24px rgba(0,0,0,0.1), 0 0 0 1px ${glowColor}20`:"0 2px 16px rgba(0,0,0,0.07)", ...style }}>
+      {children}
+    </div>
+  );
+}
+function MetricCard({ label, value, delta, color, icon }) {
+  const [v, setV] = useState(value - Math.floor(Math.random()*30));
+  useInterval(() => { setV(p => p + Math.floor(Math.random()*delta)); }, 5000 + Math.random()*3000);
+  return (
+    <Card style={{ flex:1, padding:"20px 22px", minWidth:0 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
+        <div style={{ fontSize:20, opacity:0.7 }}>{icon}</div>
+        <div style={{ fontSize:10, color:"#30d158", background:"rgba(48,209,88,0.12)", padding:"2px 8px", borderRadius:20, fontWeight:600 }}>+{delta}</div>
+      </div>
+      <div style={{ fontSize:30, fontWeight:700, color:"#0f0f1a", letterSpacing:-1 }}>{v.toLocaleString()}</div>
+      <div style={{ fontSize:11, color:"rgba(0,0,0,0.48)", marginTop:4, fontWeight:500 }}>{label}</div>
+      <div style={{ marginTop:12, height:2, background:"rgba(0,0,0,0.06)", borderRadius:2 }}>
+        <div style={{ height:"100%", width:`${Math.min(100,(v/(value*1.5))*100)}%`, background:color, borderRadius:2, transition:"width 1s ease" }} />
+      </div>
+    </Card>
+  );
+}
+function AgentCard({ agent, selected, onClick }) {
+  const [taskIdx, setTaskIdx] = useState(agent.taskIdx);
+  const [progress, setProgress] = useState(Math.floor(Math.random()*60)+10);
+  useInterval(() => {
+    setProgress(p => {
+      if (p >= 100) { setTaskIdx(i => (i+1) % AGENT_TASKS[agent.name].length); return 0; }
+      return p + Math.floor(Math.random()*5)+1;
+    });
+  }, 1000 + Math.random()*500);
+  const task = AGENT_TASKS[agent.name][taskIdx];
+  return (
+    <div onClick={onClick} style={{ minWidth:200, maxWidth:200, background:selected?`${agent.color}12`:"rgba(255,255,255,0.9)", border:`1px solid ${selected?agent.color+"60":"rgba(0,0,0,0.08)"}`, borderRadius:16, padding:"18px 16px", cursor:"pointer", transition:"all 0.25s", boxShadow:selected?`0 8px 32px ${agent.color}25`:"0 2px 12px rgba(0,0,0,0.06)", backdropFilter:"blur(20px)" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+        <AgentAvatar agent={agent} size={40} />
+        <div>
+          <div style={{ fontWeight:600, color:"#0f0f1a", fontSize:14, letterSpacing:-0.3 }}>{agent.name}</div>
+          <div style={{ fontSize:10, color:agent.color, fontWeight:500, marginTop:1 }}>{agent.role}</div>
+        </div>
+      </div>
+      <div style={{ fontSize:9, color:"rgba(0,0,0,0.3)", letterSpacing:1.5, marginBottom:6, textTransform:"uppercase", fontWeight:600 }}>Current Task</div>
+      <TypingTask text={task} color="rgba(0,0,0,0.62)" />
+      <div style={{ marginTop:14, height:3, background:"rgba(0,0,0,0.06)", borderRadius:3 }}>
+        <div style={{ height:"100%", width:`${progress}%`, background:`linear-gradient(90deg,${agent.color}80,${agent.color})`, borderRadius:3, transition:"width 1s ease-out" }} />
+      </div>
+      <div style={{ display:"flex", justifyContent:"space-between", marginTop:5 }}>
+        <span style={{ fontSize:9, color:"rgba(0,0,0,0.3)" }}>progress</span>
+        <span style={{ fontSize:9, color:agent.color, fontWeight:600 }}>{progress}%</span>
+      </div>
+    </div>
+  );
+}
+function OpsBoard() {
+  const [ops, setOps] = useState(OPS_INIT);
+  const [newTask, setNewTask] = useState("");
+  useInterval(() => {
+    setOps(prev => {
+      if (prev.backlog.length===0) return prev;
+      const task = prev.backlog[0];
+      return { ...prev, backlog:prev.backlog.slice(1), inProgress:[...prev.inProgress,{ ...task, id:task.id+"_m" }] };
+    });
+  }, 20000);
+  useInterval(() => {
+    setOps(prev => {
+      if (prev.inProgress.length===0) return prev;
+      const task = prev.inProgress[0];
+      return { ...prev, inProgress:prev.inProgress.slice(1), completed:[{ ...task, id:task.id+"_d" },...prev.completed].slice(0,8) };
+    });
+  }, 28000);
+  const addTask = () => {
+    if (!newTask.trim()) return;
+    setOps(prev => ({ ...prev, backlog:[...prev.backlog,{ id:Date.now().toString(), title:newTask, agent:"Unassigned" }] }));
+    setNewTask("");
+  };
+  const cols = [{ key:"backlog", label:"Backlog", color:"rgba(0,0,0,0.4)" }, { key:"inProgress", label:"In Progress", color:"#ff9f0a" }, { key:"completed", label:"Completed", color:"#30d158" }];
+  return (
+    <div style={{ display:"flex", gap:12 }}>
+      {cols.map(col => (
+        <div key={col.key} style={{ flex:1 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <span style={{ fontSize:12, fontWeight:600, color:col.color }}>{col.label}</span>
+            <span style={{ fontSize:11, color:col.color, background:`${col.color}18`, padding:"2px 8px", borderRadius:20, fontWeight:600 }}>{ops[col.key].length}</span>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {ops[col.key].map((task,i) => (
+              <Card key={task.id} style={{ padding:"12px 14px", borderLeft:`3px solid ${col.color}80`, borderRadius:12, animation:i===0&&col.key==="inProgress"?"slideIn 0.3s ease":"none" }}>
+                <div style={{ fontSize:12, color:"#1a1a2e", fontWeight:500, marginBottom:4, lineHeight:1.4 }}>{task.title}</div>
+                <div style={{ fontSize:10, color:"rgba(0,0,0,0.4)" }}>{task.agent}</div>
+                {col.key==="inProgress" && <div style={{ marginTop:10, height:2, background:"rgba(0,0,0,0.06)", borderRadius:2 }}><div style={{ height:"100%", width:"55%", background:col.color, borderRadius:2, animation:"progressBar 28s linear forwards" }} /></div>}
+              </Card>
+            ))}
+            {col.key==="backlog" && (
+              <div style={{ display:"flex", gap:6 }}>
+                <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key==="Enter" && addTask()} placeholder="Add task..." style={{ flex:1, background:"rgba(0,0,0,0.04)", border:"1px solid rgba(0,0,0,0.1)", borderRadius:10, padding:"8px 12px", color:"#1a1a2e", fontSize:11, outline:"none", fontFamily:"Inter, sans-serif" }} />
+                <button onClick={addTask} style={{ background:"rgba(48,209,88,0.15)", border:"1px solid rgba(48,209,88,0.3)", borderRadius:10, color:"#30d158", cursor:"pointer", padding:"8px 14px", fontSize:14, fontWeight:700 }}>+</button>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+function ActivityFeed({ feed }) {
+  return (
+    <div style={{ height:200, overflowY:"auto", display:"flex", flexDirection:"column", gap:3 }}>
+      {feed.map((item,i) => (
+        <div key={item.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 12px", background:i===0?`${ACTION_COLORS[item.type]}0a`:"transparent", borderRadius:8, borderLeft:i===0?`2px solid ${ACTION_COLORS[item.type]}`:"2px solid transparent", animation:i===0?"slideIn 0.3s ease":"none", transition:"all 0.3s" }}>
+          <span style={{ fontSize:9, color:"rgba(0,0,0,0.3)", whiteSpace:"nowrap" }}>{item.time}</span>
+          <span style={{ fontSize:10, color:ACTION_COLORS[item.type], fontWeight:600, whiteSpace:"nowrap" }}>{item.agent}</span>
+          <span style={{ fontSize:10, color:"rgba(0,0,0,0.48)" }}>{item.action}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── CONTENT PIPELINE BOARD (clickable cards) ─────────────────────────────────
+function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardClick }) {
+  return (
+    <div style={{ marginBottom:32 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
+        <span style={{ fontSize:18 }}>{icon}</span>
+        <span style={{ fontSize:16, fontWeight:600, color:"#0f0f1a", letterSpacing:-0.5 }}>{title}</span>
+        <span style={{ fontSize:10, color:"rgba(0,0,0,0.35)", background:"rgba(0,0,0,0.05)", padding:"2px 9px", borderRadius:20, fontWeight:600 }}>{items.length} pieces</span>
+        <span style={{ fontSize:11, color:"rgba(0,0,0,0.25)", marginLeft:"auto" }}>← scroll →</span>
+      </div>
+      <div style={{ display:"flex", gap:10, overflowX:"auto", paddingBottom:8 }}>
+        {stages.map((stage,si) => {
+          const c = stageColors[si];
+          const stageItems = items.filter(x => x.stage === stage);
+          return (
+            <div key={stage} style={{ minWidth:160, maxWidth:160 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                <span style={{ fontSize:9, fontWeight:700, color:c, letterSpacing:0.3, textTransform:"uppercase", lineHeight:1.3 }}>{STAGE_SHORT[stage] || stage}</span>
+                <span style={{ fontSize:10, color:c, background:`${c}18`, padding:"1px 7px", borderRadius:20, fontWeight:700 }}>{stageItems.length}</span>
+              </div>
+              <div style={{ minHeight:120, background:"rgba(0,0,0,0.02)", border:"1px solid rgba(0,0,0,0.05)", borderRadius:12, padding:8 }}>
+                {stageItems.map((item) => (
+                  <div key={item.id} onClick={() => onCardClick(item)} style={{ padding:"10px 12px", marginBottom:7, borderRadius:10, borderLeft:`2px solid ${c}`, background:"#fff", boxShadow:"0 1px 6px rgba(0,0,0,0.06)", cursor:"pointer", transition:"all 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.boxShadow=`0 4px 14px rgba(0,0,0,0.1)`; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="0 1px 6px rgba(0,0,0,0.06)"; }}>
+                    <div style={{ fontSize:11, color:"#1a1a2e", fontWeight:600, lineHeight:1.35, marginBottom:5 }}>{item.title}</div>
+                    <div style={{ fontSize:9, color:"rgba(0,0,0,0.35)", marginBottom:5, lineHeight:1.4 }}>{item.campaign}</div>
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                      <span style={{ fontSize:8, color:c, background:`${c}15`, padding:"2px 5px", borderRadius:4, fontWeight:700 }}>{item.pillar}</span>
+                      {item.platforms.slice(0,2).map(p => <span key={p} style={{ fontSize:8, color:"rgba(0,0,0,0.35)", background:"rgba(0,0,0,0.05)", padding:"2px 5px", borderRadius:4 }}>{p}</span>)}
+                    </div>
+                  </div>
+                ))}
+                {stageItems.length===0 && <div style={{ fontSize:10, color:"rgba(0,0,0,0.2)", textAlign:"center", padding:"24px 0" }}>empty</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PlaceholderPage({ icon, title, badge, desc }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"70vh" }}>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:56, marginBottom:20, opacity:0.15 }}>{icon}</div>
+        <div style={{ display:"inline-flex", alignItems:"center", gap:10, marginBottom:12 }}>
+          <h2 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", margin:0, letterSpacing:-0.5 }}>{title}</h2>
+          {badge && <span style={{ fontSize:10, color:"#ff9f0a", background:"rgba(255,159,10,0.15)", padding:"3px 10px", borderRadius:20, fontWeight:600 }}>{badge}</span>}
+        </div>
+        <p style={{ fontSize:13, color:"rgba(0,0,0,0.4)", maxWidth:360, margin:"0 auto", lineHeight:1.6 }}>{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+// ─── REFERENCES FOLDER ───────────────────────────────────────────────────────
+const REF_TYPES = ["Hook", "Caption", "CTA", "Brand Voice", "Campaign Brief", "Script Sample"];
+const INITIAL_REFS = [
+  { id:"ref-1", title:"Drip Campaign — Hook Bank", type:"Hook", pillar:"Abundance", platform:"IG/TT", content:"Every drop holds potential.\n\nFreedom isn't given, it's built.\n\nNothing changes until water moves. Then everything does.\n\nProgress doesn't stop where comfort ends.\n\nWhat if abundance was never the problem? What if it's been here all along.\n\n70% of our planet is covered in water, yet most remains out of reach.", notes:"These hooks work because they're poetic but grounded. Lead with the metaphor — let the product follow. Never open with the brand name." },
+  { id:"ref-2", title:"Vital Lyfe — Brand Voice", type:"Brand Voice", pillar:"Access", platform:"All", content:"Tone: Cinematic, calm, purposeful. Never corporate. Never hype.\n\nWe speak like a documentary director, not a sales team. The visuals do the selling — the copy creates the feeling.\n\nKey phrases: 'abundance', 'access', 'built for beyond', 'the distance between', 'water moves', 'closes the distance'\n\nAvoid: 'revolutionary', 'game-changing', 'disrupting', 'best-in-class', tech jargon, exclamation points.\n\nEvery caption should feel like it could be a line in a film. Short. Weighted. Intentional.", notes:"North star for Muse on all copy. When in doubt — read it out loud. If it sounds like an ad, rewrite it." },
+  { id:"ref-3", title:"Caption Structure — Drip Campaign", type:"Caption", pillar:"Abundance", platform:"IG", content:"Structure that works for Vital Lyfe:\n\nLine 1: Poetic statement (not a question — statements land harder for this brand)\nBlank line\nLine 2-3: Expand the metaphor\nBlank line\nLine 4: Bridge to the brand/mission\nBlank line\nCTA: Soft. Community. 'Join us (Link in bio)'\n\nExample:\nEvery drop holds potential.\n\nRipples expand outward — from a single origin to an ocean of movement.\n\nThis is how abundance becomes access.\n\nJoin us (Link in bio)", notes:"Line breaks are non-negotiable. No walls of text. The white space IS the tone." },
+  { id:"ref-4", title:"Drip Campaign — Full Brief", type:"Campaign Brief", pillar:"Abundance", platform:"IG/TT/X", content:"Campaign: Drip Campaign\nGoal: Brand awareness and community building. Top-of-funnel storytelling.\n\nConcept: Water as metaphor for abundance, access, and transformation. Every piece connects Vital Lyfe's mission to a universal human experience of water.\n\nContent pillars covered: Abundance, Access, Innovation, Startup Diaries, Product Launch\n\nVisual direction: Cinematic. Slow motion. Macro water shots. Wide landscapes. Clean, minimal environments. No stock photo energy — everything should feel like it was shot for a documentary or luxury brand.\n\nApproved pieces (9): The Source, Access is Freedom, Nothing Changes Until Water Moves, Built for Beyond, Water is Everything, Looped Motion, The Source (Graphic), The Turning Point, plus 2 threads.\n\nPending: The Distance Between (needs copy), What We're Surrounded By (needs content approval).\n\nCTAs: Always 'Join us (Link in bio)' — never 'Shop now', 'Buy', or pushy conversion language.", notes:"Reference this before generating any new Drip Campaign copy. The tone is earned — don't let individual pieces break it." },
+];
+
+function ReferencesPage() {
+  const [refs, setRefs] = useState(INITIAL_REFS);
+  const [expanded, setExpanded] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ title:"", type:"Hook", pillar:"Education", platform:"IG", content:"", notes:"" });
+  const setF = (k,v) => setForm(f => ({ ...f, [k]:v }));
+  const TYPE_COLOR = { "Hook":"#3b82f6", "Caption":"#10b981", "CTA":"#f59e0b", "Brand Voice":"#8b5cf6", "Campaign Brief":"#ff375f", "Script Sample":"#30d158" };
+  const TYPE_ICON = { "Hook":"⚡", "Caption":"✏️", "CTA":"🎯", "Brand Voice":"🎙", "Campaign Brief":"📋", "Script Sample":"📝" };
+  const labelStyle = { fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(0,0,0,0.4)", marginBottom:5, display:"block" };
+  const inp = { width:"100%", border:"1px solid #e5e5e5", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#0f0f1a", outline:"none", fontFamily:"Inter, sans-serif", background:"#fff", boxSizing:"border-box" };
+
+  const saveRef = () => {
+    if (!form.title.trim() || !form.content.trim()) return;
+    setRefs(prev => [...prev, { ...form, id:`ref-${Date.now()}` }]);
+    setForm({ title:"", type:"Hook", pillar:"Education", platform:"IG", content:"", notes:"" });
+    setAdding(false);
+  };
+
+  return (
+    <div style={{ animation:"fadeIn 0.4s ease" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:24 }}>
+        <div>
+          <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", marginBottom:4, letterSpacing:-0.8 }}>References</h1>
+          <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>Drop campaign examples, hooks, captions, and brand voice notes here. Muse + Overseer read from this folder.</p>
+        </div>
+        <button onClick={() => setAdding(true)} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>+ Add Reference</button>
+      </div>
+
+      <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
+        {REF_TYPES.map(t => { const c=TYPE_COLOR[t]; const n=refs.filter(r=>r.type===t).length; return (
+          <span key={t} style={{ fontSize:10, color:c, background:`${c}12`, padding:"4px 12px", borderRadius:20, fontWeight:600, border:`1px solid ${c}25` }}>{t}{n>0?` · ${n}`:""}</span>
+        );})}
+      </div>
+
+      {adding && (
+        <Card style={{ padding:"28px", marginBottom:24, border:"1px solid rgba(0,0,0,0.12)" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+            <h3 style={{ fontSize:15, fontWeight:600, color:"#0f0f1a", margin:0 }}>New Reference</h3>
+            <button onClick={() => setAdding(false)} style={{ background:"none", border:"none", fontSize:18, color:"rgba(0,0,0,0.35)", cursor:"pointer" }}>×</button>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", gap:12, marginBottom:14 }}>
+            <div><label style={labelStyle}>Title</label><input style={inp} value={form.title} onChange={e=>setF("title",e.target.value)} placeholder="e.g. Money Moves — Hook Bank" /></div>
+            <div><label style={labelStyle}>Type</label><select style={{ ...inp, appearance:"none", cursor:"pointer" }} value={form.type} onChange={e=>setF("type",e.target.value)}>{REF_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
+            <div><label style={labelStyle}>Pillar</label><select style={{ ...inp, appearance:"none", cursor:"pointer" }} value={form.pillar} onChange={e=>setF("pillar",e.target.value)}>{PILLARS_LIST.map(p=><option key={p}>{p}</option>)}</select></div>
+            <div><label style={labelStyle}>Platform</label><input style={inp} value={form.platform} onChange={e=>setF("platform",e.target.value)} placeholder="IG, TT, All..." /></div>
+          </div>
+          <div style={{ marginBottom:12 }}><label style={labelStyle}>Content</label><textarea style={{ ...inp, minHeight:140, resize:"vertical", lineHeight:1.7 }} value={form.content} onChange={e=>setF("content",e.target.value)} placeholder="Paste hooks, captions, brand voice notes, campaign brief, or script samples here..." /></div>
+          <div style={{ marginBottom:20 }}><label style={labelStyle}>Agent Notes</label><textarea style={{ ...inp, minHeight:56, resize:"vertical", lineHeight:1.6 }} value={form.notes} onChange={e=>setF("notes",e.target.value)} placeholder="Context for Muse / Overseer on how to use this reference..." /></div>
+          <div style={{ display:"flex", gap:10 }}>
+            <button onClick={saveRef} style={{ background:"#0f0f1a", border:"none", borderRadius:10, color:"#fff", fontSize:13, fontWeight:600, padding:"11px 24px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Save</button>
+            <button onClick={() => setAdding(false)} style={{ background:"none", border:"none", color:"rgba(0,0,0,0.4)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Cancel</button>
+          </div>
+        </Card>
+      )}
+
+      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+        {refs.map(ref => {
+          const c = TYPE_COLOR[ref.type]||"#999"; const isOpen = expanded===ref.id;
+          return (
+            <Card key={ref.id} style={{ overflow:"hidden", border:isOpen?"1px solid rgba(0,0,0,0.12)":"1px solid rgba(0,0,0,0.07)" }}>
+              <div onClick={() => setExpanded(isOpen?null:ref.id)} style={{ display:"flex", alignItems:"center", gap:14, padding:"16px 20px", cursor:"pointer" }}>
+                <div style={{ width:36, height:36, borderRadius:10, background:`${c}12`, border:`1px solid ${c}25`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:14 }}>{TYPE_ICON[ref.type]}</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:14, fontWeight:600, color:"#0f0f1a", letterSpacing:-0.2, marginBottom:4 }}>{ref.title}</div>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <span style={{ fontSize:9, color:c, background:`${c}12`, padding:"2px 8px", borderRadius:20, fontWeight:600 }}>{ref.type}</span>
+                    <span style={{ fontSize:9, color:"rgba(0,0,0,0.4)", background:"rgba(0,0,0,0.05)", padding:"2px 8px", borderRadius:20 }}>{ref.pillar}</span>
+                    <span style={{ fontSize:9, color:"rgba(0,0,0,0.4)", background:"rgba(0,0,0,0.05)", padding:"2px 8px", borderRadius:20 }}>{ref.platform}</span>
+                  </div>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <button onClick={e=>{e.stopPropagation();setRefs(prev=>prev.filter(r=>r.id!==ref.id));}} style={{ background:"none", border:"none", fontSize:11, color:"rgba(0,0,0,0.3)", cursor:"pointer", padding:"4px 8px", borderRadius:6 }}>Delete</button>
+                  <span style={{ fontSize:13, color:"rgba(0,0,0,0.3)", transform:isOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s", display:"inline-block" }}>▾</span>
+                </div>
+              </div>
+              {isOpen && (
+                <div style={{ padding:"0 20px 20px", borderTop:"1px solid rgba(0,0,0,0.06)" }}>
+                  <div style={{ marginTop:16 }}>
+                    <div style={{ fontSize:9, color:"rgba(0,0,0,0.35)", fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:8 }}>Content</div>
+                    <div style={{ background:"#fafafa", borderRadius:10, padding:"14px 16px", fontSize:12, color:"rgba(0,0,0,0.72)", lineHeight:1.8, whiteSpace:"pre-wrap", border:"1px solid rgba(0,0,0,0.05)" }}>{ref.content}</div>
+                  </div>
+                  {ref.notes && (
+                    <div style={{ marginTop:12 }}>
+                      <div style={{ fontSize:9, color:"rgba(0,0,0,0.35)", fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:6 }}>Agent Notes</div>
+                      <div style={{ background:`${c}08`, borderRadius:10, padding:"12px 14px", fontSize:11, color:`${c}cc`, lineHeight:1.6, border:`1px solid ${c}20` }}>{ref.notes}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── ARTGRID SCOUT ────────────────────────────────────────────────────────────
+function ArtgridScoutPage({ content }) {
+  const needsFootage = content.filter(x => ["SCRIPT","SCRIPTED","IDEA","APPROVED"].includes(x.stage) && x.type !== "story");
+  const [scouts, setScouts] = useState({});
+  const [activeId, setActiveId] = useState(null);
+  const PILLAR_COLOR = { Education:"#3b82f6", Entertainment:"#10b981", Inspiration:"#8b5cf6", Promotion:"#ff375f", Community:"#f59e0b", Access:"#06b6d4" };
+  const PRIORITY_COLOR = { HIGH:"#ff375f", MED:"#f59e0b", LOW:"rgba(0,0,0,0.3)" };
+
+  const runScout = async (item) => {
+    setScouts(prev => ({ ...prev, [item.id]: { loading:true, brief:null } }));
+    setActiveId(item.id);
+    try {
+      const systemPrompt = `You are Artgrid — VitalLyfe's AI footage scout. Expert at finding cinematic stock footage on Artgrid.io.
+
+VitalLyfe visual identity: Clean, aspirational, lifestyle-focused. Warm neutrals, soft light, clean workspaces, natural environments. Emotion: calm confidence, quiet ambition, real moments. Never: people pointing at whiteboards, overly corporate, fake smiling.
+
+Return ONLY a JSON object, no markdown or backticks:
+{
+  "mood": "2-3 sentence visual mood",
+  "pacing": "Fast cuts (under 2s) | Medium (2-4s) | Slow/cinematic (4s+)",
+  "clipTypes": ["hero shot type", "b-roll 1", "b-roll 2", "cutaway"],
+  "searches": [
+    { "query": "exact artgrid search term", "use": "what this clip is for in the edit", "priority": "HIGH|MED|LOW" }
+  ],
+  "avoidKeywords": ["keyword"],
+  "totalClipsNeeded": 6,
+  "notes": "editor direction"
+}
+Include 6-8 search queries. Be specific — 'man working laptop coffee shop morning light' not 'person working'.`;
+
+      const res = await fetch("/api/chat", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1200, system:systemPrompt, messages:[{ role:"user", content:`Title: ${item.title}\nPlatform: ${item.platforms.join(", ")}\nPillar: ${item.pillar}\nFormat: ${item.format}\nCampaign: ${item.campaign}\nDescription: ${item.description}\nScript:\n${item.script}\nDirector Notes: ${item.notes}` }] })
+      });
+      const data = await res.json();
+      const text = data.content?.find(b=>b.type==="text")?.text || "{}";
+      const brief = JSON.parse(text.replace(/```json|```/g,"").trim());
+      setScouts(prev => ({ ...prev, [item.id]: { loading:false, brief } }));
+    } catch(e) {
+      setScouts(prev => ({ ...prev, [item.id]: { loading:false, brief:null, error:true } }));
+    }
+  };
+
+  return (
+    <div style={{ animation:"fadeIn 0.4s ease" }}>
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:8 }}>
+        <div>
+          <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", marginBottom:4, letterSpacing:-0.8 }}>ArtGrid Scout</h1>
+          <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>AI-generated footage briefs. Click Scout — get exact Artgrid.io search queries for every piece.</p>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 16px", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:12 }}>
+          <div style={{ width:7, height:7, borderRadius:"50%", background:"#bf5af2", animation:"livePulse 2.5s ease-in-out infinite" }} />
+          <span style={{ fontSize:11, color:"#bf5af2", fontWeight:600 }}>Artgrid Agent · Ready</span>
+        </div>
+      </div>
+
+      <Card style={{ padding:"18px 22px", marginBottom:28, marginTop:20, background:"rgba(191,90,242,0.04)", border:"1px solid rgba(191,90,242,0.12)" }}>
+        <div style={{ display:"flex", gap:24 }}>
+          {[{ step:"01", label:"Click Scout", desc:"Agent reads your script + director notes" }, { step:"02", label:"Get Brief", desc:"6–8 exact Artgrid search queries" }, { step:"03", label:"Search Artgrid", desc:"Click any query — opens Artgrid.io pre-filled" }, { step:"04", label:"Download", desc:"Select clips. Back to post-production." }].map(s => (
+            <div key={s.step} style={{ flex:1 }}>
+              <div style={{ fontSize:9, fontWeight:700, color:"rgba(191,90,242,0.6)", letterSpacing:1.5, marginBottom:4 }}>{s.step}</div>
+              <div style={{ fontSize:12, fontWeight:600, color:"#0f0f1a", marginBottom:3 }}>{s.label}</div>
+              <div style={{ fontSize:11, color:"rgba(0,0,0,0.45)", lineHeight:1.5 }}>{s.desc}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {needsFootage.map(item => {
+          const sc = scouts[item.id]; const pc = PILLAR_COLOR[item.pillar]||"#999"; const isActive = activeId===item.id;
+          const ptLabel = item.platform==="instagram"?"IG":item.platform==="tiktok"?"TT":"YT";
+          return (
+            <Card key={item.id} style={{ overflow:"hidden" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:16, padding:"18px 22px" }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                    <span style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.3)", background:"rgba(0,0,0,0.05)", padding:"2px 8px", borderRadius:6 }}>{ptLabel}</span>
+                    <span style={{ fontSize:9, fontWeight:600, color:pc, background:`${pc}12`, padding:"2px 8px", borderRadius:6 }}>{item.pillar}</span>
+                    <span style={{ fontSize:9, color:"rgba(0,0,0,0.35)", background:"rgba(0,0,0,0.04)", padding:"2px 8px", borderRadius:6 }}>{item.stage}</span>
+                    <span style={{ fontSize:9, color:"rgba(0,0,0,0.35)", background:"rgba(0,0,0,0.04)", padding:"2px 8px", borderRadius:6 }}>{item.campaign}</span>
+                  </div>
+                  <div style={{ fontSize:14, fontWeight:600, color:"#0f0f1a", letterSpacing:-0.2, marginBottom:4 }}>{item.title}</div>
+                  <div style={{ fontSize:11, color:"rgba(0,0,0,0.45)", lineHeight:1.5, maxWidth:520 }}>{item.description}</div>
+                </div>
+                <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+                  {sc?.brief && <button onClick={() => setActiveId(isActive?null:item.id)} style={{ background:"rgba(0,0,0,0.05)", border:"1px solid rgba(0,0,0,0.1)", borderRadius:10, color:"rgba(0,0,0,0.55)", cursor:"pointer", padding:"9px 16px", fontSize:12, fontWeight:500, fontFamily:"Inter, sans-serif" }}>{isActive?"Hide":"View Brief"}</button>}
+                  <button onClick={() => runScout(item)} disabled={sc?.loading} style={{ background:sc?.loading?"rgba(191,90,242,0.1)":"#bf5af2", border:"none", borderRadius:10, color:sc?.loading?"#bf5af2":"#fff", cursor:sc?.loading?"default":"pointer", padding:"9px 18px", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif", opacity:sc?.loading?0.8:1 }}>
+                    {sc?.loading?"Scouting...":sc?.brief?"Re-Scout ✦":"Scout ✦"}
+                  </button>
+                </div>
+              </div>
+
+              {sc?.loading && (
+                <div style={{ padding:"0 22px 18px" }}>
+                  <div style={{ height:2, background:"rgba(191,90,242,0.15)", borderRadius:2, overflow:"hidden" }}>
+                    <div style={{ height:"100%", background:"#bf5af2", borderRadius:2, animation:"progressBar 3s ease-in-out infinite alternate" }} />
+                  </div>
+                  <div style={{ fontSize:10, color:"rgba(191,90,242,0.7)", marginTop:6 }}>Artgrid agent reading script + director notes...</div>
+                </div>
+              )}
+              {sc?.error && <div style={{ padding:"0 22px 18px", fontSize:11, color:"#ff453a" }}>Scout failed. Check connection and try again.</div>}
+
+              {sc?.brief && isActive && (
+                <div style={{ borderTop:"1px solid rgba(0,0,0,0.06)", padding:"20px 22px" }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:18 }}>
+                    <div style={{ background:"#fafafa", borderRadius:12, padding:"14px 16px", border:"1px solid rgba(0,0,0,0.06)" }}>
+                      <div style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.35)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:8 }}>Visual Mood</div>
+                      <div style={{ fontSize:12, color:"rgba(0,0,0,0.7)", lineHeight:1.7 }}>{sc.brief.mood}</div>
+                    </div>
+                    <div style={{ background:"#fafafa", borderRadius:12, padding:"14px 16px", border:"1px solid rgba(0,0,0,0.06)" }}>
+                      <div style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.35)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:8 }}>Pacing · Clip Types</div>
+                      <div style={{ fontSize:12, color:"#0f0f1a", fontWeight:600, marginBottom:8 }}>{sc.brief.pacing}</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>{(sc.brief.clipTypes||[]).map((ct,i)=><span key={i} style={{ fontSize:9, color:"rgba(0,0,0,0.5)", background:"rgba(0,0,0,0.06)", padding:"3px 8px", borderRadius:6 }}>{ct}</span>)}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom:14 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                      <div style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.35)", letterSpacing:1.5, textTransform:"uppercase" }}>Artgrid Search Queries</div>
+                      <span style={{ fontSize:9, color:"rgba(0,0,0,0.35)" }}>Click any to open Artgrid.io ↗</span>
+                    </div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                      {(sc.brief.searches||[]).map((s,i) => {
+                        const pc2 = PRIORITY_COLOR[s.priority]||"#999";
+                        return (
+                          <a key={i} href={`https://artgrid.io/search?q=${encodeURIComponent(s.query)}`} target="_blank" rel="noopener noreferrer"
+                            style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", background:"#fff", border:"1px solid rgba(0,0,0,0.08)", borderRadius:10, textDecoration:"none", transition:"border-color 0.15s" }}
+                            onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(191,90,242,0.4)"}
+                            onMouseLeave={e=>e.currentTarget.style.borderColor="rgba(0,0,0,0.08)"}>
+                            <span style={{ fontSize:9, fontWeight:700, color:pc2, background:`${pc2}15`, padding:"2px 7px", borderRadius:20, whiteSpace:"nowrap" }}>{s.priority}</span>
+                            <span style={{ fontSize:12, fontWeight:600, color:"#0f0f1a", flex:1 }}>{s.query}</span>
+                            <span style={{ fontSize:10, color:"rgba(0,0,0,0.4)" }}>{s.use}</span>
+                            <span style={{ fontSize:11, color:"#bf5af2" }}>↗</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                    {sc.brief.avoidKeywords?.length>0 && (
+                      <div style={{ background:"rgba(255,69,58,0.04)", borderRadius:10, padding:"12px 14px", border:"1px solid rgba(255,69,58,0.1)" }}>
+                        <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,69,58,0.6)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:6 }}>Avoid on Artgrid</div>
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>{sc.brief.avoidKeywords.map((k,i)=><span key={i} style={{ fontSize:10, color:"rgba(255,69,58,0.7)", background:"rgba(255,69,58,0.08)", padding:"2px 8px", borderRadius:6 }}>✕ {k}</span>)}</div>
+                      </div>
+                    )}
+                    <div style={{ background:"rgba(48,209,88,0.04)", borderRadius:10, padding:"12px 14px", border:"1px solid rgba(48,209,88,0.1)" }}>
+                      <div style={{ fontSize:9, fontWeight:700, color:"rgba(48,209,88,0.6)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:6 }}>Summary</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:"#30d158", marginBottom:4 }}>{sc.brief.totalClipsNeeded} clips needed</div>
+                      {sc.brief.notes && <div style={{ fontSize:10, color:"rgba(0,0,0,0.5)", lineHeight:1.5 }}>{sc.brief.notes}</div>}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AgentChatPage({ agents, content }) {
+  const PROMPTS = {
+    Sean: "You are Sean, Commander Agent for the VitalLyfe War Room by Cloud Scenic. Orchestrate all 7 agents, own the content pipeline. VitalLyfe is a wellness/hydration brand. Campaigns: Drip Campaign, Meet the Makers, Product Launch. Platforms: Instagram, TikTok, YouTube. Pipeline: Ready For Copy Creation, Need Copy Approval, Ready For Content Creation, Need Content Approval, Needs Revisions, Approved, Ready For Schedule, Scheduled. Team: Lacey (Runner), Ali (Developer), Sam (Monitor), Artgrid (Footage Scout), Muse (Content Ideation), Overseer (SOP Guardian). Personality: decisive, calm, short punchy sentences.",
+    Lacey: "You are Lacey, Runner Agent for the VitalLyfe War Room by Cloud Scenic. Execute tasks: n8n and Zapier workflows, deliverable batches, SOPs, Drive sync. Personality: fast, pragmatic, loves checklists, dry humor when things break.",
+    Ali: "You are Ali, Developer Agent for the VitalLyfe War Room by Cloud Scenic. Tech stack: single HTML file React CDN plus Babel around 1700 lines, Supabase, Google Drive API, Netlify. Surgical edits only. Personality: precise, technical, ships clean code.",
+    Sam: "You are Sam, Monitor Agent for the VitalLyfe War Room by Cloud Scenic. Watch: system health, API spend, security, anomalies, pipeline metrics. Personality: methodical, data-driven, flags anything off immediately.",
+    Artgrid: "You are Artgrid, Footage Scout for the VitalLyfe War Room by Cloud Scenic. Source B-roll from Artgrid.io. VitalLyfe visuals: warm neutrals, soft light, water in motion, wide landscapes. Never corporate or fake stock. Personality: visual, cinematic, precise search terms.",
+    Muse: "You are Muse, Content Ideation Agent for the VitalLyfe War Room by Cloud Scenic. Write hooks, captions, scripts, calendars. Brand voice: cinematic, calm, purposeful. Key phrases: abundance, access, built for beyond. AVOID: revolutionary, game-changing, exclamation points. Caption structure: poetic statement then blank line then expand metaphor then blank line then bridge to brand then blank line then soft CTA like Join us (Link in bio). Always write real copy not descriptions.",
+    Overseer: "You are Overseer, SOP Guardian for the VitalLyfe War Room by Cloud Scenic. Enforce 7-step SOP: Step 01 Discovery, Step 02 Copy Creation, Step 03 Footage Scouting, Step 04 Content Creation, Step 05 Client Review, Step 06 Revisions max 2 rounds, Step 07 Scheduling. Flag violations, cite step numbers. Rigorous but never alarmist.",
+  };
+  const QUICK = {
+    Sean:     ["Pipeline Status", "Today's Priorities", "Delegate a Task", "Morning Briefing"],
+    Lacey:    ["Build a Workflow", "Draft an SOP", "Execution Plan", "EOD Checklist"],
+    Ali:      ["Debug an Issue", "Integration Plan", "Schema Review", "Code Review"],
+    Sam:      ["System Health Check", "Cost Report", "Security Audit", "Pipeline Metrics"],
+    Artgrid:  ["Scout Footage", "Mood Board Brief", "Review Clip Selections", "Build Shot List"],
+    Muse:     ["Write Hooks", "Draft Caption", "Content Calendar", "New Concept Ideas"],
+    Overseer: ["Full SOP Audit", "Compliance Check", "Brand Voice Review", "Approval Gate"],
+  };
+  const DESC = {
+    Sean: "Orchestrates agents, owns pipeline priorities",
+    Lacey: "Automation workflows, deliverable execution, SOPs",
+    Ali: "Technical infrastructure, API integrations, builds",
+    Sam: "System monitoring, security, metrics, cost tracking",
+    Artgrid: "Cinematic footage sourcing, visual briefs, Artgrid.io",
+    Muse: "Copy, hooks, captions, content calendars, ideation",
+    Overseer: "SOP enforcement, brand voice compliance, audit",
+  };
+
+  const [sel, setSel] = useState(agents[0]);
+  const [hists, setHists] = useState({});
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const bottomRef = useRef(null);
+  const inputRef = useRef(null);
+  const msgs = hists[sel.id] || [];
+
+  useEffect(() => {
+    if (bottomRef.current) bottomRef.current.scrollIntoView({ behavior: "smooth" });
+  }, [hists, sel.id]);
+
+  const sendMsg = async (txt) => {
+    const text = (txt !== undefined ? txt : input).trim();
+    if (!text || busy) return;
+    setInput("");
+    const userMsg = { role: "user", content: text, ts: Date.now() };
+    const thread = [...msgs, userMsg];
+    setHists(h => ({ ...h, [sel.id]: thread }));
+    setBusy(true);
+    try {
+      const ctx = content.length > 0 ? " Pipeline: " + content.slice(0,5).map(c => c.title + "[" + c.stage + "]").join(", ") : "";
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          system: PROMPTS[sel.name] + ctx,
+          messages: thread.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
+        }),
+      });
+      const d = await res.json();
+      const blk = d.content && d.content.find(x => x.type === "text");
+      setHists(h => ({ ...h, [sel.id]: [...thread, { role: "assistant", content: blk ? blk.text : "No response.", ts: Date.now() }] }));
+    } catch(e) {
+      setHists(h => ({ ...h, [sel.id]: [...thread, { role: "assistant", content: "Connection error. Try again.", ts: Date.now(), err: true }] }));
+    }
+    setBusy(false);
+    setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
+  };
+
+  const caps = QUICK[sel.name] || [];
+
+  return (
+    <div style={{ animation:"fadeIn 0.4s ease", display:"flex", gap:16, height:"calc(100vh - 80px)" }}>
+      <div style={{ width:210, flexShrink:0, display:"flex", flexDirection:"column", gap:6 }}>
+        <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>7 Agents</div>
+        {agents.map(ag => {
+          const active = sel.id === ag.id;
+          const chatted = (hists[ag.id] || []).length > 0;
+          return (
+            <div key={ag.id} onClick={() => setSel(ag)} style={{ background: active ? ag.color + "12" : "rgba(255,255,255,0.9)", border: "1px solid " + (active ? ag.color + "50" : "rgba(0,0,0,0.08)"), borderRadius:14, padding:"11px 13px", cursor:"pointer", transition:"all 0.2s" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                <AgentAvatar agent={ag} size={34} />
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                    <span style={{ fontWeight:600, color:"#0f0f1a", fontSize:13 }}>{ag.name}</span>
+                    {chatted && <div style={{ width:5, height:5, borderRadius:"50%", background:ag.color }} />}
+                  </div>
+                  <div style={{ fontSize:10, color:ag.color, fontWeight:500, marginTop:1 }}>{ag.role}</div>
+                </div>
+                <div style={{ fontSize:9, color:"rgba(0,0,0,0.25)", background:"rgba(0,0,0,0.04)", padding:"2px 6px", borderRadius:20, fontWeight:600 }}>{ag.type}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ flex:1, display:"flex", flexDirection:"column", background:"rgba(255,255,255,0.92)", border:"1px solid rgba(0,0,0,0.08)", borderRadius:20, overflow:"hidden", boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
+        <div style={{ padding:"16px 22px", borderBottom:"1px solid rgba(0,0,0,0.07)", display:"flex", alignItems:"center", gap:13, flexShrink:0 }}>
+          <AgentAvatar agent={sel} size={42} />
+          <div style={{ flex:1 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+              <span style={{ fontWeight:700, color:"#0f0f1a", fontSize:15 }}>{sel.name}</span>
+              <span style={{ fontSize:9, color:sel.color, background:sel.color + "15", padding:"3px 8px", borderRadius:20, fontWeight:600, textTransform:"uppercase", letterSpacing:0.8 }}>{sel.role}</span>
+              <span style={{ fontSize:9, color:"rgba(48,209,88,0.8)", background:"rgba(48,209,88,0.1)", padding:"3px 8px", borderRadius:20, fontWeight:600 }}>LIVE</span>
+            </div>
+            <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginTop:2 }}>{DESC[sel.name]}</div>
+          </div>
+          {msgs.length > 0 && <button onClick={() => setHists(h => ({ ...h, [sel.id]: [] }))} style={{ background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:8, color:"rgba(0,0,0,0.35)", fontSize:11, cursor:"pointer", padding:"5px 11px", fontFamily:"Inter,sans-serif" }}>Clear</button>}
+        </div>
+
+        <div style={{ flex:1, overflowY:"auto", padding:"20px 22px", display:"flex", flexDirection:"column", gap:14 }}>
+          {msgs.length === 0 && (
+            <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+              <div style={{ width:56, height:56, borderRadius:17, background:sel.grad, border:"2px solid " + sel.color + "40", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, fontWeight:700, color:sel.color, marginBottom:14 }}>{sel.name[0]}</div>
+              <div style={{ fontSize:16, fontWeight:600, color:"#0f0f1a", marginBottom:5 }}>Chat with {sel.name}</div>
+              <div style={{ fontSize:12, color:"rgba(0,0,0,0.4)", marginBottom:24, textAlign:"center", maxWidth:280, lineHeight:1.6 }}>Loaded with full VitalLyfe context and SOP knowledge.</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, width:"100%", maxWidth:420 }}>
+                {caps.map((cap, i) => (
+                  <button key={i} onClick={() => sendMsg(cap)} style={{ background:sel.color + "08", border:"1px solid " + sel.color + "25", borderRadius:11, padding:"11px 13px", cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>
+                    <div style={{ fontSize:12, fontWeight:600, color:"#0f0f1a" }}>{cap}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {msgs.map((m, i) => (
+            <div key={i} style={{ display:"flex", gap:9, flexDirection:m.role === "user" ? "row-reverse" : "row", alignItems:"flex-start" }}>
+              {m.role === "assistant" && (
+                <div style={{ width:28, height:28, borderRadius:8, background:sel.grad, border:"1px solid " + sel.color + "40", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:sel.color, flexShrink:0, marginTop:2 }}>{sel.name[0]}</div>
+              )}
+              <div style={{ maxWidth:"76%", background:m.role === "user" ? "#0f0f1a" : m.err ? "rgba(255,69,58,0.07)" : "#f7f7f5", border:m.role === "user" ? "none" : "1px solid " + (m.err ? "rgba(255,69,58,0.18)" : "rgba(0,0,0,0.07)"), borderRadius:m.role === "user" ? "15px 15px 3px 15px" : "3px 15px 15px 15px", padding:"10px 13px" }}>
+                <div style={{ fontSize:13, color:m.role === "user" ? "#fff" : m.err ? "#ff453a" : "#1a1a2e", lineHeight:1.65, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>
+                <div style={{ fontSize:9, color:m.role === "user" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.22)", marginTop:4, textAlign:m.role === "user" ? "right" : "left" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</div>
+              </div>
+            </div>
+          ))}
+
+          {busy && (
+            <div style={{ display:"flex", gap:9, alignItems:"flex-start" }}>
+              <div style={{ width:28, height:28, borderRadius:8, background:sel.grad, border:"1px solid " + sel.color + "40", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:sel.color, flexShrink:0 }}>{sel.name[0]}</div>
+              <div style={{ background:"#f7f7f5", border:"1px solid rgba(0,0,0,0.07)", borderRadius:"3px 15px 15px 15px", padding:"11px 15px", display:"flex", gap:4, alignItems:"center" }}>
+                <div style={{ width:6, height:6, borderRadius:"50%", background:sel.color, animation:"livePulse 1.2s ease-in-out 0s infinite" }} />
+                <div style={{ width:6, height:6, borderRadius:"50%", background:sel.color, animation:"livePulse 1.2s ease-in-out 0.2s infinite" }} />
+                <div style={{ width:6, height:6, borderRadius:"50%", background:sel.color, animation:"livePulse 1.2s ease-in-out 0.4s infinite" }} />
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        {msgs.length > 0 && (
+          <div style={{ padding:"8px 16px", display:"flex", gap:5, flexWrap:"wrap", borderTop:"1px solid rgba(0,0,0,0.05)", flexShrink:0 }}>
+            {caps.map((cap, i) => (
+              <button key={i} onClick={() => sendMsg(cap)} disabled={busy} style={{ background:sel.color + "08", border:"1px solid " + sel.color + "20", borderRadius:20, padding:"4px 11px", cursor:busy ? "default" : "pointer", fontFamily:"Inter,sans-serif", fontSize:11, fontWeight:500, color:sel.color, opacity:busy ? 0.5 : 1 }}>{cap}</button>
+            ))}
+          </div>
+        )}
+
+        <div style={{ padding:"12px 16px", borderTop:"1px solid rgba(0,0,0,0.07)", display:"flex", gap:9, flexShrink:0 }}>
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }}
+            placeholder={"Message " + sel.name + "..."}
+            disabled={busy}
+            style={{ flex:1, background:"rgba(0,0,0,0.04)", border:"1px solid " + (input ? sel.color + "40" : "rgba(0,0,0,0.1)"), borderRadius:11, padding:"10px 15px", color:"#0f0f1a", fontSize:13, outline:"none", fontFamily:"Inter,sans-serif" }}
+          />
+          <button
+            onClick={() => sendMsg()}
+            disabled={!input.trim() || busy}
+            style={{ background:input.trim() && !busy ? sel.color : "rgba(0,0,0,0.06)", border:"none", borderRadius:11, color:input.trim() && !busy ? "#fff" : "rgba(0,0,0,0.22)", cursor:input.trim() && !busy ? "pointer" : "default", padding:"10px 18px", fontSize:17, transition:"all 0.2s", fontFamily:"Inter,sans-serif" }}>
+            {"\u2191"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WarRoom({ onSignOut, userEmail }) {
+  const [activeNav, setActiveNav] = useState("dashboard");
+  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [feed, setFeed] = useState([]);
+  const [agents] = useState(AGENTS_BASE);
+  const [liveCount, setLiveCount] = useState(6);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [content, setContent] = useState(INITIAL_CONTENT);
+  const [dbStatus, setDbStatus] = useState(DB_CONNECTED ? "connecting" : "offline");
+
+  // ── LOAD FROM SUPABASE ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!sb) return;
+    sb.from("content_items").select("*").order("id")
+      .then(({ data, error }) => {
+        if (error) { setDbStatus("error"); return; }
+        if (data && data.length > 0) {
+          setContent(data.map(r => ({ ...r, platforms: r.platforms || [] })));
+        } else {
+          // First run — seed Supabase with the initial content
+          sb.from("content_items").insert(INITIAL_CONTENT).then(({ error: e }) => {
+            if (!e) setDbStatus("live");
+          });
+        }
+        setDbStatus("live");
+      });
+
+    // ── REALTIME SUBSCRIPTION ─────────────────────────────────────────────
+    const channel = sb.channel("content_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "content_items" },
+        (payload) => {
+          if (payload.eventType === "UPDATE") {
+            setContent(prev => prev.map(x =>
+              x.id === payload.new.id ? { ...payload.new, platforms: payload.new.platforms || [] } : x
+            ));
+          }
+          if (payload.eventType === "INSERT") {
+            setContent(prev => [...prev, { ...payload.new, platforms: payload.new.platforms || [] }]);
+          }
+          if (payload.eventType === "DELETE") {
+            setContent(prev => prev.filter(x => x.id !== payload.old.id));
+          }
+        }
+      ).subscribe();
+    return () => sb.removeChannel(channel);
+  }, []);
+  const [editingItem, setEditingItem] = useState(null);
+  const feedIdRef = useRef(0);
+
+  const now = () => {
+    const d = new Date();
+    return `${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}:${d.getSeconds().toString().padStart(2,"0")}`;
+  };
+  const pushFeed = useCallback(() => {
+    const item = ACTIVITY_POOL[Math.floor(Math.random()*ACTIVITY_POOL.length)];
+    setFeed(prev => [{ ...item, time:now(), id:feedIdRef.current++ }, ...prev].slice(0,60));
+  }, []);
+
+  useEffect(() => { for (let i=0; i<10; i++) setTimeout(pushFeed, i*150); }, []);
+  useInterval(pushFeed, 2200);
+  useInterval(() => setLiveCount(Math.floor(Math.random()*2)+6), 15000);
+
+  const handleSave = (updated) => {
+    const item = { ...updated, stage: updated.status };
+    setContent(prev => prev.map(x => x.id === item.id ? item : x));
+    setEditingItem(null);
+    // Write to Supabase if connected
+    if (sb) {
+      sb.from("content_items").update(item).eq("id", item.id)
+        .then(({ error }) => { if (error) console.warn("Supabase save error:", error.message); });
+    }
+  };
+
+  const sidebarW = sidebarCollapsed ? 64 : 220;
+  const igItems = content.filter(x => x.platform === "instagram");
+  const ttItems = content.filter(x => x.platform === "tiktok");
+  const ytItems = content.filter(x => x.platform === "youtube");
+
+  return (
+    <div style={{ display:"flex", height:"100vh", background:"#f5f5f7", color:"#1a1a2e", fontFamily:"Inter, -apple-system, sans-serif", overflow:"hidden" }}>
+      <style>{`
+        @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        @keyframes slideIn { from{transform:translateY(-6px);opacity:0} to{transform:translateY(0);opacity:1} }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes progressBar { from{width:5%} to{width:95%} }
+        ::-webkit-scrollbar { width:4px; height:4px }
+        ::-webkit-scrollbar-track { background:transparent }
+        ::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.12); border-radius:4px }
+        * { box-sizing:border-box }
+        input::placeholder { color:rgba(0,0,0,0.3) }
+        textarea::placeholder { color:rgba(0,0,0,0.25); font-style:italic }
+      `}</style>
+
+      {editingItem && <EditContentModal item={editingItem} onSave={handleSave} onClose={() => setEditingItem(null)} />}
+
+      <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, background:"radial-gradient(ellipse 60% 40% at 70% 20%, rgba(10,132,255,0.03), transparent 60%), radial-gradient(ellipse 50% 30% at 20% 80%, rgba(48,209,88,0.02), transparent 60%)" }} />
+
+      {/* ── SIDEBAR ── */}
+      <div style={{ width:sidebarW, minWidth:sidebarW, background:"rgba(255,255,255,0.98)", backdropFilter:"blur(30px)", borderRight:"1px solid rgba(0,0,0,0.08)", display:"flex", flexDirection:"column", overflow:"hidden", transition:"width 0.3s ease, min-width 0.3s ease", zIndex:20, position:"relative" }}>
+        <div style={{ padding:sidebarCollapsed?"18px 0":"18px 16px", borderBottom:"1px solid rgba(0,0,0,0.06)", display:"flex", alignItems:"center", justifyContent:sidebarCollapsed?"center":"space-between" }}>
+          {!sidebarCollapsed && (
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <div style={{ width:34, height:34, borderRadius:10, background:"linear-gradient(135deg,#30d158,#00c9a7)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:800, color:"#000", flexShrink:0 }}>VL</div>
+              <div>
+                <div style={{ fontSize:13, fontWeight:700, color:"#0f0f1a", letterSpacing:-0.3 }}>War Room</div>
+                <div style={{ marginTop:3, display:"flex", alignItems:"center", gap:5 }}>
+                  <div style={{ width:6, height:6, borderRadius:"50%", background: dbStatus==="live" ? "#30d158" : dbStatus==="error" ? "#ff453a" : "#ff9f0a", flexShrink:0 }} />
+                  <span style={{ fontSize:9, color:"rgba(0,0,0,0.4)", fontWeight:600, textTransform:"uppercase", letterSpacing:0.8 }}>
+                    {dbStatus==="live" ? "DB Live" : dbStatus==="error" ? "DB Error" : dbStatus==="offline" ? "No DB" : "Connecting…"}
+                  </span>
+                </div>
+                <div style={{ fontSize:9, color:"rgba(0,0,0,0.3)", letterSpacing:1.5, fontWeight:600 }}>VITAL LYFE</div>
+              </div>
+            </div>
+          )}
+          {sidebarCollapsed && <div style={{ width:34, height:34, borderRadius:10, background:"linear-gradient(135deg,#30d158,#00c9a7)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:800, color:"#000" }}>VL</div>}
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
+            <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(0,0,0,0.3)", cursor:"pointer", fontSize:18, padding:4, lineHeight:1 }}>{sidebarCollapsed?"›":"‹"}</button>
+            {!sidebarCollapsed && onSignOut && (
+              <button onClick={onSignOut} style={{ fontSize:9, color:"rgba(0,0,0,0.35)", background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:600, letterSpacing:0.5 }}>Sign out</button>
+            )}
+          </div>
+        </div>
+        {!sidebarCollapsed && (
+          <div style={{ padding:"10px 16px", borderBottom:"1px solid rgba(0,0,0,0.05)" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ width:6, height:6, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite" }} />
+              <span style={{ fontSize:10, color:"rgba(48,209,88,0.8)", fontWeight:500 }}>{liveCount} agents live</span>
+            </div>
+          </div>
+        )}
+        <div style={{ flex:1, overflowY:"auto", padding:"8px 0" }}>
+          {NAV.map(group => (
+            <div key={group.section} style={{ padding:"8px 0 4px" }}>
+              {!sidebarCollapsed && <div style={{ padding:"0 16px 5px", fontSize:9, color:"rgba(0,0,0,0.25)", letterSpacing:2, fontWeight:700, textTransform:"uppercase" }}>{group.section}</div>}
+              {group.items.map(item => (
+                <button key={item.id} onClick={() => setActiveNav(item.id)} title={sidebarCollapsed?item.label:undefined} style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:sidebarCollapsed?"9px 0":"9px 16px", justifyContent:sidebarCollapsed?"center":"flex-start", background:activeNav===item.id?"rgba(48,209,88,0.08)":"transparent", border:"none", borderLeft:!sidebarCollapsed&&activeNav===item.id?"2px solid #30d158":"2px solid transparent", color:activeNav===item.id?"#30d158":"rgba(0,0,0,0.4)", cursor:"pointer", fontSize:12, fontFamily:"Inter, sans-serif", fontWeight:500, transition:"all 0.15s" }}>
+                  <span style={{ fontSize:14, opacity:activeNav===item.id?1:0.5 }}>{item.icon}</span>
+                  {!sidebarCollapsed && item.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        {!sidebarCollapsed && (
+          <div style={{ borderTop:"1px solid rgba(0,0,0,0.06)", padding:"10px 16px" }}>
+            <div style={{ fontSize:9, color:"rgba(0,0,0,0.25)", letterSpacing:1.5, fontWeight:600, marginBottom:8, textTransform:"uppercase" }}>Live Log</div>
+            {feed.slice(0,4).map((item,i) => (
+              <div key={item.id} style={{ fontSize:9, color:i===0?ACTION_COLORS[item.type]:"rgba(0,0,0,0.3)", marginBottom:4, lineHeight:1.4, animation:i===0?"slideIn 0.3s":"none", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                {item.agent} · {item.action}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── MAIN ── */}
+      <div style={{ flex:1, overflowY:"auto", padding:"32px 32px", position:"relative", zIndex:1 }}>
+
+        {/* DASHBOARD */}
+        {activeNav === "dashboard" && (
+          <div style={{ animation:"fadeIn 0.4s ease" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:32 }}>
+              <div>
+                <h1 style={{ fontSize:32, fontWeight:700, color:"#0f0f1a", margin:0, letterSpacing:-1 }}>Good morning ☀️</h1>
+                <div style={{ marginTop:6, fontSize:13, color:"rgba(0,0,0,0.44)" }}>VitalLyfe War Room · {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={{ width:7, height:7, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite" }} />
+                <span style={{ fontSize:12, color:"rgba(48,209,88,0.8)", fontWeight:500 }}>{liveCount}/7 agents active</span>
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:12, marginBottom:28 }}>
+              <MetricCard label="Total Views" value={0} delta={1} color="#30d158" icon="👁" />
+              <MetricCard label="Tasks Done" value={47} delta={1} color="#0a84ff" icon="✓" />
+              <MetricCard label="Content Pieces" value={content.length} delta={1} color="#bf5af2" icon="◈" />
+              <MetricCard label="Pipeline Items" value={content.length} delta={1} color="#ff9f0a" icon="⊕" />
+            </div>
+            <div style={{ marginBottom:10 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+                <h2 style={{ fontSize:16, fontWeight:600, color:"#0f0f1a", margin:0, letterSpacing:-0.3 }}>Agent Roster</h2>
+                <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)" }}>Click to expand</span>
+              </div>
+              <div style={{ display:"flex", gap:10, overflowX:"auto", paddingBottom:12 }}>
+                {agents.map(agent => <AgentCard key={agent.id} agent={agent} selected={selectedAgent?.id===agent.id} onClick={() => setSelectedAgent(selectedAgent?.id===agent.id?null:agent)} />)}
+              </div>
+            </div>
+            {selectedAgent && (
+              <Card style={{ padding:"18px 22px", marginBottom:24, animation:"slideIn 0.2s ease" }} glowColor={selectedAgent.color}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                    <AgentAvatar agent={selectedAgent} size={38} />
+                    <div>
+                      <span style={{ fontWeight:700, color:selectedAgent.color, fontSize:16, letterSpacing:-0.3 }}>{selectedAgent.name}</span>
+                      <span style={{ color:"rgba(0,0,0,0.4)", marginLeft:10, fontSize:11 }}>{selectedAgent.role} · {selectedAgent.type}</span>
+                    </div>
+                  </div>
+                  <button onClick={() => setSelectedAgent(null)} style={{ background:"rgba(0,0,0,0.05)", border:"none", color:"rgba(0,0,0,0.4)", cursor:"pointer", fontSize:14, borderRadius:8, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+                </div>
+                <div style={{ marginTop:14, display:"flex", flexWrap:"wrap", gap:8 }}>
+                  {AGENT_TASKS[selectedAgent.name].slice(0,5).map((t,i) => (
+                    <div key={i} style={{ fontSize:10, color:`${selectedAgent.color}90`, padding:"5px 10px", background:`${selectedAgent.color}0d`, borderRadius:8, border:`1px solid ${selectedAgent.color}20`, fontWeight:500 }}>{t}</div>
+                  ))}
+                </div>
+              </Card>
+            )}
+            <div style={{ marginBottom:28 }}>
+              <h2 style={{ fontSize:16, fontWeight:600, color:"#0f0f1a", margin:"0 0 16px", letterSpacing:-0.3 }}>Operations Board</h2>
+              <OpsBoard />
+            </div>
+            <div>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+                <div style={{ width:6, height:6, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite" }} />
+                <h2 style={{ fontSize:16, fontWeight:600, color:"#0f0f1a", margin:0, letterSpacing:-0.3 }}>Live Activity</h2>
+              </div>
+              <Card style={{ padding:"4px 0" }}><ActivityFeed feed={feed} /></Card>
+            </div>
+          </div>
+        )}
+
+        {/* AGENTS */}
+        {activeNav === "agents" && (
+          <AgentChatPage agents={agents} content={content} />
+        )}
+
+        {/* INSTAGRAM */}
+        {activeNav === "instagram" && (
+          <div style={{ animation:"fadeIn 0.4s ease" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:28 }}>
+              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>📸</div>
+              <div>
+                <h1 style={{ fontSize:26, fontWeight:700, color:"#0f0f1a", margin:0, letterSpacing:-0.6 }}>Instagram</h1>
+                <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginTop:2 }}>@vitallyfe · {igItems.length} pieces in pipeline</div>
+              </div>
+              <div style={{ marginLeft:"auto", display:"flex", gap:8, flexWrap:"wrap" }}>
+                {["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"].map(s => {
+                  const c = STATUS_COLOR[s] || "#999";
+                  const n = igItems.filter(x=>x.stage===s).length;
+                  if (!n) return null;
+                  return <span key={s} style={{ fontSize:9, color:c, background:`${c}15`, padding:"3px 8px", borderRadius:20, fontWeight:600 }}>{s} · {n}</span>;
+                })}
+              </div>
+            </div>
+            <ContentPipelineBoard title="Reels & Graphics Pipeline" icon="🎬"
+              stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
+              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
+              items={igItems.filter(x => x.type==="reel" || x.type==="graphic")}
+              onCardClick={setEditingItem}
+            />
+            <ContentPipelineBoard title="Carousels & Threads" icon="◻"
+              stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
+              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
+              items={igItems.filter(x => x.type==="carousel" || x.type==="thread")}
+              onCardClick={setEditingItem}
+            />
+          </div>
+        )}
+
+        {/* TIKTOK */}
+        {activeNav === "tiktok" && (
+          <div style={{ animation:"fadeIn 0.4s ease" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:28 }}>
+              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#010101,#ff0050)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>♪</div>
+              <div>
+                <h1 style={{ fontSize:26, fontWeight:700, color:"#0f0f1a", margin:0, letterSpacing:-0.6 }}>TikTok</h1>
+                <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginTop:2 }}>@vitallyfe · {ttItems.length} pieces in pipeline</div>
+              </div>
+            </div>
+            <ContentPipelineBoard title="TikTok Pipeline" icon="🎵"
+              stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
+              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
+              items={ttItems}
+              onCardClick={setEditingItem}
+            />
+          </div>
+        )}
+
+        {/* YOUTUBE */}
+        {activeNav === "youtube" && (
+          <div style={{ animation:"fadeIn 0.4s ease" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:28 }}>
+              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#ff0000,#cc0000)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>▷</div>
+              <div>
+                <h1 style={{ fontSize:26, fontWeight:700, color:"#0f0f1a", margin:0, letterSpacing:-0.6 }}>YouTube</h1>
+                <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginTop:2 }}>VitalLyfe · {ytItems.length} pieces · Long-form & Shorts</div>
+              </div>
+            </div>
+            <ContentPipelineBoard title="Production Pipeline" icon="🎬"
+              stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
+              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
+              items={ytItems}
+              onCardClick={setEditingItem}
+            />
+          </div>
+        )}
+
+        {/* CONTENT TRACKER */}
+        {activeNav === "tracker" && (
+          <div style={{ animation:"fadeIn 0.4s ease" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
+              <div>
+                <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", marginBottom:4, letterSpacing:-0.8 }}>Content Tracker</h1>
+                <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>All {content.length} pieces · Click any row to edit</p>
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:12, marginBottom:28 }}>
+              <MetricCard label="Total Pieces" value={content.length} delta={1} color="#30d158" icon="◈" />
+              <MetricCard label="Total Views" value={0} delta={0} color="#0a84ff" icon="👁" />
+              <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#bf5af2" icon="✓" />
+            </div>
+            <Card style={{ padding:"0", overflow:"hidden" }}>
+              <div style={{ display:"grid", gridTemplateColumns:"2.5fr 0.8fr 1fr 1fr 1.2fr 1fr", gap:0, borderBottom:"1px solid rgba(0,0,0,0.07)" }}>
+                {["Title","Platform","Campaign","Pillar","Status","Format"].map(h => (
+                  <div key={h} style={{ fontSize:9, color:"rgba(0,0,0,0.35)", fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", padding:"12px 14px" }}>{h}</div>
+                ))}
+              </div>
+              {content.map((item, i) => {
+                const sc = STATUS_COLOR[item.status] || "#999";
+                const ptLabel = item.platform === "instagram" ? "IG" : item.platform === "tiktok" ? "TT" : "YT";
+                const ptColor = item.platform === "instagram" ? "#e1306c" : item.platform === "tiktok" ? "#ff0050" : "#ff0000";
+                return (
+                  <div key={item.id} onClick={() => setEditingItem(item)}
+                    style={{ display:"grid", gridTemplateColumns:"2.5fr 0.8fr 1fr 1fr 1.2fr 1fr", borderBottom:`1px solid rgba(0,0,0,0.04)`, cursor:"pointer", transition:"background 0.15s", background:i%2===0?"#fff":"rgba(0,0,0,0.01)" }}
+                    onMouseEnter={e => e.currentTarget.style.background="#f0f9ff"}
+                    onMouseLeave={e => e.currentTarget.style.background=i%2===0?"#fff":"rgba(0,0,0,0.01)"}>
+                    <div style={{ fontSize:12, color:"#0f0f1a", fontWeight:500, padding:"11px 14px", lineHeight:1.3 }}>{item.title}</div>
+                    <div style={{ padding:"11px 14px", display:"flex", alignItems:"center" }}>
+                      <span style={{ fontSize:10, fontWeight:700, color:ptColor, background:`${ptColor}15`, padding:"2px 7px", borderRadius:6 }}>{ptLabel}</span>
+                    </div>
+                    <div style={{ fontSize:11, color:"rgba(0,0,0,0.55)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.campaign}</div>
+                    <div style={{ fontSize:11, color:"rgba(0,0,0,0.55)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.pillar}</div>
+                    <div style={{ padding:"11px 14px", display:"flex", alignItems:"center" }}>
+                      <span style={{ fontSize:9, fontWeight:600, color:sc, background:`${sc}15`, padding:"3px 8px", borderRadius:20, whiteSpace:"nowrap" }}>{item.status}</span>
+                    </div>
+                    <div style={{ fontSize:11, color:"rgba(0,0,0,0.45)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.format}</div>
+                  </div>
+                );
+              })}
+            </Card>
+          </div>
+        )}
+
+        {/* TASK BOARD */}
+        {activeNav === "taskboard" && (
+          <div style={{ animation:"fadeIn 0.4s ease" }}>
+            <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", marginBottom:6, letterSpacing:-0.8 }}>Task Board</h1>
+            <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", marginBottom:24 }}>Tasks auto-advance every ~20s · Add tasks to the backlog below</p>
+            <OpsBoard />
+          </div>
+        )}
+
+        {/* FUNNEL */}
+        {activeNav === "funnel" && (
+          <div style={{ animation:"fadeIn 0.4s ease" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:10 }}>
+              <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", margin:0, letterSpacing:-0.8 }}>Acquisition Funnel</h1>
+              <span style={{ fontSize:10, color:"#0a84ff", background:"rgba(10,132,255,0.15)", padding:"3px 10px", borderRadius:20, fontWeight:600 }}>Miro Board</span>
+            </div>
+            <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", marginBottom:28 }}>Full-stack system for predictable inbound demand · $3k–$14k retainers</p>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:10, marginBottom:28 }}>
+              {[{ label:"Engine Spine", desc:"What must happen", color:"#ff453a", icon:"◈" }, { label:"System Governance", desc:"Engine rules & controls", color:"#ff9f0a", icon:"⊕" }, { label:"Demand Causality", desc:"DCE — recognition to adoption", color:"#0a84ff", icon:"◉" }, { label:"Eligibility Filter", desc:"ICP — who gets processed", color:"#bf5af2", icon:"◎" }, { label:"Channels", desc:"Inbound demand execution", color:"#30d158", icon:"◆" }].map(s => (
+                <Card key={s.label} style={{ padding:"18px 16px" }}>
+                  <div style={{ fontSize:18, marginBottom:10, opacity:0.7 }}>{s.icon}</div>
+                  <div style={{ fontSize:12, fontWeight:600, color:"#0f0f1a", marginBottom:5, letterSpacing:-0.2 }}>{s.label}</div>
+                  <div style={{ fontSize:10, color:"rgba(0,0,0,0.4)", lineHeight:1.5 }}>{s.desc}</div>
+                  <div style={{ marginTop:12, height:2, background:`${s.color}30`, borderRadius:2 }}><div style={{ height:"100%", width:"70%", background:s.color, borderRadius:2 }} /></div>
+                </Card>
+              ))}
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:28 }}>
+              <Card style={{ padding:"22px" }}>
+                <h3 style={{ fontSize:13, fontWeight:600, color:"#ff453a", margin:"0 0 14px", letterSpacing:-0.2 }}>Engine Rules</h3>
+                {["One primary demand path","No selling before confidence","No confidence without alignment","No alignment without recognition","No commitment without filtering","Future ideas must not violate these"].map((rule,i) => (
+                  <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start", marginBottom:10 }}>
+                    <span style={{ color:"#ff453a", fontSize:11, fontWeight:700, marginTop:1, flexShrink:0 }}>{String(i+1).padStart(2,"0")}</span>
+                    <span style={{ fontSize:12, color:"rgba(0,0,0,0.65)", lineHeight:1.5 }}>{rule}</span>
+                  </div>
+                ))}
+              </Card>
+              <Card style={{ padding:"22px" }}>
+                <h3 style={{ fontSize:13, fontWeight:600, color:"#0a84ff", margin:"0 0 14px", letterSpacing:-0.2 }}>DCE Stages</h3>
+                {["Recognition","Alignment","Confidence","Commitment","Adoption"].map((stage,i) => (
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
+                    <div style={{ width:28, height:28, borderRadius:8, background:"rgba(10,132,255,0.12)", border:"1px solid rgba(10,132,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#0a84ff", flexShrink:0 }}>{i+1}</div>
+                    <div>
+                      <div style={{ fontSize:12, fontWeight:600, color:"#0f0f1a", letterSpacing:-0.2 }}>{stage}</div>
+                      <div style={{ fontSize:9, color:"rgba(0,0,0,0.35)", marginTop:1 }}>Definition · Traffic</div>
+                    </div>
+                  </div>
+                ))}
+              </Card>
+            </div>
+            <Card style={{ padding:"28px", textAlign:"center" }}>
+              <div style={{ fontSize:40, marginBottom:14, opacity:0.2 }}>⊞</div>
+              <h3 style={{ fontSize:16, fontWeight:600, color:"rgba(0,0,0,0.4)", margin:"0 0 8px" }}>Miro Board</h3>
+              <p style={{ fontSize:12, color:"rgba(0,0,0,0.3)", margin:"0 0 18px", maxWidth:400, marginLeft:"auto", marginRight:"auto" }}>Paste your Miro board link to embed the full acquisition system diagram here</p>
+              <button style={{ background:"rgba(10,132,255,0.15)", border:"1px solid rgba(10,132,255,0.3)", borderRadius:12, color:"#0a84ff", cursor:"pointer", padding:"10px 22px", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif" }}>+ Connect Miro Board</button>
+            </Card>
+          </div>
+        )}
+
+        {activeNav === "sales" && <PlaceholderPage icon="◐" title="Sales Hub" badge="Coming Soon" desc="CRM, deal tracking, pipeline management, and client revenue dashboard. Ali is wiring the integration now." />}
+        {activeNav === "chat" && <PlaceholderPage icon="◷" title="Chat" badge="Coming Soon" desc="Team communication, client messaging, and agent-to-agent coordination hub. In development." />}
+        {activeNav === "artgrid" && <ArtgridScoutPage content={content} />}
+        {activeNav === "references" && <ReferencesPage />}
+
+        {/* SKILLS */}
+        {activeNav === "skills" && (
+          <div style={{ animation:"fadeIn 0.4s ease" }}>
+            <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", marginBottom:6, letterSpacing:-0.8 }}>Agent Skills</h1>
+            <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", marginBottom:28 }}>Reserved for agent capability library · Artgrid, Muse, and Overseer skill sets</p>
+            <Card style={{ padding:"40px", textAlign:"center" }}>
+              <div style={{ fontSize:44, marginBottom:16, opacity:0.1 }}>◆</div>
+              <h3 style={{ fontSize:15, fontWeight:600, color:"rgba(0,0,0,0.3)", margin:"0 0 8px" }}>Skills Library</h3>
+              <p style={{ fontSize:12, color:"rgba(0,0,0,0.25)", maxWidth:320, margin:"0 auto" }}>Agent skill definitions, capability boundaries, and tool access will be mapped here as the system matures.</p>
+            </Card>
+          </div>
+        )}
+
+        {/* SOPs */}
+        {activeNav === "sops" && (
+          <div style={{ animation:"fadeIn 0.4s ease" }}>
+            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28 }}>
+              <div>
+                <div style={{ fontSize:9, color:"rgba(0,0,0,0.3)", letterSpacing:2, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Standard Operating Procedure</div>
+                <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", margin:0, letterSpacing:-0.8 }}>{VITAL_LYFE_SOP.title}</h1>
+                <div style={{ fontSize:13, color:"rgba(0,0,0,0.44)", marginTop:5 }}>{VITAL_LYFE_SOP.subtitle} · {VITAL_LYFE_SOP.version}</div>
+              </div>
+              <Card style={{ padding:"12px 16px", textAlign:"center" }}>
+                <div style={{ fontSize:9, color:"rgba(48,209,88,0.6)", fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>Agents Trained On</div>
+                <div style={{ fontSize:24, fontWeight:700, color:"#30d158" }}>3</div>
+                <div style={{ fontSize:9, color:"rgba(0,0,0,0.4)", marginTop:2 }}>Artgrid · Muse · Overseer</div>
+              </Card>
+            </div>
+            <Card style={{ padding:"16px 20px", marginBottom:24, borderLeft:"3px solid #30d158", background:"rgba(48,209,88,0.06)" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ width:6, height:6, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite", flexShrink:0 }} />
+                <span style={{ fontSize:12, color:"rgba(48,209,88,0.8)", fontWeight:500 }}>Artgrid, Muse, and Overseer have been programmed with this SOP. They understand all 7 steps and operate within this framework automatically.</span>
+              </div>
+            </Card>
+            <div style={{ marginBottom:28 }}>
+              <h2 style={{ fontSize:16, fontWeight:600, color:"#0f0f1a", margin:"0 0 16px", letterSpacing:-0.3 }}>Workflow Steps</h2>
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {VITAL_LYFE_SOP.steps.map((step,i) => {
+                  const colors = ["#30d158","#0a84ff","#bf5af2","#ff9f0a","#ff375f","#64d2ff","#ffd60a"];
+                  const c = colors[i];
+                  return (
+                    <Card key={step.num} style={{ padding:"18px 22px", display:"grid", gridTemplateColumns:"52px 1fr", gap:16, alignItems:"flex-start" }}>
+                      <div style={{ fontSize:28, fontWeight:800, color:"rgba(0,0,0,0.06)", letterSpacing:-1, lineHeight:1 }}>{step.num}</div>
+                      <div>
+                        <div style={{ fontSize:9, color:c, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>{step.phase}</div>
+                        <div style={{ fontSize:14, fontWeight:600, color:"#0f0f1a", letterSpacing:-0.3, marginBottom:8 }}>{step.title}</div>
+                        <div style={{ fontSize:12, color:"rgba(0,0,0,0.48)", lineHeight:1.7, marginBottom:12 }}>{step.desc}</div>
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                          {step.tags.map(tag => <span key={tag} style={{ fontSize:9, color:c, background:`${c}12`, padding:"3px 9px", borderRadius:20, fontWeight:600, border:`1px solid ${c}20` }}>{tag}</span>)}
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
+              <Card style={{ padding:"20px" }}>
+                <h3 style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.35)", margin:"0 0 14px", letterSpacing:1.5, textTransform:"uppercase" }}>Tools</h3>
+                {VITAL_LYFE_SOP.tools.map((t,i) => (
+                  <div key={t} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                    <div style={{ width:24, height:24, borderRadius:7, background:"rgba(0,0,0,0.04)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, color:"rgba(0,0,0,0.4)", fontWeight:700 }}>{String(i+1).padStart(2,"0")}</div>
+                    <span style={{ fontSize:12, color:"rgba(0,0,0,0.65)", fontWeight:500 }}>{t}</span>
+                  </div>
+                ))}
+              </Card>
+              <Card style={{ padding:"20px" }}>
+                <h3 style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.35)", margin:"0 0 14px", letterSpacing:1.5, textTransform:"uppercase" }}>Platforms</h3>
+                {VITAL_LYFE_SOP.platforms.map((p,i) => {
+                  const c = ["#e1306c","#ff0050","#ff0000"][i];
+                  return (
+                    <div key={p} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                      <div style={{ width:8, height:8, borderRadius:"50%", background:c, flexShrink:0 }} />
+                      <span style={{ fontSize:12, color:"rgba(0,0,0,0.65)", fontWeight:500 }}>{p}</span>
+                    </div>
+                  );
+                })}
+              </Card>
+              <Card style={{ padding:"20px" }}>
+                <h3 style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.35)", margin:"0 0 14px", letterSpacing:1.5, textTransform:"uppercase" }}>Content Pillars</h3>
+                {VITAL_LYFE_SOP.contentPillars.map((p,i) => {
+                  const c = ["#30d158","#0a84ff","#ff9f0a","#ff375f","#bf5af2"][i];
+                  return (
+                    <div key={p} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                      <div style={{ width:8, height:8, borderRadius:2, background:c, flexShrink:0 }} />
+                      <span style={{ fontSize:12, color:"rgba(0,0,0,0.65)", fontWeight:500 }}>{p}</span>
+                    </div>
+                  );
+                })}
+              </Card>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
