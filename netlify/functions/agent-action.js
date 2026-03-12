@@ -4,6 +4,7 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+const TAVILY_KEY = process.env.TAVILY_API_KEY;
 
 const SB_HEADERS = () => ({
   apikey: SERVICE_KEY,
@@ -270,6 +271,332 @@ Give a concise health report with: overall score (0-100), key risks, recommended
   };
 }
 
+// ─── SCRAPPY: TREND SCOUT ─────────────────────────────────────────────────────
+
+async function tavilySearch(query, searchDepth = "advanced", maxResults = 8) {
+  if (!TAVILY_KEY) throw new Error("TAVILY_API_KEY not set");
+  const res = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      api_key: TAVILY_KEY,
+      query,
+      search_depth: searchDepth,
+      include_answer: true,
+      include_raw_content: false,
+      max_results: maxResults,
+    }),
+  });
+  if (!res.ok) throw new Error(`Tavily search failed: ${res.status}`);
+  return res.json();
+}
+
+async function scrappy_research(payload) {
+  const { topic = "wellness hydration water technology" } = payload;
+
+  if (!TAVILY_KEY) {
+    return {
+      success: false,
+      agent: "Scrappy",
+      action: "scrappy_research",
+      message: "❌ TAVILY_API_KEY not configured — add it in Netlify environment variables",
+    };
+  }
+
+  // ── Run parallel Tavily searches across key angles ──────────────────────
+  const queries = [
+    `${topic} trends 2025 2026`,
+    `hydration wellness content marketing trends`,
+    `water technology startup viral content`,
+    `wellness lifestyle TikTok Instagram trends this month`,
+    `clean water access innovation news`,
+  ];
+
+  const searchResults = await Promise.allSettled(
+    queries.map(q => tavilySearch(q, "advanced", 6))
+  );
+
+  // ── Flatten and dedupe results ──────────────────────────────────────────
+  const allResults = [];
+  const seenUrls = new Set();
+  searchResults.forEach((r, i) => {
+    if (r.status === "fulfilled" && r.value.results) {
+      r.value.results.forEach(result => {
+        if (!seenUrls.has(result.url)) {
+          seenUrls.add(result.url);
+          allResults.push({
+            query: queries[i],
+            title: result.title,
+            url: result.url,
+            content: result.content?.slice(0, 300),
+            score: result.score,
+          });
+        }
+      });
+      // Also grab Tavily's AI answer if available
+      if (r.value.answer) {
+        allResults.push({ query: queries[i], title: "Tavily Answer", content: r.value.answer, score: 1, url: "" });
+      }
+    }
+  });
+
+  // Sort by relevance score
+  allResults.sort((a, b) => (b.score || 0) - (a.score || 0));
+  const topResults = allResults.slice(0, 25);
+
+  const systemPrompt = `You are Scrappy, VitalLyfe's Trend Scout agent for Cloud Scenic's War Room.
+You scour the internet for content trends, viral topics, and fresh angles — then report back with gems for Muse to work with.
+
+VitalLyfe context:
+- Brand: wellness/hydration technology. Mission: abundance → access.
+- Content pillars: Abundance, Access, Innovation, Startup Diaries, Tierra Bomba, Product Launch, Meet the Makers
+- Target audience: health-conscious consumers, sustainability advocates, startup/innovation crowd, outdoor/travel lifestyle
+- Platforms: Instagram (Reels/Carousels), TikTok, YouTube, X/Threads
+
+Your job: Analyze the live internet data below (fresh Tavily search results). Extract trends, angles, hooks, and content opportunities VitalLyfe could own.
+Be a scout, not an analyst — cut the fluff, surface the gems. Think like a creative director who just did deep research.
+
+Return a structured JSON object:
+{
+  "trendPulse": "1-2 sentence read on where the conversation is right now",
+  "topTrends": [
+    {
+      "trend": "trend name",
+      "why": "why it matters for VitalLyfe specifically",
+      "pillar": "which content pillar it maps to",
+      "hookIdea": "one-line hook VitalLyfe could use",
+      "heat": "🔥🔥🔥|🔥🔥|🔥"
+    }
+  ],
+  "contentAngles": [
+    { "angle": "fresh specific angle or idea", "format": "Reel|Carousel|Thread|Short", "platform": "IG|TT|YT|X", "urgency": "high|medium|low" }
+  ],
+  "competitorMoves": "what's working in the wellness/hydration space right now",
+  "avoidZones": ["oversaturated or off-brand topics to skip"],
+  "museHandoff": "direct brief to Muse — what to create this month based on this research"
+}
+
+Return ONLY the JSON object.`;
+
+  const dataContext = `
+TOPIC: ${topic}
+LIVE SEARCH DATA (${topResults.length} results from Tavily):
+
+${topResults.map((r, i) => `[${i + 1}] "${r.title}"
+  Query: ${r.query}
+  ${r.content || ""}
+  ${r.url ? `Source: ${r.url}` : ""}`).join("\n\n")}
+`;
+
+  const rawResult = await ai(systemPrompt, `Analyze and generate research brief:\n${dataContext}`, 2000);
+
+  let report = null;
+  try {
+    const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
+    report = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+  } catch (e) { report = null; }
+
+  if (!report) {
+    return {
+      success: false,
+      agent: "Scrappy",
+      action: "scrappy_research",
+      message: "❌ Research parse failed",
+      raw: rawResult,
+    };
+  }
+
+  const trendCount = report.topTrends?.length || 0;
+  const angleCount = report.contentAngles?.length || 0;
+
+  return {
+    success: true,
+    agent: "Scrappy",
+    action: "scrappy_research",
+    report,
+    dataPoints: { sources: topResults.length, queries: queries.length },
+    trendPulse: report.trendPulse,
+    museHandoff: report.museHandoff,
+    message: `🕵️ Research complete — ${topResults.length} live sources scoured → ${trendCount} trends, ${angleCount} content angles surfaced`,
+    summary: (report.topTrends || []).map(t =>
+      `${t.heat} [${t.pillar}] ${t.trend}\n   Hook: "${t.hookIdea}"`
+    ).join("\n") + (report.museHandoff ? `\n\n📬 Muse Handoff:\n${report.museHandoff}` : ""),
+  };
+}
+
+async function scrappy_muse_collab(payload) {
+  // Phase 1: Scrappy researches
+  const research = await scrappy_research(payload);
+  if (!research.success || !research.report) {
+    return { ...research, action: "scrappy_muse_collab", message: "❌ Research phase failed — collaboration aborted" };
+  }
+
+  const { report } = research;
+
+  // Phase 2: Muse generates content ideas from the research
+  const existingItems = await sbGet("content_items", "?order=id&limit=5");
+  const existingTitles = existingItems.map(i => i.title).join(", ");
+
+  const museSystemPrompt = `You are Muse, Content Ideation Agent for VitalLyfe by Cloud Scenic.
+Scrappy has just completed live internet research and handed you a trend brief. Your job is to turn those trends into concrete, on-brand content pieces.
+
+Brand voice: cinematic, calm, purposeful. Key phrases: abundance, access, built for beyond.
+AVOID: revolutionary, game-changing, exclamation points, generic corporate content.
+Caption structure: poetic statement → expand metaphor → bridge to brand → soft CTA "Join us (Link in bio)".
+
+Existing content (don't repeat): ${existingTitles}
+
+Return a JSON array of 6-8 fresh content ideas:
+[
+  {
+    "title": "cinematic content title",
+    "pillar": "content pillar",
+    "format": "Reel|Carousel|Thread|Graphics (IMG)|Short",
+    "platform": "IG|TT|YT|X|TH",
+    "hook": "opening hook line",
+    "angle": "the specific trend/angle from Scrappy's research this taps into",
+    "caption": "full draft caption (poetic, on-brand)",
+    "cta": "soft CTA",
+    "urgency": "high|medium|low",
+    "trendSignal": "why this is timely right now"
+  }
+]
+Return ONLY the JSON array.`;
+
+  const musePrompt = `Scrappy's research findings for this month:
+
+Trend Pulse: ${report.trendPulse}
+
+Top Trends:
+${(report.topTrends || []).map(t => `• [${t.pillar}] ${t.trend} — ${t.why}\n  Hook idea: "${t.hookIdea}"`).join("\n")}
+
+Fresh Angles:
+${(report.contentAngles || []).map(a => `• ${a.angle} (${a.format}, ${a.platform}, urgency: ${a.urgency})`).join("\n")}
+
+Competitor Context: ${report.competitorMoves || "—"}
+
+Your brief: ${report.museHandoff || "Generate 6-8 fresh content ideas based on these trends."}
+
+Now create the content ideas.`;
+
+  const rawMuse = await ai(museSystemPrompt, musePrompt, 2000);
+
+  let contentIdeas = [];
+  try {
+    const jsonMatch = rawMuse.match(/\[[\s\S]*\]/);
+    contentIdeas = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+  } catch (e) { contentIdeas = []; }
+
+  const highPriority = contentIdeas.filter(i => i.urgency === "high");
+
+  return {
+    success: true,
+    agent: "Scrappy × Muse",
+    action: "scrappy_muse_collab",
+    trendPulse: report.trendPulse,
+    dataPoints: research.dataPoints,
+    contentIdeas,
+    highPriorityCount: highPriority.length,
+    message: `🕵️✍️ Scrappy × Muse collab complete — ${contentIdeas.length} fresh ideas generated from live internet research`,
+    summary: contentIdeas.map(i =>
+      `${i.urgency === "high" ? "🔥" : "·"} [${i.pillar}] "${i.title}" — ${i.format} for ${i.platform}\n   Angle: ${i.angle}`
+    ).join("\n"),
+  };
+}
+
+async function artgrid_scout(payload) {
+  const { itemId } = payload;
+
+  let items = await sbGet("content_items", "?order=id");
+
+  if (itemId) {
+    items = items.filter(i => i.id === itemId);
+  } else {
+    // SOP Step 03 — Pre-Production: scout footage for all video items not yet scheduled/scrapped
+    items = items.filter(i =>
+      ["Reel", "YouTube", "Short"].includes(i.format) &&
+      !["Scheduled", "Scrapped"].includes(i.status)
+    );
+  }
+
+  if (items.length === 0) {
+    return {
+      success: true,
+      agent: "Artgrid",
+      action: "artgrid_scout",
+      itemCount: 0,
+      briefs: [],
+      message: "✦ No video items currently need footage scouting — pipeline clear",
+    };
+  }
+
+  const systemPrompt = `You are Artgrid, VitalLyfe's footage scout for Cloud Scenic's War Room.
+You specialize in finding cinematic stock footage on Artgrid.io.
+
+VitalLyfe visual identity:
+- Brand: wellness/hydration technology. Cinematic, calm, purposeful. Never corporate.
+- Colors: warm neutrals, soft light, clean environments, water in motion
+- Aesthetic: documentary meets luxury — wide landscapes, macro water shots, real human moments
+- Tone: quiet ambition, calm confidence. No hype, no fake energy.
+- AVOID: people pointing at whiteboards, fake stock smiles, generic corporate, cheesy green screen
+
+For each content item, generate hyper-specific Artgrid.io search queries.
+Artgrid works best with descriptive scene phrases, NOT vague concepts.
+Good: "slow motion water droplet hitting surface golden hour" — Bad: "water inspiration"
+
+Return a JSON array (one object per item):
+[
+  {
+    "itemId": "vl-X",
+    "title": "item title",
+    "mood": "2-3 sentence visual direction",
+    "pacing": "Fast cuts (under 2s) | Medium (2-4s) | Slow/cinematic (4s+)",
+    "clipTypes": ["hero shot", "b-roll 1", "b-roll 2", "cutaway", "transition"],
+    "searches": [
+      { "query": "specific artgrid search phrase", "use": "exact role in the edit", "priority": "HIGH|MED|LOW" }
+    ],
+    "avoidKeywords": ["term1", "term2"],
+    "totalClipsNeeded": 7,
+    "notes": "editor direction"
+  }
+]
+
+Generate 6-8 search queries per item. Specificity wins. Return ONLY the JSON array.`;
+
+  const itemSummaries = items.map(i =>
+    `ID: ${i.id} | "${i.title}" | Pillar: ${i.pillar} | Campaign: ${i.campaign}\nDescription: ${i.description}\nScript: ${i.script || "—"}\nNotes: ${i.notes || "—"}`
+  ).join("\n\n---\n\n");
+
+  const rawResult = await ai(
+    systemPrompt,
+    `Generate footage briefs for these ${items.length} video items:\n\n${itemSummaries}`,
+    Math.min(2000 + items.length * 400, 4000)
+  );
+
+  let briefs = [];
+  try {
+    const jsonMatch = rawResult.match(/\[[\s\S]*\]/);
+    briefs = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+  } catch (e) {
+    briefs = [];
+  }
+
+  const totalQueries = briefs.reduce((sum, b) => sum + (b.searches?.length || 0), 0);
+
+  return {
+    success: true,
+    agent: "Artgrid",
+    action: "artgrid_scout",
+    itemCount: items.length,
+    totalQueries,
+    briefs,
+    message: `✦ Footage scouted — ${briefs.length} item(s), ${totalQueries} search queries ready`,
+    summary: briefs.map(b =>
+      `• "${b.title}" — ${b.searches?.length || 0} queries · ${b.totalClipsNeeded} clips · Pacing: ${b.pacing}`
+    ).join("\n"),
+  };
+}
+
 async function muse_generate_calendar() {
   const items = await sbGet("content_items", "?order=id&limit=10");
   const pillars = ["Abundance", "Access", "Innovation", "Tierra Bomba", "Startup Diaries", "Product Launch", "Meet the Makers"];
@@ -335,6 +662,9 @@ exports.handler = async (event) => {
       case "lacey_advance":          result = await lacey_advance(); break;
       case "sam_health":             result = await sam_health(); break;
       case "muse_generate_calendar": result = await muse_generate_calendar(); break;
+      case "artgrid_scout":          result = await artgrid_scout(payload); break;
+      case "scrappy_research":       result = await scrappy_research(payload); break;
+      case "scrappy_muse_collab":    result = await scrappy_muse_collab(payload); break;
       default:
         return {
           statusCode: 400,

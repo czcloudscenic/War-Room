@@ -77,7 +77,7 @@
     }
 
     // ─── CLIENT VIEW ──────────────────────────────────────────────────────────
-    function ClientView({ user, content, setContent, onSignOut }) {
+    function ClientView({ user, content, setContent, onSignOut, isPreview }) {
       const STATUS_ORDER = ["Need Copy Approval","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"];
       const STATUS_COLOR = {
         "Need Copy Approval":"#3b82f6","Need Content Approval":"#ff453a",
@@ -113,8 +113,8 @@
               <div style={{ fontSize:9, color:"rgba(0,0,0,0.35)", fontWeight:600, textTransform:"uppercase", letterSpacing:0.8 }}>Content Portal</div>
             </div>
             <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:12 }}>
-              <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)" }}>{user.email}</span>
-              <button onClick={onSignOut} style={{ fontSize:11, color:"rgba(0,0,0,0.4)", background:"none", border:"1px solid #e5e5e5", borderRadius:8, padding:"5px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Sign out</button>
+              <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)" }}>{isPreview ? "client@vitallyfe.com" : user.email}</span>
+              {!isPreview && <button onClick={onSignOut} style={{ fontSize:11, color:"rgba(0,0,0,0.4)", background:"none", border:"1px solid #e5e5e5", borderRadius:8, padding:"5px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Sign out</button>}
             </div>
           </div>
 
@@ -206,7 +206,14 @@
         sb.auth.onAuthStateChange((_e, s) => { if (!s) { setSession(null); setRole(null); } });
       }, []);
 
-      const handleLogin = (user, r) => { setSession({ user }); setRole(r); };
+      const handleLogin = async (user, r) => {
+        // Load content on fresh login
+        if (sb) {
+          const { data: items } = await sb.from("content_items").select("*").order("id");
+          if (items && items.length > 0) setContent(items.map(row => ({ ...row, platforms: row.platforms || [] })));
+        }
+        setSession({ user }); setRole(r);
+      };
       const handleSignOut = async () => { await sb.auth.signOut(); setSession(null); setRole(null); };
 
       if (checking) return (
@@ -216,7 +223,7 @@
       );
       if (!session) return <LoginScreen onLogin={handleLogin} />;
       if (role === "client") return <ClientView user={session.user} content={content} setContent={setContent} onSignOut={handleSignOut} />;
-      return <WarRoom onSignOut={handleSignOut} userEmail={session.user?.email} />;
+      return <WarRoom onSignOut={handleSignOut} userEmail={session.user?.email} content={content} setContent={setContent} />;
     }
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -295,6 +302,7 @@ const AGENT_TASKS = {
   Artgrid: ["Scouting Art Grid: lifestyle + wellness clips", "Filtering footage for IG Reel #14", "Matching clips to Content Pillar: Inspiration", "Downloading B-roll batch: 8 clips", "Cross-referencing approved tracker Step 03", "Queuing B-roll for post-production", "Reviewing licensing on selected footage"],
   Muse: ["Generating March content ideas — all platforms", "Analyzing trending hooks on TikTok", "Writing 5 hook variations for next Reel", "Mapping ideas to Content Pillars framework", "Building April content calendar", "Writing IG caption batch — 12 posts", "Analyzing competitor hooks — Vital Lyfe niche"],
   Overseer: ["Reviewing Artgrid selections vs SOP Step 03", "Cross-checking Muse output vs Content Pillars", "Verifying tracker approval gate — Step 02", "Routing approved assets to Sprout Social", "Monitoring full SOP compliance — 7 steps", "Coordinating client review via Wipster", "Final sign-off check before go-live"],
+  Scrappy: ["Scraping r/wellness: top posts this week", "Pulling HN trending — startup + water tech", "Scanning TikTok audio trends for hooks", "Cross-referencing Muse's last calendar", "Flagging viral angles for hydration niche", "Surfacing competitor content gaps", "Handing off trend brief to Muse ✓"],
 };
 const AGENTS_BASE = [
   { id:1, name:"Sean", role:"Commander", type:"Orchestrator", color:"#30d158", grad:"linear-gradient(135deg,#1a4028,#0d2018)", taskIdx:0 },
@@ -304,9 +312,13 @@ const AGENTS_BASE = [
   { id:5, name:"Artgrid", role:"Footage Scout", type:"Creative", color:"#bf5af2", grad:"linear-gradient(135deg,#1e0a35,#100520)", taskIdx:0 },
   { id:6, name:"Muse", role:"Content Ideation", type:"Strategy", color:"#ff375f", grad:"linear-gradient(135deg,#3d0010,#200008)", taskIdx:0 },
   { id:7, name:"Overseer", role:"SOP Guardian", type:"Compliance", color:"#64d2ff", grad:"linear-gradient(135deg,#002040,#001020)", taskIdx:0 },
+  { id:8, name:"Scrappy", role:"Trend Scout", type:"Research", color:"#5e5ce6", grad:"linear-gradient(135deg,#0f0e35,#080718)", taskIdx:0 },
 ];
 const ACTION_COLORS = { route:"#30d158", complete:"#30d158", deploy:"#0a84ff", research:"#bf5af2", execute:"#ff9f0a", alert:"#ff453a", success:"#30d158", check:"#64d2ff", optimize:"#0a84ff", schedule:"#ff375f", brief:"#bf5af2", publish:"#30d158", secure:"#ffd60a", metric:"#ff9f0a", spawn:"#64d2ff" };
 const ACTIVITY_POOL = [
+  { agent:"Scrappy", action:"r/wellness top posts scraped — 12 signals found", type:"research" },
+  { agent:"Scrappy", action:"trend brief handed to Muse — 7 angles flagged", type:"brief" },
+  { agent:"Scrappy", action:"HN trending: water tech article — high signal", type:"spawn" },
   { agent:"Overseer", action:"SOP Step 03 — Artgrid selections approved", type:"check" },
   { agent:"Artgrid", action:"downloaded 6 clips for Reel #14", type:"complete" },
   { agent:"Muse", action:"generated March content calendar", type:"brief" },
@@ -342,7 +354,7 @@ const OPS_INIT = {
 const NAV = [
   { section:"COMMAND", items:[{ id:"dashboard", icon:"⊞", label:"Dashboard" }, { id:"agents", icon:"◎", label:"Agents" }]},
   { section:"CONTENT", items:[{ id:"instagram", icon:"◈", label:"Instagram" }, { id:"tiktok", icon:"♪", label:"TikTok" }, { id:"youtube", icon:"▷", label:"YouTube" }, { id:"tracker", icon:"⊟", label:"Content Tracker" }, { id:"taskboard", icon:"⊕", label:"Task Board" }]},
-  { section:"BUSINESS", items:[{ id:"funnel", icon:"◉", label:"Funnel" }, { id:"sales", icon:"◐", label:"Sales Hub" }, { id:"chat", icon:"◷", label:"Chat" }]},
+  { section:"BUSINESS", items:[{ id:"sales", icon:"◐", label:"Ad ROI Hub" }, { id:"chat", icon:"◷", label:"Team Broadcast" }]},
   { section:"OPERATIONS", items:[{ id:"artgrid", icon:"◭", label:"ArtGrid Scout" }, { id:"references", icon:"◫", label:"References" }, { id:"skills", icon:"◆", label:"Skills" }, { id:"sops", icon:"⊟", label:"SOPs" }]},
 ];
 
@@ -652,8 +664,9 @@ function Card({ children, style={}, glowColor, onClick }) {
   );
 }
 function MetricCard({ label, value, delta, color, icon }) {
-  const [v, setV] = useState(value - Math.floor(Math.random()*30));
-  useInterval(() => { setV(p => p + Math.floor(Math.random()*delta)); }, 5000 + Math.random()*3000);
+  const [v, setV] = useState(value);
+  useEffect(() => { setV(value); }, [value]);
+  useInterval(() => { if (delta > 0) setV(p => p + Math.floor(Math.random()*delta)); }, delta > 0 ? 5000 + Math.random()*3000 : null);
   return (
     <Card style={{ flex:1, padding:"20px 22px", minWidth:0 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
@@ -765,7 +778,7 @@ function ActivityFeed({ feed }) {
 }
 
 // ─── CONTENT PIPELINE BOARD (clickable cards) ─────────────────────────────────
-function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardClick }) {
+function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardClick, onMuseWrite }) {
   return (
     <div style={{ marginBottom:32 }}>
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
@@ -786,15 +799,27 @@ function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardC
               </div>
               <div style={{ minHeight:120, background:"rgba(0,0,0,0.02)", border:"1px solid rgba(0,0,0,0.05)", borderRadius:12, padding:8 }}>
                 {stageItems.map((item) => (
-                  <div key={item.id} onClick={() => onCardClick(item)} style={{ padding:"10px 12px", marginBottom:7, borderRadius:10, borderLeft:`2px solid ${c}`, background:"#fff", boxShadow:"0 1px 6px rgba(0,0,0,0.06)", cursor:"pointer", transition:"all 0.15s" }}
+                  <div key={item.id} style={{ padding:"10px 12px", marginBottom:7, borderRadius:10, borderLeft:`2px solid ${c}`, background:"#fff", boxShadow:"0 1px 6px rgba(0,0,0,0.06)", transition:"all 0.15s" }}
                     onMouseEnter={e => { e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.boxShadow=`0 4px 14px rgba(0,0,0,0.1)`; }}
                     onMouseLeave={e => { e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="0 1px 6px rgba(0,0,0,0.06)"; }}>
-                    <div style={{ fontSize:11, color:"#1a1a2e", fontWeight:600, lineHeight:1.35, marginBottom:5 }}>{item.title}</div>
-                    <div style={{ fontSize:9, color:"rgba(0,0,0,0.35)", marginBottom:5, lineHeight:1.4 }}>{item.campaign}</div>
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
-                      <span style={{ fontSize:8, color:c, background:`${c}15`, padding:"2px 5px", borderRadius:4, fontWeight:700 }}>{item.pillar}</span>
-                      {item.platforms.slice(0,2).map(p => <span key={p} style={{ fontSize:8, color:"rgba(0,0,0,0.35)", background:"rgba(0,0,0,0.05)", padding:"2px 5px", borderRadius:4 }}>{p}</span>)}
+                    <div onClick={() => onCardClick(item)} style={{ cursor:"pointer" }}>
+                      <div style={{ fontSize:11, color:"#1a1a2e", fontWeight:600, lineHeight:1.35, marginBottom:5 }}>{item.title}</div>
+                      <div style={{ fontSize:9, color:"rgba(0,0,0,0.35)", marginBottom:5, lineHeight:1.4 }}>{item.campaign}</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:6 }}>
+                        <span style={{ fontSize:8, color:c, background:`${c}15`, padding:"2px 5px", borderRadius:4, fontWeight:700 }}>{item.pillar}</span>
+                        {item.platforms.slice(0,2).map(p => <span key={p} style={{ fontSize:8, color:"rgba(0,0,0,0.35)", background:"rgba(0,0,0,0.05)", padding:"2px 5px", borderRadius:4 }}>{p}</span>)}
+                      </div>
                     </div>
+                    {onMuseWrite && (
+                      <div style={{ display:"flex", gap:4 }}>
+                        {(!item.caption || item.caption.length < 10) && (
+                          <button onClick={() => onMuseWrite(item, "caption")} style={{ fontSize:8, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:5, padding:"2px 7px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>✍️ Caption</button>
+                        )}
+                        {item.format === "Reel" && (!item.script || item.script.length < 10) && (
+                          <button onClick={() => onMuseWrite(item, "script")} style={{ fontSize:8, fontWeight:700, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:5, padding:"2px 7px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>✍️ Script</button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
                 {stageItems.length===0 && <div style={{ fontSize:10, color:"rgba(0,0,0,0.2)", textAlign:"center", padding:"24px 0" }}>empty</div>}
@@ -931,42 +956,89 @@ function ReferencesPage() {
 
 // ─── ARTGRID SCOUT ────────────────────────────────────────────────────────────
 function ArtgridScoutPage({ content }) {
-  const needsFootage = content.filter(x => ["SCRIPT","SCRIPTED","IDEA","APPROVED"].includes(x.stage) && x.type !== "story");
+  // SOP Step 03 — scout footage for video formats not yet scheduled or scrapped
+  const needsFootage = content.filter(x =>
+    ["Reel", "YouTube", "Short"].includes(x.format) &&
+    !["Scheduled", "Scrapped"].includes(x.status)
+  );
   const [scouts, setScouts] = useState({});
   const [activeId, setActiveId] = useState(null);
-  const PILLAR_COLOR = { Education:"#3b82f6", Entertainment:"#10b981", Inspiration:"#8b5cf6", Promotion:"#ff375f", Community:"#f59e0b", Access:"#06b6d4" };
+  const [scoutingAll, setScoutingAll] = useState(false);
+  const [allScoutResult, setAllScoutResult] = useState(null);
+  const PILLAR_COLOR = { Education:"#3b82f6", Entertainment:"#10b981", Inspiration:"#8b5cf6", Promotion:"#ff375f", Community:"#f59e0b", Access:"#06b6d4", Abundance:"#8b5cf6", Innovation:"#0a84ff", "Tierra Bomba":"#30d158", "Startup Diaries":"#ff9f0a", "Product Launch":"#ff375f", "Meet the Makers":"#64d2ff" };
   const PRIORITY_COLOR = { HIGH:"#ff375f", MED:"#f59e0b", LOW:"rgba(0,0,0,0.3)" };
 
+  // ── SCOUT ALL via backend action ──────────────────────────────────────────
+  const runScoutAll = async () => {
+    if (scoutingAll) return;
+    setScoutingAll(true);
+    setAllScoutResult(null);
+    try {
+      const res = await fetch("/api/agent-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentName: "Artgrid", action: "artgrid_scout", payload: {} }),
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error);
+      // Merge briefs into per-item scouts state
+      if (d.briefs && d.briefs.length > 0) {
+        const updates = {};
+        d.briefs.forEach(b => { updates[b.itemId] = { loading: false, brief: b }; });
+        setScouts(prev => ({ ...prev, ...updates }));
+        if (d.briefs[0]) setActiveId(d.briefs[0].itemId);
+      }
+      setAllScoutResult({ ok: true, message: d.message, summary: d.summary });
+    } catch(e) {
+      setAllScoutResult({ ok: false, message: `❌ Scout failed: ${e.message}` });
+    }
+    setScoutingAll(false);
+  };
+
+  // ── SCOUT SINGLE ITEM via frontend chat proxy ─────────────────────────────
   const runScout = async (item) => {
     setScouts(prev => ({ ...prev, [item.id]: { loading:true, brief:null } }));
     setActiveId(item.id);
     try {
-      const systemPrompt = `You are Artgrid — VitalLyfe's AI footage scout. Expert at finding cinematic stock footage on Artgrid.io.
+      const systemPrompt = `You are Artgrid — VitalLyfe's AI footage scout for Cloud Scenic's War Room. Expert at finding cinematic stock footage on Artgrid.io.
 
-VitalLyfe visual identity: Clean, aspirational, lifestyle-focused. Warm neutrals, soft light, clean workspaces, natural environments. Emotion: calm confidence, quiet ambition, real moments. Never: people pointing at whiteboards, overly corporate, fake smiling.
+VitalLyfe visual identity:
+- Brand: wellness/hydration technology. Cinematic, calm, purposeful. NEVER corporate.
+- Look: warm neutrals, soft light, water in motion, wide open landscapes, macro nature shots
+- Emotion: quiet ambition, calm confidence, real human moments — not perfomative
+- AVOID: people pointing at whiteboards, fake stock photo smiles, overly corporate setups, cheesy motion graphics, green screen
 
-Return ONLY a JSON object, no markdown or backticks:
+Artgrid.io search tip: specific descriptive phrases work best. "slow motion water droplet hitting calm surface sunrise" > "water inspiration". Include lighting, environment, motion speed, and subject.
+
+Return ONLY a JSON object (no markdown, no backticks):
 {
-  "mood": "2-3 sentence visual mood",
+  "mood": "2-3 sentence visual direction for the editor",
   "pacing": "Fast cuts (under 2s) | Medium (2-4s) | Slow/cinematic (4s+)",
-  "clipTypes": ["hero shot type", "b-roll 1", "b-roll 2", "cutaway"],
+  "clipTypes": ["hero shot description", "b-roll 1", "b-roll 2", "cutaway", "transition"],
   "searches": [
-    { "query": "exact artgrid search term", "use": "what this clip is for in the edit", "priority": "HIGH|MED|LOW" }
+    { "query": "exact artgrid.io search phrase", "use": "specific role in edit timeline", "priority": "HIGH|MED|LOW" }
   ],
-  "avoidKeywords": ["keyword"],
-  "totalClipsNeeded": 6,
-  "notes": "editor direction"
+  "avoidKeywords": ["search term to avoid"],
+  "totalClipsNeeded": 7,
+  "notes": "additional editor direction"
 }
-Include 6-8 search queries. Be specific — 'man working laptop coffee shop morning light' not 'person working'.`;
+Include 6-8 search queries. Hyper-specific beats generic every time.`;
 
       const res = await fetch("/api/chat", {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1200, system:systemPrompt, messages:[{ role:"user", content:`Title: ${item.title}\nPlatform: ${item.platforms.join(", ")}\nPillar: ${item.pillar}\nFormat: ${item.format}\nCampaign: ${item.campaign}\nDescription: ${item.description}\nScript:\n${item.script}\nDirector Notes: ${item.notes}` }] })
+        body: JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:1400,
+          system:systemPrompt,
+          messages:[{ role:"user", content:`Scout footage for this content piece:\n\nTitle: ${item.title}\nPlatform: ${(item.platforms||[]).join(", ") || item.platform}\nContent Pillar: ${item.pillar}\nFormat: ${item.format}\nCampaign: ${item.campaign}\nDescription: ${item.description}\nScript:\n${item.script || "— No script yet —"}\nDirector Notes: ${item.notes || "—"}` }],
+        })
       });
       const data = await res.json();
       const text = data.content?.find(b=>b.type==="text")?.text || "{}";
-      const brief = JSON.parse(text.replace(/```json|```/g,"").trim());
+      // Strip any accidental markdown fencing
+      const cleaned = text.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
+      const brief = JSON.parse(cleaned);
       setScouts(prev => ({ ...prev, [item.id]: { loading:false, brief } }));
     } catch(e) {
       setScouts(prev => ({ ...prev, [item.id]: { loading:false, brief:null, error:true } }));
@@ -978,13 +1050,41 @@ Include 6-8 search queries. Be specific — 'man working laptop coffee shop morn
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:8 }}>
         <div>
           <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", marginBottom:4, letterSpacing:-0.8 }}>ArtGrid Scout</h1>
-          <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>AI-generated footage briefs. Click Scout — get exact Artgrid.io search queries for every piece.</p>
+          <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>AI-generated footage briefs. Scout one item or run all at once — get exact Artgrid.io search queries.</p>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 16px", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:12 }}>
-          <div style={{ width:7, height:7, borderRadius:"50%", background:"#bf5af2", animation:"livePulse 2.5s ease-in-out infinite" }} />
-          <span style={{ fontSize:11, color:"#bf5af2", fontWeight:600 }}>Artgrid Agent · Ready</span>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <button onClick={runScoutAll} disabled={scoutingAll}
+            style={{ background:scoutingAll?"rgba(191,90,242,0.1)":"#bf5af2", border:"none", borderRadius:12, color:scoutingAll?"#bf5af2":"#fff", cursor:scoutingAll?"default":"pointer", padding:"10px 20px", fontSize:13, fontWeight:700, fontFamily:"Inter,sans-serif", opacity:scoutingAll?0.8:1, display:"flex", alignItems:"center", gap:7 }}>
+            {scoutingAll ? (
+              <><div style={{ width:7, height:7, borderRadius:"50%", background:"#bf5af2", animation:"livePulse 1s infinite" }} /> Scouting All…</>
+            ) : "✦ Scout All Items"}
+          </button>
+          <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 16px", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:12 }}>
+            <div style={{ width:7, height:7, borderRadius:"50%", background:"#bf5af2", animation:"livePulse 2.5s ease-in-out infinite" }} />
+            <span style={{ fontSize:11, color:"#bf5af2", fontWeight:600 }}>Artgrid Agent · Ready</span>
+          </div>
         </div>
       </div>
+
+      {allScoutResult && (
+        <div style={{ padding:"12px 16px", background:allScoutResult.ok?"rgba(191,90,242,0.06)":"rgba(255,69,58,0.06)", border:"1px solid " + (allScoutResult.ok?"rgba(191,90,242,0.2)":"rgba(255,69,58,0.2)"), borderRadius:12, marginBottom:16, animation:"slideIn 0.3s ease" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+            <div>
+              <div style={{ fontSize:12, fontWeight:600, color:allScoutResult.ok?"#bf5af2":"#ff453a", marginBottom:allScoutResult.summary?6:0 }}>{allScoutResult.message}</div>
+              {allScoutResult.summary && <div style={{ fontSize:11, color:"rgba(0,0,0,0.5)", lineHeight:1.6, whiteSpace:"pre-line" }}>{allScoutResult.summary}</div>}
+            </div>
+            <button onClick={() => setAllScoutResult(null)} style={{ background:"none", border:"none", color:"rgba(0,0,0,0.3)", cursor:"pointer", fontSize:14, padding:"2px 6px", marginLeft:12, flexShrink:0 }}>✕</button>
+          </div>
+        </div>
+      )}
+
+      {needsFootage.length === 0 && (
+        <div style={{ padding:"32px", textAlign:"center", background:"rgba(191,90,242,0.04)", border:"1px solid rgba(191,90,242,0.1)", borderRadius:16, marginBottom:16 }}>
+          <div style={{ fontSize:32, marginBottom:12, opacity:0.3 }}>✦</div>
+          <div style={{ fontSize:14, fontWeight:600, color:"rgba(0,0,0,0.4)", marginBottom:6 }}>No video items need footage right now</div>
+          <div style={{ fontSize:12, color:"rgba(0,0,0,0.3)" }}>All Reels, YouTube, and Short format content is either scheduled or scrapped.</div>
+        </div>
+      )}
 
       <Card style={{ padding:"18px 22px", marginBottom:28, marginTop:20, background:"rgba(191,90,242,0.04)", border:"1px solid rgba(191,90,242,0.12)" }}>
         <div style={{ display:"flex", gap:24 }}>
@@ -1102,6 +1202,7 @@ function AgentChatPage({ agents, content }) {
     Artgrid: "You are Artgrid, Footage Scout for the VitalLyfe War Room by Cloud Scenic. Source B-roll from Artgrid.io. VitalLyfe visuals: warm neutrals, soft light, water in motion, wide landscapes. Never corporate or fake stock. Personality: visual, cinematic, precise search terms.",
     Muse: "You are Muse, Content Ideation Agent for the VitalLyfe War Room by Cloud Scenic. Write hooks, captions, scripts, calendars. Brand voice: cinematic, calm, purposeful. Key phrases: abundance, access, built for beyond. AVOID: revolutionary, game-changing, exclamation points. Caption structure: poetic statement then blank line then expand metaphor then blank line then bridge to brand then blank line then soft CTA like Join us (Link in bio). Always write real copy not descriptions.",
     Overseer: "You are Overseer, SOP Guardian for the VitalLyfe War Room by Cloud Scenic. Enforce 7-step SOP: Step 01 Discovery, Step 02 Copy Creation, Step 03 Footage Scouting, Step 04 Content Creation, Step 05 Client Review, Step 06 Revisions max 2 rounds, Step 07 Scheduling. Flag violations, cite step numbers. Rigorous but never alarmist.",
+    Scrappy: "You are Scrappy, Trend Scout for the VitalLyfe War Room by Cloud Scenic. You scour the internet for content trends, viral hooks, competitor moves, and fresh angles — then hand the gems to Muse. You pull from Reddit, Hacker News, TikTok trends, and the wider wellness/tech space. VitalLyfe content pillars: Abundance, Access, Innovation, Startup Diaries, Tierra Bomba, Product Launch, Meet the Makers. Personality: sharp, fast, a little chaotic in a good way. You find things others miss. Short punchy reports. Lead with what's hot. Never vague — always specific signals with real context.",
   };
   const QUICK = {
     Sean:     ["Pipeline Status", "Today's Priorities", "Delegate a Task", "Morning Briefing"],
@@ -1111,6 +1212,7 @@ function AgentChatPage({ agents, content }) {
     Artgrid:  ["Scout Footage", "Mood Board Brief", "Review Clip Selections", "Build Shot List"],
     Muse:     ["Write Hooks", "Draft Caption", "Content Calendar", "New Concept Ideas"],
     Overseer: ["Full SOP Audit", "Compliance Check", "Brand Voice Review", "Approval Gate"],
+    Scrappy: ["What's trending this week?", "Competitor analysis", "Fresh hook ideas", "Muse collab brief"],
   };
   const DESC = {
     Sean: "Orchestrates agents, owns pipeline priorities",
@@ -1120,16 +1222,32 @@ function AgentChatPage({ agents, content }) {
     Artgrid: "Cinematic footage sourcing, visual briefs, Artgrid.io",
     Muse: "Copy, hooks, captions, content calendars, ideation",
     Overseer: "SOP enforcement, brand voice compliance, audit",
+    Scrappy: "Live internet research, trend scouting, Muse monthly collab",
   };
 
   const [sel, setSel] = useState(agents[0]);
-  const [hists, setHists] = useState({});
+  const [hists, setHists] = useState(() => {
+    // Load last 10 messages per agent from localStorage on mount
+    try {
+      const saved = localStorage.getItem("warroom_agent_hists");
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const msgs = hists[sel.id] || [];
+
+  // Persist last 10 messages per agent to localStorage
+  useEffect(() => {
+    try {
+      const trimmed = {};
+      Object.keys(hists).forEach(k => { trimmed[k] = (hists[k] || []).slice(-10); });
+      localStorage.setItem("warroom_agent_hists", JSON.stringify(trimmed));
+    } catch {}
+  }, [hists]);
 
   const runAgentAction = async (action, payload = {}) => {
     if (actionBusy) return;
@@ -1160,6 +1278,27 @@ function AgentChatPage({ agents, content }) {
         const m = d.metrics;
         display += `\n\n**Metrics:** ${m.total} total · ${m.missingCopy} missing captions · ${m.missingScript} missing scripts`;
         if (m.byStatus) display += "\n" + Object.entries(m.byStatus).map(([s,n]) => `${s}: ${n}`).join(" · ");
+      }
+      if (d.briefs && d.briefs.length > 0) {
+        display += "\n\n" + d.briefs.map(b =>
+          `📍 "${b.title}"\nMood: ${b.mood}\nPacing: ${b.pacing}\nClips needed: ${b.totalClipsNeeded}\nTop queries:\n` +
+          (b.searches || []).filter(s => s.priority === "HIGH").map(s => `  ✦ ${s.query} — ${s.use}`).join("\n")
+        ).join("\n\n");
+        if (d.summary) display += "\n\n---\n" + d.summary;
+      }
+      // Scrappy research result
+      if (d.report?.trendPulse) {
+        display += `\n\n📡 Trend Pulse: ${d.report.trendPulse}`;
+        if (d.dataPoints) display += `\n📊 Data: ${d.dataPoints.sources || 0} live sources · ${d.dataPoints.queries || 0} search queries`;
+        if (d.summary) display += "\n\n" + d.summary;
+        if (d.report.competitorMoves) display += `\n\n🔭 In the space right now:\n${d.report.competitorMoves}`;
+        if (d.report.avoidZones?.length) display += `\n\n⚠️ Avoid: ${d.report.avoidZones.join(", ")}`;
+      }
+      // Scrappy × Muse collab result
+      if (d.contentIdeas && d.contentIdeas.length > 0) {
+        display += `\n\n📡 Trend Pulse: ${d.trendPulse || "—"}`;
+        if (d.dataPoints) display += `\n📊 Sources: ${d.dataPoints.sources || 0} live sources searched`;
+        display += `\n\n✍️ Fresh Ideas (${d.contentIdeas.length}):\n` + d.summary;
       }
       setHists(h => {
         const thread = (h[sel.id]||[]).filter(m => !m.loading);
@@ -1246,11 +1385,11 @@ function AgentChatPage({ agents, content }) {
             </div>
             <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginTop:2 }}>{DESC[sel.name]}</div>
           </div>
-          {msgs.length > 0 && <button onClick={() => setHists(h => ({ ...h, [sel.id]: [] }))} style={{ background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:8, color:"rgba(0,0,0,0.35)", fontSize:11, cursor:"pointer", padding:"5px 11px", fontFamily:"Inter,sans-serif" }}>Clear</button>}
+          {msgs.length > 0 && <button onClick={() => setHists(h => { const n = { ...h, [sel.id]: [] }; try { const t={}; Object.keys(n).forEach(k=>{t[k]=(n[k]||[]).slice(-10);}); localStorage.setItem("warroom_agent_hists",JSON.stringify(t)); } catch {} return n; })} style={{ background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:8, color:"rgba(0,0,0,0.35)", fontSize:11, cursor:"pointer", padding:"5px 11px", fontFamily:"Inter,sans-serif" }}>Clear</button>}
         </div>
 
         {/* ── AGENT ACTION BUTTONS ── */}
-        {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Overseer" || sel.name === "Lacey" || sel.name === "Sam") && (
+        {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Overseer" || sel.name === "Lacey" || sel.name === "Sam" || sel.name === "Artgrid" || sel.name === "Scrappy") && (
           <div style={{ padding:"8px 16px", borderBottom:"1px solid rgba(0,0,0,0.06)", display:"flex", gap:7, flexWrap:"wrap", background:"rgba(0,0,0,0.015)", flexShrink:0 }}>
             {sel.name === "Sean" && (
               <button onClick={() => runAgentAction("sean_briefing")} disabled={actionBusy}
@@ -1282,6 +1421,22 @@ function AgentChatPage({ agents, content }) {
                 {actionBusy ? "⏳ Running…" : "💊 Health Check"}
               </button>
             )}
+            {sel.name === "Artgrid" && (
+              <button onClick={() => runAgentAction("artgrid_scout")} disabled={actionBusy}
+                style={{ fontSize:11, fontWeight:600, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
+                {actionBusy ? "⏳ Scouting…" : "✦ Scout All Video Items"}
+              </button>
+            )}
+            {sel.name === "Scrappy" && (<>
+              <button onClick={() => runAgentAction("scrappy_research")} disabled={actionBusy}
+                style={{ fontSize:11, fontWeight:600, color:"#5e5ce6", background:"rgba(94,92,230,0.08)", border:"1px solid rgba(94,92,230,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
+                {actionBusy ? "⏳ Scraping…" : "🕵️ Research Trends"}
+              </button>
+              <button onClick={() => runAgentAction("scrappy_muse_collab")} disabled={actionBusy}
+                style={{ fontSize:11, fontWeight:600, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
+                {actionBusy ? "⏳ Collaborating…" : "🕵️✍️ Scrappy × Muse"}
+              </button>
+            </>)}
           </div>
         )}
 
@@ -1427,6 +1582,9 @@ function QuickActionsDashboard() {
         display += `\n\nMetrics: ${m.total} total · ${m.missingCopy} missing captions · ${m.missingScript} missing scripts`;
         if (m.byStatus) display += "\n" + Object.entries(m.byStatus).map(([s,n]) => `${s}: ${n}`).join(" · ");
       }
+      if (d.briefs && d.briefs.length > 0 && d.summary) {
+        display += "\n\n" + d.summary;
+      }
       setResult({ ok: true, text: display, color });
     } catch(e) {
       setResult({ ok: false, text: `❌ ${e.message}`, color: "#ff453a" });
@@ -1481,34 +1639,356 @@ function QuickActionsDashboard() {
   );
 }
 
-function WarRoom({ onSignOut, userEmail }) {
+// ─── AD ROI HUB ──────────────────────────────────────────────────────────────
+function AdROIHub() {
+  const [campaigns, setCampaigns] = useState([
+    { id:"c1", name:"Drip Campaign — IG Reels", platform:"Instagram", spend:320, leads:18, conversions:4, revenue:1200, status:"Active" },
+    { id:"c2", name:"Access is Freedom — TikTok", platform:"TikTok", spend:150, leads:34, conversions:7, revenue:2100, status:"Active" },
+    { id:"c3", name:"Product Launch — Multi-Platform", platform:"Meta/TikTok", spend:800, leads:62, conversions:11, revenue:4400, status:"Active" },
+    { id:"c4", name:"Meet the Makers — IG Stories", platform:"Instagram", spend:90, leads:9, conversions:1, revenue:350, status:"Paused" },
+  ]);
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ name:"", platform:"Instagram", spend:"", leads:"", conversions:"", revenue:"", status:"Active" });
+  const [aiInsight, setAiInsight] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const setF = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  const PLATFORMS = ["Instagram","TikTok","Meta/TikTok","YouTube","LinkedIn","X","Reddit"];
+  const STATUSES = ["Active","Paused","Ended"];
+
+  const roi = (c) => c.spend > 0 ? (((c.revenue - c.spend) / c.spend) * 100).toFixed(0) : 0;
+  const roas = (c) => c.spend > 0 ? (c.revenue / c.spend).toFixed(2) : 0;
+  const cpl = (c) => c.leads > 0 ? (c.spend / c.leads).toFixed(2) : 0;
+  const cvr = (c) => c.leads > 0 ? ((c.conversions / c.leads) * 100).toFixed(1) : 0;
+  const roiColor = (r) => r >= 100 ? "#30d158" : r >= 0 ? "#ff9f0a" : "#ff453a";
+
+  const totalSpend = campaigns.reduce((s,c)=>s+c.spend,0);
+  const totalRevenue = campaigns.reduce((s,c)=>s+c.revenue,0);
+  const totalLeads = campaigns.reduce((s,c)=>s+c.leads,0);
+  const totalConversions = campaigns.reduce((s,c)=>s+c.conversions,0);
+  const overallROAS = totalSpend > 0 ? (totalRevenue/totalSpend).toFixed(2) : 0;
+
+  const runAIAnalysis = async () => {
+    setAnalyzing(true); setAiInsight(null);
+    try {
+      const summary = campaigns.map(c=>`${c.name} (${c.platform}): Spend $${c.spend}, Leads ${c.leads}, Conversions ${c.conversions}, Revenue $${c.revenue}, ROI ${roi(c)}%, ROAS ${roas(c)}x, CPL $${cpl(c)}, CVR ${cvr(c)}%`).join("\n");
+      const res = await fetch("/api/chat", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          model:"claude-sonnet-4-20250514", max_tokens:800,
+          system:"You are Sam, Ad Performance Analyst for VitalLyfe's War Room. Analyze ad campaign data and give sharp, actionable ROI insights. Brand: wellness/hydration tech. Be specific, data-driven, direct. Max 200 words. Lead with what needs to change NOW.",
+          messages:[{role:"user",content:`Analyze these ad campaigns:\n${summary}\n\nTotal: Spend $${totalSpend}, Revenue $${totalRevenue}, ROAS ${overallROAS}x, ${totalLeads} leads, ${totalConversions} conversions\n\nGive: (1) What's performing, (2) What's bleeding money, (3) 3 specific optimizations to run this week.`}]
+        })
+      });
+      const d = await res.json(); const blk = d.content?.find(x=>x.type==="text");
+      setAiInsight(blk?.text || "Analysis unavailable.");
+    } catch(e) { setAiInsight("❌ Analysis failed: " + e.message); }
+    setAnalyzing(false);
+  };
+
+  const saveCampaign = () => {
+    if (!form.name.trim()) return;
+    setCampaigns(prev=>[...prev,{...form,id:"c"+Date.now(),spend:Number(form.spend)||0,leads:Number(form.leads)||0,conversions:Number(form.conversions)||0,revenue:Number(form.revenue)||0}]);
+    setForm({name:"",platform:"Instagram",spend:"",leads:"",conversions:"",revenue:"",status:"Active"});
+    setAdding(false);
+  };
+
+  const inp = {width:"100%",border:"1px solid #e5e5e5",borderRadius:8,padding:"10px 12px",fontSize:13,color:"#0f0f1a",outline:"none",fontFamily:"Inter,sans-serif",background:"#fff",boxSizing:"border-box"};
+  const labelStyle = {fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",color:"rgba(0,0,0,0.4)",marginBottom:5,display:"block"};
+
+  return (
+    <div style={{animation:"fadeIn 0.4s ease"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
+        <div>
+          <h1 style={{fontSize:28,fontWeight:700,color:"#0f0f1a",marginBottom:4,letterSpacing:-0.8}}>Ad ROI Hub</h1>
+          <p style={{fontSize:12,color:"rgba(0,0,0,0.4)",margin:0}}>Track spend vs return · AI-powered optimization · Know exactly if $5 in gets $10 out</p>
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={runAIAnalysis} disabled={analyzing} style={{background:analyzing?"rgba(255,214,10,0.1)":"#ffd60a",border:"none",borderRadius:12,color:analyzing?"#ffd60a":"#0a0a0f",cursor:analyzing?"default":"pointer",padding:"10px 20px",fontSize:13,fontWeight:700,fontFamily:"Inter,sans-serif",display:"flex",alignItems:"center",gap:7}}>
+            {analyzing?<><div style={{width:7,height:7,borderRadius:"50%",background:"#ffd60a",animation:"livePulse 1s infinite"}}/>Analyzing…</>:"💊 AI Analysis"}
+          </button>
+          <button onClick={()=>setAdding(true)} style={{background:"#0f0f1a",border:"none",borderRadius:12,color:"#fff",fontSize:13,fontWeight:600,padding:"10px 20px",cursor:"pointer",fontFamily:"Inter,sans-serif"}}>+ Add Campaign</button>
+        </div>
+      </div>
+
+      {/* ── TOTALS ── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:28}}>
+        {[["Total Spend","$"+totalSpend.toLocaleString(),"#ff453a"],["Total Revenue","$"+totalRevenue.toLocaleString(),"#30d158"],["Overall ROAS",overallROAS+"x",overallROAS>=2?"#30d158":overallROAS>=1?"#ff9f0a":"#ff453a"],["Total Leads",totalLeads,"#0a84ff"],["Total Conversions",totalConversions,"#bf5af2"]].map(([label,val,color])=>(
+          <Card key={label} style={{padding:"18px 20px"}}>
+            <div style={{fontSize:9,fontWeight:700,color:"rgba(0,0,0,0.35)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>{label}</div>
+            <div style={{fontSize:26,fontWeight:700,color,letterSpacing:-1}}>{val}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* ── AI INSIGHT ── */}
+      {aiInsight && (
+        <Card style={{padding:"20px 24px",marginBottom:24,borderLeft:"3px solid #ffd60a",background:"rgba(255,214,10,0.04)",animation:"slideIn 0.3s ease"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:7,height:7,borderRadius:"50%",background:"#ffd60a"}}/>
+              <span style={{fontSize:11,fontWeight:700,color:"#ffd60a",letterSpacing:0.8}}>SAM · AD ANALYSIS</span>
+            </div>
+            <button onClick={()=>setAiInsight(null)} style={{background:"none",border:"none",color:"rgba(0,0,0,0.3)",cursor:"pointer",fontSize:14}}>✕</button>
+          </div>
+          <div style={{fontSize:12,color:"rgba(0,0,0,0.7)",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{aiInsight}</div>
+        </Card>
+      )}
+
+      {/* ── ADD CAMPAIGN ── */}
+      {adding && (
+        <Card style={{padding:"24px",marginBottom:24,border:"1px solid rgba(0,0,0,0.12)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+            <h3 style={{fontSize:14,fontWeight:600,color:"#0f0f1a",margin:0}}>New Campaign</h3>
+            <button onClick={()=>setAdding(false)} style={{background:"none",border:"none",fontSize:18,color:"rgba(0,0,0,0.35)",cursor:"pointer"}}>×</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:12,marginBottom:12}}>
+            <div><label style={labelStyle}>Campaign Name</label><input style={inp} value={form.name} onChange={e=>setF("name",e.target.value)} placeholder="Drip Campaign — IG Reels"/></div>
+            <div><label style={labelStyle}>Platform</label><select style={{...inp,appearance:"none",cursor:"pointer"}} value={form.platform} onChange={e=>setF("platform",e.target.value)}>{PLATFORMS.map(p=><option key={p}>{p}</option>)}</select></div>
+            <div><label style={labelStyle}>Status</label><select style={{...inp,appearance:"none",cursor:"pointer"}} value={form.status} onChange={e=>setF("status",e.target.value)}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
+            <div><label style={labelStyle}>Ad Spend ($)</label><input style={inp} type="number" value={form.spend} onChange={e=>setF("spend",e.target.value)} placeholder="500"/></div>
+            <div><label style={labelStyle}>Leads</label><input style={inp} type="number" value={form.leads} onChange={e=>setF("leads",e.target.value)} placeholder="24"/></div>
+            <div><label style={labelStyle}>Conversions</label><input style={inp} type="number" value={form.conversions} onChange={e=>setF("conversions",e.target.value)} placeholder="6"/></div>
+            <div><label style={labelStyle}>Revenue ($)</label><input style={inp} type="number" value={form.revenue} onChange={e=>setF("revenue",e.target.value)} placeholder="2400"/></div>
+          </div>
+          <div style={{display:"flex",gap:10}}>
+            <button onClick={saveCampaign} style={{background:"#0f0f1a",border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,padding:"11px 24px",cursor:"pointer",fontFamily:"Inter,sans-serif"}}>Save Campaign</button>
+            <button onClick={()=>setAdding(false)} style={{background:"none",border:"none",color:"rgba(0,0,0,0.4)",fontSize:13,cursor:"pointer",fontFamily:"Inter,sans-serif"}}>Cancel</button>
+          </div>
+        </Card>
+      )}
+
+      {/* ── CAMPAIGNS TABLE ── */}
+      <Card style={{padding:"0",overflow:"hidden"}}>
+        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr",borderBottom:"1px solid rgba(0,0,0,0.07)"}}>
+          {["Campaign","Platform","Spend","Revenue","ROAS","ROI","CPL","CVR"].map(h=>(
+            <div key={h} style={{fontSize:9,color:"rgba(0,0,0,0.35)",fontWeight:700,letterSpacing:1.2,textTransform:"uppercase",padding:"12px 14px"}}>{h}</div>
+          ))}
+        </div>
+        {campaigns.map((c,i)=>{
+          const r=Number(roi(c)); const roas_=roas(c); const rc=roiColor(r);
+          const statusColor = c.status==="Active"?"#30d158":c.status==="Paused"?"#ff9f0a":"rgba(0,0,0,0.3)";
+          return (
+            <div key={c.id} style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr",borderBottom:`1px solid rgba(0,0,0,0.04)`,background:i%2===0?"#fff":"rgba(0,0,0,0.01)",transition:"background 0.15s"}}
+              onMouseEnter={e=>e.currentTarget.style.background="#f8f9ff"} onMouseLeave={e=>e.currentTarget.style.background=i%2===0?"#fff":"rgba(0,0,0,0.01)"}>
+              <div style={{padding:"13px 14px"}}>
+                <div style={{fontSize:12,fontWeight:600,color:"#0f0f1a",marginBottom:3}}>{c.name}</div>
+                <span style={{fontSize:9,fontWeight:600,color:statusColor,background:`${statusColor}15`,padding:"1px 7px",borderRadius:20}}>{c.status}</span>
+              </div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(0,0,0,0.55)"}}>{c.platform}</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:600,color:"#ff453a"}}>${c.spend}</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:600,color:"#30d158"}}>${c.revenue}</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:700,color:Number(roas_)>=2?"#30d158":Number(roas_)>=1?"#ff9f0a":"#ff453a"}}>{roas_}x</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center"}}><span style={{fontSize:11,fontWeight:700,color:rc,background:`${rc}12`,padding:"2px 8px",borderRadius:20}}>{r>=0?"+":""}{r}%</span></div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(0,0,0,0.55)"}}>${cpl(c)}</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(0,0,0,0.55)"}}>{cvr(c)}%</div>
+            </div>
+          );
+        })}
+      </Card>
+
+      <div style={{marginTop:16,padding:"12px 16px",background:"rgba(0,0,0,0.03)",borderRadius:10,display:"flex",gap:20,flexWrap:"wrap"}}>
+        <span style={{fontSize:10,color:"rgba(0,0,0,0.4)",fontWeight:600}}>ROAS &gt; 2x = 🟢 Healthy · ROAS 1–2x = 🟡 Break-even · ROAS &lt; 1x = 🔴 Losing money</span>
+        <span style={{fontSize:10,color:"rgba(0,0,0,0.4)"}}>CPL = Cost Per Lead · CVR = Lead → Conversion Rate</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── TEAM BROADCAST ──────────────────────────────────────────────────────────
+function TeamBroadcast({ agents }) {
+  const [broadcasts, setBroadcasts] = useState([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const bottomRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const AGENT_SYSTEM = {
+    Sean: "You are Sean, Commander Agent. Decisive, calm, short sentences. When you receive a brief or update from the team lead, acknowledge it, note implications for your pipeline coordination, and state your immediate action. Under 80 words.",
+    Lacey: "You are Lacey, Runner Agent. Fast, pragmatic, loves checklists. When you receive a brief, identify what workflows, automations, or SOPs need to be updated or triggered. Under 80 words.",
+    Ali: "You are Ali, Developer Agent. Precise, technical. When you receive a brief, flag any technical changes needed to the system. Under 80 words.",
+    Sam: "You are Sam, Monitor Agent. Methodical, data-driven. When you receive a brief, note what metrics or signals you'll be watching. Under 80 words.",
+    Artgrid: "You are Artgrid, Footage Scout. Visual, cinematic. When you receive a brief, note how it affects your footage scouting strategy. Under 80 words.",
+    Muse: "You are Muse, Content Ideation Agent. Creative, on-brand. When you receive a brief, surface 2-3 content angles it suggests. Under 80 words.",
+    Overseer: "You are Overseer, SOP Guardian. Rigorous, precise. When you receive a brief, flag any SOP compliance considerations. Under 80 words.",
+    Scrappy: "You are Scrappy, Trend Scout. Sharp, fast, a bit chaotic. When you receive a brief, immediately think about what trends or research angles to pursue. Under 80 words.",
+  };
+
+  useEffect(() => { if (bottomRef.current) bottomRef.current.scrollIntoView({behavior:"smooth"}); }, [broadcasts]);
+
+  const sendBroadcast = async () => {
+    const text = input.trim(); if (!text || sending) return;
+    setInput(""); setSending(true);
+    const id = Date.now();
+    const broadcast = { id, message: text, ts: Date.now(), responses: {}, loading: true };
+    setBroadcasts(prev => [...prev, broadcast]);
+
+    // Fire all 8 agents in parallel
+    const agentPromises = agents.map(async (agent) => {
+      try {
+        const res = await fetch("/api/chat", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({
+            model:"claude-sonnet-4-20250514", max_tokens:200,
+            system: AGENT_SYSTEM[agent.name] || `You are ${agent.name}, an agent in the VitalLyfe War Room. Respond to the brief concisely.`,
+            messages:[{role:"user",content:text}]
+          })
+        });
+        const d = await res.json();
+        const blk = d.content?.find(x=>x.type==="text");
+        return { agentId: agent.id, agentName: agent.name, response: blk?.text || "…", color: agent.color };
+      } catch(e) { return { agentId: agent.id, agentName: agent.name, response: "Connection error.", color: agent.color, err:true }; }
+    });
+
+    const results = await Promise.all(agentPromises);
+    const responses = {};
+    results.forEach(r => { responses[r.agentId] = r; });
+    setBroadcasts(prev => prev.map(b => b.id===id ? {...b, responses, loading:false} : b));
+    setSending(false);
+    setExpandedId(id);
+    setTimeout(()=>{ if(inputRef.current) inputRef.current.focus(); }, 80);
+  };
+
+  const QUICK_BRIEFS = [
+    "New campaign brief: we're shifting focus to Tierra Bomba content for the next 3 weeks. Prioritize community and access angles.",
+    "Client approved all Drip Campaign reels. We're moving to scheduling phase — all hands on Week 5 Product Launch prep.",
+    "Budget update: $500 freed up for paid ads this month. Optimize for highest-converting content.",
+    "New platform strategy: doubling down on TikTok. All reels should be adapted for TT-first hook structure.",
+  ];
+
+  return (
+    <div style={{animation:"fadeIn 0.4s ease",display:"flex",flexDirection:"column",height:"calc(100vh - 80px)"}}>
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:28,fontWeight:700,color:"#0f0f1a",marginBottom:4,letterSpacing:-0.8}}>Team Broadcast</h1>
+        <p style={{fontSize:12,color:"rgba(0,0,0,0.4)",margin:0}}>Send a brief or update to all 8 agents at once — each responds in their own voice and expertise.</p>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:20,paddingBottom:20}}>
+        {broadcasts.length === 0 && (
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flex:1,paddingBottom:80}}>
+            <div style={{width:48,height:48,borderRadius:14,background:"rgba(0,0,0,0.04)",border:"1px solid rgba(0,0,0,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,marginBottom:16}}>◷</div>
+            <div style={{fontSize:15,fontWeight:600,color:"rgba(0,0,0,0.35)",marginBottom:6}}>No broadcasts yet</div>
+            <div style={{fontSize:12,color:"rgba(0,0,0,0.25)",marginBottom:24,textAlign:"center",maxWidth:320,lineHeight:1.6}}>Send a brief, update, or direction below. All 8 agents will respond simultaneously.</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,width:"100%",maxWidth:500}}>
+              {QUICK_BRIEFS.map((b,i)=>(
+                <button key={i} onClick={()=>setInput(b)} style={{background:"rgba(0,0,0,0.04)",border:"1px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left",fontFamily:"Inter,sans-serif"}}>
+                  <div style={{fontSize:11,fontWeight:600,color:"#0f0f1a",lineHeight:1.4}}>{b.slice(0,60)}…</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {broadcasts.map(b => (
+          <div key={b.id} style={{animation:"fadeIn 0.4s ease"}}>
+            {/* ── YOUR MESSAGE ── */}
+            <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}>
+              <div style={{maxWidth:"70%",background:"#0f0f1a",borderRadius:"15px 15px 3px 15px",padding:"12px 16px"}}>
+                <div style={{fontSize:13,color:"#fff",lineHeight:1.65}}>{b.message}</div>
+                <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",marginTop:4,textAlign:"right"}}>{new Date(b.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+              </div>
+            </div>
+
+            {/* ── AGENT RESPONSES ── */}
+            {b.loading ? (
+              <div style={{display:"flex",gap:8,alignItems:"center",padding:"12px 16px",background:"rgba(0,0,0,0.03)",borderRadius:12}}>
+                {[0,0.2,0.4].map((d,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#30d158",animation:`livePulse 1.2s ${d}s infinite`}}/>)}
+                <span style={{fontSize:11,color:"rgba(0,0,0,0.4)",marginLeft:6}}>All 8 agents responding…</span>
+              </div>
+            ) : (
+              <div>
+                <button onClick={()=>setExpandedId(expandedId===b.id?null:b.id)} style={{background:"none",border:"none",fontSize:11,color:"rgba(0,0,0,0.4)",cursor:"pointer",fontFamily:"Inter,sans-serif",padding:"4px 0",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{transform:expandedId===b.id?"rotate(90deg)":"rotate(0deg)",display:"inline-block",transition:"transform 0.2s",fontSize:10}}>▶</span>
+                  {Object.keys(b.responses).length} agent responses
+                </button>
+                {expandedId===b.id && (
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    {Object.values(b.responses).map(r=>{
+                      const ag = agents.find(a=>a.id===r.agentId);
+                      return (
+                        <Card key={r.agentId} style={{padding:"14px 16px",borderLeft:`3px solid ${r.color}`}}>
+                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                            <div style={{width:26,height:26,borderRadius:7,background:ag?.grad||"#eee",border:`1px solid ${r.color}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:r.color,flexShrink:0}}>{r.agentName[0]}</div>
+                            <span style={{fontSize:12,fontWeight:600,color:"#0f0f1a"}}>{r.agentName}</span>
+                            <span style={{fontSize:9,color:r.color,fontWeight:600,marginLeft:"auto"}}>{ag?.role}</span>
+                          </div>
+                          <div style={{fontSize:12,color:"rgba(0,0,0,0.65)",lineHeight:1.7}}>{r.response}</div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+        <div ref={bottomRef}/>
+      </div>
+
+      {/* ── INPUT ── */}
+      {broadcasts.length > 0 && (
+        <div style={{padding:"8px 0 4px",display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+          {QUICK_BRIEFS.slice(0,2).map((b,i)=>(
+            <button key={i} onClick={()=>setInput(b)} disabled={sending} style={{background:"rgba(0,0,0,0.04)",border:"1px solid rgba(0,0,0,0.08)",borderRadius:20,padding:"4px 12px",cursor:"pointer",fontFamily:"Inter,sans-serif",fontSize:11,color:"rgba(0,0,0,0.5)"}}>
+              {b.slice(0,40)}…
+            </button>
+          ))}
+        </div>
+      )}
+      <div style={{display:"flex",gap:10,paddingTop:12,borderTop:"1px solid rgba(0,0,0,0.07)"}}>
+        <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendBroadcast();}}}
+          placeholder="Send a brief, update, or direction to all 8 agents…" disabled={sending}
+          style={{flex:1,background:"rgba(0,0,0,0.04)",border:`1px solid ${input?"rgba(48,209,88,0.4)":"rgba(0,0,0,0.1)"}`,borderRadius:12,padding:"12px 16px",color:"#0f0f1a",fontSize:13,outline:"none",fontFamily:"Inter,sans-serif"}}/>
+        <button onClick={sendBroadcast} disabled={!input.trim()||sending}
+          style={{background:input.trim()&&!sending?"#30d158":"rgba(0,0,0,0.06)",border:"none",borderRadius:12,color:input.trim()&&!sending?"#fff":"rgba(0,0,0,0.22)",cursor:input.trim()&&!sending?"pointer":"default",padding:"12px 22px",fontSize:17,transition:"all 0.2s",fontFamily:"Inter,sans-serif"}}>
+          {sending?"⏳":"↑"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setContentProp }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [feed, setFeed] = useState([]);
   const [agents] = useState(AGENTS_BASE);
   const [liveCount, setLiveCount] = useState(6);
+  const [previewMode, setPreviewMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [content, setContent] = useState(INITIAL_CONTENT);
+  // Use content from App (shared with ClientView) — fall back to local state only if not passed in
+  const [localContent, setLocalContent] = useState(INITIAL_CONTENT);
+  const content = contentProp ?? localContent;
+  const setContent = setContentProp ?? setLocalContent;
   const [dbStatus, setDbStatus] = useState(DB_CONNECTED ? "connecting" : "offline");
 
-  // ── LOAD FROM SUPABASE ──────────────────────────────────────────────────
+  // ── SUPABASE REALTIME SUBSCRIPTION ───────────────────────────────────────
+  // App-level already handles initial load. WarRoom only handles realtime sync + fallback.
   useEffect(() => {
     if (!sb) return;
-    sb.from("content_items").select("*").order("id")
-      .then(({ data, error }) => {
-        if (error) { setDbStatus("error"); return; }
-        if (data && data.length > 0) {
-          setContent(data.map(r => ({ ...r, platforms: r.platforms || [] })));
-        } else {
-          // First run — seed Supabase with the initial content
-          sb.from("content_items").insert(INITIAL_CONTENT).then(({ error: e }) => {
-            if (!e) setDbStatus("live");
-          });
-        }
-        setDbStatus("live");
-      });
 
-    // ── REALTIME SUBSCRIPTION ─────────────────────────────────────────────
+    // If no content was passed in from App (standalone mode or content not yet loaded), load it ourselves
+    if (!contentProp || contentProp.length === 0) {
+      sb.from("content_items").select("*").order("id")
+        .then(({ data, error }) => {
+          if (error) { setDbStatus("error"); return; }
+          if (data && data.length > 0) {
+            setContent(data.map(r => ({ ...r, platforms: r.platforms || [] })));
+          } else {
+            sb.from("content_items").insert(INITIAL_CONTENT).then(({ error: e }) => {
+              if (!e) setDbStatus("live");
+            });
+          }
+          setDbStatus("live");
+        });
+    } else {
+      setDbStatus("live");
+    }
+
+    // Realtime subscription always runs
     const channel = sb.channel("content_changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "content_items" },
         (payload) => {
@@ -1554,13 +2034,72 @@ function WarRoom({ onSignOut, userEmail }) {
     }
   };
 
+  const [museToast, setMuseToast] = useState(null);
+  const handleMuseWrite = async (item, field) => {
+    setMuseToast({ id: item.id, field, status: "writing" });
+    try {
+      const res = await fetch("/api/agent-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "muse_write_content",
+          payload: { itemId: item.id, itemTitle: item.title, pillar: item.pillar, format: item.format, description: item.description, fieldToUpdate: field },
+        }),
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error);
+      // Update local content state
+      setContent(prev => prev.map(x => x.id === item.id ? { ...x, [field]: d.content } : x));
+      setMuseToast({ id: item.id, field, status: "done", content: d.content });
+      setTimeout(() => setMuseToast(null), 4000);
+    } catch(e) {
+      setMuseToast({ id: item.id, field, status: "error", msg: e.message });
+      setTimeout(() => setMuseToast(null), 4000);
+    }
+  };
+
   const sidebarW = sidebarCollapsed ? 64 : 220;
   const igItems = content.filter(x => x.platform === "instagram");
   const ttItems = content.filter(x => x.platform === "tiktok");
   const ytItems = content.filter(x => x.platform === "youtube");
 
+  // ── PREVIEW MODE — renders ClientView inside an overlay ─────────────────
+  if (previewMode) {
+    return (
+      <div style={{ position:"relative", minHeight:"100vh" }}>
+        <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999, background:"#0f0f1a", borderBottom:"2px solid #30d158", padding:"0 20px", height:44, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:8, height:8, borderRadius:"50%", background:"#30d158", animation:"livePulse 2s infinite" }} />
+            <span style={{ fontSize:12, fontWeight:700, color:"#30d158", letterSpacing:0.3 }}>PREVIEW MODE</span>
+            <span style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>— You're seeing exactly what the client sees</span>
+          </div>
+          <button onClick={() => setPreviewMode(false)} style={{ background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:8, color:"#fff", fontSize:12, fontWeight:600, padding:"6px 16px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
+            ← Exit Preview
+          </button>
+        </div>
+        <div style={{ paddingTop:44 }}>
+          <ClientView user={{ email: userEmail || "client@vitallyfe.com" }} content={content} setContent={setContent} onSignOut={() => setPreviewMode(false)} isPreview={true} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display:"flex", height:"100vh", background:"#f5f5f7", color:"#1a1a2e", fontFamily:"Inter, -apple-system, sans-serif", overflow:"hidden" }}>
+      {/* ── MUSE TOAST ── */}
+      {museToast && (
+        <div style={{ position:"fixed", bottom:28, right:28, zIndex:9999, animation:"slideIn 0.3s ease", maxWidth:380 }}>
+          <div style={{ background: museToast.status==="error" ? "#fff" : "#fff", border:`1px solid ${museToast.status==="error"?"rgba(255,69,58,0.3)":museToast.status==="done"?"rgba(255,55,95,0.3)":"rgba(255,55,95,0.2)"}`, borderRadius:14, padding:"14px 18px", boxShadow:"0 8px 32px rgba(0,0,0,0.12)", display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:8, height:8, borderRadius:"50%", background: museToast.status==="error"?"#ff453a":"#ff375f", flexShrink:0, animation: museToast.status==="writing"?"livePulse 1s infinite":"none" }} />
+            <div>
+              <div style={{ fontSize:12, fontWeight:600, color: museToast.status==="error"?"#ff453a":"#ff375f" }}>
+                {museToast.status==="writing" ? `✍️ Muse is writing ${museToast.field}…` : museToast.status==="done" ? `✓ ${museToast.field === "caption" ? "Caption" : "Script"} saved` : `❌ ${museToast.msg}`}
+              </div>
+              {museToast.status==="done" && <div style={{ fontSize:10, color:"rgba(0,0,0,0.4)", marginTop:3, lineHeight:1.5, maxWidth:280, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{museToast.content?.slice(0,60)}…</div>}
+            </div>
+          </div>
+        </div>
+      )}
       <style>{`
         @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
@@ -1600,8 +2139,11 @@ function WarRoom({ onSignOut, userEmail }) {
           {sidebarCollapsed && <div style={{ width:34, height:34, borderRadius:10, background:"linear-gradient(135deg,#30d158,#00c9a7)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:800, color:"#000" }}>VL</div>}
           <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
             <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(0,0,0,0.3)", cursor:"pointer", fontSize:18, padding:4, lineHeight:1 }}>{sidebarCollapsed?"›":"‹"}</button>
-            {!sidebarCollapsed && onSignOut && (
-              <button onClick={onSignOut} style={{ fontSize:9, color:"rgba(0,0,0,0.35)", background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:600, letterSpacing:0.5 }}>Sign out</button>
+            {!sidebarCollapsed && (
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}>
+                <button onClick={() => setPreviewMode(true)} style={{ fontSize:9, color:"#30d158", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.25)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:700, letterSpacing:0.5, whiteSpace:"nowrap" }}>👁 Client View</button>
+                {onSignOut && <button onClick={onSignOut} style={{ fontSize:9, color:"rgba(0,0,0,0.35)", background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:600, letterSpacing:0.5 }}>Sign out</button>}
+              </div>
             )}
           </div>
         </div>
@@ -1655,10 +2197,10 @@ function WarRoom({ onSignOut, userEmail }) {
               </div>
             </div>
             <div style={{ display:"flex", gap:12, marginBottom:28 }}>
-              <MetricCard label="Total Views" value={0} delta={1} color="#30d158" icon="👁" />
-              <MetricCard label="Tasks Done" value={47} delta={1} color="#0a84ff" icon="✓" />
-              <MetricCard label="Content Pieces" value={content.length} delta={1} color="#bf5af2" icon="◈" />
-              <MetricCard label="Pipeline Items" value={content.length} delta={1} color="#ff9f0a" icon="⊕" />
+              <MetricCard label="Content Pieces" value={content.length} delta={0} color="#30d158" icon="◈" />
+              <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" icon="✓" />
+              <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#bf5af2" icon="◷" />
+              <MetricCard label="Need Attention" value={content.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" icon="⚠" />
             </div>
             <div style={{ marginBottom:10 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
@@ -1730,13 +2272,13 @@ function WarRoom({ onSignOut, userEmail }) {
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
               stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
               items={igItems.filter(x => x.type==="reel" || x.type==="graphic")}
-              onCardClick={setEditingItem}
+              onCardClick={setEditingItem} onMuseWrite={handleMuseWrite}
             />
             <ContentPipelineBoard title="Carousels & Threads" icon="◻"
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
               stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
               items={igItems.filter(x => x.type==="carousel" || x.type==="thread")}
-              onCardClick={setEditingItem}
+              onCardClick={setEditingItem} onMuseWrite={handleMuseWrite}
             />
           </div>
         )}
@@ -1755,7 +2297,7 @@ function WarRoom({ onSignOut, userEmail }) {
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
               stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
               items={ttItems}
-              onCardClick={setEditingItem}
+              onCardClick={setEditingItem} onMuseWrite={handleMuseWrite}
             />
           </div>
         )}
@@ -1774,7 +2316,7 @@ function WarRoom({ onSignOut, userEmail }) {
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
               stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
               items={ytItems}
-              onCardClick={setEditingItem}
+              onCardClick={setEditingItem} onMuseWrite={handleMuseWrite}
             />
           </div>
         )}
@@ -1789,13 +2331,13 @@ function WarRoom({ onSignOut, userEmail }) {
               </div>
             </div>
             <div style={{ display:"flex", gap:12, marginBottom:28 }}>
-              <MetricCard label="Total Pieces" value={content.length} delta={1} color="#30d158" icon="◈" />
-              <MetricCard label="Total Views" value={0} delta={0} color="#0a84ff" icon="👁" />
+              <MetricCard label="Total Pieces" value={content.length} delta={0} color="#30d158" icon="◈" />
               <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#bf5af2" icon="✓" />
+              <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#0a84ff" icon="◷" />
             </div>
             <Card style={{ padding:"0", overflow:"hidden" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"2.5fr 0.8fr 1fr 1fr 1.2fr 1fr", gap:0, borderBottom:"1px solid rgba(0,0,0,0.07)" }}>
-                {["Title","Platform","Campaign","Pillar","Status","Format"].map(h => (
+              <div style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr auto", gap:0, borderBottom:"1px solid rgba(0,0,0,0.07)" }}>
+                {["Title","Platform","Campaign","Pillar","Status","Format","Write"].map(h => (
                   <div key={h} style={{ fontSize:9, color:"rgba(0,0,0,0.35)", fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", padding:"12px 14px" }}>{h}</div>
                 ))}
               </div>
@@ -1803,12 +2345,14 @@ function WarRoom({ onSignOut, userEmail }) {
                 const sc = STATUS_COLOR[item.status] || "#999";
                 const ptLabel = item.platform === "instagram" ? "IG" : item.platform === "tiktok" ? "TT" : "YT";
                 const ptColor = item.platform === "instagram" ? "#e1306c" : item.platform === "tiktok" ? "#ff0050" : "#ff0000";
+                const needsCaption = !item.caption || item.caption.length < 10;
+                const needsScript = item.format === "Reel" && (!item.script || item.script.length < 10);
                 return (
-                  <div key={item.id} onClick={() => setEditingItem(item)}
-                    style={{ display:"grid", gridTemplateColumns:"2.5fr 0.8fr 1fr 1fr 1.2fr 1fr", borderBottom:`1px solid rgba(0,0,0,0.04)`, cursor:"pointer", transition:"background 0.15s", background:i%2===0?"#fff":"rgba(0,0,0,0.01)" }}
+                  <div key={item.id}
+                    style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr auto", borderBottom:`1px solid rgba(0,0,0,0.04)`, transition:"background 0.15s", background:i%2===0?"#fff":"rgba(0,0,0,0.01)" }}
                     onMouseEnter={e => e.currentTarget.style.background="#f0f9ff"}
                     onMouseLeave={e => e.currentTarget.style.background=i%2===0?"#fff":"rgba(0,0,0,0.01)"}>
-                    <div style={{ fontSize:12, color:"#0f0f1a", fontWeight:500, padding:"11px 14px", lineHeight:1.3 }}>{item.title}</div>
+                    <div onClick={() => setEditingItem(item)} style={{ fontSize:12, color:"#0f0f1a", fontWeight:500, padding:"11px 14px", lineHeight:1.3, cursor:"pointer" }}>{item.title}</div>
                     <div style={{ padding:"11px 14px", display:"flex", alignItems:"center" }}>
                       <span style={{ fontSize:10, fontWeight:700, color:ptColor, background:`${ptColor}15`, padding:"2px 7px", borderRadius:6 }}>{ptLabel}</span>
                     </div>
@@ -1818,6 +2362,11 @@ function WarRoom({ onSignOut, userEmail }) {
                       <span style={{ fontSize:9, fontWeight:600, color:sc, background:`${sc}15`, padding:"3px 8px", borderRadius:20, whiteSpace:"nowrap" }}>{item.status}</span>
                     </div>
                     <div style={{ fontSize:11, color:"rgba(0,0,0,0.45)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.format}</div>
+                    <div style={{ padding:"8px 12px", display:"flex", alignItems:"center", gap:5 }}>
+                      {needsCaption && <button onClick={() => handleMuseWrite(item, "caption")} style={{ fontSize:9, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}>✍️ Cap</button>}
+                      {needsScript && <button onClick={() => handleMuseWrite(item, "script")} style={{ fontSize:9, fontWeight:700, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}>✍️ Script</button>}
+                      {!needsCaption && !needsScript && <span style={{ fontSize:9, color:"#30d158", fontWeight:600 }}>✓</span>}
+                    </div>
                   </div>
                 );
               })}
@@ -1834,58 +2383,8 @@ function WarRoom({ onSignOut, userEmail }) {
           </div>
         )}
 
-        {/* FUNNEL */}
-        {activeNav === "funnel" && (
-          <div style={{ animation:"fadeIn 0.4s ease" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:10 }}>
-              <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", margin:0, letterSpacing:-0.8 }}>Acquisition Funnel</h1>
-              <span style={{ fontSize:10, color:"#0a84ff", background:"rgba(10,132,255,0.15)", padding:"3px 10px", borderRadius:20, fontWeight:600 }}>Miro Board</span>
-            </div>
-            <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", marginBottom:28 }}>Full-stack system for predictable inbound demand · $3k–$14k retainers</p>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:10, marginBottom:28 }}>
-              {[{ label:"Engine Spine", desc:"What must happen", color:"#ff453a", icon:"◈" }, { label:"System Governance", desc:"Engine rules & controls", color:"#ff9f0a", icon:"⊕" }, { label:"Demand Causality", desc:"DCE — recognition to adoption", color:"#0a84ff", icon:"◉" }, { label:"Eligibility Filter", desc:"ICP — who gets processed", color:"#bf5af2", icon:"◎" }, { label:"Channels", desc:"Inbound demand execution", color:"#30d158", icon:"◆" }].map(s => (
-                <Card key={s.label} style={{ padding:"18px 16px" }}>
-                  <div style={{ fontSize:18, marginBottom:10, opacity:0.7 }}>{s.icon}</div>
-                  <div style={{ fontSize:12, fontWeight:600, color:"#0f0f1a", marginBottom:5, letterSpacing:-0.2 }}>{s.label}</div>
-                  <div style={{ fontSize:10, color:"rgba(0,0,0,0.4)", lineHeight:1.5 }}>{s.desc}</div>
-                  <div style={{ marginTop:12, height:2, background:`${s.color}30`, borderRadius:2 }}><div style={{ height:"100%", width:"70%", background:s.color, borderRadius:2 }} /></div>
-                </Card>
-              ))}
-            </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:28 }}>
-              <Card style={{ padding:"22px" }}>
-                <h3 style={{ fontSize:13, fontWeight:600, color:"#ff453a", margin:"0 0 14px", letterSpacing:-0.2 }}>Engine Rules</h3>
-                {["One primary demand path","No selling before confidence","No confidence without alignment","No alignment without recognition","No commitment without filtering","Future ideas must not violate these"].map((rule,i) => (
-                  <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start", marginBottom:10 }}>
-                    <span style={{ color:"#ff453a", fontSize:11, fontWeight:700, marginTop:1, flexShrink:0 }}>{String(i+1).padStart(2,"0")}</span>
-                    <span style={{ fontSize:12, color:"rgba(0,0,0,0.65)", lineHeight:1.5 }}>{rule}</span>
-                  </div>
-                ))}
-              </Card>
-              <Card style={{ padding:"22px" }}>
-                <h3 style={{ fontSize:13, fontWeight:600, color:"#0a84ff", margin:"0 0 14px", letterSpacing:-0.2 }}>DCE Stages</h3>
-                {["Recognition","Alignment","Confidence","Commitment","Adoption"].map((stage,i) => (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
-                    <div style={{ width:28, height:28, borderRadius:8, background:"rgba(10,132,255,0.12)", border:"1px solid rgba(10,132,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#0a84ff", flexShrink:0 }}>{i+1}</div>
-                    <div>
-                      <div style={{ fontSize:12, fontWeight:600, color:"#0f0f1a", letterSpacing:-0.2 }}>{stage}</div>
-                      <div style={{ fontSize:9, color:"rgba(0,0,0,0.35)", marginTop:1 }}>Definition · Traffic</div>
-                    </div>
-                  </div>
-                ))}
-              </Card>
-            </div>
-            <Card style={{ padding:"28px", textAlign:"center" }}>
-              <div style={{ fontSize:40, marginBottom:14, opacity:0.2 }}>⊞</div>
-              <h3 style={{ fontSize:16, fontWeight:600, color:"rgba(0,0,0,0.4)", margin:"0 0 8px" }}>Miro Board</h3>
-              <p style={{ fontSize:12, color:"rgba(0,0,0,0.3)", margin:"0 0 18px", maxWidth:400, marginLeft:"auto", marginRight:"auto" }}>Paste your Miro board link to embed the full acquisition system diagram here</p>
-              <button style={{ background:"rgba(10,132,255,0.15)", border:"1px solid rgba(10,132,255,0.3)", borderRadius:12, color:"#0a84ff", cursor:"pointer", padding:"10px 22px", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif" }}>+ Connect Miro Board</button>
-            </Card>
-          </div>
-        )}
-
-        {activeNav === "sales" && <PlaceholderPage icon="◐" title="Sales Hub" badge="Coming Soon" desc="CRM, deal tracking, pipeline management, and client revenue dashboard. Ali is wiring the integration now." />}
-        {activeNav === "chat" && <PlaceholderPage icon="◷" title="Chat" badge="Coming Soon" desc="Team communication, client messaging, and agent-to-agent coordination hub. In development." />}
+        {activeNav === "sales" && <AdROIHub />}
+        {activeNav === "chat" && <TeamBroadcast agents={agents} />}
         {activeNav === "artgrid" && <ArtgridScoutPage content={content} />}
         {activeNav === "references" && <ReferencesPage />}
 
@@ -1913,8 +2412,8 @@ function WarRoom({ onSignOut, userEmail }) {
               </div>
               <Card style={{ padding:"12px 16px", textAlign:"center" }}>
                 <div style={{ fontSize:9, color:"rgba(48,209,88,0.6)", fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>Agents Trained On</div>
-                <div style={{ fontSize:24, fontWeight:700, color:"#30d158" }}>3</div>
-                <div style={{ fontSize:9, color:"rgba(0,0,0,0.4)", marginTop:2 }}>Artgrid · Muse · Overseer</div>
+                <div style={{ fontSize:24, fontWeight:700, color:"#30d158" }}>4</div>
+                <div style={{ fontSize:9, color:"rgba(0,0,0,0.4)", marginTop:2 }}>Artgrid · Muse · Overseer · Scrappy</div>
               </Card>
             </div>
             <Card style={{ padding:"16px 20px", marginBottom:24, borderLeft:"3px solid #30d158", background:"rgba(48,209,88,0.06)" }}>
