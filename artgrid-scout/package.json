@@ -1,0 +1,11 @@
+{
+  "name": "artgrid-scout",
+  "version": "1.0.0",
+  "description": "Automated Artgrid footage scout for VitalLyfe War Room",
+  "scripts": {
+    "scout": "node scout.js"
+  },
+  "dependencies": {
+    "playwright": "^1.58.2"
+  }
+}

@@ -5,6 +5,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.s
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const TAVILY_KEY = process.env.TAVILY_API_KEY;
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://cloudscenic.app.n8n.cloud/webhook/11138e92-248c-4562-be17-5e07b9da928c";
 
 const SB_HEADERS = () => ({
   apikey: SERVICE_KEY,
@@ -629,6 +630,48 @@ Cover all content pillars. Mix formats. Make titles cinematic and on-brand. 4 we
   };
 }
 
+// ─── N8N WEBHOOK TRIGGER ──────────────────────────────────────────────────────
+
+async function lacey_trigger_n8n(payload) {
+  const {
+    workflow = "general",
+    data = {},
+    message = "",
+    triggeredBy = "War Room",
+  } = payload;
+
+  if (!N8N_WEBHOOK_URL) throw new Error("N8N_WEBHOOK_URL not configured");
+
+  const body = {
+    workflow,
+    triggeredBy,
+    message,
+    timestamp: new Date().toISOString(),
+    ...data,
+  };
+
+  const res = await fetch(N8N_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  const responseText = await res.text();
+  let responseData = {};
+  try { responseData = JSON.parse(responseText); } catch {}
+
+  if (!res.ok) throw new Error(`n8n webhook failed: ${res.status} ${responseText}`);
+
+  return {
+    success: true,
+    agent: "Lacey",
+    workflow,
+    message: `✅ Triggered n8n workflow "${workflow}" successfully`,
+    n8nResponse: responseData,
+    timestamp: new Date().toISOString(),
+  };
+}
+
 // ─── MAIN HANDLER ─────────────────────────────────────────────────────────────
 
 exports.handler = async (event) => {
@@ -665,6 +708,7 @@ exports.handler = async (event) => {
       case "artgrid_scout":          result = await artgrid_scout(payload); break;
       case "scrappy_research":       result = await scrappy_research(payload); break;
       case "scrappy_muse_collab":    result = await scrappy_muse_collab(payload); break;
+      case "lacey_trigger_n8n":      result = await lacey_trigger_n8n(payload); break;
       default:
         return {
           statusCode: 400,

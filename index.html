@@ -1414,6 +1414,10 @@ function AgentChatPage({ agents, content }) {
                 style={{ fontSize:11, fontWeight:600, color:"#ff9f0a", background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
                 {actionBusy ? "⏳ Running…" : "⚡ Advance Pipeline"}
               </button>
+              <button onClick={() => runAgentAction("lacey_trigger_n8n", { workflow: "vitallyfe-pipeline", message: "Triggered from War Room", triggeredBy: "Lacey" })} disabled={actionBusy}
+                style={{ fontSize:11, fontWeight:600, color:"#30d158", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1, marginLeft:8 }}>
+                {actionBusy ? "⏳ Running…" : "🔗 Trigger n8n"}
+              </button>
             )}
             {sel.name === "Sam" && (
               <button onClick={() => runAgentAction("sam_health")} disabled={actionBusy}
@@ -1551,9 +1555,10 @@ function QuickActionsDashboard() {
     { label: "🔍 SOP Scan", action: "overseer_scan", agent: "Overseer", color: "#64d2ff" },
     { label: "⚡ Advance Pipeline", action: "lacey_advance", agent: "Lacey", color: "#ff9f0a" },
     { label: "💊 Health Check", action: "sam_health", agent: "Sam", color: "#ffd60a" },
+    { label: "🔗 Trigger n8n", action: "lacey_trigger_n8n", agent: "Lacey", color: "#bf5af2", payload: { workflow: "vitallyfe-pipeline", message: "Triggered from War Room Quick Actions", triggeredBy: "War Room" } },
   ];
 
-  const run = async (action, agent, color, label) => {
+  const run = async (action, agent, color, label, payload = {}) => {
     if (busy) return;
     setBusy(true);
     setActiveAction({ action, agent, label, color });
@@ -1563,7 +1568,7 @@ function QuickActionsDashboard() {
       const res = await fetch("/api/agent-action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentName: agent, action, payload: {} }),
+        body: JSON.stringify({ agentName: agent, action, payload }),
       });
       const d = await res.json();
       if (d.error) throw new Error(d.error);
@@ -1600,8 +1605,8 @@ function QuickActionsDashboard() {
       </div>
       <div style={{ background:"rgba(255,255,255,0.92)", border:"1px solid rgba(0,0,0,0.08)", borderRadius:16, overflow:"hidden", boxShadow:"0 2px 12px rgba(0,0,0,0.05)" }}>
         <div style={{ padding:"16px 18px", display:"flex", gap:10, flexWrap:"wrap" }}>
-          {ACTIONS.map(({ label, action, agent, color }) => (
-            <button key={action} onClick={() => run(action, agent, color, label)} disabled={busy}
+          {ACTIONS.map(({ label, action, agent, color, payload }) => (
+            <button key={action} onClick={() => run(action, agent, color, label, payload || {})} disabled={busy}
               style={{ fontSize:12, fontWeight:600, color, background:`${color}0d`, border:`1px solid ${color}30`, borderRadius:10, padding:"9px 16px", cursor:busy?"default":"pointer", fontFamily:"Inter,sans-serif", transition:"all 0.2s", opacity:busy?0.6:1 }}>
               {busy && activeAction?.action === action ? "⏳ Running…" : label}
             </button>
