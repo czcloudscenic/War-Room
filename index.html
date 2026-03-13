@@ -779,13 +779,13 @@ function MetricCard({ label, value, delta, color, icon }) {
   useEffect(() => { setV(value); }, [value]);
   useInterval(() => { if (delta > 0) setV(p => p + Math.floor(Math.random()*delta)); }, delta > 0 ? 5000 + Math.random()*3000 : null);
   return (
-    <Card style={{ flex:1, padding:"22px 24px", minWidth:0 }}>
-      <div style={{ fontSize:11, color:"rgba(0,0,0,0.38)", fontWeight:500, letterSpacing:0.1, marginBottom:10 }}>{label}</div>
-      <div style={{ fontSize:34, fontWeight:700, color:"#1d1d1f", letterSpacing:-1.5, lineHeight:1 }}>{v.toLocaleString()}</div>
-      <div style={{ marginTop:16, height:2, background:"rgba(0,0,0,0.05)", borderRadius:2 }}>
-        <div style={{ height:"100%", width:`${Math.min(100,(v/(value*1.5))*100)}%`, background:color, borderRadius:2, transition:"width 1.2s cubic-bezier(0.4,0,0.2,1)" }} />
+    <div style={{ flex:1, minWidth:0, background:"#fff", borderRadius:18, border:"1px solid rgba(0,0,0,0.07)", boxShadow:"0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.05)", overflow:"hidden", position:"relative" }}>
+      <div style={{ position:"absolute", top:0, left:0, width:"100%", height:3, background:color }} />
+      <div style={{ padding:"24px 24px 22px" }}>
+        <div style={{ fontSize:11, color:"rgba(0,0,0,0.35)", fontWeight:500, textTransform:"uppercase", letterSpacing:0.8, marginBottom:12 }}>{label}</div>
+        <div style={{ fontSize:40, fontWeight:700, color:"#1d1d1f", letterSpacing:-2, lineHeight:1 }}>{v.toLocaleString()}</div>
       </div>
-    </Card>
+    </div>
   );
 }
 function AgentCard({ agent, selected, onClick }) {
@@ -2387,19 +2387,19 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
 
       {editingItem && <EditContentModal item={editingItem} isNew={isNewItem} onSave={handleSave} onDelete={handleDelete} onDuplicate={handleDuplicate} onClose={() => { setEditingItem(null); setIsNewItem(false); }} />}
 
-      <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, background:"radial-gradient(ellipse 60% 40% at 70% 20%, rgba(10,132,255,0.03), transparent 60%), radial-gradient(ellipse 50% 30% at 20% 80%, rgba(48,209,88,0.02), transparent 60%)" }} />
+      <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, display:"none" }} />
 
       {/* ── SIDEBAR ── */}
-      <div style={{ width:sidebarW, minWidth:sidebarW, background:"rgba(248,248,248,0.98)", backdropFilter:"blur(40px)", WebkitBackdropFilter:"blur(40px)", borderRight:"1px solid rgba(0,0,0,0.06)", display:"flex", flexDirection:"column", overflow:"hidden", transition:"width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s cubic-bezier(0.4,0,0.2,1)", zIndex:20, position:"relative" }}>
-        <div style={{ padding:sidebarCollapsed?"16px 0":"16px 16px 14px", borderBottom:"1px solid rgba(0,0,0,0.06)" }}>
+      <div style={{ width:sidebarW, minWidth:sidebarW, background:"#1d1d1f", borderRight:"1px solid rgba(255,255,255,0.06)", display:"flex", flexDirection:"column", overflow:"hidden", transition:"width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s cubic-bezier(0.4,0,0.2,1)", zIndex:20, position:"relative" }}>
+        <div style={{ padding:sidebarCollapsed?"16px 0":"16px 16px 14px", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
 
           {/* ── COLLAPSED ── */}
           {sidebarCollapsed && (
             <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:10 }}>
-              <div style={{ width:36, height:36, borderRadius:10, background:"#0f0f1a", boxShadow:"0 2px 8px rgba(0,0,0,0.15)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <div style={{ width:36, height:36, borderRadius:10, background:"rgba(255,255,255,0.1)", display:"flex", alignItems:"center", justifyContent:"center" }}>
                 <span style={{ fontSize:12, fontWeight:700, color:"#fff", letterSpacing:-0.5 }}>VL</span>
               </div>
-              <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(0,0,0,0.25)", cursor:"pointer", fontSize:14, padding:2, lineHeight:1 }}>›</button>
+              <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.3)", cursor:"pointer", fontSize:14, padding:2, lineHeight:1 }}>›</button>
             </div>
           )}
 
@@ -2408,25 +2408,25 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             <div>
               {/* Row 1: icon + wordmark + collapse toggle */}
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-                <div style={{ width:36, height:36, borderRadius:10, background:"#0f0f1a", boxShadow:"0 2px 8px rgba(0,0,0,0.12)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <div style={{ width:36, height:36, borderRadius:10, background:"rgba(255,255,255,0.1)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                   <span style={{ fontSize:12, fontWeight:700, color:"#fff", letterSpacing:-0.5 }}>VL</span>
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:14, fontWeight:600, color:"#0f0f1a", letterSpacing:-0.4, lineHeight:1.2 }}>War Room</div>
+                  <div style={{ fontSize:14, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.4, lineHeight:1.2 }}>War Room</div>
                   <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:3 }}>
                     <div style={{ width:5, height:5, borderRadius:"50%", background: dbStatus==="live"?"#30d158":dbStatus==="error"?"#ff453a":"#ff9f0a", flexShrink:0 }} />
-                    <span style={{ fontSize:10, color:"rgba(0,0,0,0.35)", fontWeight:400 }}>VitalLyfe</span>
+                    <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontWeight:400 }}>VitalLyfe</span>
                   </div>
                 </div>
-                <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(0,0,0,0.2)", cursor:"pointer", fontSize:16, padding:"2px 4px", lineHeight:1, flexShrink:0 }}>‹</button>
+                <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.25)", cursor:"pointer", fontSize:16, padding:"2px 4px", lineHeight:1, flexShrink:0 }}>‹</button>
               </div>
 
               {/* Row 2: action buttons */}
               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <button onClick={() => setPreviewMode(true)} style={{ flex:1, fontSize:10, color:"rgba(0,0,0,0.5)", background:"rgba(0,0,0,0.04)", border:"1px solid rgba(0,0,0,0.08)", borderRadius:8, padding:"5px 0", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, textAlign:"center" }}>Client View</button>
+                <button onClick={() => setPreviewMode(true)} style={{ flex:1, fontSize:10, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 0", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, textAlign:"center" }}>Client View</button>
                 <div style={{ position:"relative" }}>
                   <button onClick={() => { setNotifOpen(o=>!o); setNotifications(prev=>prev.map(n=>({...n,read:true}))); }}
-                    style={{ position:"relative", background:"rgba(0,0,0,0.04)", border:"1px solid rgba(0,0,0,0.08)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontSize:12, lineHeight:1 }}>
+                    style={{ position:"relative", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontSize:12, lineHeight:1 }}>
                     🔔
                     {notifications.filter(n=>!n.read).length > 0 && (
                       <span style={{ position:"absolute", top:-4, right:-4, width:14, height:14, borderRadius:"50%", background:"#ff453a", fontSize:8, fontWeight:700, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -2455,7 +2455,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                   )}
                 </div>
                 {onSignOut && (
-                  <button onClick={onSignOut} style={{ fontSize:10, color:"rgba(0,0,0,0.35)", background:"rgba(0,0,0,0.04)", border:"1px solid rgba(0,0,0,0.08)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500 }}>Out</button>
+                  <button onClick={onSignOut} style={{ fontSize:10, color:"rgba(255,255,255,0.3)", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500 }}>Out</button>
                 )}
               </div>
             </div>
@@ -2463,19 +2463,19 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
 
         </div>
         {!sidebarCollapsed && (
-          <div style={{ padding:"8px 16px 6px", borderBottom:"1px solid rgba(0,0,0,0.05)", display:"flex", alignItems:"center", gap:5 }}>
+          <div style={{ padding:"8px 16px 6px", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", alignItems:"center", gap:5 }}>
             <div style={{ width:5, height:5, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite", flexShrink:0 }} />
-            <span style={{ fontSize:10, color:"rgba(0,0,0,0.3)", fontWeight:400 }}>{liveCount} agents active</span>
+            <span style={{ fontSize:10, color:"rgba(255,255,255,0.25)", fontWeight:400 }}>{liveCount} agents active</span>
           </div>
         )}
         <div style={{ flex:1, overflowY:"auto", padding:"8px 0" }}>
           {NAV.map(group => (
             <div key={group.section} style={{ padding:"8px 0 4px" }}>
-              {!sidebarCollapsed && <div style={{ padding:"0 16px 4px", fontSize:10, color:"rgba(0,0,0,0.3)", letterSpacing:0.3, fontWeight:600 }}>{group.section}</div>}
+              {!sidebarCollapsed && <div style={{ padding:"0 16px 4px", fontSize:10, color:"rgba(255,255,255,0.22)", letterSpacing:0.3, fontWeight:600 }}>{group.section}</div>}
               {group.items.map(item => (
                 <div key={item.id} style={{ padding:sidebarCollapsed?"0":"0 6px" }}>
                   <button onClick={() => setActiveNav(item.id)} title={sidebarCollapsed?item.label:undefined}
-                    style={{ display:"flex", alignItems:"center", gap:9, width:"100%", padding:sidebarCollapsed?"9px 0":"8px 10px", justifyContent:sidebarCollapsed?"center":"flex-start", background:activeNav===item.id?"rgba(0,0,0,0.07)":"transparent", border:"none", borderRadius:9, color:activeNav===item.id?"#1d1d1f":"rgba(0,0,0,0.45)", cursor:"pointer", fontSize:13, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===item.id?590:400, transition:"background 0.12s, color 0.12s", letterSpacing:-0.1 }}>
+                    style={{ display:"flex", alignItems:"center", gap:9, width:"100%", padding:sidebarCollapsed?"9px 0":"8px 10px", justifyContent:sidebarCollapsed?"center":"flex-start", background:activeNav===item.id?"rgba(255,255,255,0.1)":"transparent", border:"none", borderRadius:9, color:activeNav===item.id?"#ffffff":"rgba(255,255,255,0.42)", cursor:"pointer", fontSize:13, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===item.id?590:400, transition:"background 0.12s, color 0.12s", letterSpacing:-0.1 }}>
                     <span style={{ fontSize:13, opacity:activeNav===item.id?1:0.6 }}>{item.icon}</span>
                     {!sidebarCollapsed && item.label}
                   </button>
@@ -2486,9 +2486,9 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         </div>
         {!sidebarCollapsed && (
           <div style={{ borderTop:"1px solid rgba(0,0,0,0.06)", padding:"10px 16px" }}>
-            <div style={{ fontSize:9, color:"rgba(0,0,0,0.25)", letterSpacing:1.5, fontWeight:600, marginBottom:8, textTransform:"uppercase" }}>Live Log</div>
+            <div style={{ fontSize:9, color:"rgba(255,255,255,0.2)", letterSpacing:1.5, fontWeight:600, marginBottom:8, textTransform:"uppercase" }}>Live Log</div>
             {feed.slice(0,4).map((item,i) => (
-              <div key={item.id} style={{ fontSize:9, color:i===0?ACTION_COLORS[item.type]:"rgba(0,0,0,0.3)", marginBottom:4, lineHeight:1.4, animation:i===0?"slideIn 0.3s":"none", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+              <div key={item.id} style={{ fontSize:9, color:i===0?ACTION_COLORS[item.type]:"rgba(255,255,255,0.18)", marginBottom:4, lineHeight:1.4, animation:i===0?"slideIn 0.3s":"none", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                 {item.agent} · {item.action}
               </div>
             ))}
@@ -2502,14 +2502,17 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {/* DASHBOARD */}
         {activeNav === "dashboard" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:32 }}>
-              <div>
-                <div style={{ fontSize:12, color:"rgba(0,0,0,0.35)", fontWeight:500, marginBottom:6 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
-                <h1 style={{ fontSize:36, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1.5, lineHeight:1.1 }}>Good morning ☀️</h1>
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.18)", borderRadius:20, padding:"6px 14px" }}>
-                <div style={{ width:6, height:6, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite" }} />
-                <span style={{ fontSize:11, color:"rgba(0,0,0,0.55)", fontWeight:500 }}>{liveCount} agents active</span>
+            <div style={{ marginBottom:36 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div>
+                  <div style={{ fontSize:12, color:"rgba(0,0,0,0.32)", fontWeight:500, marginBottom:8, letterSpacing:0.1 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
+                  <h1 style={{ fontSize:44, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-2.5, lineHeight:1 }}>VitalLyfe<br/>War Room.</h1>
+                  <p style={{ fontSize:14, color:"rgba(0,0,0,0.38)", margin:"10px 0 0", fontWeight:400, letterSpacing:-0.1 }}>{content.length} pieces in pipeline · Cloud Scenic</p>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.18)", borderRadius:20, padding:"7px 16px", flexShrink:0, marginTop:4 }}>
+                  <div style={{ width:6, height:6, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite" }} />
+                  <span style={{ fontSize:11, color:"rgba(0,0,0,0.45)", fontWeight:500 }}>{liveCount} agents active</span>
+                </div>
               </div>
             </div>
             <div style={{ display:"flex", gap:14, marginBottom:32 }}>
