@@ -801,16 +801,15 @@ function AgentCard({ agent, selected, onClick }) {
   }, 1000 + Math.random()*500);
   const task = AGENT_TASKS[agent.name][taskIdx];
   return (
-    <div onClick={onClick} style={{ minWidth:190, maxWidth:190, background: selected ? "#fff" : "#fff", border:`1px solid ${selected ? agent.color+"50" : "rgba(0,0,0,0.07)"}`, borderRadius:18, padding:"18px 16px", cursor:"pointer", transition:"all 0.2s cubic-bezier(0.4,0,0.2,1)", boxShadow: selected ? `0 4px 24px ${agent.color}20, 0 1px 4px rgba(0,0,0,0.04)` : "0 1px 4px rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.04)" }}>
-      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
-        <AgentAvatar agent={agent} size={38} />
-        <div>
-          <div style={{ fontWeight:600, color:"#1d1d1f", fontSize:13, letterSpacing:-0.3 }}>{agent.name}</div>
-          <div style={{ fontSize:10, color:agent.color, fontWeight:500, marginTop:2 }}>{agent.role}</div>
-        </div>
+    <div onClick={onClick} style={{ background: selected ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.6)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", border:`1px solid ${selected ? agent.color+"40" : "rgba(255,255,255,0.65)"}`, borderRadius:20, padding:"24px 20px 20px", cursor:"pointer", transition:"all 0.2s cubic-bezier(0.4,0,0.2,1)", boxShadow: selected ? `0 8px 36px ${agent.color}25, 0 2px 12px rgba(0,0,0,0.06)` : "0 2px 20px rgba(0,0,0,0.05)", position:"relative", overflow:"hidden" }}>
+      {selected && <div style={{ position:"absolute", top:0, left:0, width:"100%", height:2, background:`linear-gradient(90deg, ${agent.color}, ${agent.color}80)` }} />}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:18 }}>
+        <AgentAvatar agent={agent} size={36} />
+        <div style={{ width:6, height:6, borderRadius:"50%", background: selected ? agent.color : "rgba(0,0,0,0.12)", marginTop:4, flexShrink:0, transition:"background 0.2s" }} />
       </div>
-      <div style={{ fontSize:9, color:"rgba(0,0,0,0.28)", letterSpacing:0.8, marginBottom:6, textTransform:"uppercase", fontWeight:600 }}>Active Task</div>
-      <TypingTask text={task} color="rgba(0,0,0,0.55)" />
+      <div style={{ fontFamily:"'Playfair Display', Georgia, serif", fontWeight:700, fontStyle: selected ? "italic" : "normal", color:"#1d1d1f", fontSize:17, letterSpacing:-0.5, marginBottom:4, transition:"font-style 0.2s" }}>{agent.name}</div>
+      <div style={{ fontSize:10, color:agent.color, fontWeight:500, marginBottom:16, letterSpacing:0.2 }}>{agent.role}</div>
+      <TypingTask text={task} color="rgba(0,0,0,0.45)" />
       <div style={{ marginTop:14, height:3, background:"rgba(0,0,0,0.06)", borderRadius:3 }}>
         <div style={{ height:"100%", width:`${progress}%`, background:`linear-gradient(90deg,${agent.color}80,${agent.color})`, borderRadius:3, transition:"width 1s ease-out" }} />
       </div>
@@ -2532,45 +2531,57 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <MetricCard label="Need Attention" value={content.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
               <MetricCard label="In Production" value={content.filter(x=>["Ready For Content Creation","Ready For Copy Creation"].includes(x.status)).length} delta={0} color="#ff375f" />
             </div>
-            <div style={{ marginBottom:10 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-                <h2 style={{ fontSize:17, fontWeight:600, color:"#1d1d1f", margin:0, letterSpacing:-0.4 }}>Agent Roster</h2>
-                <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)" }}>Click to expand</span>
+            {/* ── AGENT GRID ── */}
+            <div style={{ marginBottom:44 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:22 }}>
+                <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:26, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>The Team</h2>
+                <span style={{ fontSize:11, color:"rgba(0,0,0,0.28)", fontWeight:400 }}>8 agents · {liveCount} active</span>
               </div>
-              <div style={{ display:"flex", gap:10, overflowX:"auto", paddingBottom:12 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12 }}>
                 {agents.map(agent => <AgentCard key={agent.id} agent={agent} selected={selectedAgent?.id===agent.id} onClick={() => setSelectedAgent(selectedAgent?.id===agent.id?null:agent)} />)}
               </div>
             </div>
+
+            {/* ── SELECTED AGENT DETAIL ── */}
             {selectedAgent && (
-              <Card style={{ padding:"18px 22px", marginBottom:24, animation:"slideIn 0.2s ease" }} glowColor={selectedAgent.color}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                    <AgentAvatar agent={selectedAgent} size={38} />
+              <div style={{ marginBottom:44, animation:"slideIn 0.2s ease", background:`linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,255,255,0.7))`, backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", borderRadius:20, border:`1px solid ${selectedAgent.color}30`, boxShadow:`0 4px 32px ${selectedAgent.color}15`, padding:"28px 32px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                    <AgentAvatar agent={selectedAgent} size={44} />
                     <div>
-                      <span style={{ fontWeight:700, color:selectedAgent.color, fontSize:16, letterSpacing:-0.3 }}>{selectedAgent.name}</span>
-                      <span style={{ color:"rgba(0,0,0,0.4)", marginLeft:10, fontSize:11 }}>{selectedAgent.role} · {selectedAgent.type}</span>
+                      <div style={{ fontFamily:"'Playfair Display', Georgia, serif", fontWeight:700, fontStyle:"italic", color:"#1d1d1f", fontSize:22, letterSpacing:-0.5 }}>{selectedAgent.name}</div>
+                      <div style={{ fontSize:11, color:selectedAgent.color, fontWeight:500, marginTop:3 }}>{selectedAgent.role} · {selectedAgent.type}</div>
                     </div>
                   </div>
-                  <button onClick={() => setSelectedAgent(null)} style={{ background:"rgba(0,0,0,0.05)", border:"none", color:"rgba(0,0,0,0.4)", cursor:"pointer", fontSize:14, borderRadius:8, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+                  <button onClick={() => setSelectedAgent(null)} style={{ background:"rgba(0,0,0,0.04)", border:"none", color:"rgba(0,0,0,0.3)", cursor:"pointer", fontSize:14, borderRadius:10, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
                 </div>
-                <div style={{ marginTop:14, display:"flex", flexWrap:"wrap", gap:8 }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                   {AGENT_TASKS[selectedAgent.name].slice(0,5).map((t,i) => (
-                    <div key={i} style={{ fontSize:10, color:`${selectedAgent.color}90`, padding:"5px 10px", background:`${selectedAgent.color}0d`, borderRadius:8, border:`1px solid ${selectedAgent.color}20`, fontWeight:500 }}>{t}</div>
+                    <div key={i} style={{ fontSize:11, color:"rgba(0,0,0,0.55)", padding:"6px 12px", background:"rgba(0,0,0,0.04)", borderRadius:20, fontWeight:400 }}>{t}</div>
                   ))}
                 </div>
-              </Card>
-            )}
-            <QuickActionsDashboard />
-            <div style={{ marginBottom:28 }}>
-              <h2 style={{ fontSize:17, fontWeight:600, color:"#1d1d1f", margin:"0 0 16px", letterSpacing:-0.4 }}>Operations Board</h2>
-              <OpsBoard />
-            </div>
-            <div>
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
-                <div style={{ width:6, height:6, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite" }} />
-                <h2 style={{ fontSize:17, fontWeight:600, color:"#1d1d1f", margin:0, letterSpacing:-0.4 }}>Live Activity</h2>
               </div>
-              <Card style={{ padding:"4px 0" }}><ActivityFeed feed={feed} /></Card>
+            )}
+
+            {/* ── QUICK ACTIONS + LIVE ACTIVITY (side by side) ── */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, marginBottom:44 }}>
+              <div>
+                <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:"0 0 18px", letterSpacing:-0.5 }}>Quick Actions</h2>
+                <QuickActionsDashboard minimal />
+              </div>
+              <div>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:18 }}>
+                  <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>Live Activity</h2>
+                  <div style={{ width:5, height:5, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite" }} />
+                </div>
+                <Card style={{ padding:"4px 0", maxHeight:320, overflowY:"auto" }}><ActivityFeed feed={feed} /></Card>
+              </div>
+            </div>
+
+            {/* ── OPERATIONS BOARD ── */}
+            <div style={{ marginBottom:28 }}>
+              <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:"0 0 18px", letterSpacing:-0.5 }}>Operations</h2>
+              <OpsBoard />
             </div>
           </div>
         )}
