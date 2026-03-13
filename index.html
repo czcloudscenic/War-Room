@@ -412,9 +412,36 @@ function useInterval(cb, delay) {
 }
 
 // ─── EDIT CONTENT MODAL ───────────────────────────────────────────────────────
-function EditContentModal({ item, onSave, onClose, onDelete, isNew = false }) {
+function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew = false }) {
   const [form, setForm] = useState({ ...item });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // SOP gate validation
+  const sopGates = React.useMemo(() => {
+    const gates = [];
+    const s = form.status;
+    const hasCaption = form.caption && form.caption.trim().length > 20;
+    const hasFiles   = form.files && form.files.length > 0;
+    const hasDate    = !!form.publish_date;
+    const isVideo    = ["Reel", "Short", "YouTube"].includes(form.format);
+
+    if (["Need Copy Approval","Ready For Content Creation","Need Content Approval","Approved","Ready For Schedule","Scheduled"].includes(s)) {
+      gates.push({ label: "Caption written", ok: hasCaption, hard: false, fix: "Write a caption first (min 20 chars)" });
+    }
+    if (["Need Content Approval","Approved","Ready For Schedule","Scheduled"].includes(s) && isVideo) {
+      gates.push({ label: "Script written", ok: !!(form.script && form.script.trim().length > 20), hard: false, fix: "Write a script before sending to production" });
+    }
+    if (["Need Content Approval","Approved","Ready For Schedule","Scheduled"].includes(s)) {
+      gates.push({ label: "Files attached", ok: hasFiles, hard: false, fix: "Attach content files before approval" });
+    }
+    if (["Ready For Schedule","Scheduled"].includes(s)) {
+      gates.push({ label: "Publish date set", ok: hasDate, hard: true, fix: "Set a publish date before scheduling" });
+    }
+    return gates;
+  }, [form.status, form.caption, form.script, form.files, form.publish_date, form.format]);
+
+  const hardBlocked = sopGates.some(g => g.hard && !g.ok);
+  const hasWarnings = sopGates.some(g => !g.ok);
   const togglePlatform = (p) => {
     const cur = form.platforms || [];
     set("platforms", cur.includes(p) ? cur.filter(x => x !== p) : [...cur, p]);
@@ -663,11 +690,31 @@ function EditContentModal({ item, onSave, onClose, onDelete, isNew = false }) {
           </div>
         </div>
 
+        {/* SOP Gate */}
+        {sopGates.length > 0 && (
+          <div style={{ marginBottom:16, background: hardBlocked ? "rgba(255,69,58,0.04)" : hasWarnings ? "rgba(255,159,10,0.04)" : "rgba(48,209,88,0.04)", border:`1px solid ${hardBlocked?"rgba(255,69,58,0.2)":hasWarnings?"rgba(255,159,10,0.2)":"rgba(48,209,88,0.2)"}`, borderRadius:12, padding:"12px 16px" }}>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color: hardBlocked?"rgba(255,69,58,0.7)":hasWarnings?"rgba(255,159,10,0.7)":"rgba(48,209,88,0.7)", marginBottom:8 }}>☑ SOP Checklist</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+              {sopGates.map((g,i) => (
+                <div key={i} style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <span style={{ fontSize:12, flexShrink:0 }}>{g.ok ? "✅" : g.hard ? "🚫" : "⚠️"}</span>
+                  <span style={{ fontSize:11, color: g.ok ? "rgba(0,0,0,0.5)" : g.hard ? "#ff453a" : "#ff9f0a", fontWeight: g.ok ? 400 : 600, textDecoration: g.ok ? "line-through" : "none" }}>{g.label}</span>
+                  {!g.ok && <span style={{ fontSize:10, color:"rgba(0,0,0,0.35)", fontStyle:"italic" }}>— {g.fix}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-          <button onClick={() => onSave(form)} style={{ flex:1, background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:14, fontWeight:600, padding:"14px", cursor:"pointer", fontFamily:"Inter, sans-serif", letterSpacing:-0.2 }}>{isNew ? "Add Content" : "Save Changes"}</button>
+          <button onClick={() => { if (!hardBlocked) onSave(form); }} disabled={hardBlocked}
+            style={{ flex:1, background: hardBlocked ? "rgba(0,0,0,0.1)" : "#0f0f1a", border:"none", borderRadius:12, color: hardBlocked ? "rgba(0,0,0,0.3)" : "#fff", fontSize:14, fontWeight:600, padding:"14px", cursor: hardBlocked ? "not-allowed" : "pointer", fontFamily:"Inter, sans-serif", letterSpacing:-0.2 }}>
+            {hardBlocked ? "🚫 Fix required fields" : isNew ? "Add Content" : "Save Changes"}
+          </button>
           <button onClick={onClose} style={{ padding:"14px 22px", background:"none", border:"none", color:"rgba(0,0,0,0.4)", fontSize:14, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Cancel</button>
-          {!isNew && onDelete && <button onClick={() => onDelete(form.id)} style={{ padding:"14px 18px", background:"none", border:"1px solid rgba(255,69,58,0.25)", borderRadius:12, color:"rgba(255,69,58,0.7)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}>🗑 Delete</button>}
+          {!isNew && onDuplicate && <button onClick={() => onDuplicate(form)} title="Duplicate this item" style={{ padding:"14px 16px", background:"none", border:"1px solid rgba(0,0,0,0.12)", borderRadius:12, color:"rgba(0,0,0,0.45)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}>⧉ Dupe</button>}
+          {!isNew && onDelete && <button onClick={() => onDelete(form.id)} style={{ padding:"14px 18px", background:"none", border:"1px solid rgba(255,69,58,0.25)", borderRadius:12, color:"rgba(255,69,58,0.7)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}>🗑</button>}
         </div>
       </div>
 
@@ -2227,6 +2274,28 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
     setIsNewItem(false);
   };
 
+  const handleDuplicate = (item) => {
+    const copy = {
+      ...item,
+      id: `vl-${Date.now()}`,
+      title: `Copy of ${item.title}`,
+      status: "Ready For Copy Creation",
+      stage: "Ready For Copy Creation",
+      caption: "",
+      script: "",
+      publish_date: "",
+      client_note: "",
+      files: [],
+    };
+    setContent(prev => [...prev, copy]);
+    setEditingItem(null);
+    setIsNewItem(false);
+    if (sb) {
+      sb.from("content_items").insert(copy)
+        .then(({ error }) => { if (error) console.warn("Supabase duplicate error:", error.message); });
+    }
+  };
+
   const handleDelete = (itemId) => {
     if (!window.confirm("Delete this content item? This cannot be undone.")) return;
     setContent(prev => prev.filter(x => x.id !== itemId));
@@ -2318,7 +2387,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         textarea::placeholder { color:rgba(0,0,0,0.25); font-style:italic }
       `}</style>
 
-      {editingItem && <EditContentModal item={editingItem} isNew={isNewItem} onSave={handleSave} onDelete={handleDelete} onClose={() => { setEditingItem(null); setIsNewItem(false); }} />}
+      {editingItem && <EditContentModal item={editingItem} isNew={isNewItem} onSave={handleSave} onDelete={handleDelete} onDuplicate={handleDuplicate} onClose={() => { setEditingItem(null); setIsNewItem(false); }} />}
 
       <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, background:"radial-gradient(ellipse 60% 40% at 70% 20%, rgba(10,132,255,0.03), transparent 60%), radial-gradient(ellipse 50% 30% at 20% 80%, rgba(48,209,88,0.02), transparent 60%)" }} />
 
