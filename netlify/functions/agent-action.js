@@ -515,7 +515,6 @@ async function artgrid_scout(payload) {
   if (itemId) {
     items = items.filter(i => i.id === itemId);
   } else {
-    // SOP Step 03 — Pre-Production: scout footage for all video items not yet scheduled/scrapped
     items = items.filter(i =>
       ["Reel", "YouTube", "Short"].includes(i.format) &&
       !["Scheduled", "Scrapped"].includes(i.status)
@@ -528,74 +527,41 @@ async function artgrid_scout(payload) {
       agent: "Artgrid",
       action: "artgrid_scout",
       itemCount: 0,
-      briefs: [],
+      results: [],
       message: "✦ No video items currently need footage scouting — pipeline clear",
     };
   }
 
-  const systemPrompt = `You are Artgrid, VitalLyfe's footage scout for Cloud Scenic's War Room.
-You specialize in finding cinematic stock footage on Artgrid.io.
+  // Lean prompt — just keywords, no essays
+  const systemPrompt = `You are Artgrid, footage scout for VitalLyfe (wellness/hydration brand). 
+For each video item, return 5 specific Artgrid.io search phrases that will find the best matching cinematic footage.
+VitalLyfe aesthetic: cinematic, calm, water in motion, warm naturals, real human moments. No corporate, no fake smiles.
+Artgrid search tip: descriptive scene phrases work best. "slow motion water droplet golden hour" beats "water inspiration".
+Return ONLY a JSON array: [{ "itemId": "vl-X", "title": "...", "keywords": ["phrase 1", "phrase 2", "phrase 3", "phrase 4", "phrase 5"] }]`;
 
-VitalLyfe visual identity:
-- Brand: wellness/hydration technology. Cinematic, calm, purposeful. Never corporate.
-- Colors: warm neutrals, soft light, clean environments, water in motion
-- Aesthetic: documentary meets luxury — wide landscapes, macro water shots, real human moments
-- Tone: quiet ambition, calm confidence. No hype, no fake energy.
-- AVOID: people pointing at whiteboards, fake stock smiles, generic corporate, cheesy green screen
+  const itemList = items.map(i =>
+    `ID: ${i.id} | "${i.title}" | Pillar: ${i.pillar} | Format: ${i.format}${i.description ? ` | ${i.description}` : ""}`
+  ).join("\n");
 
-For each content item, generate hyper-specific Artgrid.io search queries.
-Artgrid works best with descriptive scene phrases, NOT vague concepts.
-Good: "slow motion water droplet hitting surface golden hour" — Bad: "water inspiration"
+  const rawResult = await ai(systemPrompt, itemList, 600);
 
-Return a JSON array (one object per item):
-[
-  {
-    "itemId": "vl-X",
-    "title": "item title",
-    "mood": "2-3 sentence visual direction",
-    "pacing": "Fast cuts (under 2s) | Medium (2-4s) | Slow/cinematic (4s+)",
-    "clipTypes": ["hero shot", "b-roll 1", "b-roll 2", "cutaway", "transition"],
-    "searches": [
-      { "query": "specific artgrid search phrase", "use": "exact role in the edit", "priority": "HIGH|MED|LOW" }
-    ],
-    "avoidKeywords": ["term1", "term2"],
-    "totalClipsNeeded": 7,
-    "notes": "editor direction"
-  }
-]
-
-Generate 6-8 search queries per item. Specificity wins. Return ONLY the JSON array.`;
-
-  const itemSummaries = items.map(i =>
-    `ID: ${i.id} | "${i.title}" | Pillar: ${i.pillar} | Campaign: ${i.campaign}\nDescription: ${i.description}\nScript: ${i.script || "—"}\nNotes: ${i.notes || "—"}`
-  ).join("\n\n---\n\n");
-
-  const rawResult = await ai(
-    systemPrompt,
-    `Generate footage briefs for these ${items.length} video items:\n\n${itemSummaries}`,
-    Math.min(2000 + items.length * 400, 4000)
-  );
-
-  let briefs = [];
+  let results = [];
   try {
     const jsonMatch = rawResult.match(/\[[\s\S]*\]/);
-    briefs = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    results = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
   } catch (e) {
-    briefs = [];
+    results = [];
   }
-
-  const totalQueries = briefs.reduce((sum, b) => sum + (b.searches?.length || 0), 0);
 
   return {
     success: true,
     agent: "Artgrid",
     action: "artgrid_scout",
     itemCount: items.length,
-    totalQueries,
-    briefs,
-    message: `✦ Footage scouted — ${briefs.length} item(s), ${totalQueries} search queries ready`,
-    summary: briefs.map(b =>
-      `• "${b.title}" — ${b.searches?.length || 0} queries · ${b.totalClipsNeeded} clips · Pacing: ${b.pacing}`
+    results,
+    message: `✦ Keywords ready — ${results.length} item(s) scouted`,
+    summary: results.map(r =>
+      `• "${r.title}"\n  → ${(r.keywords || []).join(" | ")}`
     ).join("\n"),
   };
 }

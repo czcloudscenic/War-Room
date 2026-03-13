@@ -41,26 +41,26 @@ GitHub: https://github.com/czcloudscenic/War-Room.git (auto-deploys on push to m
 2. n8n webhook integration — lacey_trigger_n8n action + buttons in UI
 3. N8N_WEBHOOK_URL env var set in Netlify (production URL)
 
-## n8n Status — INCOMPLETE, NEEDS FINISHING
+## n8n Status — ✅ COMPLETE AND LIVE
 The War Room side is fully wired. The n8n workflow is PARTIALLY built.
 
-### What exists in n8n
-- Workflow imported at cloudscenic.app.n8n.cloud
+### What exists in n8n — PUBLISHED & ACTIVE
+- Workflow: "VitalLyfe War Room — Content Sync" (ID: 3WXHHEiMz9rMnBEn)
 - 4 nodes: War Room Webhook → Format Content Item → Insert to Supabase → Respond OK
-- Workflow file: /Users/chrisz/.openclaw/workspace/warroom/n8n/warroom-trigger-workflow.json
+- Supabase secret key is configured in both HTTP Request header fields
+- Production webhook is live and accepting POST requests
 
-### What still needs to happen
-- Open n8n → Insert to Supabase node
-- Replace BOTH instances of PASTE_SUPABASE_SERVICE_KEY_HERE with the actual Supabase secret key
-  (Settings → API Keys → Secret keys → default → reveal)
-- Save → Activate the workflow
-
-### What this workflow does when finished
-External source (any tool) POSTs to:
+### What this workflow does
+External source POSTs to:
   https://cloudscenic.app.n8n.cloud/webhook/11138e92-248c-4562-be17-5e07b9da928c
 with payload: { title, platform, status, pillar, format, description }
-→ n8n formats it → INSERTs into Supabase content_items
-→ War Room picks it up instantly via live Supabase subscription
+→ n8n formats → INSERTs into Supabase content_items → War Room updates instantly
+
+### n8n Access Notes
+- Christian is a MEMBER (not owner) on cloudscenic n8n plan — no REST API key access
+- MCP endpoint: https://cloudscenic.app.n8n.cloud/mcp-server/http
+- MCP JWT available via n8n Settings → Instance-level MCP → Connection details
+- MCP can only search/execute enabled workflows — editing must be done in the n8n UI manually
 
 ## Key Files
 - /Users/chrisz/.openclaw/workspace/warroom/index.html (main app)
