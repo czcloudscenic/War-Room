@@ -395,7 +395,7 @@ function useInterval(cb, delay) {
 }
 
 // ─── EDIT CONTENT MODAL ───────────────────────────────────────────────────────
-function EditContentModal({ item, onSave, onClose }) {
+function EditContentModal({ item, onSave, onClose, isNew = false }) {
   const [form, setForm] = useState({ ...item });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const togglePlatform = (p) => {
@@ -479,7 +479,7 @@ function EditContentModal({ item, onSave, onClose }) {
       <div onClick={e => e.stopPropagation()} style={{ background:"#fff", borderRadius:20, width:"100%", maxWidth:660, maxHeight:"92vh", overflowY:"auto", padding:"32px 36px", boxShadow:"0 24px 80px rgba(0,0,0,0.18)", fontFamily:"Inter, sans-serif" }}>
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
-          <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontStyle:"italic", fontSize:26, fontWeight:400, color:"#0f0f1a", margin:0 }}>Edit Content</h2>
+          <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontStyle:"italic", fontSize:26, fontWeight:400, color:"#0f0f1a", margin:0 }}>{isNew ? "New Content" : "Edit Content"}</h2>
           <button onClick={onClose} style={{ background:"none", border:"none", fontSize:20, color:"rgba(0,0,0,0.35)", cursor:"pointer", lineHeight:1, padding:4 }}>×</button>
         </div>
 
@@ -981,12 +981,12 @@ function ArtgridScoutPage({ content }) {
       });
       const d = await res.json();
       if (d.error) throw new Error(d.error);
-      // Merge briefs into per-item scouts state
-      if (d.briefs && d.briefs.length > 0) {
+      // Merge keyword results into per-item scouts state
+      if (d.results && d.results.length > 0) {
         const updates = {};
-        d.briefs.forEach(b => { updates[b.itemId] = { loading: false, brief: b }; });
+        d.results.forEach(r => { updates[r.itemId] = { loading: false, keywords: r.keywords, title: r.title }; });
         setScouts(prev => ({ ...prev, ...updates }));
-        if (d.briefs[0]) setActiveId(d.briefs[0].itemId);
+        if (d.results[0]) setActiveId(d.results[0].itemId);
       }
       setAllScoutResult({ ok: true, message: d.message, summary: d.summary });
     } catch(e) {
@@ -1116,7 +1116,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                   <div style={{ fontSize:11, color:"rgba(0,0,0,0.45)", lineHeight:1.5, maxWidth:520 }}>{item.description}</div>
                 </div>
                 <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-                  {sc?.brief && <button onClick={() => setActiveId(isActive?null:item.id)} style={{ background:"rgba(0,0,0,0.05)", border:"1px solid rgba(0,0,0,0.1)", borderRadius:10, color:"rgba(0,0,0,0.55)", cursor:"pointer", padding:"9px 16px", fontSize:12, fontWeight:500, fontFamily:"Inter, sans-serif" }}>{isActive?"Hide":"View Brief"}</button>}
+                  {(sc?.brief || sc?.keywords) && <button onClick={() => setActiveId(isActive?null:item.id)} style={{ background:"rgba(0,0,0,0.05)", border:"1px solid rgba(0,0,0,0.1)", borderRadius:10, color:"rgba(0,0,0,0.55)", cursor:"pointer", padding:"9px 16px", fontSize:12, fontWeight:500, fontFamily:"Inter, sans-serif" }}>{isActive?"Hide":"View Keywords"}</button>}
                   <button onClick={() => runScout(item)} disabled={sc?.loading} style={{ background:sc?.loading?"rgba(191,90,242,0.1)":"#bf5af2", border:"none", borderRadius:10, color:sc?.loading?"#bf5af2":"#fff", cursor:sc?.loading?"default":"pointer", padding:"9px 18px", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif", opacity:sc?.loading?0.8:1 }}>
                     {sc?.loading?"Scouting...":sc?.brief?"Re-Scout ✦":"Scout ✦"}
                   </button>
@@ -1183,6 +1183,27 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                       {sc.brief.notes && <div style={{ fontSize:10, color:"rgba(0,0,0,0.5)", lineHeight:1.5 }}>{sc.brief.notes}</div>}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {sc?.keywords && !sc?.brief && isActive && (
+                <div style={{ borderTop:"1px solid rgba(0,0,0,0.06)", padding:"20px 22px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                    <div style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.35)", letterSpacing:1.5, textTransform:"uppercase" }}>Artgrid Search Keywords</div>
+                    <span style={{ fontSize:9, color:"rgba(0,0,0,0.35)" }}>Click any to open Artgrid.io ↗</span>
+                  </div>
+                  <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                    {(sc.keywords||[]).map((kw,i) => (
+                      <a key={i} href={`https://artgrid.io/search?q=${encodeURIComponent(kw)}`} target="_blank" rel="noopener noreferrer"
+                        style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", background:"#fff", border:"1px solid rgba(0,0,0,0.08)", borderRadius:10, textDecoration:"none", transition:"border-color 0.15s" }}
+                        onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(191,90,242,0.4)"}
+                        onMouseLeave={e=>e.currentTarget.style.borderColor="rgba(0,0,0,0.08)"}>
+                        <span style={{ fontSize:12, fontWeight:600, color:"#0f0f1a", flex:1 }}>{kw}</span>
+                        <span style={{ fontSize:11, color:"#bf5af2" }}>↗</span>
+                      </a>
+                    ))}
+                  </div>
+                  <div style={{ marginTop:10, fontSize:10, color:"rgba(0,0,0,0.35)" }}>Hit "Scout ✦" on any item for the full AI brief with mood, pacing, and clip types.</div>
                 </div>
               )}
             </Card>
@@ -1279,10 +1300,9 @@ function AgentChatPage({ agents, content }) {
         display += `\n\n**Metrics:** ${m.total} total · ${m.missingCopy} missing captions · ${m.missingScript} missing scripts`;
         if (m.byStatus) display += "\n" + Object.entries(m.byStatus).map(([s,n]) => `${s}: ${n}`).join(" · ");
       }
-      if (d.briefs && d.briefs.length > 0) {
-        display += "\n\n" + d.briefs.map(b =>
-          `📍 "${b.title}"\nMood: ${b.mood}\nPacing: ${b.pacing}\nClips needed: ${b.totalClipsNeeded}\nTop queries:\n` +
-          (b.searches || []).filter(s => s.priority === "HIGH").map(s => `  ✦ ${s.query} — ${s.use}`).join("\n")
+      if (d.results && d.results.length > 0) {
+        display += "\n\n" + d.results.map(r =>
+          `📍 "${r.title}"\nSearch keywords:\n${(r.keywords || []).map(k => `  ✦ ${k}`).join("\n")}`
         ).join("\n\n");
         if (d.summary) display += "\n\n---\n" + d.summary;
       }
@@ -1409,7 +1429,7 @@ function AgentChatPage({ agents, content }) {
                 {actionBusy ? "⏳ Running…" : "🔍 SOP Scan"}
               </button>
             )}
-            {sel.name === "Lacey" && (
+            {sel.name === "Lacey" && (<>
               <button onClick={() => runAgentAction("lacey_advance")} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#ff9f0a", background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
                 {actionBusy ? "⏳ Running…" : "⚡ Advance Pipeline"}
@@ -1418,7 +1438,7 @@ function AgentChatPage({ agents, content }) {
                 style={{ fontSize:11, fontWeight:600, color:"#30d158", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1, marginLeft:8 }}>
                 {actionBusy ? "⏳ Running…" : "🔗 Trigger n8n"}
               </button>
-            )}
+            </>)}
             {sel.name === "Sam" && (
               <button onClick={() => runAgentAction("sam_health")} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#ffd60a", background:"rgba(255,214,10,0.08)", border:"1px solid rgba(255,214,10,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
@@ -2013,7 +2033,36 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
     return () => sb.removeChannel(channel);
   }, []);
   const [editingItem, setEditingItem] = useState(null);
+  const [isNewItem, setIsNewItem] = useState(false);
   const feedIdRef = useRef(0);
+
+  const getNewItemTemplate = () => ({
+    id: `vl-${Date.now()}`,
+    platform: "instagram",
+    type: "reel",
+    stage: "Ready For Copy Creation",
+    campaign: "Drip Campaign",
+    status: "Ready For Copy Creation",
+    format: "Reel",
+    pillar: "Abundance",
+    platforms: ["IG"],
+    title: "",
+    description: "",
+    script: "",
+    caption: "",
+    cta: "Join us (Link in bio)",
+    seoKeywords: "",
+    hashtags: "",
+    startWeek: 1,
+    duration: 1,
+    notes: "",
+    files: [],
+  });
+
+  const handleAddNew = () => {
+    setEditingItem(getNewItemTemplate());
+    setIsNewItem(true);
+  };
 
   const now = () => {
     const d = new Date();
@@ -2029,14 +2078,29 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   useInterval(() => setLiveCount(Math.floor(Math.random()*2)+6), 15000);
 
   const handleSave = (updated) => {
-    const item = { ...updated, stage: updated.status };
-    setContent(prev => prev.map(x => x.id === item.id ? item : x));
-    setEditingItem(null);
-    // Write to Supabase if connected
-    if (sb) {
-      sb.from("content_items").update(item).eq("id", item.id)
-        .then(({ error }) => { if (error) console.warn("Supabase save error:", error.message); });
+    // Derive platform (singular) and type from platforms array + format
+    const platformMap = { IG: "instagram", TT: "tiktok", YT: "youtube" };
+    const typeMap = { "Reel": "reel", "Graphics (IMG)": "graphic", "Carousel": "carousel", "Thread": "thread", "Story": "story", "YouTube": "youtube", "Short": "short" };
+    const primaryPlatform = updated.platforms && updated.platforms.length > 0
+      ? (platformMap[updated.platforms[0]] || "instagram") : (updated.platform || "instagram");
+    const itemType = typeMap[updated.format] || updated.type || "reel";
+    const item = { ...updated, stage: updated.status, platform: primaryPlatform, type: itemType };
+
+    if (isNewItem) {
+      setContent(prev => [...prev, item]);
+      if (sb) {
+        sb.from("content_items").insert(item)
+          .then(({ error }) => { if (error) console.warn("Supabase insert error:", error.message); });
+      }
+    } else {
+      setContent(prev => prev.map(x => x.id === item.id ? item : x));
+      if (sb) {
+        sb.from("content_items").update(item).eq("id", item.id)
+          .then(({ error }) => { if (error) console.warn("Supabase save error:", error.message); });
+      }
     }
+    setEditingItem(null);
+    setIsNewItem(false);
   };
 
   const [museToast, setMuseToast] = useState(null);
@@ -2119,7 +2183,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         textarea::placeholder { color:rgba(0,0,0,0.25); font-style:italic }
       `}</style>
 
-      {editingItem && <EditContentModal item={editingItem} onSave={handleSave} onClose={() => setEditingItem(null)} />}
+      {editingItem && <EditContentModal item={editingItem} isNew={isNewItem} onSave={handleSave} onClose={() => { setEditingItem(null); setIsNewItem(false); }} />}
 
       <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, background:"radial-gradient(ellipse 60% 40% at 70% 20%, rgba(10,132,255,0.03), transparent 60%), radial-gradient(ellipse 50% 30% at 20% 80%, rgba(48,209,88,0.02), transparent 60%)" }} />
 
@@ -2264,13 +2328,14 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                 <h1 style={{ fontSize:26, fontWeight:700, color:"#0f0f1a", margin:0, letterSpacing:-0.6 }}>Instagram</h1>
                 <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginTop:2 }}>@vitallyfe · {igItems.length} pieces in pipeline</div>
               </div>
-              <div style={{ marginLeft:"auto", display:"flex", gap:8, flexWrap:"wrap" }}>
+              <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                 {["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"].map(s => {
                   const c = STATUS_COLOR[s] || "#999";
                   const n = igItems.filter(x=>x.stage===s).length;
                   if (!n) return null;
                   return <span key={s} style={{ fontSize:9, color:c, background:`${c}15`, padding:"3px 8px", borderRadius:20, fontWeight:600 }}>{s} · {n}</span>;
                 })}
+                <button onClick={handleAddNew} style={{ background:"#0f0f1a", border:"none", borderRadius:10, color:"#fff", fontSize:12, fontWeight:600, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif", flexShrink:0 }}>+ Add</button>
               </div>
             </div>
             <ContentPipelineBoard title="Reels & Graphics Pipeline" icon="🎬"
@@ -2334,6 +2399,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                 <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", marginBottom:4, letterSpacing:-0.8 }}>Content Tracker</h1>
                 <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>All {content.length} pieces · Click any row to edit</p>
               </div>
+              <button onClick={handleAddNew} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>+ Add Content</button>
             </div>
             <div style={{ display:"flex", gap:12, marginBottom:28 }}>
               <MetricCard label="Total Pieces" value={content.length} delta={0} color="#30d158" icon="◈" />
