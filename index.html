@@ -2519,11 +2519,6 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               </div>
             </div>
 
-            {/* ── QUICK ACTIONS (below hero) ── */}
-            <div style={{ marginBottom:32 }}>
-              <QuickActionsDashboard />
-            </div>
-
             {/* ── ASYMMETRIC METRIC GRID ── */}
             <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 1fr", gridTemplateRows:"auto auto", gap:14, marginBottom:44 }}>
               <div style={{ gridRow:"1 / span 2" }}>
@@ -2533,6 +2528,11 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#bf5af2" />
               <MetricCard label="Need Attention" value={content.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
               <MetricCard label="In Production" value={content.filter(x=>["Ready For Content Creation","Ready For Copy Creation"].includes(x.status)).length} delta={0} color="#ff375f" />
+            </div>
+
+            {/* ── QUICK ACTIONS ── */}
+            <div style={{ marginBottom:44 }}>
+              <QuickActionsDashboard />
             </div>
 
             {/* ── AGENT GRID ── */}
