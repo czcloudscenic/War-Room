@@ -2047,6 +2047,10 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   const [liveCount, setLiveCount] = useState(6);
   const [previewMode, setPreviewMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [trackerSearch, setTrackerSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterPillar, setFilterPillar] = useState("");
+  const [filterPlatform, setFilterPlatform] = useState("");
   // Use content from App (shared with ClientView) — fall back to local state only if not passed in
   const [localContent, setLocalContent] = useState(INITIAL_CONTENT);
   const content = contentProp ?? localContent;
@@ -2467,10 +2471,6 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
 
         {/* CONTENT TRACKER */}
         {activeNav === "tracker" && (() => {
-          const [trackerSearch, setTrackerSearch] = React.useState("");
-          const [filterStatus, setFilterStatus] = React.useState("");
-          const [filterPillar, setFilterPillar] = React.useState("");
-          const [filterPlatform, setFilterPlatform] = React.useState("");
           const filtered = content.filter(item => {
             if (filterStatus && item.status !== filterStatus) return false;
             if (filterPillar && item.pillar !== filterPillar) return false;
