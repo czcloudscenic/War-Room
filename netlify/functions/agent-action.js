@@ -575,26 +575,80 @@ async function muse_generate_calendar() {
 Generate content calendar ideas. Brand voice: cinematic, calm, purposeful.
 Content pillars: ${pillars.join(", ")}.
 Platforms: Instagram (Reels, Graphics, Carousels), TikTok (Reels), YouTube (Shorts, Long-form), X/Threads.
-AVOID: revolutionary, game-changing, exclamation points, generic corporate content.`;
+AVOID: revolutionary, game-changing, exclamation points, generic corporate content.
 
-  const userPrompt = `Generate a 4-week content calendar for VitalLyfe.
-Existing content (don't repeat): ${existing}
+Return a JSON array of content items only (no markdown, no backticks):
+[
+  {
+    "title": "cinematic content title",
+    "pillar": "one of the 7 pillars",
+    "format": "Reel|Carousel|Graphics (IMG)|Thread|Short|YouTube",
+    "platforms": ["IG"],
+    "platform": "instagram|tiktok|youtube",
+    "type": "reel|carousel|graphic|thread|short|youtube",
+    "campaign": "Drip Campaign",
+    "status": "Ready For Copy Creation",
+    "stage": "Ready For Copy Creation",
+    "description": "one sentence description",
+    "caption": "",
+    "script": "",
+    "cta": "Join us (Link in bio)",
+    "seoKeywords": "",
+    "hashtags": "#VitalLyfe",
+    "startWeek": 1,
+    "duration": 1,
+    "notes": ""
+  }
+]
+Generate 12-16 items covering all 7 pillars across 4 weeks. Vary formats and platforms. Return ONLY the JSON array.`;
 
-For each week, suggest 3-4 content pieces. Format as:
-WEEK 1
-- [Format] [Platform] "[Title" | Pillar: X | Hook: brief hook idea
-...
+  const rawResult = await ai(systemPrompt, `Existing content (don't repeat): ${existing}\n\nGenerate the 4-week calendar now.`, 2800);
 
-Cover all content pillars. Mix formats. Make titles cinematic and on-brand. 4 weeks total.`;
-
-  const calendar = await ai(systemPrompt, userPrompt, 1200);
+  let calendarItems = [];
+  try {
+    const jsonMatch = rawResult.match(/\[[\s\S]*\]/);
+    calendarItems = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+  } catch(e) { calendarItems = []; }
 
   return {
     success: true,
     agent: "Muse",
     action: "muse_generate_calendar",
-    calendar,
-    message: `✍️ 4-week content calendar generated (${pillars.length} pillars covered)`,
+    items: calendarItems,
+    itemCount: calendarItems.length,
+    message: `✍️ ${calendarItems.length}-piece content calendar generated — ${pillars.length} pillars covered`,
+    preview: calendarItems.map(i => `• [${i.pillar}] "${i.title}" — ${i.format}`).join("\n"),
+  };
+}
+
+async function muse_save_calendar(payload) {
+  const { items } = payload;
+  if (!items || items.length === 0) {
+    return { success: false, agent: "Muse", action: "muse_save_calendar", message: "❌ No items to save" };
+  }
+
+  const toInsert = items.map((item, idx) => ({
+    ...item,
+    id: `vl-cal-${Date.now()}-${idx}`,
+  }));
+
+  const res = await fetch(`${REST}/content_items`, {
+    method: "POST",
+    headers: { ...SB_HEADERS(), Prefer: "return=minimal" },
+    body: JSON.stringify(toInsert),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Supabase insert failed: ${res.status} ${errText}`);
+  }
+
+  return {
+    success: true,
+    agent: "Muse",
+    action: "muse_save_calendar",
+    savedCount: toInsert.length,
+    message: `✍️ ${toInsert.length} calendar items saved to tracker — they're live now`,
   };
 }
 
@@ -673,6 +727,7 @@ exports.handler = async (event) => {
       case "lacey_advance":          result = await lacey_advance(); break;
       case "sam_health":             result = await sam_health(); break;
       case "muse_generate_calendar": result = await muse_generate_calendar(); break;
+      case "muse_save_calendar":     result = await muse_save_calendar(payload); break;
       case "artgrid_scout":          result = await artgrid_scout(payload); break;
       case "scrappy_research":       result = await scrappy_research(payload); break;
       case "scrappy_muse_collab":    result = await scrappy_muse_collab(payload); break;

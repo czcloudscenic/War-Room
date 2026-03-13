@@ -85,16 +85,21 @@
         "Ready For Schedule":"#8b5cf6","Scheduled":"#64d2ff",
         "Ready For Copy Creation":"#f59e0b","Ready For Content Creation":"#10b981",
       };
+      const [reviseNote, setReviseNote] = React.useState({});
+      const [reviseOpen, setReviseOpen] = React.useState(null);
 
       const approve = async (item) => {
-        const updated = { ...item, status:"Approved", stage:"Approved" };
+        const updated = { ...item, status:"Approved", stage:"Approved", client_note:"" };
         setContent(prev => prev.map(x => x.id===item.id ? updated : x));
         await sb.from("content_items").update(updated).eq("id", item.id);
       };
       const revise = async (item) => {
-        const updated = { ...item, status:"Needs Revisions", stage:"Needs Revisions" };
+        const note = reviseNote[item.id] || "";
+        const updated = { ...item, status:"Needs Revisions", stage:"Needs Revisions", client_note: note };
         setContent(prev => prev.map(x => x.id===item.id ? updated : x));
         await sb.from("content_items").update(updated).eq("id", item.id);
+        setReviseOpen(null);
+        setReviseNote(prev => ({ ...prev, [item.id]: "" }));
       };
 
       const pending = content.filter(x => ["Need Copy Approval","Need Content Approval"].includes(x.status));
@@ -140,17 +145,29 @@
                 <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                   {pending.map(item => {
                     const c = STATUS_COLOR[item.status]||"#999";
+                    const isRevOpen = reviseOpen === item.id;
                     return (
-                      <div key={item.id} style={{ background:"#fff", border:"1px solid #ebebeb", borderRadius:14, padding:"18px 20px", display:"flex", alignItems:"center", gap:16 }}>
-                        <div style={{ flex:1 }}>
-                          <div style={{ fontSize:13, fontWeight:600, color:"#0f0f1a", marginBottom:4 }}>{item.title}</div>
-                          <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginBottom:8 }}>{item.campaign} · {item.format}</div>
-                          <span style={{ fontSize:9, color:c, background:`${c}15`, padding:"3px 8px", borderRadius:20, fontWeight:700, border:`1px solid ${c}25` }}>{item.status}</span>
+                      <div key={item.id} style={{ background:"#fff", border:`1px solid ${isRevOpen?"rgba(255,69,58,0.25)":"#ebebeb"}`, borderRadius:14, padding:"18px 20px" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+                          <div style={{ flex:1 }}>
+                            <div style={{ fontSize:13, fontWeight:600, color:"#0f0f1a", marginBottom:4 }}>{item.title}</div>
+                            <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginBottom:8 }}>{item.campaign} · {item.format}</div>
+                            <span style={{ fontSize:9, color:c, background:`${c}15`, padding:"3px 8px", borderRadius:20, fontWeight:700, border:`1px solid ${c}25` }}>{item.status}</span>
+                          </div>
+                          <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+                            <button onClick={()=>setReviseOpen(isRevOpen?null:item.id)} style={{ fontSize:11, fontWeight:600, color:"#ff453a", background:"rgba(255,69,58,0.08)", border:"1px solid rgba(255,69,58,0.2)", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Request Revisions</button>
+                            <button onClick={()=>approve(item)} style={{ fontSize:11, fontWeight:600, color:"#fff", background:"#30d158", border:"none", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Approve ✓</button>
+                          </div>
                         </div>
-                        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-                          <button onClick={()=>revise(item)} style={{ fontSize:11, fontWeight:600, color:"#ff453a", background:"rgba(255,69,58,0.08)", border:"1px solid rgba(255,69,58,0.2)", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Request Revisions</button>
-                          <button onClick={()=>approve(item)} style={{ fontSize:11, fontWeight:600, color:"#fff", background:"#30d158", border:"none", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Approve ✓</button>
-                        </div>
+                        {isRevOpen && (
+                          <div style={{ marginTop:14, borderTop:"1px solid rgba(255,69,58,0.1)", paddingTop:14 }}>
+                            <div style={{ fontSize:10, color:"rgba(255,69,58,0.7)", fontWeight:600, marginBottom:8 }}>Leave a note for the team (optional)</div>
+                            <textarea value={reviseNote[item.id]||""} onChange={e=>setReviseNote(prev=>({...prev,[item.id]:e.target.value}))}
+                              placeholder="e.g. The hook needs to be stronger, change the CTA to…"
+                              style={{ width:"100%", background:"rgba(255,69,58,0.03)", border:"1px solid rgba(255,69,58,0.2)", borderRadius:8, padding:"10px 12px", fontSize:12, color:"#0f0f1a", fontFamily:"Inter, sans-serif", minHeight:64, outline:"none", resize:"vertical", boxSizing:"border-box" }} />
+                            <button onClick={()=>revise(item)} style={{ marginTop:10, fontSize:12, fontWeight:600, color:"#fff", background:"#ff453a", border:"none", borderRadius:8, padding:"8px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Send Revision Request</button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -395,7 +412,7 @@ function useInterval(cb, delay) {
 }
 
 // ─── EDIT CONTENT MODAL ───────────────────────────────────────────────────────
-function EditContentModal({ item, onSave, onClose, isNew = false }) {
+function EditContentModal({ item, onSave, onClose, onDelete, isNew = false }) {
   const [form, setForm] = useState({ ...item });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const togglePlatform = (p) => {
@@ -573,8 +590,8 @@ function EditContentModal({ item, onSave, onClose, isNew = false }) {
           <input style={inputStyle} value={form.hashtags} onChange={e => set("hashtags", e.target.value)} />
         </div>
 
-        {/* Start Week + Duration */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:18 }}>
+        {/* Start Week + Duration + Publish Date */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16, marginBottom:18 }}>
           <div>
             <label style={labelStyle}>Start Week</label>
             <input style={inputStyle} type="number" value={form.startWeek} onChange={e => set("startWeek", e.target.value)} />
@@ -583,12 +600,24 @@ function EditContentModal({ item, onSave, onClose, isNew = false }) {
             <label style={labelStyle}>Duration (Weeks)</label>
             <input style={inputStyle} type="number" value={form.duration} onChange={e => set("duration", e.target.value)} />
           </div>
+          <div>
+            <label style={labelStyle}>Publish Date</label>
+            <input style={inputStyle} type="date" value={form.publish_date || ""} onChange={e => set("publish_date", e.target.value)} />
+          </div>
         </div>
 
         {/* Notes */}
-        <div style={{ marginBottom:28 }}>
+        <div style={{ marginBottom:18 }}>
           <label style={labelStyle}>Notes / Direction</label>
           <textarea style={{ ...textareaStyle, minHeight:72 }} value={form.notes} onChange={e => set("notes", e.target.value)} />
+        </div>
+
+        {/* Client Note */}
+        <div style={{ marginBottom:28 }}>
+          <label style={{ ...labelStyle, color:"rgba(255,69,58,0.6)" }}>Client Note</label>
+          <textarea style={{ ...textareaStyle, minHeight:56, borderColor: form.client_note ? "rgba(255,69,58,0.3)" : "#e5e5e5", background: form.client_note ? "rgba(255,69,58,0.02)" : "#fff" }}
+            value={form.client_note || ""} onChange={e => set("client_note", e.target.value)}
+            placeholder="Client revision notes will appear here…" />
         </div>
 
         {/* File Assets */}
@@ -623,8 +652,9 @@ function EditContentModal({ item, onSave, onClose, isNew = false }) {
 
         {/* Actions */}
         <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-          <button onClick={() => onSave(form)} style={{ flex:1, background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:14, fontWeight:600, padding:"14px", cursor:"pointer", fontFamily:"Inter, sans-serif", letterSpacing:-0.2 }}>Save Changes</button>
+          <button onClick={() => onSave(form)} style={{ flex:1, background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:14, fontWeight:600, padding:"14px", cursor:"pointer", fontFamily:"Inter, sans-serif", letterSpacing:-0.2 }}>{isNew ? "Add Content" : "Save Changes"}</button>
           <button onClick={onClose} style={{ padding:"14px 22px", background:"none", border:"none", color:"rgba(0,0,0,0.4)", fontSize:14, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Cancel</button>
+          {!isNew && onDelete && <button onClick={() => onDelete(form.id)} style={{ padding:"14px 18px", background:"none", border:"1px solid rgba(255,69,58,0.25)", borderRadius:12, color:"rgba(255,69,58,0.7)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}>🗑 Delete</button>}
         </div>
       </div>
     </div>
@@ -1214,6 +1244,34 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
   );
 }
 
+function CalendarSaveButton({ items }) {
+  const [status, setStatus] = React.useState("idle");
+  const save = async () => {
+    setStatus("saving");
+    try {
+      const res = await fetch("/api/agent-action", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "muse_save_calendar", payload: { items } }),
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error);
+      setStatus("done");
+    } catch(e) { setStatus("error"); }
+  };
+  return (
+    <div style={{ marginTop:10 }}>
+      {status === "idle" && (
+        <button onClick={save} style={{ fontSize:11, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.25)", borderRadius:10, padding:"8px 16px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>
+          💾 Save {items.length} items to Tracker
+        </button>
+      )}
+      {status === "saving" && <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)" }}>⏳ Saving to tracker…</span>}
+      {status === "done" && <span style={{ fontSize:11, color:"#30d158", fontWeight:600 }}>✓ {items.length} items added to tracker — check Content Tracker</span>}
+      {status === "error" && <span style={{ fontSize:11, color:"#ff453a" }}>❌ Save failed — check console</span>}
+    </div>
+  );
+}
+
 function AgentChatPage({ agents, content }) {
   const PROMPTS = {
     Sean: "You are Sean, Commander Agent for the VitalLyfe War Room by Cloud Scenic. Orchestrate all 7 agents, own the content pipeline. VitalLyfe is a wellness/hydration brand. Campaigns: Drip Campaign, Meet the Makers, Product Launch. Platforms: Instagram, TikTok, YouTube. Pipeline: Ready For Copy Creation, Need Copy Approval, Ready For Content Creation, Need Content Approval, Needs Revisions, Approved, Ready For Schedule, Scheduled. Team: Lacey (Runner), Ali (Developer), Sam (Monitor), Artgrid (Footage Scout), Muse (Content Ideation), Overseer (SOP Guardian). Personality: decisive, calm, short punchy sentences.",
@@ -1288,6 +1346,7 @@ function AgentChatPage({ agents, content }) {
       if (d.briefing) display += "\n\n" + d.briefing;
       if (d.report) display += "\n\n" + d.report;
       if (d.calendar) display += "\n\n" + d.calendar;
+      if (d.preview) display += "\n\n" + d.preview;
       if (d.content) display += "\n\n" + d.content;
       if (d.flagged && d.flagged.length > 0) {
         display += "\n\n**Flagged Items:**\n" + d.flagged.map(f => `• "${f.title}" — ${f.violation} [${f.severity}]`).join("\n");
@@ -1320,9 +1379,10 @@ function AgentChatPage({ agents, content }) {
         if (d.dataPoints) display += `\n📊 Sources: ${d.dataPoints.sources || 0} live sources searched`;
         display += `\n\n✍️ Fresh Ideas (${d.contentIdeas.length}):\n` + d.summary;
       }
+      const calendarItems = (action === "muse_generate_calendar" && d.items?.length > 0) ? d.items : null;
       setHists(h => {
         const thread = (h[sel.id]||[]).filter(m => !m.loading);
-        return { ...h, [sel.id]: [...thread, { role: "system", content: display, ts: Date.now(), actionResult: true }] };
+        return { ...h, [sel.id]: [...thread, { role: "system", content: display, ts: Date.now(), actionResult: true, calendarItems }] };
       });
     } catch(e) {
       setHists(h => {
@@ -1491,6 +1551,9 @@ function AgentChatPage({ agents, content }) {
                     <span style={{ fontSize:9, color:"rgba(0,0,0,0.3)", marginLeft:"auto" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</span>
                   </div>
                   {!m.loading && <div style={{ fontSize:12, color:"#1a1a2e", lineHeight:1.7, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>}
+                  {!m.loading && m.calendarItems && m.calendarItems.length > 0 && (
+                    <CalendarSaveButton items={m.calendarItems} />
+                  )}
                 </div>
               );
             }
@@ -2103,6 +2166,17 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
     setIsNewItem(false);
   };
 
+  const handleDelete = (itemId) => {
+    if (!window.confirm("Delete this content item? This cannot be undone.")) return;
+    setContent(prev => prev.filter(x => x.id !== itemId));
+    setEditingItem(null);
+    setIsNewItem(false);
+    if (sb) {
+      sb.from("content_items").delete().eq("id", itemId)
+        .then(({ error }) => { if (error) console.warn("Supabase delete error:", error.message); });
+    }
+  };
+
   const [museToast, setMuseToast] = useState(null);
   const handleMuseWrite = async (item, field) => {
     setMuseToast({ id: item.id, field, status: "writing" });
@@ -2183,7 +2257,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         textarea::placeholder { color:rgba(0,0,0,0.25); font-style:italic }
       `}</style>
 
-      {editingItem && <EditContentModal item={editingItem} isNew={isNewItem} onSave={handleSave} onClose={() => { setEditingItem(null); setIsNewItem(false); }} />}
+      {editingItem && <EditContentModal item={editingItem} isNew={isNewItem} onSave={handleSave} onDelete={handleDelete} onClose={() => { setEditingItem(null); setIsNewItem(false); }} />}
 
       <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, background:"radial-gradient(ellipse 60% 40% at 70% 20%, rgba(10,132,255,0.03), transparent 60%), radial-gradient(ellipse 50% 30% at 20% 80%, rgba(48,209,88,0.02), transparent 60%)" }} />
 
@@ -2392,27 +2466,65 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         )}
 
         {/* CONTENT TRACKER */}
-        {activeNav === "tracker" && (
+        {activeNav === "tracker" && (() => {
+          const [trackerSearch, setTrackerSearch] = React.useState("");
+          const [filterStatus, setFilterStatus] = React.useState("");
+          const [filterPillar, setFilterPillar] = React.useState("");
+          const [filterPlatform, setFilterPlatform] = React.useState("");
+          const filtered = content.filter(item => {
+            if (filterStatus && item.status !== filterStatus) return false;
+            if (filterPillar && item.pillar !== filterPillar) return false;
+            if (filterPlatform && item.platform !== filterPlatform) return false;
+            if (trackerSearch && !item.title.toLowerCase().includes(trackerSearch.toLowerCase())) return false;
+            return true;
+          });
+          const selStyle = { background:"rgba(0,0,0,0.04)", border:"1px solid rgba(0,0,0,0.1)", borderRadius:9, padding:"8px 12px", fontSize:12, color:"#0f0f1a", outline:"none", fontFamily:"Inter, sans-serif", cursor:"pointer", appearance:"none" };
+          return (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
               <div>
                 <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", marginBottom:4, letterSpacing:-0.8 }}>Content Tracker</h1>
-                <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>All {content.length} pieces · Click any row to edit</p>
+                <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>{filtered.length} of {content.length} pieces · Click any row to edit</p>
               </div>
               <button onClick={handleAddNew} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>+ Add Content</button>
             </div>
-            <div style={{ display:"flex", gap:12, marginBottom:28 }}>
+            {/* Search + Filter Bar */}
+            <div style={{ display:"flex", gap:10, marginBottom:20, flexWrap:"wrap" }}>
+              <input value={trackerSearch} onChange={e=>setTrackerSearch(e.target.value)} placeholder="Search by title…"
+                style={{ flex:1, minWidth:180, background:"rgba(0,0,0,0.04)", border:"1px solid rgba(0,0,0,0.1)", borderRadius:9, padding:"8px 14px", fontSize:12, color:"#0f0f1a", outline:"none", fontFamily:"Inter, sans-serif" }} />
+              <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={selStyle}>
+                <option value="">All Statuses</option>
+                {STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+              <select value={filterPillar} onChange={e=>setFilterPillar(e.target.value)} style={selStyle}>
+                <option value="">All Pillars</option>
+                {PILLARS_LIST.map(p=><option key={p} value={p}>{p}</option>)}
+              </select>
+              <select value={filterPlatform} onChange={e=>setFilterPlatform(e.target.value)} style={selStyle}>
+                <option value="">All Platforms</option>
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+                <option value="youtube">YouTube</option>
+              </select>
+              {(trackerSearch||filterStatus||filterPillar||filterPlatform) && (
+                <button onClick={()=>{setTrackerSearch("");setFilterStatus("");setFilterPillar("");setFilterPlatform("");}} style={{ fontSize:11, color:"rgba(0,0,0,0.4)", background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:9, padding:"8px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>✕ Clear</button>
+              )}
+            </div>
+            <div style={{ display:"flex", gap:12, marginBottom:24 }}>
               <MetricCard label="Total Pieces" value={content.length} delta={0} color="#30d158" icon="◈" />
               <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#bf5af2" icon="✓" />
               <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#0a84ff" icon="◷" />
             </div>
             <Card style={{ padding:"0", overflow:"hidden" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr auto", gap:0, borderBottom:"1px solid rgba(0,0,0,0.07)" }}>
-                {["Title","Platform","Campaign","Pillar","Status","Format","Write"].map(h => (
+              <div style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr 0.7fr auto", gap:0, borderBottom:"1px solid rgba(0,0,0,0.07)" }}>
+                {["Title","Platform","Campaign","Pillar","Status","Format","Date","Write"].map(h => (
                   <div key={h} style={{ fontSize:9, color:"rgba(0,0,0,0.35)", fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", padding:"12px 14px" }}>{h}</div>
                 ))}
               </div>
-              {content.map((item, i) => {
+              {filtered.length === 0 && (
+                <div style={{ padding:"32px", textAlign:"center", color:"rgba(0,0,0,0.3)", fontSize:12 }}>No items match your filters.</div>
+              )}
+              {filtered.map((item, i) => {
                 const sc = STATUS_COLOR[item.status] || "#999";
                 const ptLabel = item.platform === "instagram" ? "IG" : item.platform === "tiktok" ? "TT" : "YT";
                 const ptColor = item.platform === "instagram" ? "#e1306c" : item.platform === "tiktok" ? "#ff0050" : "#ff0000";
@@ -2420,10 +2532,13 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                 const needsScript = item.format === "Reel" && (!item.script || item.script.length < 10);
                 return (
                   <div key={item.id}
-                    style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr auto", borderBottom:`1px solid rgba(0,0,0,0.04)`, transition:"background 0.15s", background:i%2===0?"#fff":"rgba(0,0,0,0.01)" }}
+                    style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr 0.7fr auto", borderBottom:`1px solid rgba(0,0,0,0.04)`, transition:"background 0.15s", background:i%2===0?"#fff":"rgba(0,0,0,0.01)" }}
                     onMouseEnter={e => e.currentTarget.style.background="#f0f9ff"}
                     onMouseLeave={e => e.currentTarget.style.background=i%2===0?"#fff":"rgba(0,0,0,0.01)"}>
-                    <div onClick={() => setEditingItem(item)} style={{ fontSize:12, color:"#0f0f1a", fontWeight:500, padding:"11px 14px", lineHeight:1.3, cursor:"pointer" }}>{item.title}</div>
+                    <div onClick={() => setEditingItem(item)} style={{ fontSize:12, color:"#0f0f1a", fontWeight:500, padding:"11px 14px", lineHeight:1.3, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
+                      {item.client_note && <span title={item.client_note} style={{ fontSize:8, color:"#ff453a", background:"rgba(255,69,58,0.1)", padding:"1px 5px", borderRadius:4, fontWeight:700, whiteSpace:"nowrap" }}>CLIENT NOTE</span>}
+                      {item.title}
+                    </div>
                     <div style={{ padding:"11px 14px", display:"flex", alignItems:"center" }}>
                       <span style={{ fontSize:10, fontWeight:700, color:ptColor, background:`${ptColor}15`, padding:"2px 7px", borderRadius:6 }}>{ptLabel}</span>
                     </div>
@@ -2433,6 +2548,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                       <span style={{ fontSize:9, fontWeight:600, color:sc, background:`${sc}15`, padding:"3px 8px", borderRadius:20, whiteSpace:"nowrap" }}>{item.status}</span>
                     </div>
                     <div style={{ fontSize:11, color:"rgba(0,0,0,0.45)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.format}</div>
+                    <div style={{ fontSize:10, color:"rgba(0,0,0,0.4)", padding:"11px 10px", display:"flex", alignItems:"center" }}>{item.publish_date || "—"}</div>
                     <div style={{ padding:"8px 12px", display:"flex", alignItems:"center", gap:5 }}>
                       {needsCaption && <button onClick={() => handleMuseWrite(item, "caption")} style={{ fontSize:9, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}>✍️ Cap</button>}
                       {needsScript && <button onClick={() => handleMuseWrite(item, "script")} style={{ fontSize:9, fontWeight:700, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}>✍️ Script</button>}
@@ -2443,7 +2559,8 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               })}
             </Card>
           </div>
-        )}
+          );
+        })()}
 
         {/* TASK BOARD */}
         {activeNav === "taskboard" && (
