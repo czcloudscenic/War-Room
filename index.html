@@ -485,6 +485,18 @@ function EditContentModal({ item, onSave, onClose, onDelete, isNew = false }) {
   };
 
   const removeFile = (f) => set("files", (form.files || []).filter(x => x.driveId !== f.driveId));
+  const [previewFile, setPreviewFile] = React.useState(null);
+  const getPreviewUrl = (f) => {
+    if (!f.url) return null;
+    // Google Drive: extract file ID and use embed URL
+    const driveMatch = f.url.match(/[-\w]{25,}/);
+    if (f.url.includes("drive.google.com") && driveMatch) {
+      return `https://drive.google.com/file/d/${f.driveId || driveMatch[0]}/preview`;
+    }
+    return f.url; // direct URL (Supabase storage etc.)
+  };
+  const isImage = (f) => /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f.name);
+  const isVideo = (f) => /\.(mp4|mov|avi|webm)$/i.test(f.name);
 
   const labelStyle = { fontSize: 9, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(0,0,0,0.4)", marginBottom: 5, display: "block" };
   const inputStyle = { width: "100%", border: "1px solid #e5e5e5", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#0f0f1a", outline: "none", fontFamily: "Inter, sans-serif", background: "#fff", boxSizing: "border-box" };
@@ -629,8 +641,9 @@ function EditContentModal({ item, onSave, onClose, onDelete, isNew = false }) {
               <div style={{ marginBottom:12, display:"flex", flexDirection:"column", gap:6 }}>
                 {(form.files || []).map(f => (
                   <div key={f.path} style={{ display:"flex", alignItems:"center", gap:10, background:"#fff", border:"1px solid #ebebeb", borderRadius:8, padding:"8px 12px" }}>
-                    <span style={{ fontSize:16 }}>{f.name.match(/\.(mp4|mov|avi)$/i) ? "🎬" : f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? "🖼" : "📄"}</span>
-                    <a href={f.url} target="_blank" style={{ fontSize:12, color:"#0a84ff", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:"none", fontWeight:500 }}>{f.name}</a>
+                    <span style={{ fontSize:16 }}>{isVideo(f) ? "🎬" : isImage(f) ? "🖼" : "📄"}</span>
+                    <span style={{ fontSize:12, color:"#0f0f1a", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontWeight:500 }}>{f.name}</span>
+                    <button onClick={() => setPreviewFile(f)} style={{ fontSize:10, color:"#0a84ff", background:"rgba(10,132,255,0.07)", border:"1px solid rgba(10,132,255,0.2)", borderRadius:5, padding:"2px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:600, whiteSpace:"nowrap" }}>👁 Preview</button>
                     <button onClick={() => removeFile(f)} style={{ fontSize:11, color:"#ff453a", background:"none", border:"none", cursor:"pointer", padding:"2px 6px", borderRadius:5, fontFamily:"Inter, sans-serif" }}>Remove</button>
                   </div>
                 ))}
@@ -657,6 +670,27 @@ function EditContentModal({ item, onSave, onClose, onDelete, isNew = false }) {
           {!isNew && onDelete && <button onClick={() => onDelete(form.id)} style={{ padding:"14px 18px", background:"none", border:"1px solid rgba(255,69,58,0.25)", borderRadius:12, color:"rgba(255,69,58,0.7)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}>🗑 Delete</button>}
         </div>
       </div>
+
+      {/* File Preview Overlay */}
+      {previewFile && (
+        <div onClick={() => setPreviewFile(null)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:10000, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:"#fff", borderRadius:16, overflow:"hidden", maxWidth:"90vw", maxHeight:"90vh", width:"100%", display:"flex", flexDirection:"column", position:"relative" }}>
+            <div style={{ padding:"12px 18px", borderBottom:"1px solid rgba(0,0,0,0.07)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <span style={{ fontSize:13, fontWeight:600, color:"#0f0f1a" }}>{previewFile.name}</span>
+              <button onClick={() => setPreviewFile(null)} style={{ background:"rgba(0,0,0,0.06)", border:"none", borderRadius:8, width:28, height:28, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+            </div>
+            <div style={{ flex:1, overflow:"auto", display:"flex", alignItems:"center", justifyContent:"center", minHeight:300, background:"#f5f5f7" }}>
+              {isImage(previewFile) ? (
+                <img src={previewFile.url} alt={previewFile.name} style={{ maxWidth:"100%", maxHeight:"80vh", objectFit:"contain" }} />
+              ) : isVideo(previewFile) ? (
+                <video src={previewFile.url} controls style={{ maxWidth:"100%", maxHeight:"80vh" }} />
+              ) : (
+                <iframe src={getPreviewUrl(previewFile)} style={{ width:"100%", height:"75vh", border:"none" }} title={previewFile.name} allow="autoplay" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2051,6 +2085,8 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   const [filterStatus, setFilterStatus] = useState("");
   const [filterPillar, setFilterPillar] = useState("");
   const [filterPlatform, setFilterPlatform] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [notifOpen, setNotifOpen] = useState(false);
   // Use content from App (shared with ClientView) — fall back to local state only if not passed in
   const [localContent, setLocalContent] = useState(INITIAL_CONTENT);
   const content = contentProp ?? localContent;
@@ -2088,6 +2124,27 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             setContent(prev => prev.map(x =>
               x.id === payload.new.id ? { ...payload.new, platforms: payload.new.platforms || [] } : x
             ));
+            // Detect client actions and fire notification
+            const newStatus = payload.new?.status;
+            const oldStatus = payload.old?.status;
+            const clientStatuses = ["Approved", "Needs Revisions"];
+            if (clientStatuses.includes(newStatus) && newStatus !== oldStatus) {
+              const type = newStatus === "Approved" ? "approved" : "revision_requested";
+              const notif = {
+                id: Date.now(),
+                type,
+                item: payload.new,
+                ts: Date.now(),
+                read: false,
+              };
+              setNotifications(prev => [notif, ...prev].slice(0, 30));
+              // Fire n8n webhook via /api/notify
+              fetch("/api/notify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type, item: payload.new }),
+              }).catch(() => {});
+            }
           }
           if (payload.eventType === "INSERT") {
             setContent(prev => [...prev, { ...payload.new, platforms: payload.new.platforms || [] }]);
@@ -2288,7 +2345,41 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(0,0,0,0.3)", cursor:"pointer", fontSize:18, padding:4, lineHeight:1 }}>{sidebarCollapsed?"›":"‹"}</button>
             {!sidebarCollapsed && (
               <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}>
-                <button onClick={() => setPreviewMode(true)} style={{ fontSize:9, color:"#30d158", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.25)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:700, letterSpacing:0.5, whiteSpace:"nowrap" }}>👁 Client View</button>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <button onClick={() => setPreviewMode(true)} style={{ fontSize:9, color:"#30d158", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.25)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:700, letterSpacing:0.5, whiteSpace:"nowrap" }}>👁 Client View</button>
+                  <div style={{ position:"relative" }}>
+                    <button onClick={() => { setNotifOpen(o=>!o); setNotifications(prev=>prev.map(n=>({...n,read:true}))); }}
+                      style={{ position:"relative", background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontSize:12, lineHeight:1 }}>
+                      🔔
+                      {notifications.filter(n=>!n.read).length > 0 && (
+                        <span style={{ position:"absolute", top:-4, right:-4, width:14, height:14, borderRadius:"50%", background:"#ff453a", fontSize:8, fontWeight:700, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                          {notifications.filter(n=>!n.read).length}
+                        </span>
+                      )}
+                    </button>
+                    {notifOpen && (
+                      <div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", width:300, background:"#fff", border:"1px solid rgba(0,0,0,0.1)", borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.12)", zIndex:1000, overflow:"hidden" }}>
+                        <div style={{ padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,0.07)", fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.2, textTransform:"uppercase" }}>Client Activity</div>
+                        {notifications.length === 0 && (
+                          <div style={{ padding:"20px 14px", fontSize:11, color:"rgba(0,0,0,0.3)", textAlign:"center" }}>No client actions yet</div>
+                        )}
+                        {notifications.slice(0,10).map(n => (
+                          <div key={n.id} style={{ padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,0.04)", display:"flex", gap:10, alignItems:"flex-start" }}>
+                            <span style={{ fontSize:14, flexShrink:0 }}>{n.type === "approved" ? "✅" : "🔄"}</span>
+                            <div style={{ flex:1 }}>
+                              <div style={{ fontSize:11, fontWeight:600, color:"#0f0f1a", lineHeight:1.4 }}>
+                                {n.type === "approved" ? "Approved" : "Revisions requested"}
+                              </div>
+                              <div style={{ fontSize:10, color:"rgba(0,0,0,0.5)", marginTop:2 }}>{n.item?.title}</div>
+                              {n.item?.client_note && <div style={{ fontSize:9, color:"#ff453a", marginTop:3, fontStyle:"italic" }}>"{n.item.client_note}"</div>}
+                              <div style={{ fontSize:9, color:"rgba(0,0,0,0.3)", marginTop:3 }}>{new Date(n.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 {onSignOut && <button onClick={onSignOut} style={{ fontSize:9, color:"rgba(0,0,0,0.35)", background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:600, letterSpacing:0.5 }}>Sign out</button>}
               </div>
             )}
