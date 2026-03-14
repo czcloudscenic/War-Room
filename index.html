@@ -2279,6 +2279,7 @@ function CIDPage() {
   const [hookLabLoading, setHookLabLoading] = React.useState(false);
   const [cidSearch, setCidSearch] = React.useState("");
   const [cidSearchActive, setCidSearchActive] = React.useState(false);
+  const [variationView, setVariationView] = React.useState(null); // holds the selected post when variation is open
 
   const MOCK_POSTS = [
     { id:1, platform:"instagram", creator:"@drinklmnt", title:"Why I stopped drinking plain water", thumbnail:"https://picsum.photos/seed/lmnt1/400/600", views:"2.4M", engagement:"8.2%", hook:"Stop drinking plain water (here's why)", trigger:"Fear / Pattern interrupt", format:"Reel", url:"https://www.instagram.com", analysis:"Hook creates instant curiosity gap. 'Stop doing X' format works because it challenges default behavior. First 2 seconds show the product without saying it's an ad.", variation:"\"Stop drinking just water\" → VitalLyfe angle: 'You're hydrating wrong — here's what your water is missing'" },
@@ -2294,6 +2295,117 @@ function CIDPage() {
   const platformColor = { instagram:"#e1306c", tiktok:"#010101", youtube:"#ff0000" };
 
   return (
+    <>
+    {variationView && (
+      <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:10000, overflowY:"auto", display:"flex", flexDirection:"column" }}>
+        {/* Header bar */}
+        <div style={{ padding:"16px 32px", borderBottom:"1px solid rgba(0,0,0,0.07)", display:"flex", alignItems:"center", gap:16, background:"#fff", position:"sticky", top:0, zIndex:1 }}>
+          <button onClick={() => setVariationView(null)}
+            style={{ background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:20, padding:"6px 14px", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", color:"rgba(0,0,0,0.5)", display:"flex", alignItems:"center", gap:6 }}>
+            ← Back
+          </button>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:2, textTransform:"uppercase" }}>Variation Breakdown</div>
+            <div style={{ fontSize:14, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" }}>{variationView.title}</div>
+          </div>
+          <div style={{ fontSize:10, background:"rgba(48,209,88,0.1)", color:"#30d158", borderRadius:20, padding:"5px 14px", fontWeight:700, fontFamily:"Inter, sans-serif" }}>
+            🎯 VitalLyfe Ready
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ maxWidth:800, margin:"0 auto", padding:"40px 32px", width:"100%" }}>
+
+          {/* Original vs Variation */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:32 }}>
+            <div style={{ background:"rgba(0,0,0,0.02)", border:"1px solid rgba(0,0,0,0.07)", borderRadius:14, padding:"20px" }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>Original</div>
+              <div style={{ fontSize:13, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>"{variationView.hook}"</div>
+              <div style={{ marginTop:8, fontSize:11, color:"rgba(0,0,0,0.3)", fontFamily:"Inter, sans-serif" }}>{variationView.creator} · {variationView.views} views</div>
+            </div>
+            <div style={{ background:"rgba(48,209,88,0.05)", border:"2px solid rgba(48,209,88,0.25)", borderRadius:14, padding:"20px" }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"#30d158", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>VitalLyfe Version</div>
+              <div style={{ fontSize:13, color:"#1d1d1f", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontWeight:600 }}>"{variationView.variation}"</div>
+              <div style={{ marginTop:8, fontSize:11, color:"#30d158", fontFamily:"Inter, sans-serif", fontWeight:600 }}>← Use this</div>
+            </div>
+          </div>
+
+          {/* Full content breakdown */}
+          <div style={{ marginBottom:28 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:16, fontFamily:"Inter, sans-serif" }}>Full Content Breakdown</div>
+
+            {/* Hook */}
+            <div style={{ background:"#fff", border:"1px solid rgba(0,0,0,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+                <span style={{ fontSize:18 }}>🎣</span>
+                <div style={{ fontSize:12, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:0.5 }}>Hook</div>
+              </div>
+              <div style={{ background:"rgba(0,0,0,0.03)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
+                <div style={{ fontSize:13, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif", lineHeight:1.5 }}>"{variationView.variation.split('—')[0] || variationView.variation}"</div>
+              </div>
+              <div style={{ fontSize:12, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
+                Pattern: <strong style={{color:"#1d1d1f"}}>{variationView.trigger}</strong> — opens with an immediate pattern interrupt that stops the scroll and creates a curiosity gap specific to VitalLyfe's audience.
+              </div>
+            </div>
+
+            {/* Body */}
+            <div style={{ background:"#fff", border:"1px solid rgba(0,0,0,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+                <span style={{ fontSize:18 }}>📝</span>
+                <div style={{ fontSize:12, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:0.5 }}>Body Copy</div>
+              </div>
+              <div style={{ background:"rgba(0,0,0,0.03)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
+                <div style={{ fontSize:13, color:"#1d1d1f", fontFamily:"Inter, sans-serif", lineHeight:1.7 }}>
+                  Build on the hook by showing — not telling. Use authentic footage or founder moments. Keep it under 30 seconds. Lean into the {variationView.trigger.toLowerCase()} angle throughout.
+                </div>
+              </div>
+              <div style={{ fontSize:12, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
+                Format: <strong style={{color:"#1d1d1f"}}>{variationView.format}</strong> — this structure drove {variationView.engagement} engagement on the original. Replicate the pacing.
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div style={{ background:"#fff", border:"1px solid rgba(0,0,0,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+                <span style={{ fontSize:18 }}>🎯</span>
+                <div style={{ fontSize:12, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:0.5 }}>Call to Action</div>
+              </div>
+              <div style={{ background:"rgba(0,0,0,0.03)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
+                <div style={{ fontSize:13, fontWeight:600, color:"#1d1d1f", fontFamily:"Inter, sans-serif", lineHeight:1.5 }}>
+                  "Follow for more on how VitalLyfe is redefining what water can do. Link in bio."
+                </div>
+              </div>
+              <div style={{ fontSize:12, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
+                Soft CTA works best here — matches the authentic tone of the content. Drives follows over clicks.
+              </div>
+            </div>
+          </div>
+
+          {/* Why it worked bullets */}
+          <div style={{ background:"rgba(0,0,0,0.02)", border:"1px solid rgba(0,0,0,0.07)", borderRadius:14, padding:"20px", marginBottom:28 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>🧠 Why The Original Worked</div>
+            {variationView.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
+              <div key={i} style={{ display:"flex", gap:10, marginBottom:10, alignItems:"flex-start" }}>
+                <span style={{ fontSize:11, color:"#30d158", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
+                <span style={{ fontSize:13, color:"rgba(0,0,0,0.65)", lineHeight:1.6, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display:"flex", gap:12 }}>
+            <button style={{ flex:1, padding:"14px", background:"#1d1d1f", color:"#fff", border:"none", borderRadius:14, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
+              ✍️ Send to Muse
+            </button>
+            <button style={{ flex:1, padding:"14px", background:"rgba(0,0,0,0.05)", color:"#1d1d1f", border:"1px solid rgba(0,0,0,0.1)", borderRadius:14, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
+              📋 Copy Hook
+            </button>
+          </div>
+
+        </div>
+      </div>
+    )}
+
     <div style={{ display:"flex", height:"100%", overflow:"hidden" }}>
       {/* Main panel */}
       <div style={{ flex:1, overflowY:"auto", padding:"32px 32px 32px", minWidth:0 }}>
@@ -2507,15 +2619,22 @@ function CIDPage() {
             <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
               <div style={{ fontSize:10, fontWeight:700, color:"#30d158", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}>🎯 VitalLyfe Adaptation</div>
               <div style={{ fontSize:12, color:"#1d1d1f", lineHeight:1.6, fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>"{selected.variation}"</div>
-              <div style={{ marginTop:10, display:"flex", gap:6 }}>
-                <span style={{ fontSize:10, background:"rgba(48,209,88,0.15)", color:"#30d158", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>Ready to use</span>
-                <span style={{ fontSize:10, background:"rgba(0,0,0,0.05)", color:"rgba(0,0,0,0.4)", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>{selected.format}</span>
+              <div style={{ marginTop:10, display:"flex", gap:6, alignItems:"center", justifyContent:"space-between" }}>
+                <div style={{ display:"flex", gap:6 }}>
+                  <span style={{ fontSize:10, background:"rgba(48,209,88,0.15)", color:"#30d158", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>Ready to use</span>
+                  <span style={{ fontSize:10, background:"rgba(0,0,0,0.05)", color:"rgba(0,0,0,0.4)", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>{selected.format}</span>
+                </div>
+                <button onClick={() => setVariationView(selected)}
+                  style={{ fontSize:11, fontWeight:700, color:"#30d158", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif", textDecoration:"underline", padding:0 }}>
+                  View Full Breakdown →
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
     </div>
+    </>
   );
 }
 
