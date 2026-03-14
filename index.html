@@ -2274,6 +2274,9 @@ function SkillsPage({ agents }) {
 function CIDPage() {
   const [platform, setPlatform] = React.useState("all");
   const [selected, setSelected] = React.useState(null);
+  const [cidView, setCidView] = React.useState("feed");
+  const [hookLabData, setHookLabData] = React.useState({ hooks:[], bodies:[], ctas:[] });
+  const [hookLabLoading, setHookLabLoading] = React.useState(false);
 
   const MOCK_POSTS = [
     { id:1, platform:"instagram", creator:"@drinklmnt", title:"Why I stopped drinking plain water", thumbnail:"https://picsum.photos/seed/lmnt1/400/600", views:"2.4M", engagement:"8.2%", hook:"Stop drinking plain water (here's why)", trigger:"Fear / Pattern interrupt", format:"Reel", url:"https://www.instagram.com", analysis:"Hook creates instant curiosity gap. 'Stop doing X' format works because it challenges default behavior. First 2 seconds show the product without saying it's an ad.", variation:"\"Stop drinking just water\" → VitalLyfe angle: 'You're hydrating wrong — here's what your water is missing'" },
@@ -2289,82 +2292,207 @@ function CIDPage() {
   const platformColor = { instagram:"#e1306c", tiktok:"#010101", youtube:"#ff0000" };
 
   return (
-    React.createElement("div", { style:{ display:"flex", height:"100%", overflow:"hidden" } },
-      React.createElement("div", { style:{ flex:1, overflowY:"auto", padding:"32px 32px 32px", minWidth:0 } },
-        React.createElement("div", { style:{ marginBottom:28 } },
-          React.createElement("div", { style:{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:2, textTransform:"uppercase", marginBottom:8 } }, "🕵️ Intelligence"),
-          React.createElement("h1", { style:{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 } }, "Competitor Intel Dashboard"),
-          React.createElement("p", { style:{ fontSize:13, color:"rgba(0,0,0,0.4)", margin:"8px 0 0", fontFamily:"Inter, sans-serif" } }, "What's working in your space — and why. Click any post to see the breakdown.")
-        ),
-        React.createElement("div", { style:{ display:"flex", gap:8, marginBottom:24 } },
-          ["all","instagram","tiktok","youtube"].map(p =>
-            React.createElement("button", { key:p, onClick:() => setPlatform(p), style:{ padding:"7px 16px", borderRadius:20, border:"1px solid rgba(0,0,0,0.1)", background: platform===p ? "#1d1d1f" : "#fff", color: platform===p ? "#fff" : "rgba(0,0,0,0.6)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", textTransform:"capitalize", letterSpacing:0.3 } },
-              p === "all" ? "All Platforms" : `${platformIcon[p]} ${p.charAt(0).toUpperCase()+p.slice(1)}`
-            )
-          )
-        ),
-        React.createElement("div", { style:{ background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:10, padding:"10px 14px", marginBottom:24, display:"flex", alignItems:"center", gap:8 } },
-          React.createElement("span", { style:{ fontSize:14 } }, "⚡"),
-          React.createElement("span", { style:{ fontSize:11, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif" } }, "Demo mode — connect Apify API key to pull live competitor data")
-        ),
-        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:16 } },
-          filtered.map(post =>
-            React.createElement("div", { key:post.id, onClick:() => setSelected(post), style:{ borderRadius:16, overflow:"hidden", border:"1px solid rgba(0,0,0,0.07)", cursor:"pointer", background:"#fff", boxShadow: selected && selected.id===post.id ? "0 0 0 2px #1d1d1f" : "0 2px 8px rgba(0,0,0,0.06)", transition:"all 0.15s" } },
-              React.createElement("div", { style:{ position:"relative", paddingBottom:"125%", background:"#f0f0f0" } },
-                React.createElement("img", { src:post.thumbnail, alt:post.title, style:{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" } }),
-                React.createElement("div", { style:{ position:"absolute", top:8, left:8, background: platformColor[post.platform], color:"#fff", fontSize:9, fontWeight:700, padding:"3px 8px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.5 } }, post.platform),
-                React.createElement("div", { style:{ position:"absolute", bottom:8, right:8, background:"rgba(0,0,0,0.6)", color:"#fff", fontSize:10, fontWeight:600, padding:"3px 8px", borderRadius:20 } }, "👁 ", post.views)
-              ),
-              React.createElement("div", { style:{ padding:"12px 14px" } },
-                React.createElement("div", { style:{ fontSize:11, fontWeight:600, color:"rgba(0,0,0,0.4)", marginBottom:4, fontFamily:"Inter, sans-serif" } }, post.creator),
-                React.createElement("div", { style:{ fontSize:12, fontWeight:600, color:"#1d1d1f", lineHeight:1.4, fontFamily:"Inter, sans-serif", marginBottom:8 } }, post.title),
-                React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"center" } },
-                  React.createElement("span", { style:{ fontSize:10, color:"#30d158", fontWeight:700 } }, "↑ ", post.engagement),
-                  React.createElement("span", { style:{ fontSize:10, color:"rgba(0,0,0,0.35)", fontFamily:"Inter, sans-serif" } }, post.format)
-                )
-              )
-            )
-          )
-        )
-      ),
-      selected && React.createElement("div", { style:{ width:420, borderLeft:"1px solid rgba(0,0,0,0.07)", background:"#fafafa", overflowY:"auto", flexShrink:0, display:"flex", flexDirection:"column" } },
-        React.createElement("div", { style:{ padding:"16px 20px", borderBottom:"1px solid rgba(0,0,0,0.07)", display:"flex", justifyContent:"space-between", alignItems:"center", background:"#fff" } },
-          React.createElement("div", { style:{ fontSize:11, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.2, textTransform:"uppercase" } }, "Intel View"),
-          React.createElement("button", { onClick:() => setSelected(null), style:{ background:"none", border:"none", fontSize:18, cursor:"pointer", color:"rgba(0,0,0,0.3)", lineHeight:1 } }, "✕")
-        ),
-        React.createElement("div", { style:{ padding:"16px 20px" } },
-          React.createElement("div", { style:{ borderRadius:12, overflow:"hidden", background:"#1d1d1f", aspectRatio:"9/16", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16, position:"relative" } },
-            React.createElement("img", { src:selected.thumbnail, alt:"", style:{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity:0.4 } }),
-            React.createElement("a", { href:selected.url, target:"_blank", rel:"noreferrer", style:{ position:"relative", zIndex:1, background:"rgba(255,255,255,0.15)", border:"2px solid rgba(255,255,255,0.4)", borderRadius:"50%", width:56, height:56, display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none", backdropFilter:"blur(4px)" } },
-              React.createElement("span", { style:{ fontSize:20, marginLeft:4 } }, "▶")
-            ),
-            React.createElement("div", { style:{ position:"absolute", bottom:12, left:12, right:12, zIndex:1 } },
-              React.createElement("div", { style:{ fontSize:10, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif", marginBottom:4 } }, selected.creator),
-              React.createElement("div", { style:{ fontSize:12, fontWeight:600, color:"#fff", fontFamily:"Inter, sans-serif", lineHeight:1.3 } }, selected.title)
-            )
-          ),
-          React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 } },
-            [["👁 Views", selected.views], ["📈 Engagement", selected.engagement], ["🎬 Format", selected.format]].map(([label, val]) =>
-              React.createElement("div", { key:label, style:{ background:"#fff", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(0,0,0,0.07)", textAlign:"center" } },
-                React.createElement("div", { style:{ fontSize:10, color:"rgba(0,0,0,0.35)", fontFamily:"Inter, sans-serif", marginBottom:3 } }, label),
-                React.createElement("div", { style:{ fontSize:12, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" } }, val)
-              )
-            )
-          ),
-          [
-            { label:"🎣 Hook", content: selected.hook },
-            { label:"⚡ Emotional Trigger", content: selected.trigger },
-            { label:"🧠 Why It Worked", content: selected.analysis },
-            { label:"🎯 VitalLyfe Variation", content: selected.variation, highlight: true },
-          ].map(({ label, content, highlight }) =>
-            React.createElement("div", { key:label, style:{ background: highlight ? "rgba(48,209,88,0.06)" : "#fff", border: `1px solid ${highlight ? "rgba(48,209,88,0.2)" : "rgba(0,0,0,0.07)"}`, borderRadius:12, padding:"14px 16px", marginBottom:10 } },
-              React.createElement("div", { style:{ fontSize:10, fontWeight:700, color: highlight ? "#30d158" : "rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:6, fontFamily:"Inter, sans-serif" } }, label),
-              React.createElement("div", { style:{ fontSize:12, color:"#1d1d1f", lineHeight:1.6, fontFamily:"Inter, sans-serif" } }, content)
-            )
-          )
-        )
-      )
-    )
+    <div style={{ display:"flex", height:"100%", overflow:"hidden" }}>
+      {/* Main panel */}
+      <div style={{ flex:1, overflowY:"auto", padding:"32px 32px 32px", minWidth:0 }}>
+        {/* Header */}
+        <div style={{ marginBottom:28 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>🕵️ Intelligence</div>
+          <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>Competitor Intel Dashboard</h1>
+          <p style={{ fontSize:13, color:"rgba(0,0,0,0.4)", margin:"8px 0 0", fontFamily:"Inter, sans-serif" }}>What's working in your space — and why. Click any post to see the breakdown.</p>
+        </div>
+
+        {/* View switcher */}
+        <div style={{ display:"flex", gap:8, marginBottom:24 }}>
+          {[["feed","📡 Intel Feed"],["hooklab","🎣 Hook Lab"]].map(([v,label]) => (
+            <button key={v} onClick={() => setCidView(v)}
+              style={{ padding:"7px 18px", borderRadius:20, border:"1px solid rgba(0,0,0,0.1)", background: cidView===v ? "#1d1d1f" : "#fff", color: cidView===v ? "#fff" : "rgba(0,0,0,0.6)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {cidView === "feed" && <>
+          {/* Platform filter */}
+          <div style={{ display:"flex", gap:8, marginBottom:24 }}>
+            {["all","instagram","tiktok","youtube"].map(p => (
+              <button key={p} onClick={() => setPlatform(p)}
+                style={{ padding:"7px 16px", borderRadius:20, border:"1px solid rgba(0,0,0,0.1)", background: platform===p ? "#1d1d1f" : "#fff", color: platform===p ? "#fff" : "rgba(0,0,0,0.6)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", textTransform:"capitalize", letterSpacing:0.3 }}>
+                {p === "all" ? "All Platforms" : `${platformIcon[p]} ${p.charAt(0).toUpperCase()+p.slice(1)}`}
+              </button>
+            ))}
+          </div>
+
+          {/* Mock data notice */}
+          <div style={{ background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:10, padding:"10px 14px", marginBottom:24, display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:14 }}>⚡</span>
+            <span style={{ fontSize:11, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif" }}>Demo mode — connect Apify API key to pull live competitor data</span>
+          </div>
+
+          {/* Content grid */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:16 }}>
+            {filtered.map(post => (
+              <div key={post.id} onClick={() => setSelected(selected?.id === post.id ? null : post)}
+                style={{ borderRadius:16, overflow:"hidden", border:"1px solid rgba(0,0,0,0.07)", cursor:"pointer", background:"#fff", boxShadow: selected?.id===post.id ? "0 0 0 2px #1d1d1f" : "0 2px 8px rgba(0,0,0,0.06)", transition:"all 0.15s" }}>
+                <div style={{ position:"relative", paddingBottom:"125%", background:"#f0f0f0" }}>
+                  <img src={post.thumbnail} alt={post.title} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />
+                  <div style={{ position:"absolute", top:8, left:8, background: platformColor[post.platform], color:"#fff", fontSize:9, fontWeight:700, padding:"3px 8px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.5 }}>
+                    {post.platform}
+                  </div>
+                  <div style={{ position:"absolute", bottom:8, right:8, background:"rgba(0,0,0,0.6)", color:"#fff", fontSize:10, fontWeight:600, padding:"3px 8px", borderRadius:20 }}>
+                    👁 {post.views}
+                  </div>
+                </div>
+                <div style={{ padding:"12px 14px" }}>
+                  <div style={{ fontSize:11, fontWeight:600, color:"rgba(0,0,0,0.4)", marginBottom:4, fontFamily:"Inter, sans-serif" }}>{post.creator}</div>
+                  <div style={{ fontSize:12, fontWeight:600, color:"#1d1d1f", lineHeight:1.4, fontFamily:"Inter, sans-serif", marginBottom:8 }}>{post.title}</div>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ fontSize:10, color:"#30d158", fontWeight:700 }}>↑ {post.engagement}</span>
+                    <span style={{ fontSize:10, color:"rgba(0,0,0,0.35)", fontFamily:"Inter, sans-serif" }}>{post.format}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>}
+
+        {cidView === "hooklab" && <>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+            <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0, fontFamily:"Inter, sans-serif" }}>Top-performing hooks, body copy, and CTAs — analyzed and ranked by Scrappy.</p>
+            <button onClick={async () => {
+              setHookLabLoading(true);
+              try {
+                const r = await fetch("/api/agent-action", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({action:"scrappy_hook_analysis"}) });
+                const d = await r.json();
+                if (d.hooks) setHookLabData(d);
+              } catch(e) { console.error(e); }
+              setHookLabLoading(false);
+            }} style={{ background:"#1d1d1f", color:"#fff", border:"none", borderRadius:20, padding:"8px 18px", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", opacity: hookLabLoading ? 0.6 : 1 }}>
+              {hookLabLoading ? "Analyzing..." : "🔍 Run Analysis"}
+            </button>
+          </div>
+
+          {hookLabData.hooks.length === 0 && (
+            <div style={{ textAlign:"center", padding:"60px 20px", color:"rgba(0,0,0,0.3)", fontFamily:"Inter, sans-serif" }}>
+              <div style={{ fontSize:32, marginBottom:12 }}>🎣</div>
+              <div style={{ fontSize:14, fontWeight:600, marginBottom:6 }}>Hook Lab is empty</div>
+              <div style={{ fontSize:12 }}>Hit "Run Analysis" to scrape top 20 hooks and surface the best 3 for each category.</div>
+            </div>
+          )}
+
+          {["hooks","bodies","ctas"].map(type => hookLabData[type]?.length > 0 && (
+            <div key={type} style={{ marginBottom:32 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>
+                {type === "hooks" ? "🎣 Top Hooks" : type === "bodies" ? "📝 Top Body Copy" : "🎯 Top CTAs"}
+              </div>
+              {hookLabData[type].slice(0,3).map((item, i) => (
+                <div key={i} style={{ background:"#fff", border:"1px solid rgba(0,0,0,0.07)", borderRadius:14, padding:"16px 18px", marginBottom:12, boxShadow:"0 2px 8px rgba(0,0,0,0.04)" }}>
+                  <div style={{ display:"flex", alignItems:"flex-start", gap:12, marginBottom:10 }}>
+                    <div style={{ width:28, height:28, borderRadius:"50%", background: i===0 ? "#FFD700" : i===1 ? "#C0C0C0" : "#CD7F32", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:"#fff", flexShrink:0 }}>
+                      {i+1}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13, fontWeight:700, color:"#1d1d1f", lineHeight:1.4, fontFamily:"Inter, sans-serif", marginBottom:4 }}>"{item.text}"</div>
+                      <div style={{ fontSize:10, color:"rgba(0,0,0,0.35)", fontFamily:"Inter, sans-serif" }}>{item.platform} · {item.views} views · {item.engagement} eng.</div>
+                    </div>
+                  </div>
+                  <div style={{ background:"rgba(0,0,0,0.02)", borderRadius:8, padding:"10px 12px", marginBottom:10 }}>
+                    {item.why.split('. ').filter(s=>s.trim()).map((pt,j) => (
+                      <div key={j} style={{ display:"flex", gap:6, marginBottom:6, alignItems:"flex-start" }}>
+                        <span style={{ color:"#30d158", fontSize:10, fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
+                        <span style={{ fontSize:11, color:"rgba(0,0,0,0.6)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{pt.trim()}{pt.trim().endsWith('.')?'':'.'}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.15)", borderRadius:8, padding:"8px 12px" }}>
+                    <span style={{ fontSize:10, fontWeight:700, color:"#30d158", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:1 }}>🎯 VitalLyfe Version: </span>
+                    <span style={{ fontSize:11, color:"#1d1d1f", fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>{item.adaptation}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </>}
+      </div>
+
+      {/* Side panel */}
+      {selected && (
+        <div style={{ width:420, borderLeft:"1px solid rgba(0,0,0,0.07)", background:"#fafafa", overflowY:"auto", flexShrink:0, display:"flex", flexDirection:"column" }}>
+          <div style={{ padding:"16px 20px", borderBottom:"1px solid rgba(0,0,0,0.07)", display:"flex", justifyContent:"space-between", alignItems:"center", background:"#fff" }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.2, textTransform:"uppercase" }}>Intel View</div>
+            <button onClick={() => setSelected(null)} style={{ background:"none", border:"none", fontSize:18, cursor:"pointer", color:"rgba(0,0,0,0.3)", lineHeight:1 }}>✕</button>
+          </div>
+          <div style={{ padding:"16px 20px" }}>
+            <div style={{ borderRadius:12, overflow:"hidden", background:"#1d1d1f", aspectRatio:"9/16", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16, position:"relative" }}>
+              <img src={selected.thumbnail} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity:0.4 }} />
+              <a href={selected.url} target="_blank" rel="noreferrer" style={{ position:"relative", zIndex:1, background:"rgba(255,255,255,0.15)", border:"2px solid rgba(255,255,255,0.4)", borderRadius:"50%", width:56, height:56, display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none", backdropFilter:"blur(4px)" }}>
+                <span style={{ fontSize:20, marginLeft:4 }}>▶</span>
+              </a>
+              <div style={{ position:"absolute", bottom:12, left:12, right:12, zIndex:1 }}>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif", marginBottom:4 }}>{selected.creator}</div>
+                <div style={{ fontSize:12, fontWeight:600, color:"#fff", fontFamily:"Inter, sans-serif", lineHeight:1.3 }}>{selected.title}</div>
+              </div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
+              {[["👁 Views", selected.views], ["📈 Engagement", selected.engagement], ["🎬 Format", selected.format]].map(([label, val]) => (
+                <div key={label} style={{ background:"#fff", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(0,0,0,0.07)", textAlign:"center" }}>
+                  <div style={{ fontSize:10, color:"rgba(0,0,0,0.35)", fontFamily:"Inter, sans-serif", marginBottom:3 }}>{label}</div>
+                  <div style={{ fontSize:12, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" }}>{val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Hook */}
+            <div style={{ background:"#fff", border:"1px solid rgba(0,0,0,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}>🎣 Hook</div>
+              <div style={{ fontSize:13, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif", marginBottom:4, lineHeight:1.4 }}>"{selected.hook}"</div>
+              <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", fontFamily:"Inter, sans-serif" }}>⚡ Trigger: <strong style={{color:"#1d1d1f"}}>{selected.trigger}</strong></div>
+            </div>
+
+            {/* Why it worked — detailed bullets */}
+            <div style={{ background:"#fff", border:"1px solid rgba(0,0,0,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🧠 Why It Worked</div>
+              {selected.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
+                <div key={i} style={{ display:"flex", gap:8, marginBottom:8, alignItems:"flex-start" }}>
+                  <span style={{ fontSize:10, color:"#30d158", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
+                  <span style={{ fontSize:12, color:"rgba(0,0,0,0.7)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Engagement score bar */}
+            <div style={{ background:"#fff", border:"1px solid rgba(0,0,0,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>📊 Engagement Score</div>
+              {[
+                { label:"Hook Strength", score: parseInt(selected.engagement) > 10 ? 95 : parseInt(selected.engagement) > 7 ? 80 : 65 },
+                { label:"Shareability", score: parseInt(selected.engagement) > 10 ? 90 : parseInt(selected.engagement) > 7 ? 75 : 60 },
+                { label:"Save Rate Est.", score: parseInt(selected.engagement) > 10 ? 85 : parseInt(selected.engagement) > 7 ? 70 : 55 },
+              ].map(({ label, score }) => (
+                <div key={label} style={{ marginBottom:8 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                    <span style={{ fontSize:11, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif" }}>{label}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" }}>{score}/100</span>
+                  </div>
+                  <div style={{ height:4, background:"rgba(0,0,0,0.06)", borderRadius:4, overflow:"hidden" }}>
+                    <div style={{ width:`${score}%`, height:"100%", background: score > 80 ? "#30d158" : score > 65 ? "#ff9f0a" : "#ff453a", borderRadius:4, transition:"width 0.5s" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* VitalLyfe Variation */}
+            <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"#30d158", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}>🎯 VitalLyfe Adaptation</div>
+              <div style={{ fontSize:12, color:"#1d1d1f", lineHeight:1.6, fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>"{selected.variation}"</div>
+              <div style={{ marginTop:10, display:"flex", gap:6 }}>
+                <span style={{ fontSize:10, background:"rgba(48,209,88,0.15)", color:"#30d158", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>Ready to use</span>
+                <span style={{ fontSize:10, background:"rgba(0,0,0,0.05)", color:"rgba(0,0,0,0.4)", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>{selected.format}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
