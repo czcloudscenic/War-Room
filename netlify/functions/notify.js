@@ -99,6 +99,46 @@ exports.handler = async (event) => {
     results.push({ channel: "email", ok: false, error: "RESEND_API_KEY not set" });
   }
 
+  // ── SLACK ───────────────────────────────────────────────────────────────────
+  const SLACK = process.env.SLACK_WEBHOOK_URL;
+  if (SLACK) {
+    const slackBody = {
+      blocks: [
+        {
+          type: "header",
+          text: { type: "plain_text", text: `${emoji} ${isApproved ? "Content Approved" : "Revisions Requested"}`, emoji: true }
+        },
+        {
+          type: "section",
+          fields: [
+            { type: "mrkdwn", text: `*Title*\n${item.title}` },
+            { type: "mrkdwn", text: `*Status*\n${isApproved ? "✅ Approved" : "🔄 Needs Revisions"}` },
+            { type: "mrkdwn", text: `*Campaign*\n${item.campaign || "—"}` },
+            { type: "mrkdwn", text: `*Platform*\n${item.platform || "—"}` },
+          ]
+        },
+        ...(item.client_note ? [{
+          type: "section",
+          text: { type: "mrkdwn", text: `*Client Note*\n_"${item.client_note}"_` }
+        }] : []),
+        {
+          type: "context",
+          elements: [{ type: "mrkdwn", text: `VitalLyfe War Room · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}` }]
+        }
+      ]
+    };
+    try {
+      const res = await fetch(SLACK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(slackBody),
+      });
+      results.push({ channel: "slack", ok: res.ok });
+    } catch (e) {
+      results.push({ channel: "slack", ok: false, error: e.message });
+    }
+  }
+
   // ── N8N FALLBACK ────────────────────────────────────────────────────────────
   const N8N = process.env.N8N_NOTIFY_URL || process.env.N8N_WEBHOOK_URL;
   if (N8N) {
