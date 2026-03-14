@@ -9,6 +9,22 @@ const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://cloudscenic.app.
 // Production: https://cloudscenic.app.n8n.cloud/webhook/11138e92-248c-4562-be17-5e07b9da928c
 // Test:       https://cloudscenic.app.n8n.cloud/webhook-test/11138e92-248c-4562-be17-5e07b9da928c
 
+const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN;
+
+const SLACK_CHANNELS = {
+  sean_briefing:          "#warroom-sean",
+  lacey_advance:          "#warroom-lacey",
+  lacey_trigger_n8n:      "#warroom-lacey",
+  sam_health:             "#warroom-sam",
+  overseer_scan:          "#warroom-overseer",
+  muse_generate_calendar: "#warroom-muse",
+  muse_save_calendar:     "#warroom-muse",
+  muse_write_content:     "#warroom-muse",
+  artgrid_scout:          "#warroom-scrappy",
+  scrappy_research:       "#warroom-scrappy",
+  scrappy_muse_collab:    "#warroom-scrappy",
+};
+
 const SB_HEADERS = () => ({
   apikey: SERVICE_KEY,
   Authorization: `Bearer ${SERVICE_KEY}`,
@@ -22,6 +38,22 @@ async function sbGet(table, params = "") {
   const res = await fetch(`${REST}/${table}${params}`, { headers: SB_HEADERS() });
   if (!res.ok) throw new Error(`Supabase GET ${table}: ${res.status} ${await res.text()}`);
   return res.json();
+}
+
+async function postToSlack(channel, text) {
+  if (!SLACK_BOT_TOKEN) return;
+  try {
+    await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SLACK_BOT_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ channel, text }),
+    });
+  } catch (e) {
+    console.error("Slack post failed:", e.message);
+  }
 }
 
 async function sbPatch(table, match, body) {
@@ -738,6 +770,13 @@ exports.handler = async (event) => {
           headers: cors,
           body: JSON.stringify({ error: `Unknown action: ${action}` }),
         };
+    }
+
+    // Post to Slack channel for this agent
+    const slackChannel = SLACK_CHANNELS[action];
+    if (slackChannel && result) {
+      const msg = result.message || result.summary || result.briefing || result.report || result.trends || `✅ ${action} completed`;
+      await postToSlack(slackChannel, `*${action}*\n${msg}`);
     }
 
     return {
