@@ -373,7 +373,7 @@ const OPS_INIT = {
   ],
 };
 const NAV = [
-  { section:"COMMAND", items:[{ id:"dashboard", icon:"⊞", label:"Dashboard" }, { id:"agents", icon:"◎", label:"Agents" }]},
+  { section:"COMMAND", items:[{ id:"dashboard", icon:"⊞", label:"Dashboard" }, { id:"agents", icon:"◎", label:"Agents" }, { id:"cid", icon:"🕵️", label:"CID" }]},
   { section:"CONTENT", items:[{ id:"instagram", icon:"◈", label:"Instagram" }, { id:"tiktok", icon:"♪", label:"TikTok" }, { id:"youtube", icon:"▷", label:"YouTube" }, { id:"tracker", icon:"⊟", label:"Content Tracker" }, { id:"taskboard", icon:"⊕", label:"Task Board" }]},
   { section:"BUSINESS", items:[{ id:"sales", icon:"◐", label:"Ad ROI Hub" }, { id:"chat", icon:"◷", label:"Team Broadcast" }]},
   { section:"OPERATIONS", items:[{ id:"artgrid", icon:"◭", label:"ArtGrid Scout" }, { id:"references", icon:"◫", label:"References" }, { id:"skills", icon:"◆", label:"Skills" }, { id:"sops", icon:"⊟", label:"SOPs" }]},
@@ -2271,6 +2271,103 @@ function SkillsPage({ agents }) {
   );
 }
 
+function CIDPage() {
+  const [platform, setPlatform] = React.useState("all");
+  const [selected, setSelected] = React.useState(null);
+
+  const MOCK_POSTS = [
+    { id:1, platform:"instagram", creator:"@drinklmnt", title:"Why I stopped drinking plain water", thumbnail:"https://picsum.photos/seed/lmnt1/400/600", views:"2.4M", engagement:"8.2%", hook:"Stop drinking plain water (here's why)", trigger:"Fear / Pattern interrupt", format:"Reel", url:"https://www.instagram.com", analysis:"Hook creates instant curiosity gap. 'Stop doing X' format works because it challenges default behavior. First 2 seconds show the product without saying it's an ad.", variation:"\"Stop drinking just water\" → VitalLyfe angle: 'You're hydrating wrong — here's what your water is missing'" },
+    { id:2, platform:"tiktok", creator:"@hydrationcoach", title:"Hydrogen water changed my sleep", thumbnail:"https://picsum.photos/seed/hydro1/400/600", views:"4.1M", engagement:"11.4%", hook:"I tried hydrogen water for 30 days", trigger:"Transformation / Curiosity", format:"Talking head + B-roll", url:"https://www.tiktok.com", analysis:"30-day challenge format = high completion rate. Personal transformation story builds trust. Simple before/after structure with sleep metrics makes it verifiable.", variation:"'I drank VitalLyfe water for 30 days — here's what my sleep tracker showed'" },
+    { id:3, platform:"youtube", creator:"@WellnessTech", title:"Smart water bottles are getting insane", thumbnail:"https://picsum.photos/seed/smart1/400/600", views:"890K", engagement:"5.7%", hook:"Water bottles now have AI?", trigger:"Novelty / Tech excitement", format:"Review + Demo", url:"https://www.youtube.com", analysis:"Tech curiosity angle is huge in wellness right now. Product demo in real environments builds credibility. 'Getting insane' language signals the space is evolving fast.", variation:"'VitalLyfe's water tech just changed everything — here's how it works'" },
+    { id:4, platform:"instagram", creator:"@functionalwellness", title:"The water hack no one talks about", thumbnail:"https://picsum.photos/seed/well1/400/600", views:"1.8M", engagement:"9.1%", hook:"The water hack no one talks about", trigger:"Secret / Insider knowledge", format:"Reel + Text overlay", url:"https://www.instagram.com", analysis:"'No one talks about' creates exclusivity. Simple text overlay keeps production cost low but engagement high. Health hack format drives saves.", variation:"'The hydration secret VitalLyfe built their whole product around'" },
+    { id:5, platform:"tiktok", creator:"@startupfounder_", title:"Building a water company from scratch", thumbnail:"https://picsum.photos/seed/startup1/400/600", views:"3.2M", engagement:"13.2%", hook:"We almost shut down 3 times", trigger:"Vulnerability / Authenticity", format:"Founder story / Talking head", url:"https://www.tiktok.com", analysis:"Founder vulnerability content outperforms polished ads 3:1 on TikTok. Authentic struggle narrative builds parasocial connection. 'Almost failed' arc creates emotional investment.", variation:"'The real story behind building VitalLyfe — we almost quit'" },
+    { id:6, platform:"youtube", creator:"@drinkbetter", title:"We tested 12 smart water bottles", thumbnail:"https://picsum.photos/seed/test1/400/600", views:"1.2M", engagement:"6.3%", hook:"I wasted $800 so you don't have to", url:"https://www.youtube.com", trigger:"Value / Saves money", format:"Comparison review", analysis:"'I wasted X so you don't have to' is one of the highest CTR hooks on YouTube. Comparison format drives search intent traffic. Position as trusted advisor, not promoter.", variation:"'We compared every hydrogen water system — here's why VitalLyfe won'" },
+  ];
+
+  const filtered = platform === "all" ? MOCK_POSTS : MOCK_POSTS.filter(p => p.platform === platform);
+  const platformIcon = { instagram:"◈", tiktok:"♪", youtube:"▷" };
+  const platformColor = { instagram:"#e1306c", tiktok:"#010101", youtube:"#ff0000" };
+
+  return (
+    React.createElement("div", { style:{ display:"flex", height:"100%", overflow:"hidden" } },
+      React.createElement("div", { style:{ flex:1, overflowY:"auto", padding:"32px 32px 32px", minWidth:0 } },
+        React.createElement("div", { style:{ marginBottom:28 } },
+          React.createElement("div", { style:{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:2, textTransform:"uppercase", marginBottom:8 } }, "🕵️ Intelligence"),
+          React.createElement("h1", { style:{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 } }, "Competitor Intel Dashboard"),
+          React.createElement("p", { style:{ fontSize:13, color:"rgba(0,0,0,0.4)", margin:"8px 0 0", fontFamily:"Inter, sans-serif" } }, "What's working in your space — and why. Click any post to see the breakdown.")
+        ),
+        React.createElement("div", { style:{ display:"flex", gap:8, marginBottom:24 } },
+          ["all","instagram","tiktok","youtube"].map(p =>
+            React.createElement("button", { key:p, onClick:() => setPlatform(p), style:{ padding:"7px 16px", borderRadius:20, border:"1px solid rgba(0,0,0,0.1)", background: platform===p ? "#1d1d1f" : "#fff", color: platform===p ? "#fff" : "rgba(0,0,0,0.6)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", textTransform:"capitalize", letterSpacing:0.3 } },
+              p === "all" ? "All Platforms" : `${platformIcon[p]} ${p.charAt(0).toUpperCase()+p.slice(1)}`
+            )
+          )
+        ),
+        React.createElement("div", { style:{ background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:10, padding:"10px 14px", marginBottom:24, display:"flex", alignItems:"center", gap:8 } },
+          React.createElement("span", { style:{ fontSize:14 } }, "⚡"),
+          React.createElement("span", { style:{ fontSize:11, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif" } }, "Demo mode — connect Apify API key to pull live competitor data")
+        ),
+        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:16 } },
+          filtered.map(post =>
+            React.createElement("div", { key:post.id, onClick:() => setSelected(post), style:{ borderRadius:16, overflow:"hidden", border:"1px solid rgba(0,0,0,0.07)", cursor:"pointer", background:"#fff", boxShadow: selected && selected.id===post.id ? "0 0 0 2px #1d1d1f" : "0 2px 8px rgba(0,0,0,0.06)", transition:"all 0.15s" } },
+              React.createElement("div", { style:{ position:"relative", paddingBottom:"125%", background:"#f0f0f0" } },
+                React.createElement("img", { src:post.thumbnail, alt:post.title, style:{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" } }),
+                React.createElement("div", { style:{ position:"absolute", top:8, left:8, background: platformColor[post.platform], color:"#fff", fontSize:9, fontWeight:700, padding:"3px 8px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.5 } }, post.platform),
+                React.createElement("div", { style:{ position:"absolute", bottom:8, right:8, background:"rgba(0,0,0,0.6)", color:"#fff", fontSize:10, fontWeight:600, padding:"3px 8px", borderRadius:20 } }, "👁 ", post.views)
+              ),
+              React.createElement("div", { style:{ padding:"12px 14px" } },
+                React.createElement("div", { style:{ fontSize:11, fontWeight:600, color:"rgba(0,0,0,0.4)", marginBottom:4, fontFamily:"Inter, sans-serif" } }, post.creator),
+                React.createElement("div", { style:{ fontSize:12, fontWeight:600, color:"#1d1d1f", lineHeight:1.4, fontFamily:"Inter, sans-serif", marginBottom:8 } }, post.title),
+                React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"center" } },
+                  React.createElement("span", { style:{ fontSize:10, color:"#30d158", fontWeight:700 } }, "↑ ", post.engagement),
+                  React.createElement("span", { style:{ fontSize:10, color:"rgba(0,0,0,0.35)", fontFamily:"Inter, sans-serif" } }, post.format)
+                )
+              )
+            )
+          )
+        )
+      ),
+      selected && React.createElement("div", { style:{ width:420, borderLeft:"1px solid rgba(0,0,0,0.07)", background:"#fafafa", overflowY:"auto", flexShrink:0, display:"flex", flexDirection:"column" } },
+        React.createElement("div", { style:{ padding:"16px 20px", borderBottom:"1px solid rgba(0,0,0,0.07)", display:"flex", justifyContent:"space-between", alignItems:"center", background:"#fff" } },
+          React.createElement("div", { style:{ fontSize:11, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.2, textTransform:"uppercase" } }, "Intel View"),
+          React.createElement("button", { onClick:() => setSelected(null), style:{ background:"none", border:"none", fontSize:18, cursor:"pointer", color:"rgba(0,0,0,0.3)", lineHeight:1 } }, "✕")
+        ),
+        React.createElement("div", { style:{ padding:"16px 20px" } },
+          React.createElement("div", { style:{ borderRadius:12, overflow:"hidden", background:"#1d1d1f", aspectRatio:"9/16", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16, position:"relative" } },
+            React.createElement("img", { src:selected.thumbnail, alt:"", style:{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity:0.4 } }),
+            React.createElement("a", { href:selected.url, target:"_blank", rel:"noreferrer", style:{ position:"relative", zIndex:1, background:"rgba(255,255,255,0.15)", border:"2px solid rgba(255,255,255,0.4)", borderRadius:"50%", width:56, height:56, display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none", backdropFilter:"blur(4px)" } },
+              React.createElement("span", { style:{ fontSize:20, marginLeft:4 } }, "▶")
+            ),
+            React.createElement("div", { style:{ position:"absolute", bottom:12, left:12, right:12, zIndex:1 } },
+              React.createElement("div", { style:{ fontSize:10, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif", marginBottom:4 } }, selected.creator),
+              React.createElement("div", { style:{ fontSize:12, fontWeight:600, color:"#fff", fontFamily:"Inter, sans-serif", lineHeight:1.3 } }, selected.title)
+            )
+          ),
+          React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 } },
+            [["👁 Views", selected.views], ["📈 Engagement", selected.engagement], ["🎬 Format", selected.format]].map(([label, val]) =>
+              React.createElement("div", { key:label, style:{ background:"#fff", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(0,0,0,0.07)", textAlign:"center" } },
+                React.createElement("div", { style:{ fontSize:10, color:"rgba(0,0,0,0.35)", fontFamily:"Inter, sans-serif", marginBottom:3 } }, label),
+                React.createElement("div", { style:{ fontSize:12, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" } }, val)
+              )
+            )
+          ),
+          [
+            { label:"🎣 Hook", content: selected.hook },
+            { label:"⚡ Emotional Trigger", content: selected.trigger },
+            { label:"🧠 Why It Worked", content: selected.analysis },
+            { label:"🎯 VitalLyfe Variation", content: selected.variation, highlight: true },
+          ].map(({ label, content, highlight }) =>
+            React.createElement("div", { key:label, style:{ background: highlight ? "rgba(48,209,88,0.06)" : "#fff", border: `1px solid ${highlight ? "rgba(48,209,88,0.2)" : "rgba(0,0,0,0.07)"}`, borderRadius:12, padding:"14px 16px", marginBottom:10 } },
+              React.createElement("div", { style:{ fontSize:10, fontWeight:700, color: highlight ? "#30d158" : "rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:6, fontFamily:"Inter, sans-serif" } }, label),
+              React.createElement("div", { style:{ fontSize:12, color:"#1d1d1f", lineHeight:1.6, fontFamily:"Inter, sans-serif" } }, content)
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
 function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setContentProp }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [selectedAgent, setSelectedAgent] = useState(null);
@@ -2994,6 +3091,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
           </div>
         )}
 
+        {activeNav === "cid" && React.createElement(CIDPage, null)}
         {activeNav === "sales" && <AdROIHub />}
         {activeNav === "chat" && <TeamBroadcast agents={agents} />}
         {activeNav === "artgrid" && <ArtgridScoutPage content={content} />}
