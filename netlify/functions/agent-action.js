@@ -744,14 +744,14 @@ Return ONLY valid JSON (no markdown) in this exact format:
     { "rank": 3, "text": "combined hook summary", "voice_hook": "spoken hook text", "text_hook": "ON-SCREEN TEXT", "platform": "TikTok", "views": "1.8M", "engagement": "7.2%", "why": "Why it worked.", "adaptation": "VitalLyfe version" }
   ],
   "bodies": [
-    { "rank": 1, "text": "body copy pattern or example", "platform": "Instagram", "views": "3.1M", "engagement": "9.2%", "why": "Why this body copy structure works in 2-3 sentences.", "adaptation": "VitalLyfe version" },
-    { "rank": 2, "text": "body copy pattern", "platform": "TikTok", "views": "2.4M", "engagement": "8.1%", "why": "Why it worked.", "adaptation": "VitalLyfe version" },
-    { "rank": 3, "text": "body copy pattern", "platform": "YouTube", "views": "1.2M", "engagement": "6.3%", "why": "Why it worked.", "adaptation": "VitalLyfe version" }
+    { "rank": 1, "text": "body copy summary", "voice_body": "what they actually say in the body", "text_body": "KEY STAT OR TEXT SHOWN ON SCREEN", "platform": "Instagram", "views": "3.1M", "engagement": "9.2%", "why": "Why this body copy structure works in 2-3 sentences.", "adaptation": "VitalLyfe version" },
+    { "rank": 2, "text": "body copy summary", "voice_body": "spoken body copy", "text_body": "ON-SCREEN TEXT", "platform": "TikTok", "views": "2.4M", "engagement": "8.1%", "why": "Why it worked.", "adaptation": "VitalLyfe version" },
+    { "rank": 3, "text": "body copy summary", "voice_body": "spoken body copy", "text_body": "ON-SCREEN TEXT", "platform": "YouTube", "views": "1.2M", "engagement": "6.3%", "why": "Why it worked.", "adaptation": "VitalLyfe version" }
   ],
   "ctas": [
-    { "rank": 1, "text": "CTA text", "platform": "TikTok", "views": "5.1M", "engagement": "12.1%", "why": "Why this CTA converts in 2-3 sentences.", "adaptation": "VitalLyfe version" },
-    { "rank": 2, "text": "CTA text", "platform": "Instagram", "views": "2.8M", "engagement": "9.4%", "why": "Why it worked.", "adaptation": "VitalLyfe version" },
-    { "rank": 3, "text": "CTA text", "platform": "Instagram", "views": "1.9M", "engagement": "7.8%", "why": "Why it worked.", "adaptation": "VitalLyfe version" }
+    { "rank": 1, "text": "CTA summary", "voice_cta": "what they say for the CTA", "text_cta": "ON-SCREEN CTA TEXT 👇", "platform": "TikTok", "views": "5.1M", "engagement": "12.1%", "why": "Why this CTA converts in 2-3 sentences.", "adaptation": "VitalLyfe version" },
+    { "rank": 2, "text": "CTA summary", "voice_cta": "spoken CTA", "text_cta": "ON-SCREEN CTA", "platform": "Instagram", "views": "2.8M", "engagement": "9.4%", "why": "Why it worked.", "adaptation": "VitalLyfe version" },
+    { "rank": 3, "text": "CTA summary", "voice_cta": "spoken CTA", "text_cta": "ON-SCREEN CTA", "platform": "Instagram", "views": "1.9M", "engagement": "7.8%", "why": "Why it worked.", "adaptation": "VitalLyfe version" }
   ],
   "message": "🎣 Hook analysis complete — top 3 hooks, body copy, and CTAs surfaced from 20 competitor posts"
 }
