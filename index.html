@@ -2285,6 +2285,10 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   const [filterPlatform, setFilterPlatform] = useState("");
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [notifPos, setNotifPos] = useState({ x: window.innerWidth - 320, y: 60 });
+  const notifDragRef = React.useRef(null);
+  const notifDragging = React.useRef(false);
+  const notifDragOffset = React.useRef({ x: 0, y: 0 });
   // Use content from App (shared with ClientView) — fall back to local state only if not passed in
   const [localContent, setLocalContent] = useState(INITIAL_CONTENT);
   const content = contentProp ?? localContent;
@@ -2397,6 +2401,29 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
 
   useEffect(() => { for (let i=0; i<10; i++) setTimeout(pushFeed, i*150); }, []);
   useInterval(pushFeed, 2200);
+
+  // Draggable notification panel
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!notifDragging.current) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const x = Math.max(0, Math.min(window.innerWidth - 300, clientX - notifDragOffset.current.x));
+      const y = Math.max(0, Math.min(window.innerHeight - 100, clientY - notifDragOffset.current.y));
+      setNotifPos({ x, y });
+    };
+    const onUp = () => { notifDragging.current = false; };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("touchend", onUp);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onUp);
+    };
+  }, []);
   useInterval(() => setLiveCount(Math.floor(Math.random()*2)+6), 15000);
 
   const handleSave = (updated) => {
@@ -2614,7 +2641,14 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                 <button onClick={() => setPreviewMode(true)} style={{ flex:1, fontSize:10, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 0", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, textAlign:"center" }}>Client View</button>
                 <div style={{ position:"relative" }}>
-                  <button onClick={() => { setNotifOpen(o=>!o); setNotifications(prev=>prev.map(n=>({...n,read:true}))); }}
+                  <button onClick={(e) => {
+                    if (!notifOpen) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setNotifPos({ x: Math.max(0, Math.min(window.innerWidth - 310, rect.left - 270)), y: rect.bottom + 6 });
+                    }
+                    setNotifOpen(o=>!o);
+                    setNotifications(prev=>prev.map(n=>({...n,read:true})));
+                  }}
                     style={{ position:"relative", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontSize:12, lineHeight:1 }}>
                     🔔
                     {notifications.filter(n=>!n.read).length > 0 && (
@@ -2624,8 +2658,17 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     )}
                   </button>
                   {notifOpen && (
-                    <div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", width:300, background:"#fff", border:"1px solid rgba(0,0,0,0.1)", borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.12)", zIndex:1000, overflow:"hidden" }}>
-                      <div style={{ padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,0.07)", fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.2, textTransform:"uppercase" }}>Client Activity</div>
+                    <div ref={notifDragRef} style={{ position:"fixed", left:notifPos.x, top:notifPos.y, width:300, background:"#fff", border:"1px solid rgba(0,0,0,0.1)", borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.12)", zIndex:9999, overflow:"hidden" }}>
+                      <div
+                        onMouseDown={(e) => {
+                          notifDragging.current = true;
+                          notifDragOffset.current = { x: e.clientX - notifPos.x, y: e.clientY - notifPos.y };
+                          e.preventDefault();
+                        }}
+                        style={{ padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,0.07)", fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.2, textTransform:"uppercase", cursor:"grab", userSelect:"none", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                        <span>⠿ Client Activity</span>
+                        <span onClick={() => setNotifOpen(false)} style={{ cursor:"pointer", fontSize:14, color:"rgba(0,0,0,0.3)", fontWeight:400 }}>✕</span>
+                      </div>
                       {notifications.length === 0 && (
                         <div style={{ padding:"20px 14px", fontSize:11, color:"rgba(0,0,0,0.3)", textAlign:"center" }}>No client actions yet</div>
                       )}
