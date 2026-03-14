@@ -873,7 +873,7 @@ function OpsBoard() {
 }
 function ActivityFeed({ feed }) {
   return (
-    <div style={{ height:200, overflowY:"auto", display:"flex", flexDirection:"column", gap:3 }}>
+    <div style={{ height:"auto", overflowY:"auto", display:"flex", flexDirection:"column", gap:3 }}>
       {feed.map((item,i) => (
         <div key={item.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 12px", background:i===0?`${ACTION_COLORS[item.type]}0a`:"transparent", borderRadius:8, borderLeft:i===0?`2px solid ${ACTION_COLORS[item.type]}`:"2px solid transparent", animation:i===0?"slideIn 0.3s ease":"none", transition:"all 0.3s" }}>
           <span style={{ fontSize:9, color:"rgba(0,0,0,0.3)", whiteSpace:"nowrap" }}>{item.time}</span>
@@ -907,9 +907,7 @@ function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardC
               </div>
               <div style={{ minHeight:120, background:"rgba(0,0,0,0.02)", border:"1px solid rgba(0,0,0,0.05)", borderRadius:12, padding:8 }}>
                 {stageItems.map((item) => (
-                  <div key={item.id} style={{ padding:"10px 12px", marginBottom:7, borderRadius:10, borderLeft:`2px solid ${c}`, background:"#fff", boxShadow:"0 1px 6px rgba(0,0,0,0.06)", transition:"all 0.15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.boxShadow=`0 4px 14px rgba(0,0,0,0.1)`; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="0 1px 6px rgba(0,0,0,0.06)"; }}>
+                  <div key={item.id} className="hover-card" style={{ padding:"10px 12px", marginBottom:7, borderRadius:10, borderLeft:`2px solid ${c}`, background:"rgba(255,255,255,0.85)", backdropFilter:"blur(12px)", boxShadow:"0 1px 6px rgba(0,0,0,0.05)" }}>
                     <div onClick={() => onCardClick(item)} style={{ cursor:"pointer" }}>
                       <div style={{ fontSize:11, color:"#1a1a2e", fontWeight:600, lineHeight:1.35, marginBottom:5 }}>{item.title}</div>
                       <div style={{ fontSize:9, color:"rgba(0,0,0,0.35)", marginBottom:5, lineHeight:1.4 }}>{item.campaign}</div>
@@ -966,7 +964,10 @@ const INITIAL_REFS = [
 ];
 
 function ReferencesPage() {
-  const [refs, setRefs] = useState(INITIAL_REFS);
+  const [refs, setRefs] = useState(() => {
+    try { const saved = JSON.parse(localStorage.getItem("warroom_refs") || "null"); return saved && saved.length > 0 ? saved : INITIAL_REFS; } catch { return INITIAL_REFS; }
+  });
+  useEffect(() => { try { localStorage.setItem("warroom_refs", JSON.stringify(refs)); } catch {} }, [refs]);
   const [expanded, setExpanded] = useState(null);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ title:"", type:"Hook", pillar:"Education", platform:"IG", content:"", notes:"" });
@@ -1515,7 +1516,7 @@ function AgentChatPage({ agents, content }) {
           const active = sel.id === ag.id;
           const chatted = (hists[ag.id] || []).length > 0;
           return (
-            <div key={ag.id} onClick={() => setSel(ag)} style={{ background: active ? ag.color + "12" : "rgba(255,255,255,0.9)", border: "1px solid " + (active ? ag.color + "50" : "rgba(0,0,0,0.08)"), borderRadius:14, padding:"11px 13px", cursor:"pointer", transition:"all 0.2s" }}>
+            <div key={ag.id} onClick={() => setSel(ag)} className="hover-card" style={{ background: active ? ag.color + "18" : "rgba(255,255,255,0.62)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", border:"1px solid " + (active ? ag.color + "40" : "rgba(255,255,255,0.65)"), borderRadius:14, padding:"11px 13px", cursor:"pointer" }}>
               <div style={{ display:"flex", alignItems:"center", gap:9 }}>
                 <AgentAvatar agent={ag} size={34} />
                 <div style={{ flex:1, minWidth:0 }}>
@@ -1761,7 +1762,7 @@ function QuickActionsDashboard() {
   return (
     <div style={{ marginBottom:28 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-        <h2 style={{ fontSize:17, fontWeight:600, color:"#1d1d1f", margin:0, letterSpacing:-0.4 }}>Quick Actions</h2>
+        <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>Quick Actions</h2>
         <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)" }}>Agent-powered operations</span>
       </div>
       <div className="hover-card" style={{ background:"rgba(255,255,255,0.92)", border:"1px solid rgba(0,0,0,0.08)", borderRadius:16, overflow:"hidden", boxShadow:"0 2px 12px rgba(0,0,0,0.05)" }}>
@@ -2113,6 +2114,155 @@ function TeamBroadcast({ agents }) {
           {sending?"⏳":"↑"}
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── SKILLS PAGE ─────────────────────────────────────────────────────────────
+function SkillsPage({ agents }) {
+  const AGENT_COLORS = { Sean:"#30d158", Lacey:"#ff9f0a", Ali:"#0a84ff", Sam:"#ffd60a", Artgrid:"#bf5af2", Muse:"#ff375f", Overseer:"#64d2ff", Scrappy:"#5e5ce6" };
+  const [briefs, setBriefs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("skill_briefs") || "[]"); } catch { return []; }
+  });
+  const [form, setForm] = useState({ title:"", desc:"", content:"", target:"All Agents" });
+  const [expanded, setExpanded] = useState(null);
+  const [deploying, setDeploying] = useState(false);
+  const [deployedId, setDeployedId] = useState(null);
+  const setF = (k,v) => setForm(f=>({...f,[k]:v}));
+  const inp = { width:"100%", border:"1px solid rgba(0,0,0,0.1)", borderRadius:10, padding:"10px 14px", fontSize:13, color:"#1d1d1f", outline:"none", fontFamily:"Inter, sans-serif", background:"rgba(255,255,255,0.8)", boxSizing:"border-box" };
+  const targetColor = form.target === "All Agents" ? "#30d158" : (AGENT_COLORS[form.target] || "#30d158");
+  const TARGETS = ["All Agents", ...agents.map(a => a.name)];
+
+  const deploy = () => {
+    if (!form.title.trim() || !form.content.trim() || deploying) return;
+    setDeploying(true);
+    setTimeout(() => {
+      const brief = { id:`brief-${Date.now()}`, ...form, ts:Date.now() };
+      const updated = [brief, ...briefs];
+      setBriefs(updated);
+      try { localStorage.setItem("skill_briefs", JSON.stringify(updated.slice(0,50))); } catch {}
+      setDeployedId(brief.id);
+      setForm({ title:"", desc:"", content:"", target:"All Agents" });
+      setDeploying(false);
+      setTimeout(() => setDeployedId(null), 4000);
+    }, 1000);
+  };
+
+  const deleteBrief = (id) => {
+    const updated = briefs.filter(b => b.id !== id);
+    setBriefs(updated);
+    try { localStorage.setItem("skill_briefs", JSON.stringify(updated)); } catch {}
+  };
+
+  return (
+    <div style={{ animation:"fadeIn 0.4s ease" }}>
+      {/* Header */}
+      <div style={{ marginBottom:32 }}>
+        <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1 }}>Agent Skills</h1>
+        <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>Write a skill brief and deploy it to a specific agent or broadcast to all 8. Agents receive it as a capability update.</p>
+      </div>
+
+      {/* ── BRIEF BUILDER ── */}
+      <Card style={{ padding:"28px 32px", marginBottom:32 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:22, flexWrap:"wrap", gap:14 }}>
+          <div>
+            <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>Brief Builder</h2>
+            <div style={{ fontSize:11, color:"rgba(0,0,0,0.35)", marginTop:4 }}>Define a skill and deploy it as a capability update</div>
+          </div>
+          {/* Target selector */}
+          <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+            <span style={{ fontSize:10, color:"rgba(0,0,0,0.4)", fontWeight:600, letterSpacing:0.5, whiteSpace:"nowrap" }}>Deploy to:</span>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              {TARGETS.map(t => {
+                const active = form.target === t;
+                const tc = t === "All Agents" ? "#30d158" : (AGENT_COLORS[t] || "#30d158");
+                return (
+                  <button key={t} onClick={() => setF("target", t)} className="glass-btn"
+                    style={{ fontSize:10, fontWeight:600, color: active ? "#fff" : tc, background: active ? tc : `${tc}12`, border:`1px solid ${tc}30`, borderRadius:20, padding:"5px 13px", cursor:"pointer", fontFamily:"Inter,sans-serif", transition:"all 0.15s" }}>
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 }}>
+          <div>
+            <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(0,0,0,0.35)", marginBottom:6, display:"block" }}>Skill Name</label>
+            <input style={inp} value={form.title} onChange={e=>setF("title",e.target.value)} placeholder="e.g. Tierra Bomba Context, Hook Mastery v2" />
+          </div>
+          <div>
+            <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(0,0,0,0.35)", marginBottom:6, display:"block" }}>Short Description</label>
+            <input style={inp} value={form.desc} onChange={e=>setF("desc",e.target.value)} placeholder="What does this skill enable the agent to do?" />
+          </div>
+        </div>
+
+        <div style={{ marginBottom:22 }}>
+          <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(0,0,0,0.35)", marginBottom:6, display:"block" }}>Skill Content / Instructions</label>
+          <textarea style={{ ...inp, minHeight:160, resize:"vertical", lineHeight:1.75 }}
+            value={form.content} onChange={e=>setF("content",e.target.value)}
+            placeholder={"Write the full skill brief here — context, rules, examples, and constraints.\n\nAgents will use this as a hardware update when you deploy.\n\nExample:\n• Tierra Bomba is an island off Cartagena, Colombia\n• Community partner: Amigos del Mar\n• Tone for this pillar: documentary, grounded, human\n• Always open with geography before introducing the mission"} />
+        </div>
+
+        <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+          <button onClick={deploy} disabled={deploying || !form.title.trim() || !form.content.trim()} className="glass-btn"
+            style={{ background: (form.title.trim() && form.content.trim()) ? targetColor : "rgba(0,0,0,0.08)", border:"none", borderRadius:12, color: (form.title.trim() && form.content.trim()) ? "#fff" : "rgba(0,0,0,0.25)", padding:"12px 28px", fontSize:13, fontWeight:700, cursor:(form.title.trim()&&form.content.trim()&&!deploying)?"pointer":"default", fontFamily:"Inter,sans-serif", display:"flex", alignItems:"center", gap:8 }}>
+            {deploying
+              ? <><div style={{ width:7,height:7,borderRadius:"50%",background:"#fff",animation:"livePulse 1s infinite" }} />Deploying…</>
+              : `⚡ Deploy to ${form.target}`}
+          </button>
+          {deployedId && (
+            <span style={{ fontSize:12, color:"#30d158", fontWeight:600, animation:"fadeIn 0.3s ease" }}>
+              ✓ Brief deployed to {briefs[0]?.target}
+            </span>
+          )}
+        </div>
+      </Card>
+
+      {/* ── DEPLOYED BRIEFS LOG ── */}
+      {briefs.length > 0 ? (
+        <div>
+          <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:"0 0 18px", letterSpacing:-0.5 }}>Deployed Briefs</h2>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {briefs.map(brief => {
+              const tc = brief.target === "All Agents" ? "#30d158" : (AGENT_COLORS[brief.target] || "#30d158");
+              const isOpen = expanded === brief.id;
+              const isNew = brief.id === deployedId;
+              return (
+                <Card key={brief.id} style={{ overflow:"hidden", border: isNew ? `1px solid ${tc}40` : undefined }}>
+                  <div onClick={() => setExpanded(isOpen?null:brief.id)} style={{ display:"flex", alignItems:"center", gap:14, padding:"16px 20px", cursor:"pointer" }}>
+                    <div style={{ width:36, height:36, borderRadius:10, background:`${tc}15`, border:`1px solid ${tc}25`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>⚡</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:14, fontWeight:600, color:"#1d1d1f", marginBottom:4, letterSpacing:-0.2 }}>{brief.title}</div>
+                      <div style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
+                        <span style={{ fontSize:9, color:tc, background:`${tc}12`, padding:"2px 8px", borderRadius:20, fontWeight:600 }}>{brief.target}</span>
+                        {brief.desc && <span style={{ fontSize:10, color:"rgba(0,0,0,0.4)" }}>{brief.desc}</span>}
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+                      <span style={{ fontSize:9, color:"rgba(0,0,0,0.3)" }}>{new Date(brief.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
+                      <button onClick={e=>{e.stopPropagation();deleteBrief(brief.id);}} style={{ background:"none", border:"none", fontSize:11, color:"rgba(0,0,0,0.3)", cursor:"pointer", padding:"4px 8px", borderRadius:6 }}>Delete</button>
+                      <span style={{ fontSize:13, color:"rgba(0,0,0,0.3)", transform:isOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s", display:"inline-block" }}>▾</span>
+                    </div>
+                  </div>
+                  {isOpen && (
+                    <div style={{ padding:"0 20px 20px", borderTop:"1px solid rgba(0,0,0,0.06)" }}>
+                      <div style={{ marginTop:14, background:"rgba(0,0,0,0.02)", borderRadius:10, padding:"14px 16px", fontSize:12, color:"rgba(0,0,0,0.65)", lineHeight:1.8, whiteSpace:"pre-wrap", border:"1px solid rgba(0,0,0,0.05)", fontFamily:"Inter, sans-serif" }}>{brief.content}</div>
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div style={{ textAlign:"center", padding:"60px 0", opacity:0.35 }}>
+          <div style={{ fontSize:48, marginBottom:14 }}>⚡</div>
+          <div style={{ fontSize:15, fontWeight:600, color:"#1d1d1f", marginBottom:6 }}>No briefs deployed yet</div>
+          <div style={{ fontSize:12, color:"rgba(0,0,0,0.5)" }}>Build your first skill brief above and deploy it to an agent.</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2470,7 +2620,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     )}
                   </button>
                   {notifOpen && (
-                    <div style={{ position:"absolute", left:0, top:"calc(100% + 6px)", width:300, background:"#fff", border:"1px solid rgba(0,0,0,0.1)", borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.12)", zIndex:1000, overflow:"hidden" }}>
+                    <div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", width:300, background:"#fff", border:"1px solid rgba(0,0,0,0.1)", borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.12)", zIndex:1000, overflow:"hidden" }}>
                       <div style={{ padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,0.07)", fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.2, textTransform:"uppercase" }}>Client Activity</div>
                       {notifications.length === 0 && (
                         <div style={{ padding:"20px 14px", fontSize:11, color:"rgba(0,0,0,0.3)", textAlign:"center" }}>No client actions yet</div>
@@ -2736,10 +2886,10 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                 <button onClick={()=>{setTrackerSearch("");setFilterStatus("");setFilterPillar("");setFilterPlatform("");}} style={{ fontSize:11, color:"rgba(0,0,0,0.4)", background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:9, padding:"8px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>✕ Clear</button>
               )}
             </div>
-            <div style={{ display:"flex", gap:12, marginBottom:24 }}>
-              <MetricCard label="Total Pieces" value={content.length} delta={0} color="#30d158" icon="◈" />
-              <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#bf5af2" icon="✓" />
-              <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#0a84ff" icon="◷" />
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:24 }}>
+              <MetricCard label="Total Pieces" value={content.length} delta={0} color="#30d158" />
+              <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#bf5af2" />
+              <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#0a84ff" />
             </div>
             <Card style={{ padding:"0", overflow:"hidden" }}>
               <div style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr 0.7fr auto", gap:0, borderBottom:"1px solid rgba(0,0,0,0.07)" }}>
@@ -2759,7 +2909,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                 return (
                   <div key={item.id}
                     style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr 0.7fr auto", borderBottom:`1px solid rgba(0,0,0,0.04)`, transition:"background 0.15s", background:i%2===0?"#fff":"rgba(0,0,0,0.01)" }}
-                    onMouseEnter={e => e.currentTarget.style.background="#f0f9ff"}
+                    onMouseEnter={e => e.currentTarget.style.background="#f5f0ff"}
                     onMouseLeave={e => e.currentTarget.style.background=i%2===0?"#fff":"rgba(0,0,0,0.01)"}>
                     <div onClick={() => setEditingItem(item)} style={{ fontSize:12, color:"#0f0f1a", fontWeight:500, padding:"11px 14px", lineHeight:1.3, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
                       {item.client_note && <span title={item.client_note} style={{ fontSize:8, color:"#ff453a", background:"rgba(255,69,58,0.1)", padding:"1px 5px", borderRadius:4, fontWeight:700, whiteSpace:"nowrap" }}>CLIENT NOTE</span>}
@@ -2791,7 +2941,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {/* TASK BOARD */}
         {activeNav === "taskboard" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
-            <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", marginBottom:6, letterSpacing:-0.8 }}>Task Board</h1>
+            <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:6, letterSpacing:-1 }}>Task Board</h1>
             <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", marginBottom:24 }}>Tasks auto-advance every ~20s · Add tasks to the backlog below</p>
             <OpsBoard />
           </div>
@@ -2803,17 +2953,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {activeNav === "references" && <ReferencesPage />}
 
         {/* SKILLS */}
-        {activeNav === "skills" && (
-          <div style={{ animation:"fadeIn 0.4s ease" }}>
-            <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", marginBottom:6, letterSpacing:-0.8 }}>Agent Skills</h1>
-            <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", marginBottom:28 }}>Reserved for agent capability library · Artgrid, Muse, and Overseer skill sets</p>
-            <Card style={{ padding:"40px", textAlign:"center" }}>
-              <div style={{ fontSize:44, marginBottom:16, opacity:0.1 }}>◆</div>
-              <h3 style={{ fontSize:15, fontWeight:600, color:"rgba(0,0,0,0.3)", margin:"0 0 8px" }}>Skills Library</h3>
-              <p style={{ fontSize:12, color:"rgba(0,0,0,0.25)", maxWidth:320, margin:"0 auto" }}>Agent skill definitions, capability boundaries, and tool access will be mapped here as the system matures.</p>
-            </Card>
-          </div>
-        )}
+        {activeNav === "skills" && <SkillsPage agents={agents} />}
 
         {/* SOPs */}
         {activeNav === "sops" && (
@@ -2821,7 +2961,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28 }}>
               <div>
                 <div style={{ fontSize:9, color:"rgba(0,0,0,0.3)", letterSpacing:2, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Standard Operating Procedure</div>
-                <h1 style={{ fontSize:28, fontWeight:700, color:"#0f0f1a", margin:0, letterSpacing:-0.8 }}>{VITAL_LYFE_SOP.title}</h1>
+                <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>{VITAL_LYFE_SOP.title}</h1>
                 <div style={{ fontSize:13, color:"rgba(0,0,0,0.44)", marginTop:5 }}>{VITAL_LYFE_SOP.subtitle} · {VITAL_LYFE_SOP.version}</div>
               </div>
               <Card style={{ padding:"12px 16px", textAlign:"center" }}>
