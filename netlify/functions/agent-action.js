@@ -739,9 +739,9 @@ Analyze the top 20 performing content pieces in the wellness/hydration space and
 Return ONLY valid JSON (no markdown) in this exact format:
 {
   "hooks": [
-    { "rank": 1, "text": "hook text here", "platform": "TikTok", "views": "4.2M", "engagement": "11.4%", "why": "Sentence one about psychology. Sentence two about format. Sentence three about why it stops the scroll.", "adaptation": "VitalLyfe version of this hook" },
-    { "rank": 2, "text": "hook text here", "platform": "Instagram", "views": "2.1M", "engagement": "8.7%", "why": "Why it worked explanation in 2-3 sentences.", "adaptation": "VitalLyfe version" },
-    { "rank": 3, "text": "hook text here", "platform": "TikTok", "views": "1.8M", "engagement": "7.2%", "why": "Why it worked in 2-3 sentences.", "adaptation": "VitalLyfe version" }
+    { "rank": 1, "text": "combined hook summary", "voice_hook": "exact words spoken in first 3 seconds", "text_hook": "ON-SCREEN TEXT IN CAPS", "platform": "TikTok", "views": "4.2M", "engagement": "11.4%", "why": "Sentence one about psychology. Sentence two about format. Sentence three about why it stops the scroll.", "adaptation": "VitalLyfe version of this hook" },
+    { "rank": 2, "text": "combined hook summary", "voice_hook": "spoken hook text", "text_hook": "ON-SCREEN TEXT", "platform": "Instagram", "views": "2.1M", "engagement": "8.7%", "why": "Why it worked.", "adaptation": "VitalLyfe version" },
+    { "rank": 3, "text": "combined hook summary", "voice_hook": "spoken hook text", "text_hook": "ON-SCREEN TEXT", "platform": "TikTok", "views": "1.8M", "engagement": "7.2%", "why": "Why it worked.", "adaptation": "VitalLyfe version" }
   ],
   "bodies": [
     { "rank": 1, "text": "body copy pattern or example", "platform": "Instagram", "views": "3.1M", "engagement": "9.2%", "why": "Why this body copy structure works in 2-3 sentences.", "adaptation": "VitalLyfe version" },

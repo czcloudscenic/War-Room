@@ -2282,12 +2282,12 @@ function CIDPage() {
   const [variationView, setVariationView] = React.useState(null); // holds the selected post when variation is open
 
   const MOCK_POSTS = [
-    { id:1, platform:"instagram", creator:"@drinklmnt", title:"Why I stopped drinking plain water", thumbnail:"https://picsum.photos/seed/lmnt1/400/600", views:"2.4M", engagement:"8.2%", hook:"Stop drinking plain water (here's why)", trigger:"Fear / Pattern interrupt", format:"Reel", url:"https://www.instagram.com", analysis:"Hook creates instant curiosity gap. 'Stop doing X' format works because it challenges default behavior. First 2 seconds show the product without saying it's an ad.", variation:"\"Stop drinking just water\" → VitalLyfe angle: 'You're hydrating wrong — here's what your water is missing'" },
-    { id:2, platform:"tiktok", creator:"@hydrationcoach", title:"Hydrogen water changed my sleep", thumbnail:"https://picsum.photos/seed/hydro1/400/600", views:"4.1M", engagement:"11.4%", hook:"I tried hydrogen water for 30 days", trigger:"Transformation / Curiosity", format:"Talking head + B-roll", url:"https://www.tiktok.com", analysis:"30-day challenge format = high completion rate. Personal transformation story builds trust. Simple before/after structure with sleep metrics makes it verifiable.", variation:"'I drank VitalLyfe water for 30 days — here's what my sleep tracker showed'" },
-    { id:3, platform:"youtube", creator:"@WellnessTech", title:"Smart water bottles are getting insane", thumbnail:"https://picsum.photos/seed/smart1/400/600", views:"890K", engagement:"5.7%", hook:"Water bottles now have AI?", trigger:"Novelty / Tech excitement", format:"Review + Demo", url:"https://www.youtube.com", analysis:"Tech curiosity angle is huge in wellness right now. Product demo in real environments builds credibility. 'Getting insane' language signals the space is evolving fast.", variation:"'VitalLyfe's water tech just changed everything — here's how it works'" },
-    { id:4, platform:"instagram", creator:"@functionalwellness", title:"The water hack no one talks about", thumbnail:"https://picsum.photos/seed/well1/400/600", views:"1.8M", engagement:"9.1%", hook:"The water hack no one talks about", trigger:"Secret / Insider knowledge", format:"Reel + Text overlay", url:"https://www.instagram.com", analysis:"'No one talks about' creates exclusivity. Simple text overlay keeps production cost low but engagement high. Health hack format drives saves.", variation:"'The hydration secret VitalLyfe built their whole product around'" },
-    { id:5, platform:"tiktok", creator:"@startupfounder_", title:"Building a water company from scratch", thumbnail:"https://picsum.photos/seed/startup1/400/600", views:"3.2M", engagement:"13.2%", hook:"We almost shut down 3 times", trigger:"Vulnerability / Authenticity", format:"Founder story / Talking head", url:"https://www.tiktok.com", analysis:"Founder vulnerability content outperforms polished ads 3:1 on TikTok. Authentic struggle narrative builds parasocial connection. 'Almost failed' arc creates emotional investment.", variation:"'The real story behind building VitalLyfe — we almost quit'" },
-    { id:6, platform:"youtube", creator:"@drinkbetter", title:"We tested 12 smart water bottles", thumbnail:"https://picsum.photos/seed/test1/400/600", views:"1.2M", engagement:"6.3%", hook:"I wasted $800 so you don't have to", url:"https://www.youtube.com", trigger:"Value / Saves money", format:"Comparison review", analysis:"'I wasted X so you don't have to' is one of the highest CTR hooks on YouTube. Comparison format drives search intent traffic. Position as trusted advisor, not promoter.", variation:"'We compared every hydrogen water system — here's why VitalLyfe won'" },
+    { id:1, platform:"instagram", creator:"@drinklmnt", title:"Why I stopped drinking plain water", thumbnail:"https://picsum.photos/seed/lmnt1/400/600", views:"2.4M", engagement:"8.2%", hook:"Stop drinking plain water (here's why)", voiceHook:"\"Stop drinking plain water. Here's why this changes everything.\"", textHook:"STOP DRINKING PLAIN WATER", trigger:"Fear / Pattern interrupt", format:"Reel", url:"https://www.instagram.com", analysis:"Hook creates instant curiosity gap. 'Stop doing X' format works because it challenges default behavior. First 2 seconds show the product without saying it's an ad.", variation:"\"Stop drinking just water\" → VitalLyfe angle: 'You're hydrating wrong — here's what your water is missing'" },
+    { id:2, platform:"tiktok", creator:"@hydrationcoach", title:"Hydrogen water changed my sleep", thumbnail:"https://picsum.photos/seed/hydro1/400/600", views:"4.1M", engagement:"11.4%", hook:"I tried hydrogen water for 30 days", voiceHook:"\"I tried hydrogen water every single day for 30 days. Here's what happened to my sleep.\"", textHook:"30 DAYS OF HYDROGEN WATER 💧", trigger:"Transformation / Curiosity", format:"Talking head + B-roll", url:"https://www.tiktok.com", analysis:"30-day challenge format = high completion rate. Personal transformation story builds trust. Simple before/after structure with sleep metrics makes it verifiable.", variation:"'I drank VitalLyfe water for 30 days — here's what my sleep tracker showed'" },
+    { id:3, platform:"youtube", creator:"@WellnessTech", title:"Smart water bottles are getting insane", thumbnail:"https://picsum.photos/seed/smart1/400/600", views:"890K", engagement:"5.7%", hook:"Water bottles now have AI?", voiceHook:"\"Wait — water bottles now have AI built in? Let me show you what's happening.\"", textHook:"AI WATER BOTTLES ARE HERE 🤖", trigger:"Novelty / Tech excitement", format:"Review + Demo", url:"https://www.youtube.com", analysis:"Tech curiosity angle is huge in wellness right now. Product demo in real environments builds credibility. 'Getting insane' language signals the space is evolving fast.", variation:"'VitalLyfe's water tech just changed everything — here's how it works'" },
+    { id:4, platform:"instagram", creator:"@functionalwellness", title:"The water hack no one talks about", thumbnail:"https://picsum.photos/seed/well1/400/600", views:"1.8M", engagement:"9.1%", hook:"The water hack no one talks about", voiceHook:"\"There's a water hack that literally no one talks about and it's been hiding in plain sight.\"", textHook:"THE WATER HACK NO ONE TELLS YOU 👀", trigger:"Secret / Insider knowledge", format:"Reel + Text overlay", url:"https://www.instagram.com", analysis:"'No one talks about' creates exclusivity. Simple text overlay keeps production cost low but engagement high. Health hack format drives saves.", variation:"'The hydration secret VitalLyfe built their whole product around'" },
+    { id:5, platform:"tiktok", creator:"@startupfounder_", title:"Building a water company from scratch", thumbnail:"https://picsum.photos/seed/startup1/400/600", views:"3.2M", engagement:"13.2%", hook:"We almost shut down 3 times", voiceHook:"\"We almost shut this company down. Three times. Here's the honest truth.\"", textHook:"WE ALMOST QUIT 3 TIMES", trigger:"Vulnerability / Authenticity", format:"Founder story / Talking head", url:"https://www.tiktok.com", analysis:"Founder vulnerability content outperforms polished ads 3:1 on TikTok. Authentic struggle narrative builds parasocial connection. 'Almost failed' arc creates emotional investment.", variation:"'The real story behind building VitalLyfe — we almost quit'" },
+    { id:6, platform:"youtube", creator:"@drinkbetter", title:"We tested 12 smart water bottles", thumbnail:"https://picsum.photos/seed/test1/400/600", views:"1.2M", engagement:"6.3%", hook:"I wasted $800 so you don't have to", voiceHook:"\"I spent $800 testing every smart water bottle on the market so you don't have to make the same mistake.\"", textHook:"$800 WASTED SO YOU DON'T HAVE TO 💸", trigger:"Value / Saves money", format:"Comparison review", url:"https://www.youtube.com", analysis:"'I wasted X so you don't have to' is one of the highest CTR hooks on YouTube. Comparison format drives search intent traffic. Position as trusted advisor, not promoter.", variation:"'We compared every hydrogen water system — here's why VitalLyfe won'" },
   ];
 
   const filtered = platform === "all" ? MOCK_POSTS : MOCK_POSTS.filter(p => p.platform === platform);
@@ -2340,8 +2340,15 @@ function CIDPage() {
                 <span style={{ fontSize:18 }}>🎣</span>
                 <div style={{ fontSize:12, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:0.5 }}>Hook</div>
               </div>
-              <div style={{ background:"rgba(0,0,0,0.03)", borderRadius:10, padding:"14px 16px", marginBottom:10 }}>
-                <div style={{ fontSize:13, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif", lineHeight:1.5 }}>"{variationView.variation.split('—')[0] || variationView.variation}"</div>
+              <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:10 }}>
+                <div>
+                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>🎤 Voice</div>
+                  <div style={{ background:"rgba(0,0,0,0.03)", borderRadius:8, padding:"10px 14px", fontSize:13, fontWeight:600, color:"#1d1d1f", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>"{variationView.voiceHook || variationView.variation}"</div>
+                </div>
+                <div>
+                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>📺 Text on Screen</div>
+                  <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 14px", fontSize:14, fontWeight:700, color:"#fff", fontFamily:"'Courier New', monospace", letterSpacing:0.5 }}>{variationView.textHook || variationView.hook?.toUpperCase()}</div>
+                </div>
               </div>
               <div style={{ fontSize:12, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
                 Pattern: <strong style={{color:"#1d1d1f"}}>{variationView.trigger}</strong> — opens with an immediate pattern interrupt that stops the scroll and creates a curiosity gap specific to VitalLyfe's audience.
@@ -2527,7 +2534,13 @@ function CIDPage() {
                       {i+1}
                     </div>
                     <div style={{ flex:1 }}>
-                      <div style={{ fontSize:13, fontWeight:700, color:"#1d1d1f", lineHeight:1.4, fontFamily:"Inter, sans-serif", marginBottom:4 }}>"{item.text}"</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:"#1d1d1f", lineHeight:1.4, fontFamily:"Inter, sans-serif", marginBottom:8 }}>"{item.text}"</div>
+                      {(item.voice_hook || item.text_hook) && (
+                        <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:4 }}>
+                          {item.voice_hook && <div style={{ background:"rgba(0,0,0,0.03)", borderRadius:6, padding:"6px 10px", fontSize:11, color:"rgba(0,0,0,0.6)", fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>🎤 {item.voice_hook}</div>}
+                          {item.text_hook && <div style={{ background:"#1d1d1f", borderRadius:6, padding:"6px 10px", fontSize:11, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}>📺 {item.text_hook}</div>}
+                        </div>
+                      )}
                       <div style={{ fontSize:10, color:"rgba(0,0,0,0.35)", fontFamily:"Inter, sans-serif" }}>{item.platform} · {item.views} views · {item.engagement} eng.</div>
                     </div>
                   </div>
@@ -2579,8 +2592,15 @@ function CIDPage() {
 
             {/* Hook */}
             <div style={{ background:"#fff", border:"1px solid rgba(0,0,0,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}>🎣 Hook</div>
-              <div style={{ fontSize:13, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif", marginBottom:4, lineHeight:1.4 }}>"{selected.hook}"</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🎣 Hook Detection</div>
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif", display:"flex", alignItems:"center", gap:4 }}>🎤 Voice Hook</div>
+                <div style={{ background:"rgba(0,0,0,0.03)", borderRadius:8, padding:"10px 12px", fontSize:12, color:"#1d1d1f", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>{selected.voiceHook || `"${selected.hook}"`}</div>
+              </div>
+              <div style={{ marginBottom:8 }}>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif", display:"flex", alignItems:"center", gap:4 }}>📺 Text on Video</div>
+                <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700, letterSpacing:0.5 }}>{selected.textHook || selected.hook.toUpperCase()}</div>
+              </div>
               <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", fontFamily:"Inter, sans-serif" }}>⚡ Trigger: <strong style={{color:"#1d1d1f"}}>{selected.trigger}</strong></div>
             </div>
 
