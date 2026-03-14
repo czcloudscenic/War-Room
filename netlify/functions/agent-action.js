@@ -9,20 +9,20 @@ const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://cloudscenic.app.
 // Production: https://cloudscenic.app.n8n.cloud/webhook/11138e92-248c-4562-be17-5e07b9da928c
 // Test:       https://cloudscenic.app.n8n.cloud/webhook-test/11138e92-248c-4562-be17-5e07b9da928c
 
-const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN;
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
-const SLACK_CHANNELS = {
-  sean_briefing:          "#warroom-sean",
-  lacey_advance:          "#warroom-lacey",
-  lacey_trigger_n8n:      "#warroom-lacey",
-  sam_health:             "#warroom-sam",
-  overseer_scan:          "#warroom-overseer",
-  muse_generate_calendar: "#warroom-muse",
-  muse_save_calendar:     "#warroom-muse",
-  muse_write_content:     "#warroom-muse",
-  artgrid_scout:          "#warroom-scrappy",
-  scrappy_research:       "#warroom-scrappy",
-  scrappy_muse_collab:    "#warroom-scrappy",
+const SLACK_AGENT_LABELS = {
+  sean_briefing:          "📋 *Sean* — Morning Briefing",
+  lacey_advance:          "⚡ *Lacey* — Pipeline Update",
+  lacey_trigger_n8n:      "⚡ *Lacey* — n8n Trigger",
+  sam_health:             "💊 *Sam* — Health Check",
+  overseer_scan:          "🔍 *Overseer* — SOP Scan",
+  muse_generate_calendar: "✍️ *Muse* — Content Calendar",
+  muse_save_calendar:     "✍️ *Muse* — Calendar Saved",
+  muse_write_content:     "✍️ *Muse* — Content Written",
+  artgrid_scout:          "🎨 *Artgrid* — Scout Report",
+  scrappy_research:       "📡 *Scrappy* — Trend Research",
+  scrappy_muse_collab:    "📡 *Scrappy* × *Muse* — Collab",
 };
 
 const SB_HEADERS = () => ({
@@ -40,16 +40,13 @@ async function sbGet(table, params = "") {
   return res.json();
 }
 
-async function postToSlack(channel, text) {
-  if (!SLACK_BOT_TOKEN) return;
+async function postToSlack(label, text) {
+  if (!SLACK_WEBHOOK_URL) return;
   try {
-    await fetch("https://slack.com/api/chat.postMessage", {
+    await fetch(SLACK_WEBHOOK_URL, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${SLACK_BOT_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ channel, text }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: `${label}\n${text}` }),
     });
   } catch (e) {
     console.error("Slack post failed:", e.message);
@@ -772,11 +769,11 @@ exports.handler = async (event) => {
         };
     }
 
-    // Post to Slack channel for this agent
-    const slackChannel = SLACK_CHANNELS[action];
-    if (slackChannel && result) {
+    // Post to Slack
+    const slackLabel = SLACK_AGENT_LABELS[action];
+    if (slackLabel && result) {
       const msg = result.message || result.summary || result.briefing || result.report || result.trends || `✅ ${action} completed`;
-      await postToSlack(slackChannel, `*${action}*\n${msg}`);
+      await postToSlack(slackLabel, msg);
     }
 
     return {
