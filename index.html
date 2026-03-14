@@ -2277,6 +2277,8 @@ function CIDPage() {
   const [cidView, setCidView] = React.useState("feed");
   const [hookLabData, setHookLabData] = React.useState({ hooks:[], bodies:[], ctas:[] });
   const [hookLabLoading, setHookLabLoading] = React.useState(false);
+  const [cidSearch, setCidSearch] = React.useState("");
+  const [cidSearchActive, setCidSearchActive] = React.useState(false);
 
   const MOCK_POSTS = [
     { id:1, platform:"instagram", creator:"@drinklmnt", title:"Why I stopped drinking plain water", thumbnail:"https://picsum.photos/seed/lmnt1/400/600", views:"2.4M", engagement:"8.2%", hook:"Stop drinking plain water (here's why)", trigger:"Fear / Pattern interrupt", format:"Reel", url:"https://www.instagram.com", analysis:"Hook creates instant curiosity gap. 'Stop doing X' format works because it challenges default behavior. First 2 seconds show the product without saying it's an ad.", variation:"\"Stop drinking just water\" → VitalLyfe angle: 'You're hydrating wrong — here's what your water is missing'" },
@@ -2313,6 +2315,27 @@ function CIDPage() {
         </div>
 
         {cidView === "feed" && <>
+          {/* Search bar */}
+          <div style={{ display:"flex", gap:10, marginBottom:20 }}>
+            <input
+              value={cidSearch}
+              onChange={e => setCidSearch(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && cidSearch.trim() && setCidSearchActive(true)}
+              placeholder='Search & scrape content... e.g. "hydrogen water TikTok" or "founder story wellness"'
+              style={{ flex:1, padding:"10px 16px", borderRadius:24, border:"1px solid rgba(0,0,0,0.12)", fontSize:12, fontFamily:"Inter, sans-serif", outline:"none", background:"#fff", color:"#1d1d1f" }}
+            />
+            <button onClick={() => { if(cidSearch.trim()) setCidSearchActive(true); }}
+              style={{ padding:"10px 20px", borderRadius:24, background:"#1d1d1f", color:"#fff", border:"none", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap" }}>
+              🔍 Scrape
+            </button>
+          </div>
+          {cidSearchActive && (
+            <div style={{ background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:10, padding:"10px 14px", marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ fontSize:14 }}>⚡</span>
+              <span style={{ fontSize:11, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif" }}>Searching for: <strong style={{color:"#1d1d1f"}}>"{cidSearch}"</strong> — connect Apify to pull live results</span>
+              <button onClick={() => { setCidSearchActive(false); setCidSearch(""); }} style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", fontSize:14, color:"rgba(0,0,0,0.3)" }}>✕</button>
+            </div>
+          )}
           {/* Platform filter */}
           <div style={{ display:"flex", gap:8, marginBottom:24 }}>
             {["all","instagram","tiktok","youtube"].map(p => (
