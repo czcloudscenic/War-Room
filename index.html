@@ -50,21 +50,21 @@
         setLoading(false);
       };
 
-      const inp = { width:"100%", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"12px 14px", fontSize:13, color:"#fff", outline:"none", fontFamily:"Inter, sans-serif", marginBottom:12, boxSizing:"border-box" };
+      const inp = { width:"100%", background:"#111010", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"12px 14px", fontSize:13, color:"#fff", outline:"none", fontFamily:"Inter, sans-serif", marginBottom:12, boxSizing:"border-box" };
 
       return (
         <div style={{ minHeight:"100vh", background:"#0a0a0f", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter, sans-serif" }}>
           <div style={{ width:380, padding:"40px 36px", background:"#111118", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, boxShadow:"0 32px 80px rgba(0,0,0,0.6)" }}>
             <div style={{ marginBottom:32 }}>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", letterSpacing:2, textTransform:"uppercase", fontWeight:700, marginBottom:10 }}>Cloud Scenic</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", letterSpacing:2, textTransform:"uppercase", fontWeight:700, marginBottom:10 }}>Cloud Scenic</div>
               <h1 style={{ fontSize:24, fontWeight:700, color:"#fff", margin:"0 0 6px", letterSpacing:-0.5 }}>War Room</h1>
               <p style={{ fontSize:12, color:"rgba(255,255,255,0.35)", margin:0 }}>VitalLyfe Content Operations</p>
             </div>
             <div>
-              <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.3)", display:"block", marginBottom:6 }}>Email</label>
+              <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.4)", display:"block", marginBottom:6 }}>Email</label>
               <input style={inp} type="email" value={email} onChange={e=>setEmail(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="you@email.com" />
-              <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.3)", display:"block", marginBottom:6 }}>Password</label>
+              <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.4)", display:"block", marginBottom:6 }}>Password</label>
               <input style={inp} type="password" value={password} onChange={e=>setPassword(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="••••••••" />
               {error && <div style={{ fontSize:11, color:"#ff453a", marginBottom:12, padding:"8px 12px", background:"rgba(255,69,58,0.1)", borderRadius:8 }}>{error}</div>}
@@ -111,7 +111,7 @@
       return (
         <div style={{ minHeight:"100vh", background:"#f7f7f5", fontFamily:"Inter, sans-serif" }}>
           {/* Header */}
-          <div style={{ height:56, background:"rgba(255,255,255,0.06)", borderBottom:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", padding:"0 24px", gap:14, position:"sticky", top:0, zIndex:100 }}>
+          <div style={{ height:56, background:"#111010", borderBottom:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", padding:"0 24px", gap:14, position:"sticky", top:0, zIndex:100 }}>
             <div style={{ width:28, height:28, borderRadius:8, background:"#0a0a0f", display:"flex", alignItems:"center", justifyContent:"center" }}>
               <span style={{ color:"#fff", fontSize:12, fontWeight:800 }}>VL</span>
             </div>
@@ -120,8 +120,8 @@
               <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", fontWeight:600, textTransform:"uppercase", letterSpacing:0.8 }}>Content Portal</div>
             </div>
             <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:12 }}>
-              <span style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>{isPreview ? "client@vitallyfe.com" : user.email}</span>
-              {!isPreview && <button onClick={onSignOut} style={{ fontSize:11, color:"rgba(255,255,255,0.4)", background:"none", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Sign out</button>}
+              <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)" }}>{isPreview ? "client@vitallyfe.com" : user.email}</span>
+              {!isPreview && <button onClick={onSignOut} style={{ fontSize:11, color:"rgba(255,255,255,0.5)", background:"none", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Sign out</button>}
             </div>
           </div>
 
@@ -129,9 +129,9 @@
             {/* Stats */}
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:32 }}>
               {[["Needs Review", pending.length, "#ff9f0a"], ["Approved", approved.length, "#2AABFF"], ["Scheduled", scheduled.length, "#64d2ff"]].map(([label,val,color])=>(
-                <div key={label} style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, padding:"20px 22px" }}>
+                <div key={label} style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, padding:"20px 22px" }}>
                   <div style={{ fontSize:28, fontWeight:700, color, letterSpacing:-1 }}>{val}</div>
-                  <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", fontWeight:600, marginTop:4 }}>{label}</div>
+                  <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontWeight:600, marginTop:4 }}>{label}</div>
                 </div>
               ))}
             </div>
@@ -149,11 +149,11 @@
                     const c = STATUS_COLOR[item.status]||"#999";
                     const isRevOpen = reviseOpen === item.id;
                     return (
-                      <div key={item.id} style={{ background:"rgba(255,255,255,0.06)", border:`1px solid ${isRevOpen?"rgba(255,69,58,0.25)":"#ebebeb"}`, borderRadius:14, padding:"18px 20px" }}>
+                      <div key={item.id} style={{ background:"#111010", border:`1px solid ${isRevOpen?"rgba(255,69,58,0.25)":"#ebebeb"}`, borderRadius:14, padding:"18px 20px" }}>
                         <div style={{ display:"flex", alignItems:"center", gap:16 }}>
                           <div style={{ flex:1 }}>
                             <div style={{ fontSize:13, fontWeight:600, color:"#f5f5f7", marginBottom:4 }}>{item.title}</div>
-                            <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginBottom:8 }}>{item.campaign} · {item.format}</div>
+                            <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginBottom:8 }}>{item.campaign} · {item.format}</div>
                             <span style={{ fontSize:9, color:c, background:`${c}15`, padding:"3px 8px", borderRadius:20, fontWeight:700, border:`1px solid ${c}25` }}>{item.status}</span>
                           </div>
                           <div style={{ display:"flex", gap:8, flexShrink:0 }}>
@@ -180,7 +180,7 @@
             {/* All Content */}
             <div>
               <h2 style={{ fontSize:15, fontWeight:700, color:"#f5f5f7", margin:"0 0 16px" }}>All Content</h2>
-              <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, overflow:"hidden" }}>
+              <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, overflow:"hidden" }}>
                 {content.filter(x=>x.status!=="Scrapped").map((item,i) => {
                   const c = STATUS_COLOR[item.status]||"#999";
                   return (
@@ -536,7 +536,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
 
   return (
     <div style={{ position:"fixed", inset:0, zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.35)", backdropFilter:"blur(4px)" }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background:"rgba(255,255,255,0.06)", borderRadius:20, width:"100%", maxWidth:660, maxHeight:"92vh", overflowY:"auto", padding:"32px 36px", boxShadow:"0 24px 80px rgba(0,0,0,0.18)", fontFamily:"Inter, sans-serif" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:"#111010", borderRadius:20, width:"100%", maxWidth:660, maxHeight:"92vh", overflowY:"auto", padding:"32px 36px", boxShadow:"0 24px 80px rgba(0,0,0,0.18)", fontFamily:"Inter, sans-serif" }}>
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
           <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:"italic", fontSize:26, fontWeight:400, color:"#f5f5f7", margin:0 }}>{isNew ? "New Content" : "Edit Content"}</h2>
@@ -597,7 +597,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
         {/* Content Description */}
         <div style={{ marginBottom:18 }}>
           <label style={{ ...labelStyle, display:"flex", alignItems:"center", gap:6 }}>
-            <strong style={{ color:"rgba(0,0,0,0.65)" }}>Content Description</strong>
+            <strong style={{ color:"rgba(255,255,255,0.75)" }}>Content Description</strong>
             <span style={{ fontWeight:400, fontSize:9, color:"rgba(255,255,255,0.35)", textTransform:"none", letterSpacing:0 }}>— What is this content?</span>
           </label>
           <textarea style={{ ...textareaStyle, minHeight:72 }} value={form.description} onChange={e => set("description", e.target.value)} />
@@ -606,7 +606,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
         {/* Script */}
         <div style={{ marginBottom:18 }}>
           <label style={labelStyle}>Video Copy / Script</label>
-          <textarea style={{ ...textareaStyle, minHeight:90, fontFamily:"'SF Mono', 'Fira Code', monospace", fontSize:12, color:"rgba(0,0,0,0.55)" }} value={form.script} onChange={e => set("script", e.target.value)} placeholder={"Opening Scene: ...\nMiddle: ...\nClosing Frame: ..."} />
+          <textarea style={{ ...textareaStyle, minHeight:90, fontFamily:"'SF Mono', 'Fira Code', monospace", fontSize:12, color:"rgba(255,255,255,0.65)" }} value={form.script} onChange={e => set("script", e.target.value)} placeholder={"Opening Scene: ...\nMiddle: ...\nClosing Frame: ..."} />
         </div>
 
         {/* Caption */}
@@ -666,12 +666,12 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
         {/* File Assets */}
         <div style={{ marginBottom:28 }}>
           <label style={labelStyle}>Assets / Files</label>
-          <div style={{ border:"1.5px dashed rgba(255,255,255,0.12)", borderRadius:12, padding:"16px 18px", background:"rgba(255,255,255,0.04)" }}>
+          <div style={{ border:"1.5px dashed rgba(255,255,255,0.12)", borderRadius:12, padding:"16px 18px", background:"#0f0d0e" }}>
             {/* Existing files */}
             {(form.files || []).length > 0 && (
               <div style={{ marginBottom:12, display:"flex", flexDirection:"column", gap:6 }}>
                 {(form.files || []).map(f => (
-                  <div key={f.path} style={{ display:"flex", alignItems:"center", gap:10, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"8px 12px" }}>
+                  <div key={f.path} style={{ display:"flex", alignItems:"center", gap:10, background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"8px 12px" }}>
                     <span style={{ fontSize:16 }}>{isVideo(f) ? "🎬" : isImage(f) ? "🖼" : "📄"}</span>
                     <span style={{ fontSize:12, color:"#f5f5f7", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontWeight:500 }}>{f.name}</span>
                     <button onClick={() => setPreviewFile(f)} style={{ fontSize:10, color:"#0a84ff", background:"rgba(42,171,255,0.06)", border:"1px solid rgba(10,132,255,0.2)", borderRadius:5, padding:"2px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:600, whiteSpace:"nowrap" }}>👁 Preview</button>
@@ -685,11 +685,11 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
               accept="video/*,image/*,.pdf,.psd,.ai,.fig" />
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"8px 16px", cursor:uploading?"not-allowed":"pointer", fontFamily:"Inter, sans-serif" }}>
+                style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", background:"#111010", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"8px 16px", cursor:uploading?"not-allowed":"pointer", fontFamily:"Inter, sans-serif" }}>
                 {uploading ? "Uploading…" : "+ Upload File"}
               </button>
               {uploadMsg && <span style={{ fontSize:11, color: uploadMsg.startsWith("✓") ? "#2AABFF" : "#ff453a" }}>{uploadMsg}</span>}
-              {!uploadMsg && <span style={{ fontSize:10, color:"rgba(255,255,255,0.3)" }}>Video, image, PDF, PSD, Figma</span>}
+              {!uploadMsg && <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>Video, image, PDF, PSD, Figma</span>}
             </div>
           </div>
         </div>
@@ -716,8 +716,8 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
             style={{ flex:1, background: hardBlocked ? "rgba(0,0,0,0.1)" : "#0f0f1a", border:"none", borderRadius:12, color: hardBlocked ? "rgba(0,0,0,0.3)" : "#fff", fontSize:14, fontWeight:600, padding:"14px", cursor: hardBlocked ? "not-allowed" : "pointer", fontFamily:"Inter, sans-serif", letterSpacing:-0.2 }}>
             {hardBlocked ? "🚫 Fix required fields" : isNew ? "Add Content" : "Save Changes"}
           </button>
-          <button onClick={onClose} style={{ padding:"14px 22px", background:"none", border:"none", color:"rgba(255,255,255,0.4)", fontSize:14, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Cancel</button>
-          {!isNew && onDuplicate && <button onClick={() => onDuplicate(form)} title="Duplicate this item" style={{ padding:"14px 16px", background:"none", border:"1px solid rgba(255,255,255,0.12)", borderRadius:12, color:"rgba(0,0,0,0.45)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}>⧉ Dupe</button>}
+          <button onClick={onClose} style={{ padding:"14px 22px", background:"none", border:"none", color:"rgba(255,255,255,0.5)", fontSize:14, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Cancel</button>
+          {!isNew && onDuplicate && <button onClick={() => onDuplicate(form)} title="Duplicate this item" style={{ padding:"14px 16px", background:"none", border:"1px solid rgba(255,255,255,0.12)", borderRadius:12, color:"rgba(255,255,255,0.55)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}>⧉ Dupe</button>}
           {!isNew && onDelete && <button onClick={() => onDelete(form.id)} style={{ padding:"14px 18px", background:"none", border:"1px solid rgba(255,69,58,0.25)", borderRadius:12, color:"rgba(255,69,58,0.7)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}>🗑</button>}
         </div>
       </div>
@@ -725,12 +725,12 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
       {/* File Preview Overlay */}
       {previewFile && (
         <div onClick={() => setPreviewFile(null)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:10000, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:"rgba(255,255,255,0.06)", borderRadius:16, overflow:"hidden", maxWidth:"90vw", maxHeight:"90vh", width:"100%", display:"flex", flexDirection:"column", position:"relative" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:"#111010", borderRadius:16, overflow:"hidden", maxWidth:"90vw", maxHeight:"90vh", width:"100%", display:"flex", flexDirection:"column", position:"relative" }}>
             <div style={{ padding:"12px 18px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <span style={{ fontSize:13, fontWeight:600, color:"#f5f5f7" }}>{previewFile.name}</span>
-              <button onClick={() => setPreviewFile(null)} style={{ background:"rgba(255,255,255,0.06)", border:"none", borderRadius:8, width:28, height:28, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+              <button onClick={() => setPreviewFile(null)} style={{ background:"#111010", border:"none", borderRadius:8, width:28, height:28, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
             </div>
-            <div style={{ flex:1, overflow:"auto", display:"flex", alignItems:"center", justifyContent:"center", minHeight:300, background:"#f5f5f7" }}>
+            <div style={{ flex:1, overflow:"auto", display:"flex", alignItems:"center", justifyContent:"center", minHeight:300, background:"#161414" }}>
               {isImage(previewFile) ? (
                 <img src={previewFile.url} alt={previewFile.name} style={{ maxWidth:"100%", maxHeight:"80vh", objectFit:"contain" }} />
               ) : isVideo(previewFile) ? (
@@ -773,7 +773,7 @@ function TypingTask({ text, color }) {
 }
 function Card({ children, style={}, glowColor, onClick }) {
   return (
-    <div onClick={onClick} className="hover-card" style={{ background:"rgba(255,255,255,0.06)", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:20, boxShadow: glowColor ? `0 4px 28px rgba(0,0,0,0.09), 0 0 0 1px ${glowColor}15` : "0 2px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.03)", ...style }}>
+    <div onClick={onClick} className="hover-card" style={{ background:"#111010", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:20, boxShadow: glowColor ? `0 4px 28px rgba(0,0,0,0.09), 0 0 0 1px ${glowColor}15` : "0 2px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.03)", ...style }}>
       {children}
     </div>
   );
@@ -783,13 +783,13 @@ function MetricCard({ label, value, delta, color, large, sub }) {
   useEffect(() => { setV(value); }, [value]);
   useInterval(() => { if (delta > 0) setV(p => p + Math.floor(Math.random()*delta)); }, delta > 0 ? 5000 + Math.random()*3000 : null);
   return (
-    <div className="hover-card" style={{ background:"rgba(255,255,255,0.06)", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", borderRadius:20, border:"1px solid rgba(255,255,255,0.09)", boxShadow:"0 2px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.03)", overflow:"hidden", position:"relative", height:large?"100%":"auto" }}>
+    <div className="hover-card" style={{ background:"#111010", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", borderRadius:20, border:"1px solid rgba(255,255,255,0.09)", boxShadow:"0 2px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.03)", overflow:"hidden", position:"relative", height:large?"100%":"auto" }}>
       <div style={{ position:"absolute", top:0, left:0, width:"100%", height:3, background:color }} />
       <div style={{ padding: large ? "36px 32px" : "22px 24px", height:"100%", display:"flex", flexDirection:"column", justifyContent: large ? "flex-end" : "flex-start" }}>
         {large && <div style={{ flex:1 }} />}
-        <div style={{ fontSize:10, color:"rgba(0,0,0,0.32)", fontWeight:600, textTransform:"uppercase", letterSpacing:1.2, marginBottom:10 }}>{label}</div>
+        <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontWeight:600, textTransform:"uppercase", letterSpacing:1.2, marginBottom:10 }}>{label}</div>
         <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: large ? 72 : 40, fontWeight:700, color:"#f5f5f7", letterSpacing: large ? -4 : -2, lineHeight:1 }}>{v.toLocaleString()}</div>
-        {(large || sub) && <div style={{ fontSize:11, color:"rgba(0,0,0,0.28)", marginTop:8 }}>{sub || "pieces in pipeline"}</div>}
+        {(large || sub) && <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:8 }}>{sub || "pieces in pipeline"}</div>}
       </div>
     </div>
   );
@@ -805,7 +805,7 @@ function AgentCard({ agent, selected, onClick }) {
   }, 1000 + Math.random()*500);
   const task = AGENT_TASKS[agent.name][taskIdx];
   return (
-    <div onClick={onClick} className="hover-card" style={{ background: selected ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.6)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", border:`1px solid ${selected ? agent.color+"40" : "rgba(255,255,255,0.65)"}`, borderRadius:20, padding:"24px 20px 20px", cursor:"pointer", boxShadow: selected ? `0 8px 36px ${agent.color}25, 0 2px 12px rgba(0,0,0,0.06)` : "0 2px 20px rgba(0,0,0,0.05)", position:"relative", overflow:"hidden" }}>
+    <div onClick={onClick} className="hover-card" style={{ background: selected ? "#1a1818" : "#111010", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", border:`1px solid ${selected ? agent.color+"40" : "rgba(255,255,255,0.65)"}`, borderRadius:20, padding:"24px 20px 20px", cursor:"pointer", boxShadow: selected ? `0 8px 36px ${agent.color}25, 0 2px 12px rgba(0,0,0,0.06)` : "0 2px 20px rgba(0,0,0,0.05)", position:"relative", overflow:"hidden" }}>
       {selected && <div style={{ position:"absolute", top:0, left:0, width:"100%", height:2, background:`linear-gradient(90deg, ${agent.color}, ${agent.color}80)` }} />}
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:18 }}>
         <AgentAvatar agent={agent} size={36} />
@@ -814,11 +814,11 @@ function AgentCard({ agent, selected, onClick }) {
       <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontWeight:700, fontStyle: selected ? "italic" : "normal", color:"#f5f5f7", fontSize:17, letterSpacing:-0.5, marginBottom:4, transition:"font-style 0.2s" }}>{agent.name}</div>
       <div style={{ fontSize:10, color:agent.color, fontWeight:500, marginBottom:16, letterSpacing:0.2 }}>{agent.role}</div>
       <TypingTask text={task} color="rgba(0,0,0,0.45)" />
-      <div style={{ marginTop:14, height:3, background:"rgba(255,255,255,0.06)", borderRadius:3 }}>
+      <div style={{ marginTop:14, height:3, background:"#111010", borderRadius:3 }}>
         <div style={{ height:"100%", width:`${progress}%`, background:`linear-gradient(90deg,${agent.color}80,${agent.color})`, borderRadius:3, transition:"width 1s ease-out" }} />
       </div>
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:5 }}>
-        <span style={{ fontSize:9, color:"rgba(255,255,255,0.3)" }}>progress</span>
+        <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)" }}>progress</span>
         <span style={{ fontSize:9, color:agent.color, fontWeight:600 }}>{progress}%</span>
       </div>
     </div>
@@ -846,7 +846,7 @@ function OpsBoard() {
     setOps(prev => ({ ...prev, backlog:[...prev.backlog,{ id:Date.now().toString(), title:newTask, agent:"Unassigned" }] }));
     setNewTask("");
   };
-  const cols = [{ key:"backlog", label:"Backlog", color:"rgba(255,255,255,0.4)" }, { key:"inProgress", label:"In Progress", color:"#ff9f0a" }, { key:"completed", label:"Completed", color:"#2AABFF" }];
+  const cols = [{ key:"backlog", label:"Backlog", color:"rgba(255,255,255,0.5)" }, { key:"inProgress", label:"In Progress", color:"#ff9f0a" }, { key:"completed", label:"Completed", color:"#2AABFF" }];
   return (
     <div style={{ display:"flex", gap:12 }}>
       {cols.map(col => (
@@ -859,13 +859,13 @@ function OpsBoard() {
             {ops[col.key].map((task,i) => (
               <Card key={task.id} style={{ padding:"12px 14px", borderLeft:`3px solid ${col.color}80`, borderRadius:12, animation:i===0&&col.key==="inProgress"?"slideIn 0.3s ease":"none" }}>
                 <div style={{ fontSize:12, color:"#1a1a2e", fontWeight:500, marginBottom:4, lineHeight:1.4 }}>{task.title}</div>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>{task.agent}</div>
-                {col.key==="inProgress" && <div style={{ marginTop:10, height:2, background:"rgba(255,255,255,0.06)", borderRadius:2 }}><div style={{ height:"100%", width:"55%", background:col.color, borderRadius:2, animation:"progressBar 28s linear forwards" }} /></div>}
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)" }}>{task.agent}</div>
+                {col.key==="inProgress" && <div style={{ marginTop:10, height:2, background:"#111010", borderRadius:2 }}><div style={{ height:"100%", width:"55%", background:col.color, borderRadius:2, animation:"progressBar 28s linear forwards" }} /></div>}
               </Card>
             ))}
             {col.key==="backlog" && (
               <div style={{ display:"flex", gap:6 }}>
-                <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key==="Enter" && addTask()} placeholder="Add task..." style={{ flex:1, background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"8px 12px", color:"#1a1a2e", fontSize:11, outline:"none", fontFamily:"Inter, sans-serif" }} />
+                <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key==="Enter" && addTask()} placeholder="Add task..." style={{ flex:1, background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"8px 12px", color:"#1a1a2e", fontSize:11, outline:"none", fontFamily:"Inter, sans-serif" }} />
                 <button onClick={addTask} style={{ background:"rgba(48,209,88,0.15)", border:"1px solid rgba(48,209,88,0.3)", borderRadius:10, color:"#2AABFF", cursor:"pointer", padding:"8px 14px", fontSize:14, fontWeight:700 }}>+</button>
               </div>
             )}
@@ -880,9 +880,9 @@ function ActivityFeed({ feed }) {
     <div style={{ height:"auto", overflowY:"auto", display:"flex", flexDirection:"column", gap:3 }}>
       {feed.map((item,i) => (
         <div key={item.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 12px", background:i===0?`${ACTION_COLORS[item.type]}0a`:"transparent", borderRadius:8, borderLeft:i===0?`2px solid ${ACTION_COLORS[item.type]}`:"2px solid transparent", animation:i===0?"slideIn 0.3s ease":"none", transition:"all 0.3s" }}>
-          <span style={{ fontSize:9, color:"rgba(255,255,255,0.3)", whiteSpace:"nowrap" }}>{item.time}</span>
+          <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", whiteSpace:"nowrap" }}>{item.time}</span>
           <span style={{ fontSize:10, color:ACTION_COLORS[item.type], fontWeight:600, whiteSpace:"nowrap" }}>{item.agent}</span>
-          <span style={{ fontSize:10, color:"rgba(0,0,0,0.48)" }}>{item.action}</span>
+          <span style={{ fontSize:10, color:"rgba(255,255,255,0.55)" }}>{item.action}</span>
         </div>
       ))}
     </div>
@@ -896,8 +896,8 @@ function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardC
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
         <span style={{ fontSize:18 }}>{icon}</span>
         <span style={{ fontSize:16, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.5 }}>{title}</span>
-        <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)", background:"rgba(255,255,255,0.06)", padding:"2px 9px", borderRadius:20, fontWeight:600 }}>{items.length} pieces</span>
-        <span style={{ fontSize:11, color:"rgba(255,255,255,0.25)", marginLeft:"auto" }}>← scroll →</span>
+        <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)", background:"#111010", padding:"2px 9px", borderRadius:20, fontWeight:600 }}>{items.length} pieces</span>
+        <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginLeft:"auto" }}>← scroll →</span>
       </div>
       <div style={{ display:"flex", gap:10, overflowX:"auto", paddingBottom:8 }}>
         {stages.map((stage,si) => {
@@ -909,15 +909,15 @@ function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardC
                 <span style={{ fontSize:9, fontWeight:700, color:c, letterSpacing:0.3, textTransform:"uppercase", lineHeight:1.3 }}>{STAGE_SHORT[stage] || stage}</span>
                 <span style={{ fontSize:10, color:c, background:`${c}18`, padding:"1px 7px", borderRadius:20, fontWeight:700 }}>{stageItems.length}</span>
               </div>
-              <div style={{ minHeight:120, background:"rgba(0,0,0,0.02)", border:"1px solid rgba(255,255,255,0.05)", borderRadius:12, padding:8 }}>
+              <div style={{ minHeight:120, background:"#111010", border:"1px solid rgba(255,255,255,0.05)", borderRadius:12, padding:8 }}>
                 {stageItems.map((item) => (
-                  <div key={item.id} className="hover-card" style={{ padding:"10px 12px", marginBottom:7, borderRadius:10, borderLeft:`2px solid ${c}`, background:"rgba(255,255,255,0.08)", backdropFilter:"blur(12px)", boxShadow:"0 1px 6px rgba(0,0,0,0.4)" }}>
+                  <div key={item.id} className="hover-card" style={{ padding:"10px 12px", marginBottom:7, borderRadius:10, borderLeft:`2px solid ${c}`, background:"#111010", backdropFilter:"blur(12px)", boxShadow:"0 1px 6px rgba(0,0,0,0.4)" }}>
                     <div onClick={() => onCardClick(item)} style={{ cursor:"pointer" }}>
                       <div style={{ fontSize:11, color:"#1a1a2e", fontWeight:600, lineHeight:1.35, marginBottom:5 }}>{item.title}</div>
                       <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", marginBottom:5, lineHeight:1.4 }}>{item.campaign}</div>
                       <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:6 }}>
                         <span style={{ fontSize:8, color:c, background:`${c}15`, padding:"2px 5px", borderRadius:4, fontWeight:700 }}>{item.pillar}</span>
-                        {item.platforms.slice(0,2).map(p => <span key={p} style={{ fontSize:8, color:"rgba(255,255,255,0.35)", background:"rgba(255,255,255,0.06)", padding:"2px 5px", borderRadius:4 }}>{p}</span>)}
+                        {item.platforms.slice(0,2).map(p => <span key={p} style={{ fontSize:8, color:"rgba(255,255,255,0.35)", background:"#111010", padding:"2px 5px", borderRadius:4 }}>{p}</span>)}
                       </div>
                     </div>
                     {onMuseWrite && (
@@ -932,7 +932,7 @@ function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardC
                     )}
                   </div>
                 ))}
-                {stageItems.length===0 && <div style={{ fontSize:10, color:"rgba(0,0,0,0.2)", textAlign:"center", padding:"24px 0" }}>empty</div>}
+                {stageItems.length===0 && <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textAlign:"center", padding:"24px 0" }}>empty</div>}
               </div>
             </div>
           );
@@ -951,7 +951,7 @@ function PlaceholderPage({ icon, title, badge, desc }) {
           <h2 style={{ fontSize:28, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-0.5 }}>{title}</h2>
           {badge && <span style={{ fontSize:10, color:"#ff9f0a", background:"rgba(255,159,10,0.15)", padding:"3px 10px", borderRadius:20, fontWeight:600 }}>{badge}</span>}
         </div>
-        <p style={{ fontSize:13, color:"rgba(255,255,255,0.4)", maxWidth:360, margin:"0 auto", lineHeight:1.6 }}>{desc}</p>
+        <p style={{ fontSize:13, color:"rgba(255,255,255,0.5)", maxWidth:360, margin:"0 auto", lineHeight:1.6 }}>{desc}</p>
       </div>
     </div>
   );
@@ -978,8 +978,8 @@ function ReferencesPage() {
   const setF = (k,v) => setForm(f => ({ ...f, [k]:v }));
   const TYPE_COLOR = { "Hook":"#3b82f6", "Caption":"#10b981", "CTA":"#f59e0b", "Brand Voice":"#8b5cf6", "Campaign Brief":"#ff375f", "Script Sample":"#2AABFF" };
   const TYPE_ICON = { "Hook":"⚡", "Caption":"✏️", "CTA":"🎯", "Brand Voice":"🎙", "Campaign Brief":"📋", "Script Sample":"📝" };
-  const labelStyle = { fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.4)", marginBottom:5, display:"block" };
-  const inp = { width:"100%", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif", background:"rgba(255,255,255,0.06)", boxSizing:"border-box" };
+  const labelStyle = { fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.5)", marginBottom:5, display:"block" };
+  const inp = { width:"100%", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif", background:"#111010", boxSizing:"border-box" };
 
   const saveRef = () => {
     if (!form.title.trim() || !form.content.trim()) return;
@@ -993,7 +993,7 @@ function ReferencesPage() {
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:24 }}>
         <div>
           <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>References</h1>
-          <p style={{ fontSize:12, color:"rgba(255,255,255,0.4)", margin:0 }}>Drop campaign examples, hooks, captions, and brand voice notes here. Muse + Overseer read from this folder.</p>
+          <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>Drop campaign examples, hooks, captions, and brand voice notes here. Muse + Overseer read from this folder.</p>
         </div>
         <button onClick={() => setAdding(true)} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>+ Add Reference</button>
       </div>
@@ -1020,7 +1020,7 @@ function ReferencesPage() {
           <div style={{ marginBottom:20 }}><label style={labelStyle}>Agent Notes</label><textarea style={{ ...inp, minHeight:56, resize:"vertical", lineHeight:1.6 }} value={form.notes} onChange={e=>setF("notes",e.target.value)} placeholder="Context for Muse / Overseer on how to use this reference..." /></div>
           <div style={{ display:"flex", gap:10 }}>
             <button onClick={saveRef} style={{ background:"#0f0f1a", border:"none", borderRadius:10, color:"#fff", fontSize:13, fontWeight:600, padding:"11px 24px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Save</button>
-            <button onClick={() => setAdding(false)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Cancel</button>
+            <button onClick={() => setAdding(false)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Cancel</button>
           </div>
         </Card>
       )}
@@ -1036,20 +1036,20 @@ function ReferencesPage() {
                   <div style={{ fontSize:14, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.2, marginBottom:4 }}>{ref.title}</div>
                   <div style={{ display:"flex", gap:6 }}>
                     <span style={{ fontSize:9, color:c, background:`${c}12`, padding:"2px 8px", borderRadius:20, fontWeight:600 }}>{ref.type}</span>
-                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", background:"rgba(255,255,255,0.06)", padding:"2px 8px", borderRadius:20 }}>{ref.pillar}</span>
-                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", background:"rgba(255,255,255,0.06)", padding:"2px 8px", borderRadius:20 }}>{ref.platform}</span>
+                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.5)", background:"#111010", padding:"2px 8px", borderRadius:20 }}>{ref.pillar}</span>
+                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.5)", background:"#111010", padding:"2px 8px", borderRadius:20 }}>{ref.platform}</span>
                   </div>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <button onClick={e=>{e.stopPropagation();setRefs(prev=>prev.filter(r=>r.id!==ref.id));}} style={{ background:"none", border:"none", fontSize:11, color:"rgba(255,255,255,0.3)", cursor:"pointer", padding:"4px 8px", borderRadius:6 }}>Delete</button>
-                  <span style={{ fontSize:13, color:"rgba(255,255,255,0.3)", transform:isOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s", display:"inline-block" }}>▾</span>
+                  <button onClick={e=>{e.stopPropagation();setRefs(prev=>prev.filter(r=>r.id!==ref.id));}} style={{ background:"none", border:"none", fontSize:11, color:"rgba(255,255,255,0.4)", cursor:"pointer", padding:"4px 8px", borderRadius:6 }}>Delete</button>
+                  <span style={{ fontSize:13, color:"rgba(255,255,255,0.4)", transform:isOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s", display:"inline-block" }}>▾</span>
                 </div>
               </div>
               {isOpen && (
                 <div style={{ padding:"0 20px 20px", borderTop:"1px solid rgba(255,255,255,0.06)" }}>
                   <div style={{ marginTop:16 }}>
                     <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:8 }}>Content</div>
-                    <div style={{ background:"rgba(255,255,255,0.04)", borderRadius:10, padding:"14px 16px", fontSize:12, color:"rgba(255,255,255,0.6)", lineHeight:1.8, whiteSpace:"pre-wrap", border:"1px solid rgba(255,255,255,0.05)" }}>{ref.content}</div>
+                    <div style={{ background:"#0f0d0e", borderRadius:10, padding:"14px 16px", fontSize:12, color:"rgba(255,255,255,0.6)", lineHeight:1.8, whiteSpace:"pre-wrap", border:"1px solid rgba(255,255,255,0.05)" }}>{ref.content}</div>
                   </div>
                   {ref.notes && (
                     <div style={{ marginTop:12 }}>
@@ -1163,7 +1163,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:8 }}>
         <div>
           <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>ArtGrid Scout</h1>
-          <p style={{ fontSize:12, color:"rgba(255,255,255,0.4)", margin:0 }}>AI-generated footage briefs. Scout one item or run all at once — get exact Artgrid.io search queries.</p>
+          <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>AI-generated footage briefs. Scout one item or run all at once — get exact Artgrid.io search queries.</p>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <button onClick={runScoutAll} disabled={scoutingAll}
@@ -1184,9 +1184,9 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
             <div>
               <div style={{ fontSize:12, fontWeight:600, color:allScoutResult.ok?"#bf5af2":"#ff453a", marginBottom:allScoutResult.summary?6:0 }}>{allScoutResult.message}</div>
-              {allScoutResult.summary && <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.6, whiteSpace:"pre-line" }}>{allScoutResult.summary}</div>}
+              {allScoutResult.summary && <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", lineHeight:1.6, whiteSpace:"pre-line" }}>{allScoutResult.summary}</div>}
             </div>
-            <button onClick={() => setAllScoutResult(null)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.3)", cursor:"pointer", fontSize:14, padding:"2px 6px", marginLeft:12, flexShrink:0 }}>✕</button>
+            <button onClick={() => setAllScoutResult(null)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, padding:"2px 6px", marginLeft:12, flexShrink:0 }}>✕</button>
           </div>
         </div>
       )}
@@ -1194,8 +1194,8 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
       {needsFootage.length === 0 && (
         <div style={{ padding:"32px", textAlign:"center", background:"rgba(191,90,242,0.04)", border:"1px solid rgba(191,90,242,0.1)", borderRadius:16, marginBottom:16 }}>
           <div style={{ fontSize:32, marginBottom:12, opacity:0.3 }}>✦</div>
-          <div style={{ fontSize:14, fontWeight:600, color:"rgba(255,255,255,0.4)", marginBottom:6 }}>No video items need footage right now</div>
-          <div style={{ fontSize:12, color:"rgba(255,255,255,0.3)" }}>All Reels, YouTube, and Short format content is either scheduled or scrapped.</div>
+          <div style={{ fontSize:14, fontWeight:600, color:"rgba(255,255,255,0.5)", marginBottom:6 }}>No video items need footage right now</div>
+          <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)" }}>All Reels, YouTube, and Short format content is either scheduled or scrapped.</div>
         </div>
       )}
 
@@ -1205,7 +1205,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
             <div key={s.step} style={{ flex:1 }}>
               <div style={{ fontSize:9, fontWeight:700, color:"rgba(191,90,242,0.6)", letterSpacing:1.5, marginBottom:4 }}>{s.step}</div>
               <div style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", marginBottom:3 }}>{s.label}</div>
-              <div style={{ fontSize:11, color:"rgba(0,0,0,0.45)", lineHeight:1.5 }}>{s.desc}</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", lineHeight:1.5 }}>{s.desc}</div>
             </div>
           ))}
         </div>
@@ -1220,16 +1220,16 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
               <div style={{ display:"flex", alignItems:"center", gap:16, padding:"18px 22px" }}>
                 <div style={{ flex:1 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-                    <span style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.3)", background:"rgba(255,255,255,0.06)", padding:"2px 8px", borderRadius:6 }}>{ptLabel}</span>
+                    <span style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", background:"#111010", padding:"2px 8px", borderRadius:6 }}>{ptLabel}</span>
                     <span style={{ fontSize:9, fontWeight:600, color:pc, background:`${pc}12`, padding:"2px 8px", borderRadius:6 }}>{item.pillar}</span>
-                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.35)", background:"rgba(255,255,255,0.07)", padding:"2px 8px", borderRadius:6 }}>{item.stage}</span>
-                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.35)", background:"rgba(255,255,255,0.07)", padding:"2px 8px", borderRadius:6 }}>{item.campaign}</span>
+                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.35)", background:"#111010", padding:"2px 8px", borderRadius:6 }}>{item.stage}</span>
+                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.35)", background:"#111010", padding:"2px 8px", borderRadius:6 }}>{item.campaign}</span>
                   </div>
                   <div style={{ fontSize:14, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.2, marginBottom:4 }}>{item.title}</div>
-                  <div style={{ fontSize:11, color:"rgba(0,0,0,0.45)", lineHeight:1.5, maxWidth:520 }}>{item.description}</div>
+                  <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", lineHeight:1.5, maxWidth:520 }}>{item.description}</div>
                 </div>
                 <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-                  {(sc?.brief || sc?.keywords) && <button onClick={() => setActiveId(isActive?null:item.id)} style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, color:"rgba(0,0,0,0.55)", cursor:"pointer", padding:"9px 16px", fontSize:12, fontWeight:500, fontFamily:"Inter, sans-serif" }}>{isActive?"Hide":"View Keywords"}</button>}
+                  {(sc?.brief || sc?.keywords) && <button onClick={() => setActiveId(isActive?null:item.id)} style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, color:"rgba(255,255,255,0.65)", cursor:"pointer", padding:"9px 16px", fontSize:12, fontWeight:500, fontFamily:"Inter, sans-serif" }}>{isActive?"Hide":"View Keywords"}</button>}
                   <button onClick={() => runScout(item)} disabled={sc?.loading} style={{ background:sc?.loading?"rgba(191,90,242,0.1)":"#bf5af2", border:"none", borderRadius:10, color:sc?.loading?"#bf5af2":"#fff", cursor:sc?.loading?"default":"pointer", padding:"9px 18px", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif", opacity:sc?.loading?0.8:1 }}>
                     {sc?.loading?"Scouting...":sc?.brief?"Re-Scout ✦":"Scout ✦"}
                   </button>
@@ -1249,14 +1249,14 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
               {sc?.brief && isActive && (
                 <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", padding:"20px 22px" }}>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:18 }}>
-                    <div style={{ background:"rgba(255,255,255,0.04)", borderRadius:12, padding:"14px 16px", border:"1px solid rgba(255,255,255,0.06)" }}>
+                    <div style={{ background:"#0f0d0e", borderRadius:12, padding:"14px 16px", border:"1px solid rgba(255,255,255,0.06)" }}>
                       <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:8 }}>Visual Mood</div>
-                      <div style={{ fontSize:12, color:"rgba(255,255,255,0.7)", lineHeight:1.7 }}>{sc.brief.mood}</div>
+                      <div style={{ fontSize:12, color:"rgba(255,255,255,0.85)", lineHeight:1.7 }}>{sc.brief.mood}</div>
                     </div>
-                    <div style={{ background:"rgba(255,255,255,0.04)", borderRadius:12, padding:"14px 16px", border:"1px solid rgba(255,255,255,0.06)" }}>
+                    <div style={{ background:"#0f0d0e", borderRadius:12, padding:"14px 16px", border:"1px solid rgba(255,255,255,0.06)" }}>
                       <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:8 }}>Pacing · Clip Types</div>
                       <div style={{ fontSize:12, color:"#f5f5f7", fontWeight:600, marginBottom:8 }}>{sc.brief.pacing}</div>
-                      <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>{(sc.brief.clipTypes||[]).map((ct,i)=><span key={i} style={{ fontSize:9, color:"rgba(255,255,255,0.5)", background:"rgba(255,255,255,0.06)", padding:"3px 8px", borderRadius:6 }}>{ct}</span>)}</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>{(sc.brief.clipTypes||[]).map((ct,i)=><span key={i} style={{ fontSize:9, color:"rgba(255,255,255,0.6)", background:"#111010", padding:"3px 8px", borderRadius:6 }}>{ct}</span>)}</div>
                     </div>
                   </div>
 
@@ -1270,12 +1270,12 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                         const pc2 = PRIORITY_COLOR[s.priority]||"#999";
                         return (
                           <a key={i} href={`https://artgrid.io/search?q=${encodeURIComponent(s.query)}`} target="_blank" rel="noopener noreferrer"
-                            style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, textDecoration:"none", transition:"border-color 0.15s" }}
+                            style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, textDecoration:"none", transition:"border-color 0.15s" }}
                             onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(191,90,242,0.4)"}
                             onMouseLeave={e=>e.currentTarget.style.borderColor="rgba(0,0,0,0.08)"}>
                             <span style={{ fontSize:9, fontWeight:700, color:pc2, background:`${pc2}15`, padding:"2px 7px", borderRadius:20, whiteSpace:"nowrap" }}>{s.priority}</span>
                             <span style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", flex:1 }}>{s.query}</span>
-                            <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>{s.use}</span>
+                            <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)" }}>{s.use}</span>
                             <span style={{ fontSize:11, color:"#bf5af2" }}>↗</span>
                           </a>
                         );
@@ -1293,7 +1293,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                     <div style={{ background:"rgba(48,209,88,0.04)", borderRadius:10, padding:"12px 14px", border:"1px solid rgba(48,209,88,0.1)" }}>
                       <div style={{ fontSize:9, fontWeight:700, color:"rgba(48,209,88,0.6)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:6 }}>Summary</div>
                       <div style={{ fontSize:13, fontWeight:700, color:"#2AABFF", marginBottom:4 }}>{sc.brief.totalClipsNeeded} clips needed</div>
-                      {sc.brief.notes && <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", lineHeight:1.5 }}>{sc.brief.notes}</div>}
+                      {sc.brief.notes && <div style={{ fontSize:10, color:"rgba(255,255,255,0.6)", lineHeight:1.5 }}>{sc.brief.notes}</div>}
                     </div>
                   </div>
                 </div>
@@ -1308,7 +1308,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                   <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                     {(sc.keywords||[]).map((kw,i) => (
                       <a key={i} href={`https://artgrid.io/search?q=${encodeURIComponent(kw)}`} target="_blank" rel="noopener noreferrer"
-                        style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, textDecoration:"none", transition:"border-color 0.15s" }}
+                        style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, textDecoration:"none", transition:"border-color 0.15s" }}
                         onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(191,90,242,0.4)"}
                         onMouseLeave={e=>e.currentTarget.style.borderColor="rgba(0,0,0,0.08)"}>
                         <span style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", flex:1 }}>{kw}</span>
@@ -1348,7 +1348,7 @@ function CalendarSaveButton({ items }) {
           💾 Save {items.length} items to Tracker
         </button>
       )}
-      {status === "saving" && <span style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>⏳ Saving to tracker…</span>}
+      {status === "saving" && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)" }}>⏳ Saving to tracker…</span>}
       {status === "done" && <span style={{ fontSize:11, color:"#2AABFF", fontWeight:600 }}>✓ {items.length} items added to tracker — check Content Tracker</span>}
       {status === "error" && <span style={{ fontSize:11, color:"#ff453a" }}>❌ Save failed — check console</span>}
     </div>
@@ -1515,7 +1515,7 @@ function AgentChatPage({ agents, content }) {
   return (
     <div style={{ animation:"fadeIn 0.4s ease", display:"flex", gap:16, height:"calc(100vh - 80px)" }}>
       <div style={{ width:210, flexShrink:0, display:"flex", flexDirection:"column", gap:6 }}>
-        <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.3)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>7 Agents</div>
+        <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>7 Agents</div>
         {agents.map(ag => {
           const active = sel.id === ag.id;
           const chatted = (hists[ag.id] || []).length > 0;
@@ -1530,14 +1530,14 @@ function AgentChatPage({ agents, content }) {
                   </div>
                   <div style={{ fontSize:10, color:ag.color, fontWeight:500, marginTop:1 }}>{ag.role}</div>
                 </div>
-                <div style={{ fontSize:9, color:"rgba(255,255,255,0.25)", background:"rgba(255,255,255,0.07)", padding:"2px 6px", borderRadius:20, fontWeight:600 }}>{ag.type}</div>
+                <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", background:"#111010", padding:"2px 6px", borderRadius:20, fontWeight:600 }}>{ag.type}</div>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="hover-card" style={{ flex:1, display:"flex", flexDirection:"column", background:"rgba(255,255,255,0.09)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, overflow:"hidden", boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
+      <div className="hover-card" style={{ flex:1, display:"flex", flexDirection:"column", background:"#161414", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, overflow:"hidden", boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
         <div style={{ padding:"16px 22px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", gap:13, flexShrink:0 }}>
           <AgentAvatar agent={sel} size={42} />
           <div style={{ flex:1 }}>
@@ -1546,14 +1546,14 @@ function AgentChatPage({ agents, content }) {
               <span style={{ fontSize:9, color:sel.color, background:sel.color + "15", padding:"3px 8px", borderRadius:20, fontWeight:600, textTransform:"uppercase", letterSpacing:0.8 }}>{sel.role}</span>
               <span style={{ fontSize:9, color:"rgba(48,209,88,0.8)", background:"rgba(48,209,88,0.1)", padding:"3px 8px", borderRadius:20, fontWeight:600 }}>LIVE</span>
             </div>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:2 }}>{DESC[sel.name]}</div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>{DESC[sel.name]}</div>
           </div>
           {msgs.length > 0 && <button onClick={() => setHists(h => { const n = { ...h, [sel.id]: [] }; try { const t={}; Object.keys(n).forEach(k=>{t[k]=(n[k]||[]).slice(-10);}); localStorage.setItem("warroom_agent_hists",JSON.stringify(t)); } catch {} return n; })} style={{ background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, color:"rgba(255,255,255,0.35)", fontSize:11, cursor:"pointer", padding:"5px 11px", fontFamily:"Inter,sans-serif" }}>Clear</button>}
         </div>
 
         {/* ── AGENT ACTION BUTTONS ── */}
         {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Overseer" || sel.name === "Lacey" || sel.name === "Sam" || sel.name === "Artgrid" || sel.name === "Scrappy") && (
-          <div style={{ padding:"8px 16px", borderBottom:"1px solid rgba(0,0,0,0.06)", display:"flex", gap:7, flexWrap:"wrap", background:"rgba(0,0,0,0.015)", flexShrink:0 }}>
+          <div style={{ padding:"8px 16px", borderBottom:"1px solid rgba(255,255,255,0.06)", display:"flex", gap:7, flexWrap:"wrap", background:"rgba(0,0,0,0.015)", flexShrink:0 }}>
             {sel.name === "Sean" && (
               <button onClick={() => runAgentAction("sean_briefing")} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#2AABFF", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
@@ -1612,7 +1612,7 @@ function AgentChatPage({ agents, content }) {
             <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
               <div style={{ width:56, height:56, borderRadius:17, background:sel.grad, border:"2px solid " + sel.color + "40", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, fontWeight:700, color:sel.color, marginBottom:14 }}>{sel.name[0]}</div>
               <div style={{ fontSize:16, fontWeight:600, color:"#f5f5f7", marginBottom:5 }}>Chat with {sel.name}</div>
-              <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:24, textAlign:"center", maxWidth:280, lineHeight:1.6 }}>Loaded with full VitalLyfe context and SOP knowledge.</div>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", marginBottom:24, textAlign:"center", maxWidth:280, lineHeight:1.6 }}>Loaded with full VitalLyfe context and SOP knowledge.</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, width:"100%", maxWidth:420 }}>
                 {caps.map((cap, i) => (
                   <button key={i} onClick={() => sendMsg(cap)} style={{ background:sel.color + "08", border:"1px solid " + sel.color + "25", borderRadius:11, padding:"11px 13px", cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>
@@ -1631,7 +1631,7 @@ function AgentChatPage({ agents, content }) {
                   <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:m.loading ? 0 : 8 }}>
                     <div style={{ width:6, height:6, borderRadius:"50%", background: m.err ? "#ff453a" : "#2AABFF", animation: m.loading ? "livePulse 1s infinite" : "none" }} />
                     <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", color: m.err ? "#ff453a" : "#2AABFF" }}>{m.loading ? "Agent Running…" : "Agent Action Result"}</span>
-                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginLeft:"auto" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</span>
+                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", marginLeft:"auto" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</span>
                   </div>
                   {!m.loading && <div style={{ fontSize:12, color:"#1a1a2e", lineHeight:1.7, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>}
                   {!m.loading && m.calendarItems && m.calendarItems.length > 0 && (
@@ -1694,7 +1694,7 @@ function AgentChatPage({ agents, content }) {
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }}
             placeholder={"Message " + sel.name + "..."}
             disabled={busy}
-            style={{ flex:1, background:"rgba(255,255,255,0.07)", border:"1px solid " + (input ? sel.color + "40" : "rgba(0,0,0,0.1)"), borderRadius:11, padding:"10px 15px", color:"#f5f5f7", fontSize:13, outline:"none", fontFamily:"Inter,sans-serif" }}
+            style={{ flex:1, background:"#111010", border:"1px solid " + (input ? sel.color + "40" : "rgba(0,0,0,0.1)"), borderRadius:11, padding:"10px 15px", color:"#f5f5f7", fontSize:13, outline:"none", fontFamily:"Inter,sans-serif" }}
           />
           <button
             onClick={() => sendMsg()}
@@ -1767,9 +1767,9 @@ function QuickActionsDashboard() {
     <div style={{ marginBottom:28 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
         <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#f5f5f7", margin:0, letterSpacing:-0.5 }}>Quick Actions</h2>
-        <span style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>Agent-powered operations</span>
+        <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)" }}>Agent-powered operations</span>
       </div>
-      <div className="hover-card" style={{ background:"rgba(255,255,255,0.09)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, overflow:"hidden", boxShadow:"0 2px 12px rgba(0,0,0,0.05)" }}>
+      <div className="hover-card" style={{ background:"#161414", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, overflow:"hidden", boxShadow:"0 2px 12px rgba(0,0,0,0.05)" }}>
         <div style={{ padding:"16px 18px", display:"flex", gap:10, flexWrap:"wrap" }}>
           {ACTIONS.map(({ label, action, agent, color, payload }) => (
             <button key={action} onClick={() => run(action, agent, color, label, payload || {})} disabled={busy} className="glass-btn"
@@ -1788,7 +1788,7 @@ function QuickActionsDashboard() {
                 </span>
               </div>
               <button onClick={() => { setExpanded(false); setResult(null); setActiveAction(null); }}
-                style={{ background:"none", border:"none", color:"rgba(255,255,255,0.3)", cursor:"pointer", fontSize:14, padding:"2px 6px", fontFamily:"Inter,sans-serif" }}>✕</button>
+                style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, padding:"2px 6px", fontFamily:"Inter,sans-serif" }}>✕</button>
             </div>
             {result && (
               <div style={{ padding:"14px 18px", maxHeight:320, overflowY:"auto" }}>
@@ -1800,7 +1800,7 @@ function QuickActionsDashboard() {
                 <div style={{ width:7, height:7, borderRadius:"50%", background:activeAction?.color, animation:"livePulse 1.2s 0s infinite" }} />
                 <div style={{ width:7, height:7, borderRadius:"50%", background:activeAction?.color, animation:"livePulse 1.2s 0.2s infinite" }} />
                 <div style={{ width:7, height:7, borderRadius:"50%", background:activeAction?.color, animation:"livePulse 1.2s 0.4s infinite" }} />
-                <span style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginLeft:8 }}>{activeAction?.agent} is working…</span>
+                <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginLeft:8 }}>{activeAction?.agent} is working…</span>
               </div>
             )}
           </div>
@@ -1864,15 +1864,15 @@ function AdROIHub() {
     setAdding(false);
   };
 
-  const inp = {width:"100%",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"10px 12px",fontSize:13,color:"#f5f5f7",outline:"none",fontFamily:"Inter,sans-serif",background:"rgba(255,255,255,0.06)",boxSizing:"border-box"};
-  const labelStyle = {fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",color:"rgba(255,255,255,0.4)",marginBottom:5,display:"block"};
+  const inp = {width:"100%",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"10px 12px",fontSize:13,color:"#f5f5f7",outline:"none",fontFamily:"Inter,sans-serif",background:"#111010",boxSizing:"border-box"};
+  const labelStyle = {fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",color:"rgba(255,255,255,0.5)",marginBottom:5,display:"block"};
 
   return (
     <div style={{animation:"fadeIn 0.4s ease"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
         <div>
           <h1 style={{fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1}}>Ad ROI Hub</h1>
-          <p style={{fontSize:12,color:"rgba(255,255,255,0.4)",margin:0}}>Track spend vs return · AI-powered optimization · Know exactly if $5 in gets $10 out</p>
+          <p style={{fontSize:12,color:"rgba(255,255,255,0.5)",margin:0}}>Track spend vs return · AI-powered optimization · Know exactly if $5 in gets $10 out</p>
         </div>
         <div style={{display:"flex",gap:10}}>
           <button onClick={runAIAnalysis} disabled={analyzing} style={{background:analyzing?"rgba(255,214,10,0.1)":"#ffd60a",border:"none",borderRadius:12,color:analyzing?"#ffd60a":"#0a0a0f",cursor:analyzing?"default":"pointer",padding:"10px 20px",fontSize:13,fontWeight:700,fontFamily:"Inter,sans-serif",display:"flex",alignItems:"center",gap:7}}>
@@ -1900,9 +1900,9 @@ function AdROIHub() {
               <div style={{width:7,height:7,borderRadius:"50%",background:"#ffd60a"}}/>
               <span style={{fontSize:11,fontWeight:700,color:"#ffd60a",letterSpacing:0.8}}>SAM · AD ANALYSIS</span>
             </div>
-            <button onClick={()=>setAiInsight(null)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.3)",cursor:"pointer",fontSize:14}}>✕</button>
+            <button onClick={()=>setAiInsight(null)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.4)",cursor:"pointer",fontSize:14}}>✕</button>
           </div>
-          <div style={{fontSize:12,color:"rgba(255,255,255,0.7)",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{aiInsight}</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.85)",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{aiInsight}</div>
         </Card>
       )}
 
@@ -1926,7 +1926,7 @@ function AdROIHub() {
           </div>
           <div style={{display:"flex",gap:10}}>
             <button onClick={saveCampaign} style={{background:"#0f0f1a",border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,padding:"11px 24px",cursor:"pointer",fontFamily:"Inter,sans-serif"}}>Save Campaign</button>
-            <button onClick={()=>setAdding(false)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.4)",fontSize:13,cursor:"pointer",fontFamily:"Inter,sans-serif"}}>Cancel</button>
+            <button onClick={()=>setAdding(false)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.5)",fontSize:13,cursor:"pointer",fontFamily:"Inter,sans-serif"}}>Cancel</button>
           </div>
         </Card>
       )}
@@ -1948,21 +1948,21 @@ function AdROIHub() {
                 <div style={{fontSize:12,fontWeight:600,color:"#f5f5f7",marginBottom:3}}>{c.name}</div>
                 <span style={{fontSize:9,fontWeight:600,color:statusColor,background:`${statusColor}15`,padding:"1px 7px",borderRadius:20}}>{c.status}</span>
               </div>
-              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(0,0,0,0.55)"}}>{c.platform}</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(255,255,255,0.65)"}}>{c.platform}</div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:600,color:"#ff453a"}}>${c.spend}</div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:600,color:"#2AABFF"}}>${c.revenue}</div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:700,color:Number(roas_)>=2?"#2AABFF":Number(roas_)>=1?"#ff9f0a":"#ff453a"}}>{roas_}x</div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center"}}><span style={{fontSize:11,fontWeight:700,color:rc,background:`${rc}12`,padding:"2px 8px",borderRadius:20}}>{r>=0?"+":""}{r}%</span></div>
-              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(0,0,0,0.55)"}}>${cpl(c)}</div>
-              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(0,0,0,0.55)"}}>{cvr(c)}%</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(255,255,255,0.65)"}}>${cpl(c)}</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(255,255,255,0.65)"}}>{cvr(c)}%</div>
             </div>
           );
         })}
       </Card>
 
-      <div style={{marginTop:16,padding:"12px 16px",background:"rgba(255,255,255,0.05)",borderRadius:10,display:"flex",gap:20,flexWrap:"wrap"}}>
-        <span style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontWeight:600}}>ROAS &gt; 2x = 🟢 Healthy · ROAS 1–2x = 🟡 Break-even · ROAS &lt; 1x = 🔴 Losing money</span>
-        <span style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>CPL = Cost Per Lead · CVR = Lead → Conversion Rate</span>
+      <div style={{marginTop:16,padding:"12px 16px",background:"#111010",borderRadius:10,display:"flex",gap:20,flexWrap:"wrap"}}>
+        <span style={{fontSize:10,color:"rgba(255,255,255,0.5)",fontWeight:600}}>ROAS &gt; 2x = 🟢 Healthy · ROAS 1–2x = 🟡 Break-even · ROAS &lt; 1x = 🔴 Losing money</span>
+        <span style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>CPL = Cost Per Lead · CVR = Lead → Conversion Rate</span>
       </div>
     </div>
   );
@@ -2034,18 +2034,18 @@ function TeamBroadcast({ agents }) {
     <div style={{animation:"fadeIn 0.4s ease",display:"flex",flexDirection:"column",height:"calc(100vh - 80px)"}}>
       <div style={{marginBottom:20}}>
         <h1 style={{fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1}}>Team Broadcast</h1>
-        <p style={{fontSize:12,color:"rgba(255,255,255,0.4)",margin:0}}>Send a brief or update to all 8 agents at once — each responds in their own voice and expertise.</p>
+        <p style={{fontSize:12,color:"rgba(255,255,255,0.5)",margin:0}}>Send a brief or update to all 8 agents at once — each responds in their own voice and expertise.</p>
       </div>
 
       <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:20,paddingBottom:20}}>
         {broadcasts.length === 0 && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flex:1,paddingBottom:80}}>
-            <div style={{width:48,height:48,borderRadius:14,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,marginBottom:16}}>◷</div>
+            <div style={{width:48,height:48,borderRadius:14,background:"#111010",border:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,marginBottom:16}}>◷</div>
             <div style={{fontSize:15,fontWeight:600,color:"rgba(255,255,255,0.35)",marginBottom:6}}>No broadcasts yet</div>
-            <div style={{fontSize:12,color:"rgba(255,255,255,0.25)",marginBottom:24,textAlign:"center",maxWidth:320,lineHeight:1.6}}>Send a brief, update, or direction below. All 8 agents will respond simultaneously.</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,0.35)",marginBottom:24,textAlign:"center",maxWidth:320,lineHeight:1.6}}>Send a brief, update, or direction below. All 8 agents will respond simultaneously.</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,width:"100%",maxWidth:500}}>
               {QUICK_BRIEFS.map((b,i)=>(
-                <button key={i} onClick={()=>setInput(b)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left",fontFamily:"Inter,sans-serif"}}>
+                <button key={i} onClick={()=>setInput(b)} style={{background:"#111010",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left",fontFamily:"Inter,sans-serif"}}>
                   <div style={{fontSize:11,fontWeight:600,color:"#f5f5f7",lineHeight:1.4}}>{b.slice(0,60)}…</div>
                 </button>
               ))}
@@ -2059,19 +2059,19 @@ function TeamBroadcast({ agents }) {
             <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}>
               <div style={{maxWidth:"70%",background:"#0f0f1a",borderRadius:"15px 15px 3px 15px",padding:"12px 16px"}}>
                 <div style={{fontSize:13,color:"#fff",lineHeight:1.65}}>{b.message}</div>
-                <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",marginTop:4,textAlign:"right"}}>{new Date(b.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+                <div style={{fontSize:9,color:"rgba(255,255,255,0.4)",marginTop:4,textAlign:"right"}}>{new Date(b.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
               </div>
             </div>
 
             {/* ── AGENT RESPONSES ── */}
             {b.loading ? (
-              <div style={{display:"flex",gap:8,alignItems:"center",padding:"12px 16px",background:"rgba(255,255,255,0.05)",borderRadius:12}}>
+              <div style={{display:"flex",gap:8,alignItems:"center",padding:"12px 16px",background:"#111010",borderRadius:12}}>
                 {[0,0.2,0.4].map((d,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#2AABFF",animation:`livePulse 1.2s ${d}s infinite`}}/>)}
-                <span style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginLeft:6}}>All 8 agents responding…</span>
+                <span style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginLeft:6}}>All 8 agents responding…</span>
               </div>
             ) : (
               <div>
-                <button onClick={()=>setExpandedId(expandedId===b.id?null:b.id)} style={{background:"none",border:"none",fontSize:11,color:"rgba(255,255,255,0.4)",cursor:"pointer",fontFamily:"Inter,sans-serif",padding:"4px 0",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+                <button onClick={()=>setExpandedId(expandedId===b.id?null:b.id)} style={{background:"none",border:"none",fontSize:11,color:"rgba(255,255,255,0.5)",cursor:"pointer",fontFamily:"Inter,sans-serif",padding:"4px 0",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
                   <span style={{transform:expandedId===b.id?"rotate(90deg)":"rotate(0deg)",display:"inline-block",transition:"transform 0.2s",fontSize:10}}>▶</span>
                   {Object.keys(b.responses).length} agent responses
                 </button>
@@ -2086,7 +2086,7 @@ function TeamBroadcast({ agents }) {
                             <span style={{fontSize:12,fontWeight:600,color:"#f5f5f7"}}>{r.agentName}</span>
                             <span style={{fontSize:9,color:r.color,fontWeight:600,marginLeft:"auto"}}>{ag?.role}</span>
                           </div>
-                          <div style={{fontSize:12,color:"rgba(0,0,0,0.65)",lineHeight:1.7}}>{r.response}</div>
+                          <div style={{fontSize:12,color:"rgba(255,255,255,0.75)",lineHeight:1.7}}>{r.response}</div>
                         </Card>
                       );
                     })}
@@ -2103,7 +2103,7 @@ function TeamBroadcast({ agents }) {
       {broadcasts.length > 0 && (
         <div style={{padding:"8px 0 4px",display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
           {QUICK_BRIEFS.slice(0,2).map((b,i)=>(
-            <button key={i} onClick={()=>setInput(b)} disabled={sending} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:20,padding:"4px 12px",cursor:"pointer",fontFamily:"Inter,sans-serif",fontSize:11,color:"rgba(255,255,255,0.5)"}}>
+            <button key={i} onClick={()=>setInput(b)} disabled={sending} style={{background:"#111010",border:"1px solid rgba(255,255,255,0.08)",borderRadius:20,padding:"4px 12px",cursor:"pointer",fontFamily:"Inter,sans-serif",fontSize:11,color:"rgba(255,255,255,0.6)"}}>
               {b.slice(0,40)}…
             </button>
           ))}
@@ -2112,7 +2112,7 @@ function TeamBroadcast({ agents }) {
       <div style={{display:"flex",gap:10,paddingTop:12,borderTop:"1px solid rgba(0,0,0,0.07)"}}>
         <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendBroadcast();}}}
           placeholder="Send a brief, update, or direction to all 8 agents…" disabled={sending}
-          style={{flex:1,background:"rgba(255,255,255,0.07)",border:`1px solid ${input?"rgba(48,209,88,0.4)":"rgba(0,0,0,0.1)"}`,borderRadius:12,padding:"12px 16px",color:"#f5f5f7",fontSize:13,outline:"none",fontFamily:"Inter,sans-serif"}}/>
+          style={{flex:1,background:"#111010",border:`1px solid ${input?"rgba(48,209,88,0.4)":"rgba(0,0,0,0.1)"}`,borderRadius:12,padding:"12px 16px",color:"#f5f5f7",fontSize:13,outline:"none",fontFamily:"Inter,sans-serif"}}/>
         <button onClick={sendBroadcast} disabled={!input.trim()||sending}
           style={{background:input.trim()&&!sending?"#2AABFF":"rgba(255,255,255,0.07)",border:"none",borderRadius:12,color:input.trim()&&!sending?"#fff":"rgba(255,255,255,0.3)",cursor:input.trim()&&!sending?"pointer":"default",padding:"12px 22px",fontSize:17,transition:"all 0.2s",fontFamily:"Inter,sans-serif"}}>
           {sending?"⏳":"↑"}
@@ -2163,7 +2163,7 @@ function SkillsPage({ agents }) {
       {/* Header */}
       <div style={{ marginBottom:32 }}>
         <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>Agent Skills</h1>
-        <p style={{ fontSize:12, color:"rgba(255,255,255,0.4)", margin:0 }}>Write a skill brief and deploy it to a specific agent or broadcast to all 8. Agents receive it as a capability update.</p>
+        <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>Write a skill brief and deploy it to a specific agent or broadcast to all 8. Agents receive it as a capability update.</p>
       </div>
 
       {/* ── BRIEF BUILDER ── */}
@@ -2175,7 +2175,7 @@ function SkillsPage({ agents }) {
           </div>
           {/* Target selector */}
           <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-            <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontWeight:600, letterSpacing:0.5, whiteSpace:"nowrap" }}>Deploy to:</span>
+            <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)", fontWeight:600, letterSpacing:0.5, whiteSpace:"nowrap" }}>Deploy to:</span>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {TARGETS.map(t => {
                 const active = form.target === t;
@@ -2241,18 +2241,18 @@ function SkillsPage({ agents }) {
                       <div style={{ fontSize:14, fontWeight:600, color:"#f5f5f7", marginBottom:4, letterSpacing:-0.2 }}>{brief.title}</div>
                       <div style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
                         <span style={{ fontSize:9, color:tc, background:`${tc}12`, padding:"2px 8px", borderRadius:20, fontWeight:600 }}>{brief.target}</span>
-                        {brief.desc && <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>{brief.desc}</span>}
+                        {brief.desc && <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)" }}>{brief.desc}</span>}
                       </div>
                     </div>
                     <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-                      <span style={{ fontSize:9, color:"rgba(255,255,255,0.3)" }}>{new Date(brief.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
-                      <button onClick={e=>{e.stopPropagation();deleteBrief(brief.id);}} style={{ background:"none", border:"none", fontSize:11, color:"rgba(255,255,255,0.3)", cursor:"pointer", padding:"4px 8px", borderRadius:6 }}>Delete</button>
-                      <span style={{ fontSize:13, color:"rgba(255,255,255,0.3)", transform:isOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s", display:"inline-block" }}>▾</span>
+                      <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)" }}>{new Date(brief.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
+                      <button onClick={e=>{e.stopPropagation();deleteBrief(brief.id);}} style={{ background:"none", border:"none", fontSize:11, color:"rgba(255,255,255,0.4)", cursor:"pointer", padding:"4px 8px", borderRadius:6 }}>Delete</button>
+                      <span style={{ fontSize:13, color:"rgba(255,255,255,0.4)", transform:isOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s", display:"inline-block" }}>▾</span>
                     </div>
                   </div>
                   {isOpen && (
                     <div style={{ padding:"0 20px 20px", borderTop:"1px solid rgba(255,255,255,0.06)" }}>
-                      <div style={{ marginTop:14, background:"rgba(0,0,0,0.02)", borderRadius:10, padding:"14px 16px", fontSize:12, color:"rgba(0,0,0,0.65)", lineHeight:1.8, whiteSpace:"pre-wrap", border:"1px solid rgba(255,255,255,0.05)", fontFamily:"Inter, sans-serif" }}>{brief.content}</div>
+                      <div style={{ marginTop:14, background:"#111010", borderRadius:10, padding:"14px 16px", fontSize:12, color:"rgba(255,255,255,0.75)", lineHeight:1.8, whiteSpace:"pre-wrap", border:"1px solid rgba(255,255,255,0.05)", fontFamily:"Inter, sans-serif" }}>{brief.content}</div>
                     </div>
                   )}
                 </Card>
@@ -2264,7 +2264,7 @@ function SkillsPage({ agents }) {
         <div style={{ textAlign:"center", padding:"60px 0", opacity:0.35 }}>
           <div style={{ fontSize:48, marginBottom:14 }}>⚡</div>
           <div style={{ fontSize:15, fontWeight:600, color:"#f5f5f7", marginBottom:6 }}>No briefs deployed yet</div>
-          <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)" }}>Build your first skill brief above and deploy it to an agent.</div>
+          <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)" }}>Build your first skill brief above and deploy it to an agent.</div>
         </div>
       )}
     </div>
@@ -2311,15 +2311,15 @@ function CIDPage() {
   return (
     <>
     {variationView && (
-      <div style={{ position:"fixed", inset:0, background:"rgba(255,255,255,0.06)", zIndex:10000, overflowY:"auto", display:"flex", flexDirection:"column" }}>
+      <div style={{ position:"fixed", inset:0, background:"#111010", zIndex:10000, overflowY:"auto", display:"flex", flexDirection:"column" }}>
         {/* Header bar */}
-        <div style={{ padding:"16px 32px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", gap:16, background:"rgba(255,255,255,0.06)", position:"sticky", top:0, zIndex:1 }}>
+        <div style={{ padding:"16px 32px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", gap:16, background:"#111010", position:"sticky", top:0, zIndex:1 }}>
           <button onClick={() => setVariationView(null)}
-            style={{ background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, padding:"6px 14px", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", color:"rgba(255,255,255,0.5)", display:"flex", alignItems:"center", gap:6 }}>
+            style={{ background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, padding:"6px 14px", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", color:"rgba(255,255,255,0.6)", display:"flex", alignItems:"center", gap:6 }}>
             ← Back
           </button>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.3)", letterSpacing:2, textTransform:"uppercase" }}>Variation Breakdown</div>
+            <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:2, textTransform:"uppercase" }}>Variation Breakdown</div>
             <div style={{ fontSize:14, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif" }}>{variationView.title}</div>
           </div>
           <div style={{ fontSize:10, background:"rgba(48,209,88,0.1)", color:"#2AABFF", borderRadius:20, padding:"5px 14px", fontWeight:700, fontFamily:"Inter, sans-serif" }}>
@@ -2332,10 +2332,10 @@ function CIDPage() {
 
           {/* Original vs Variation */}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:32 }}>
-            <div style={{ background:"rgba(0,0,0,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px" }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.3)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>Original</div>
-              <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>"{variationView.hook}"</div>
-              <div style={{ marginTop:8, fontSize:11, color:"rgba(255,255,255,0.3)", fontFamily:"Inter, sans-serif" }}>{variationView.creator} · {variationView.views} views</div>
+            <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px" }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>Original</div>
+              <div style={{ fontSize:13, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>"{variationView.hook}"</div>
+              <div style={{ marginTop:8, fontSize:11, color:"rgba(255,255,255,0.4)", fontFamily:"Inter, sans-serif" }}>{variationView.creator} · {variationView.views} views</div>
             </div>
             <div style={{ background:"rgba(48,209,88,0.05)", border:"2px solid rgba(48,209,88,0.25)", borderRadius:14, padding:"20px" }}>
               <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>VitalLyfe Version</div>
@@ -2346,10 +2346,10 @@ function CIDPage() {
 
           {/* Full content breakdown */}
           <div style={{ marginBottom:28 }}>
-            <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:16, fontFamily:"Inter, sans-serif" }}>Full Content Breakdown</div>
+            <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:16, fontFamily:"Inter, sans-serif" }}>Full Content Breakdown</div>
 
             {/* Hook */}
-            <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
+            <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
                 <span style={{ fontSize:18 }}>🎣</span>
                 <div style={{ fontSize:12, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:0.5 }}>Hook</div>
@@ -2357,20 +2357,20 @@ function CIDPage() {
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:10 }}>
                 <div>
                   <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>🎤 Voice</div>
-                  <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:8, padding:"10px 14px", fontSize:13, fontWeight:600, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>"{variationView.voiceHook || variationView.variation}"</div>
+                  <div style={{ background:"#111010", borderRadius:8, padding:"10px 14px", fontSize:13, fontWeight:600, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>"{variationView.voiceHook || variationView.variation}"</div>
                 </div>
                 <div>
                   <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>📺 Text on Screen</div>
                   <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 14px", fontSize:14, fontWeight:700, color:"#fff", fontFamily:"'Courier New', monospace", letterSpacing:0.5 }}>{variationView.textHook || variationView.hook?.toUpperCase()}</div>
                 </div>
               </div>
-              <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
                 Pattern: <strong style={{color:"#f5f5f7"}}>{variationView.trigger}</strong> — opens with an immediate pattern interrupt that stops the scroll and creates a curiosity gap specific to VitalLyfe's audience.
               </div>
             </div>
 
             {/* Body */}
-            <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
+            <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
                 <span style={{ fontSize:18 }}>📝</span>
                 <div style={{ fontSize:12, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:0.5 }}>Body Copy</div>
@@ -2378,20 +2378,20 @@ function CIDPage() {
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:10 }}>
                 <div>
                   <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>🎤 Voice</div>
-                  <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.7, fontStyle:"italic" }}>{variationView.voiceBody || "Build on the hook by showing — not telling. Use authentic footage or founder moments. Keep it under 30 seconds."}</div>
+                  <div style={{ background:"#111010", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.7, fontStyle:"italic" }}>{variationView.voiceBody || "Build on the hook by showing — not telling. Use authentic footage or founder moments. Keep it under 30 seconds."}</div>
                 </div>
                 <div>
                   <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>📺 Text on Screen</div>
                   <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 14px", fontSize:13, fontWeight:700, color:"#fff", fontFamily:"'Courier New', monospace", letterSpacing:0.5 }}>{variationView.textBody || "KEY STAT OR VISUAL CUE"}</div>
                 </div>
               </div>
-              <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
                 Format: <strong style={{color:"#f5f5f7"}}>{variationView.format}</strong> — this structure drove {variationView.engagement} engagement on the original. Replicate the pacing.
               </div>
             </div>
 
             {/* CTA */}
-            <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
+            <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
                 <span style={{ fontSize:18 }}>🎯</span>
                 <div style={{ fontSize:12, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:0.5 }}>Call to Action</div>
@@ -2399,26 +2399,26 @@ function CIDPage() {
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:10 }}>
                 <div>
                   <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>🎤 Voice</div>
-                  <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>{variationView.voiceCta || "\"Follow for more on how VitalLyfe is redefining what water can do. Link in bio.\""}</div>
+                  <div style={{ background:"#111010", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>{variationView.voiceCta || "\"Follow for more on how VitalLyfe is redefining what water can do. Link in bio.\""}</div>
                 </div>
                 <div>
                   <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>📺 Text on Screen</div>
                   <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 14px", fontSize:13, fontWeight:700, color:"#fff", fontFamily:"'Courier New', monospace", letterSpacing:0.5 }}>{variationView.textCta || "LINK IN BIO 👇"}</div>
                 </div>
               </div>
-              <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
                 Soft CTA works best here — matches the authentic tone of the content. Drives follows over clicks.
               </div>
             </div>
           </div>
 
           {/* Why it worked bullets */}
-          <div style={{ background:"rgba(0,0,0,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:28 }}>
-            <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>🧠 Why The Original Worked</div>
+          <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:28 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>🧠 Why The Original Worked</div>
             {variationView.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
               <div key={i} style={{ display:"flex", gap:10, marginBottom:10, alignItems:"flex-start" }}>
                 <span style={{ fontSize:11, color:"#2AABFF", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
-                <span style={{ fontSize:13, color:"rgba(0,0,0,0.65)", lineHeight:1.6, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
+                <span style={{ fontSize:13, color:"rgba(255,255,255,0.75)", lineHeight:1.6, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
               </div>
             ))}
           </div>
@@ -2452,46 +2452,46 @@ function CIDPage() {
                 if (d.variations) setAbData(d.variations);
               } catch(e) { console.error(e); }
               setAbLoading(false);
-            }} style={{ flex:1, padding:"14px", background:"rgba(255,255,255,0.06)", color:"#f5f5f7", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", opacity: abLoading ? 0.6 : 1 }}>
+            }} style={{ flex:1, padding:"14px", background:"#111010", color:"#f5f5f7", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", opacity: abLoading ? 0.6 : 1 }}>
               {abLoading ? "Generating..." : "🎯 A/B Variations"}
             </button>
           </div>
 
           {briefData && (
-            <div style={{ marginTop:24, background:"rgba(0,0,0,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, overflow:"hidden" }}>
+            <div style={{ marginTop:24, background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, overflow:"hidden" }}>
               <div style={{ padding:"16px 20px", background:"#1d1d1f", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                 <div>
-                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>Production Brief</div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>Production Brief</div>
                   <div style={{ fontSize:14, fontWeight:700, color:"#fff", fontFamily:"Inter, sans-serif" }}>{briefData.title}</div>
                 </div>
                 <div style={{ textAlign:"right" }}>
-                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", marginBottom:2 }}>Predicted Score</div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginBottom:2 }}>Predicted Score</div>
                   <div style={{ fontSize:24, fontWeight:700, color:"#2AABFF" }}>{briefData.predicted_score}<span style={{fontSize:12}}>/100</span></div>
                 </div>
               </div>
               <div style={{ padding:"20px" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:16 }}>
                   {[["Format", briefData.format], ["Platform", briefData.platform], ["Duration", briefData.duration], ["Vibe", briefData.vibe]].map(([label, val]) => (
-                    <div key={label} style={{ background:"rgba(255,255,255,0.06)", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(255,255,255,0.07)" }}>
+                    <div key={label} style={{ background:"#111010", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(255,255,255,0.07)" }}>
                       <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", textTransform:"uppercase", letterSpacing:1, marginBottom:3 }}>{label}</div>
                       <div style={{ fontSize:11, fontWeight:600, color:"#f5f5f7" }}>{val}</div>
                     </div>
                   ))}
                 </div>
-                <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>💡 Concept</div>
+                <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
+                  <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>💡 Concept</div>
                   <div style={{ fontSize:13, color:"#f5f5f7", lineHeight:1.6 }}>{briefData.concept}</div>
                 </div>
                 {[["🎣 Hook", briefData.hook], ["📝 Body", briefData.body], ["🎯 CTA", briefData.cta]].map(([label, section]) => section && (
-                  <div key={label} style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:10 }}>{label} <span style={{color:"rgba(255,255,255,0.25)", fontWeight:400}}>· {section.timing}</span></div>
+                  <div key={label} style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
+                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:10 }}>{label} <span style={{color:"rgba(255,255,255,0.35)", fontWeight:400}}>· {section.timing}</span></div>
                     <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                      <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#f5f5f7", fontStyle:"italic" }}>🎤 "{section.voice}"</div>
+                      <div style={{ background:"#111010", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#f5f5f7", fontStyle:"italic" }}>🎤 "{section.voice}"</div>
                       <div style={{ background:"#1d1d1f", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}>📺 {section.screen_text}</div>
                       {section.broll && (
                         <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:4 }}>
                           {section.broll.map((shot, i) => (
-                            <span key={i} style={{ fontSize:10, background:"rgba(255,255,255,0.06)", borderRadius:20, padding:"3px 10px", color:"rgba(255,255,255,0.5)" }}>🎬 {shot}</span>
+                            <span key={i} style={{ fontSize:10, background:"#111010", borderRadius:20, padding:"3px 10px", color:"rgba(255,255,255,0.6)" }}>🎬 {shot}</span>
                           ))}
                         </div>
                       )}
@@ -2499,23 +2499,23 @@ function CIDPage() {
                   </div>
                 ))}
                 {briefData.shot_list && (
-                  <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:10 }}>🎬 Shot List</div>
+                  <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
+                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:10 }}>🎬 Shot List</div>
                     {briefData.shot_list.map((shot, i) => (
                       <div key={i} style={{ display:"flex", gap:10, marginBottom:8, alignItems:"flex-start" }}>
                         <span style={{ fontSize:9, color:"#fff", background:"#1d1d1f", borderRadius:"50%", width:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, flexShrink:0 }}>{i+1}</span>
-                        <span style={{ fontSize:12, color:"rgba(255,255,255,0.7)", lineHeight:1.5 }}>{shot}</span>
+                        <span style={{ fontSize:12, color:"rgba(255,255,255,0.85)", lineHeight:1.5 }}>{shot}</span>
                       </div>
                     ))}
                   </div>
                 )}
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
-                  <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px" }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>🎵 Music</div>
+                  <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px" }}>
+                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>🎵 Music</div>
                     <div style={{ fontSize:12, color:"#f5f5f7", lineHeight:1.5 }}>{briefData.music}</div>
                   </div>
-                  <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px" }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>✂️ Editing</div>
+                  <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px" }}>
+                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>✂️ Editing</div>
                     <div style={{ fontSize:12, color:"#f5f5f7", lineHeight:1.5 }}>{briefData.editing_notes}</div>
                   </div>
                 </div>
@@ -2561,35 +2561,35 @@ function CIDPage() {
 
           {abData && (
             <div style={{ marginTop:24 }}>
-              <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>🎯 A/B Variation Pack</div>
+              <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>🎯 A/B Variation Pack</div>
               {abData.map((v, i) => (
-                <div key={i} style={{ background:"rgba(255,255,255,0.06)", border:`1px solid ${i===0?"rgba(48,209,88,0.3)":"rgba(0,0,0,0.07)"}`, borderRadius:14, padding:"16px 18px", marginBottom:12 }}>
+                <div key={i} style={{ background:"#111010", border:`1px solid ${i===0?"rgba(48,209,88,0.3)":"rgba(0,0,0,0.07)"}`, borderRadius:14, padding:"16px 18px", marginBottom:12 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
                     <div style={{ width:28, height:28, borderRadius:"50%", background: i===0?"#2AABFF":i===1?"#ff9f0a":"#636366", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:"#fff", flexShrink:0 }}>
                       {v.rank}
                     </div>
                     <div style={{ flex:1 }}>
-                      <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:0.5 }}>{v.angle}</div>
+                      <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:0.5 }}>{v.angle}</div>
                     </div>
                     <div style={{ fontSize:13, fontWeight:700, color: i===0?"#2AABFF":i===1?"#ff9f0a":"#636366" }}>{v.predicted_score}/100</div>
                   </div>
                   <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:10 }}>
-                    <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#f5f5f7", fontStyle:"italic" }}>🎤 "{v.voice_hook}"</div>
+                    <div style={{ background:"#111010", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#f5f5f7", fontStyle:"italic" }}>🎤 "{v.voice_hook}"</div>
                     <div style={{ background:"#1d1d1f", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}>📺 {v.text_hook}</div>
                   </div>
-                  <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", lineHeight:1.5 }}>{v.why}</div>
+                  <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", lineHeight:1.5 }}>{v.why}</div>
                 </div>
               ))}
             </div>
           )}
 
-          <div style={{ marginTop:24, background:"rgba(0,0,0,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"16px 20px" }}>
-            <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:12, fontFamily:"Inter, sans-serif" }}>📊 Log Performance</div>
-            <p style={{ fontSize:11, color:"rgba(255,255,255,0.4)", margin:"0 0 12px", fontFamily:"Inter, sans-serif" }}>After posting, log actual results to improve future predictions.</p>
+          <div style={{ marginTop:24, background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"16px 20px" }}>
+            <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:12, fontFamily:"Inter, sans-serif" }}>📊 Log Performance</div>
+            <p style={{ fontSize:11, color:"rgba(255,255,255,0.5)", margin:"0 0 12px", fontFamily:"Inter, sans-serif" }}>After posting, log actual results to improve future predictions.</p>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:10 }}>
               {[["Views", "views", "e.g. 42K"], ["Engagement", "engagement", "e.g. 8.4%"], ["Saves", "saves", "e.g. 1.2K"]].map(([label, key, ph]) => (
                 <div key={key}>
-                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", marginBottom:4, fontFamily:"Inter, sans-serif" }}>{label}</div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginBottom:4, fontFamily:"Inter, sans-serif" }}>{label}</div>
                   <input value={perfLog[key]} onChange={e => setPerfLog(p=>({...p,[key]:e.target.value}))}
                     placeholder={ph}
                     style={{ width:"100%", padding:"8px 10px", borderRadius:8, border:"1px solid rgba(255,255,255,0.08)", fontSize:12, fontFamily:"Inter, sans-serif", boxSizing:"border-box", outline:"none" }} />
@@ -2631,16 +2631,16 @@ function CIDPage() {
     )}
 
     {videoFullscreen && selected && ReactDOM.createPortal(
-      <div style={{ position:"fixed", inset:0, background:"rgba(255,255,255,0.06)", zIndex:99999, display:"flex", flexDirection:"column" }}>
+      <div style={{ position:"fixed", inset:0, background:"#111010", zIndex:99999, display:"flex", flexDirection:"column" }}>
         {/* Header */}
         <div style={{ padding:"14px 24px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", gap:16, background:"#0f0d0e", flexShrink:0 }}>
           <button onClick={() => { setVideoFullscreen(false); setSelected(null); }}
-            style={{ background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, padding:"6px 16px", fontSize:12, fontWeight:600, cursor:"pointer", color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>
+            style={{ background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, padding:"6px 16px", fontSize:12, fontWeight:600, cursor:"pointer", color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>
             ← Back to CID
           </button>
           <div style={{ flex:1, fontSize:13, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif" }}>{selected.creator} — {selected.title}</div>
           <div style={{ display:"flex", gap:16 }}>
-            <span style={{ fontSize:12, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>👁 {selected.views}</span>
+            <span style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>👁 {selected.views}</span>
             <span style={{ fontSize:12, color:"#2AABFF", fontWeight:700, fontFamily:"Inter, sans-serif" }}>↑ {selected.engagement}</span>
           </div>
         </div>
@@ -2653,7 +2653,7 @@ function CIDPage() {
               <img src={selected.thumbnail} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity:0.75 }} />
               <a href={selected.url} target="_blank" rel="noreferrer"
                 style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none" }}>
-                <div style={{ background:"rgba(255,255,255,0.15)", border:"3px solid rgba(255,255,255,0.5)", borderRadius:"50%", width:72, height:72, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(8px)" }}>
+                <div style={{ background:"#1a1818", border:"3px solid rgba(255,255,255,0.5)", borderRadius:"50%", width:72, height:72, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(8px)" }}>
                   <span style={{ fontSize:28, marginLeft:6, color:"#fff" }}>▶</span>
                 </div>
               </a>
@@ -2665,42 +2665,42 @@ function CIDPage() {
             </div>
           </div>
           {/* RIGHT — analysis */}
-          <div style={{ flex:1, overflowY:"auto", padding:"24px 32px", background:"rgba(255,255,255,0.06)" }}>
+          <div style={{ flex:1, overflowY:"auto", padding:"24px 32px", background:"#111010" }}>
             {/* Stats */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:20 }}>
               {[["👁 Views", selected.views], ["📈 Engagement", selected.engagement], ["🎬 Format", selected.format]].map(([label, val]) => (
-                <div key={label} style={{ background:"rgba(255,255,255,0.05)", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(255,255,255,0.07)", textAlign:"center" }}>
+                <div key={label} style={{ background:"#111010", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(255,255,255,0.07)", textAlign:"center" }}>
                   <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:"Inter, sans-serif", marginBottom:3 }}>{label}</div>
                   <div style={{ fontSize:12, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif" }}>{val}</div>
                 </div>
               ))}
             </div>
             {/* Hook Detection */}
-            <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🎣 Hook Detection</div>
+            <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🎣 Hook Detection</div>
               <div style={{ marginBottom:10 }}>
-                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.3)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif" }}>🎤 Voice Hook</div>
-                <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:8, padding:"10px 12px", fontSize:12, color:"#f5f5f7", fontStyle:"italic" }}>{selected.voiceHook || `"${selected.hook}"`}</div>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif" }}>🎤 Voice Hook</div>
+                <div style={{ background:"#111010", borderRadius:8, padding:"10px 12px", fontSize:12, color:"#f5f5f7", fontStyle:"italic" }}>{selected.voiceHook || `"${selected.hook}"`}</div>
               </div>
               <div style={{ marginBottom:8 }}>
-                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.3)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif" }}>📺 Text on Video</div>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif" }}>📺 Text on Video</div>
                 <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}>{selected.textHook || selected.hook.toUpperCase()}</div>
               </div>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", fontFamily:"Inter, sans-serif" }}>⚡ Trigger: <strong style={{color:"#f5f5f7"}}>{selected.trigger}</strong></div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>⚡ Trigger: <strong style={{color:"#f5f5f7"}}>{selected.trigger}</strong></div>
             </div>
             {/* Why It Worked */}
-            <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🧠 Why It Worked</div>
+            <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🧠 Why It Worked</div>
               {selected.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
                 <div key={i} style={{ display:"flex", gap:8, marginBottom:8, alignItems:"flex-start" }}>
                   <span style={{ fontSize:10, color:"#2AABFF", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
-                  <span style={{ fontSize:12, color:"rgba(255,255,255,0.7)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
+                  <span style={{ fontSize:12, color:"rgba(255,255,255,0.85)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
                 </div>
               ))}
             </div>
             {/* Score bars */}
-            <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>📊 Engagement Score</div>
+            <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>📊 Engagement Score</div>
               {[
                 { label:"Hook Strength", score: parseInt(selected.engagement) > 10 ? 95 : parseInt(selected.engagement) > 7 ? 80 : 65 },
                 { label:"Shareability", score: parseInt(selected.engagement) > 10 ? 90 : parseInt(selected.engagement) > 7 ? 75 : 60 },
@@ -2708,10 +2708,10 @@ function CIDPage() {
               ].map(({ label, score }) => (
                 <div key={label} style={{ marginBottom:8 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                    <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>{label}</span>
+                    <span style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>{label}</span>
                     <span style={{ fontSize:11, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif" }}>{score}/100</span>
                   </div>
-                  <div style={{ height:4, background:"rgba(255,255,255,0.1)", borderRadius:4, overflow:"hidden" }}>
+                  <div style={{ height:4, background:"#161414", borderRadius:4, overflow:"hidden" }}>
                     <div style={{ width:`${score}%`, height:"100%", background: score > 80 ? "#2AABFF" : score > 65 ? "#F17130" : "#ff453a", borderRadius:4 }} />
                   </div>
                 </div>
@@ -2724,7 +2724,7 @@ function CIDPage() {
               <div style={{ marginTop:10, display:"flex", gap:6, justifyContent:"space-between", alignItems:"center" }}>
                 <div style={{ display:"flex", gap:6 }}>
                   <span style={{ fontSize:10, background:"rgba(48,209,88,0.15)", color:"#2AABFF", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>Ready to use</span>
-                  <span style={{ fontSize:10, background:"rgba(255,255,255,0.06)", color:"rgba(255,255,255,0.4)", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>{selected.format}</span>
+                  <span style={{ fontSize:10, background:"#111010", color:"rgba(255,255,255,0.5)", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>{selected.format}</span>
                 </div>
                 <button onClick={() => { setVariationView(selected); setVideoFullscreen(false); }}
                   style={{ fontSize:11, fontWeight:700, color:"#2AABFF", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif", textDecoration:"underline", padding:0 }}>
@@ -2743,9 +2743,9 @@ function CIDPage() {
       <div style={{ flex:1, overflowY:"auto", padding:"32px 32px 32px", minWidth:0 }}>
         {/* Header */}
         <div style={{ marginBottom:28 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.3)", letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>🕵️ Intelligence</div>
+          <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>🕵️ Intelligence</div>
           <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>Competitor Intel Dashboard</h1>
-          <p style={{ fontSize:13, color:"rgba(255,255,255,0.4)", margin:"8px 0 0", fontFamily:"Inter, sans-serif" }}>What's working in your space — and why. Click any post to see the breakdown.</p>
+          <p style={{ fontSize:13, color:"rgba(255,255,255,0.5)", margin:"8px 0 0", fontFamily:"Inter, sans-serif" }}>What's working in your space — and why. Click any post to see the breakdown.</p>
         </div>
 
         {/* View switcher */}
@@ -2766,7 +2766,7 @@ function CIDPage() {
               onChange={e => setCidSearch(e.target.value)}
               onKeyDown={e => e.key === "Enter" && cidSearch.trim() && setCidSearchActive(true)}
               placeholder='Search & scrape content... e.g. "hydrogen water TikTok" or "founder story wellness"'
-              style={{ flex:1, padding:"10px 16px", borderRadius:24, border:"1px solid rgba(255,255,255,0.12)", fontSize:12, fontFamily:"Inter, sans-serif", outline:"none", background:"rgba(255,255,255,0.06)", color:"#f5f5f7" }}
+              style={{ flex:1, padding:"10px 16px", borderRadius:24, border:"1px solid rgba(255,255,255,0.12)", fontSize:12, fontFamily:"Inter, sans-serif", outline:"none", background:"#111010", color:"#f5f5f7" }}
             />
             <button onClick={() => { if(cidSearch.trim()) setCidSearchActive(true); }}
               style={{ padding:"10px 20px", borderRadius:24, background:"#1d1d1f", color:"#fff", border:"none", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap" }}>
@@ -2776,8 +2776,8 @@ function CIDPage() {
           {cidSearchActive && (
             <div style={{ background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:10, padding:"10px 14px", marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
               <span style={{ fontSize:14 }}>⚡</span>
-              <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>Searching for: <strong style={{color:"#f5f5f7"}}>"{cidSearch}"</strong> — connect Apify to pull live results</span>
-              <button onClick={() => { setCidSearchActive(false); setCidSearch(""); }} style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.3)" }}>✕</button>
+              <span style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>Searching for: <strong style={{color:"#f5f5f7"}}>"{cidSearch}"</strong> — connect Apify to pull live results</span>
+              <button onClick={() => { setCidSearchActive(false); setCidSearch(""); }} style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.4)" }}>✕</button>
             </div>
           )}
           {/* Platform filter */}
@@ -2793,15 +2793,15 @@ function CIDPage() {
           {/* Mock data notice */}
           <div style={{ background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:10, padding:"10px 14px", marginBottom:24, display:"flex", alignItems:"center", gap:8 }}>
             <span style={{ fontSize:14 }}>⚡</span>
-            <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>Demo mode — connect Apify API key to pull live competitor data</span>
+            <span style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>Demo mode — connect Apify API key to pull live competitor data</span>
           </div>
 
           {/* Content grid */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:16 }}>
             {filtered.map(post => (
               <div key={post.id} onClick={() => { setSelected(post); setVideoFullscreen(true); }}
-                style={{ borderRadius:16, overflow:"hidden", border:"1px solid rgba(255,255,255,0.07)", cursor:"pointer", background:"rgba(255,255,255,0.06)", boxShadow: selected?.id===post.id ? "0 0 0 2px #1d1d1f" : "0 2px 8px rgba(0,0,0,0.06)", transition:"all 0.15s" }}>
-                <div style={{ position:"relative", paddingBottom:"125%", background:"rgba(255,255,255,0.06)" }}>
+                style={{ borderRadius:16, overflow:"hidden", border:"1px solid rgba(255,255,255,0.07)", cursor:"pointer", background:"#111010", boxShadow: selected?.id===post.id ? "0 0 0 2px #1d1d1f" : "0 2px 8px rgba(0,0,0,0.06)", transition:"all 0.15s" }}>
+                <div style={{ position:"relative", paddingBottom:"125%", background:"#111010" }}>
                   <img src={post.thumbnail} alt={post.title} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />
                   <div style={{ position:"absolute", top:8, left:8, background: platformColor[post.platform], color:"#fff", fontSize:9, fontWeight:700, padding:"3px 8px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.5 }}>
                     {post.platform}
@@ -2811,7 +2811,7 @@ function CIDPage() {
                   </div>
                 </div>
                 <div style={{ padding:"12px 14px" }}>
-                  <div style={{ fontSize:11, fontWeight:600, color:"rgba(255,255,255,0.4)", marginBottom:4, fontFamily:"Inter, sans-serif" }}>{post.creator}</div>
+                  <div style={{ fontSize:11, fontWeight:600, color:"rgba(255,255,255,0.5)", marginBottom:4, fontFamily:"Inter, sans-serif" }}>{post.creator}</div>
                   <div style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", lineHeight:1.4, fontFamily:"Inter, sans-serif", marginBottom:8 }}>{post.title}</div>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <span style={{ fontSize:10, color:"#2AABFF", fontWeight:700 }}>↑ {post.engagement}</span>
@@ -2825,7 +2825,7 @@ function CIDPage() {
 
         {cidView === "hooklab" && <>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-            <p style={{ fontSize:12, color:"rgba(255,255,255,0.4)", margin:0, fontFamily:"Inter, sans-serif" }}>Top-performing hooks, body copy, and CTAs — analyzed and ranked by Scrappy.</p>
+            <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0, fontFamily:"Inter, sans-serif" }}>Top-performing hooks, body copy, and CTAs — analyzed and ranked by Scrappy.</p>
             <button onClick={async () => {
               setHookLabLoading(true);
               try {
@@ -2840,7 +2840,7 @@ function CIDPage() {
           </div>
 
           {hookLabData.hooks.length === 0 && (
-            <div style={{ textAlign:"center", padding:"60px 20px", color:"rgba(255,255,255,0.3)", fontFamily:"Inter, sans-serif" }}>
+            <div style={{ textAlign:"center", padding:"60px 20px", color:"rgba(255,255,255,0.4)", fontFamily:"Inter, sans-serif" }}>
               <div style={{ fontSize:32, marginBottom:12 }}>🎣</div>
               <div style={{ fontSize:14, fontWeight:600, marginBottom:6 }}>Hook Lab is empty</div>
               <div style={{ fontSize:12 }}>Hit "Run Analysis" to scrape top 20 hooks and surface the best 3 for each category.</div>
@@ -2849,11 +2849,11 @@ function CIDPage() {
 
           {["hooks","bodies","ctas"].map(type => hookLabData[type]?.length > 0 && (
             <div key={type} style={{ marginBottom:32 }}>
-              <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>
+              <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>
                 {type === "hooks" ? "🎣 Top Hooks" : type === "bodies" ? "📝 Top Body Copy" : "🎯 Top CTAs"}
               </div>
               {hookLabData[type].slice(0,3).map((item, i) => (
-                <div key={i} style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"16px 18px", marginBottom:12, boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}>
+                <div key={i} style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"16px 18px", marginBottom:12, boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}>
                   <div style={{ display:"flex", alignItems:"flex-start", gap:12, marginBottom:10 }}>
                     <div style={{ width:28, height:28, borderRadius:"50%", background: i===0 ? "#FFD700" : i===1 ? "#C0C0C0" : "#CD7F32", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:"#fff", flexShrink:0 }}>
                       {i+1}
@@ -2865,7 +2865,7 @@ function CIDPage() {
                         const textField = item.text_hook || item.text_body || item.text_cta;
                         return (voiceField || textField) ? (
                           <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:4 }}>
-                            {voiceField && <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:6, padding:"6px 10px", fontSize:11, color:"rgba(0,0,0,0.6)", fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>🎤 {voiceField}</div>}
+                            {voiceField && <div style={{ background:"#111010", borderRadius:6, padding:"6px 10px", fontSize:11, color:"rgba(255,255,255,0.7)", fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>🎤 {voiceField}</div>}
                             {textField && <div style={{ background:"#1d1d1f", borderRadius:6, padding:"6px 10px", fontSize:11, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}>📺 {textField}</div>}
                           </div>
                         ) : null;
@@ -2873,11 +2873,11 @@ function CIDPage() {
                       <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:"Inter, sans-serif" }}>{item.platform} · {item.views} views · {item.engagement} eng.</div>
                     </div>
                   </div>
-                  <div style={{ background:"rgba(0,0,0,0.02)", borderRadius:8, padding:"10px 12px", marginBottom:10 }}>
+                  <div style={{ background:"#111010", borderRadius:8, padding:"10px 12px", marginBottom:10 }}>
                     {item.why.split('. ').filter(s=>s.trim()).map((pt,j) => (
                       <div key={j} style={{ display:"flex", gap:6, marginBottom:6, alignItems:"flex-start" }}>
                         <span style={{ color:"#2AABFF", fontSize:10, fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
-                        <span style={{ fontSize:11, color:"rgba(0,0,0,0.6)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{pt.trim()}{pt.trim().endsWith('.')?'':'.'}</span>
+                        <span style={{ fontSize:11, color:"rgba(255,255,255,0.7)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{pt.trim()}{pt.trim().endsWith('.')?'':'.'}</span>
                       </div>
                     ))}
                   </div>
@@ -2895,15 +2895,15 @@ function CIDPage() {
       {/* Side panel */}
       {selected && (
         <div style={{ width:420, borderLeft:"1px solid rgba(255,255,255,0.08)", background:"#111010", overflowY:"auto", flexShrink:0, display:"flex", flexDirection:"column" }}>
-          <div style={{ padding:"16px 20px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", justifyContent:"space-between", alignItems:"center", background:"rgba(255,255,255,0.06)" }}>
-            <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.2, textTransform:"uppercase" }}>Intel View</div>
-            <button onClick={() => setSelected(null)} style={{ background:"none", border:"none", fontSize:18, cursor:"pointer", color:"rgba(255,255,255,0.3)", lineHeight:1 }}>✕</button>
+          <div style={{ padding:"16px 20px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", justifyContent:"space-between", alignItems:"center", background:"#111010" }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase" }}>Intel View</div>
+            <button onClick={() => setSelected(null)} style={{ background:"none", border:"none", fontSize:18, cursor:"pointer", color:"rgba(255,255,255,0.4)", lineHeight:1 }}>✕</button>
           </div>
           <div style={{ padding:"16px 20px" }}>
             <div onClick={() => setVideoFullscreen(true)}
               style={{ borderRadius:12, overflow:"hidden", background:"#1d1d1f", aspectRatio:"9/16", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16, position:"relative", cursor:"pointer" }}>
               <img src={selected.thumbnail} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity:0.4, transition:"opacity 0.2s" }} />
-              <div style={{ position:"relative", zIndex:1, background:"rgba(255,255,255,0.15)", border:"2px solid rgba(255,255,255,0.4)", borderRadius:"50%", width:56, height:56, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(4px)" }}>
+              <div style={{ position:"relative", zIndex:1, background:"#1a1818", border:"2px solid rgba(255,255,255,0.4)", borderRadius:"50%", width:56, height:56, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(4px)" }}>
                 <span style={{ fontSize:20, marginLeft:4, color:"#fff" }}>▶</span>
               </div>
 
@@ -2914,7 +2914,7 @@ function CIDPage() {
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
               {[["👁 Views", selected.views], ["📈 Engagement", selected.engagement], ["🎬 Format", selected.format]].map(([label, val]) => (
-                <div key={label} style={{ background:"rgba(255,255,255,0.06)", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(255,255,255,0.07)", textAlign:"center" }}>
+                <div key={label} style={{ background:"#111010", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(255,255,255,0.07)", textAlign:"center" }}>
                   <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:"Inter, sans-serif", marginBottom:3 }}>{label}</div>
                   <div style={{ fontSize:12, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif" }}>{val}</div>
                 </div>
@@ -2922,33 +2922,33 @@ function CIDPage() {
             </div>
 
             {/* Hook */}
-            <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🎣 Hook Detection</div>
+            <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🎣 Hook Detection</div>
               <div style={{ marginBottom:10 }}>
-                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.3)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif", display:"flex", alignItems:"center", gap:4 }}>🎤 Voice Hook</div>
-                <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:8, padding:"10px 12px", fontSize:12, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>{selected.voiceHook || `"${selected.hook}"`}</div>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif", display:"flex", alignItems:"center", gap:4 }}>🎤 Voice Hook</div>
+                <div style={{ background:"#111010", borderRadius:8, padding:"10px 12px", fontSize:12, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>{selected.voiceHook || `"${selected.hook}"`}</div>
               </div>
               <div style={{ marginBottom:8 }}>
-                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.3)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif", display:"flex", alignItems:"center", gap:4 }}>📺 Text on Video</div>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif", display:"flex", alignItems:"center", gap:4 }}>📺 Text on Video</div>
                 <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700, letterSpacing:0.5 }}>{selected.textHook || selected.hook.toUpperCase()}</div>
               </div>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", fontFamily:"Inter, sans-serif" }}>⚡ Trigger: <strong style={{color:"#f5f5f7"}}>{selected.trigger}</strong></div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>⚡ Trigger: <strong style={{color:"#f5f5f7"}}>{selected.trigger}</strong></div>
             </div>
 
             {/* Why it worked — detailed bullets */}
-            <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🧠 Why It Worked</div>
+            <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🧠 Why It Worked</div>
               {selected.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
                 <div key={i} style={{ display:"flex", gap:8, marginBottom:8, alignItems:"flex-start" }}>
                   <span style={{ fontSize:10, color:"#2AABFF", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
-                  <span style={{ fontSize:12, color:"rgba(255,255,255,0.7)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
+                  <span style={{ fontSize:12, color:"rgba(255,255,255,0.85)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
                 </div>
               ))}
             </div>
 
             {/* Engagement score bar */}
-            <div style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>📊 Engagement Score</div>
+            <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>📊 Engagement Score</div>
               {[
                 { label:"Hook Strength", score: parseInt(selected.engagement) > 10 ? 95 : parseInt(selected.engagement) > 7 ? 80 : 65 },
                 { label:"Shareability", score: parseInt(selected.engagement) > 10 ? 90 : parseInt(selected.engagement) > 7 ? 75 : 60 },
@@ -2956,10 +2956,10 @@ function CIDPage() {
               ].map(({ label, score }) => (
                 <div key={label} style={{ marginBottom:8 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                    <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>{label}</span>
+                    <span style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>{label}</span>
                     <span style={{ fontSize:11, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif" }}>{score}/100</span>
                   </div>
-                  <div style={{ height:4, background:"rgba(255,255,255,0.1)", borderRadius:4, overflow:"hidden" }}>
+                  <div style={{ height:4, background:"#161414", borderRadius:4, overflow:"hidden" }}>
                     <div style={{ width:`${score}%`, height:"100%", background: score > 80 ? "#2AABFF" : score > 65 ? "#F17130" : "#ff453a", borderRadius:4, transition:"width 0.5s" }} />
                   </div>
                 </div>
@@ -2973,7 +2973,7 @@ function CIDPage() {
               <div style={{ marginTop:10, display:"flex", gap:6, alignItems:"center", justifyContent:"space-between" }}>
                 <div style={{ display:"flex", gap:6 }}>
                   <span style={{ fontSize:10, background:"rgba(48,209,88,0.15)", color:"#2AABFF", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>Ready to use</span>
-                  <span style={{ fontSize:10, background:"rgba(255,255,255,0.06)", color:"rgba(255,255,255,0.4)", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>{selected.format}</span>
+                  <span style={{ fontSize:10, background:"#111010", color:"rgba(255,255,255,0.5)", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>{selected.format}</span>
                 </div>
                 <button onClick={() => setVariationView(selected)}
                   style={{ fontSize:11, fontWeight:700, color:"#2AABFF", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif", textDecoration:"underline", padding:0 }}>
@@ -3240,9 +3240,9 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:8, height:8, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2s infinite" }} />
             <span style={{ fontSize:12, fontWeight:700, color:"#2AABFF", letterSpacing:0.3 }}>PREVIEW MODE</span>
-            <span style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>— You're seeing exactly what the client sees</span>
+            <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)" }}>— You're seeing exactly what the client sees</span>
           </div>
-          <button onClick={() => setPreviewMode(false)} style={{ background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:8, color:"#fff", fontSize:12, fontWeight:600, padding:"6px 16px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
+          <button onClick={() => setPreviewMode(false)} style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.15)", borderRadius:8, color:"#fff", fontSize:12, fontWeight:600, padding:"6px 16px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
             ← Exit Preview
           </button>
         </div>
@@ -3264,7 +3264,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <div style={{ fontSize:12, fontWeight:600, color: museToast.status==="error"?"#ff453a":"#ff375f" }}>
                 {museToast.status==="writing" ? `✍️ Muse is writing ${museToast.field}…` : museToast.status==="done" ? `✓ ${museToast.field === "caption" ? "Caption" : "Script"} saved` : `❌ ${museToast.msg}`}
               </div>
-              {museToast.status==="done" && <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", marginTop:3, lineHeight:1.5, maxWidth:280, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{museToast.content?.slice(0,60)}…</div>}
+              {museToast.status==="done" && <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:3, lineHeight:1.5, maxWidth:280, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{museToast.content?.slice(0,60)}…</div>}
             </div>
           </div>
         </div>
@@ -3330,10 +3330,10 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
           {/* ── COLLAPSED ── */}
           {sidebarCollapsed && (
             <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:10 }}>
-              <div style={{ width:36, height:36, borderRadius:10, background:"rgba(255,255,255,0.1)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <div style={{ width:36, height:36, borderRadius:10, background:"#161414", display:"flex", alignItems:"center", justifyContent:"center" }}>
                 <span style={{ fontSize:11, fontWeight:600, color:"#2AABFF", letterSpacing:1, fontFamily:"'Geist Mono', monospace", textTransform:"uppercase" }}>VL</span>
               </div>
-              <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.3)", cursor:"pointer", fontSize:14, padding:2, lineHeight:1 }}>›</button>
+              <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, padding:2, lineHeight:1 }}>›</button>
             </div>
           )}
 
@@ -3342,22 +3342,22 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             <div>
               {/* Row 1: icon + wordmark + collapse toggle */}
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-                <div style={{ width:36, height:36, borderRadius:10, background:"rgba(255,255,255,0.1)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <div style={{ width:36, height:36, borderRadius:10, background:"#161414", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                   <span style={{ fontSize:11, fontWeight:600, color:"#2AABFF", letterSpacing:1, fontFamily:"'Geist Mono', monospace", textTransform:"uppercase" }}>VL</span>
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:14, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.4, lineHeight:1.2 }}>War Room</div>
                   <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:3 }}>
                     <div style={{ width:5, height:5, borderRadius:"50%", background: dbStatus==="live"?"#2AABFF":dbStatus==="error"?"#ff453a":"#F17130", flexShrink:0 }} />
-                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", fontWeight:500, fontFamily:"'Geist Mono', monospace", letterSpacing:1.5, textTransform:"uppercase" }}>VitalLyfe</span>
+                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.5)", fontWeight:500, fontFamily:"'Geist Mono', monospace", letterSpacing:1.5, textTransform:"uppercase" }}>VitalLyfe</span>
                   </div>
                 </div>
-                <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.25)", cursor:"pointer", fontSize:16, padding:"2px 4px", lineHeight:1, flexShrink:0 }}>‹</button>
+                <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.35)", cursor:"pointer", fontSize:16, padding:"2px 4px", lineHeight:1, flexShrink:0 }}>‹</button>
               </div>
 
               {/* Row 2: action buttons */}
               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <button onClick={() => setPreviewMode(true)} style={{ flex:1, fontSize:10, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 0", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, textAlign:"center" }}>Client View</button>
+                <button onClick={() => setPreviewMode(true)} style={{ flex:1, fontSize:10, color:"rgba(255,255,255,0.55)", background:"#111010", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 0", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, textAlign:"center" }}>Client View</button>
                 <div style={{ position:"relative" }}>
                   <button onClick={(e) => {
                     if (!notifOpen) {
@@ -3367,7 +3367,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     setNotifOpen(o=>!o);
                     setNotifications(prev=>prev.map(n=>({...n,read:true})));
                   }}
-                    style={{ position:"relative", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontSize:12, lineHeight:1 }}>
+                    style={{ position:"relative", background:"#111010", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontSize:12, lineHeight:1 }}>
                     🔔
                     {notifications.filter(n=>!n.read).length > 0 && (
                       <span style={{ position:"absolute", top:-4, right:-4, width:14, height:14, borderRadius:"50%", background:"#ff453a", fontSize:8, fontWeight:700, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -3376,28 +3376,28 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     )}
                   </button>
                   {notifOpen && (
-                    <div ref={notifDragRef} style={{ position:"fixed", left:notifPos.x, top:notifPos.y, width:300, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.12)", zIndex:9999, overflow:"hidden" }}>
+                    <div ref={notifDragRef} style={{ position:"fixed", left:notifPos.x, top:notifPos.y, width:300, background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.12)", zIndex:9999, overflow:"hidden" }}>
                       <div
                         onMouseDown={(e) => {
                           notifDragging.current = true;
                           notifDragOffset.current = { x: e.clientX - notifPos.x, y: e.clientY - notifPos.y };
                           e.preventDefault();
                         }}
-                        style={{ padding:"10px 14px", borderBottom:"1px solid rgba(255,255,255,0.07)", fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.2, textTransform:"uppercase", cursor:"grab", userSelect:"none", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                        style={{ padding:"10px 14px", borderBottom:"1px solid rgba(255,255,255,0.07)", fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", cursor:"grab", userSelect:"none", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                         <span>⠿ Client Activity</span>
-                        <span onClick={() => setNotifOpen(false)} style={{ cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.3)", fontWeight:400 }}>✕</span>
+                        <span onClick={() => setNotifOpen(false)} style={{ cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.4)", fontWeight:400 }}>✕</span>
                       </div>
                       {notifications.length === 0 && (
-                        <div style={{ padding:"20px 14px", fontSize:11, color:"rgba(255,255,255,0.3)", textAlign:"center" }}>No client actions yet</div>
+                        <div style={{ padding:"20px 14px", fontSize:11, color:"rgba(255,255,255,0.4)", textAlign:"center" }}>No client actions yet</div>
                       )}
                       {notifications.slice(0,10).map(n => (
                         <div key={n.id} style={{ padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,0.04)", display:"flex", gap:10, alignItems:"flex-start" }}>
                           <span style={{ fontSize:14, flexShrink:0 }}>{n.type==="approved" ? "✅" : "🔄"}</span>
                           <div style={{ flex:1 }}>
                             <div style={{ fontSize:11, fontWeight:600, color:"#f5f5f7", lineHeight:1.4 }}>{n.type==="approved" ? "Approved" : "Revisions requested"}</div>
-                            <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:2 }}>{n.item?.title}</div>
+                            <div style={{ fontSize:10, color:"rgba(255,255,255,0.6)", marginTop:2 }}>{n.item?.title}</div>
                             {n.item?.client_note && <div style={{ fontSize:9, color:"#ff453a", marginTop:3, fontStyle:"italic" }}>"{n.item.client_note}"</div>}
-                            <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginTop:3 }}>{new Date(n.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+                            <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)", marginTop:3 }}>{new Date(n.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
                           </div>
                         </div>
                       ))}
@@ -3405,7 +3405,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                   )}
                 </div>
                 {onSignOut && (
-                  <button onClick={onSignOut} style={{ fontSize:10, color:"rgba(255,255,255,0.3)", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500 }}>Out</button>
+                  <button onClick={onSignOut} style={{ fontSize:10, color:"rgba(255,255,255,0.4)", background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500 }}>Out</button>
                 )}
               </div>
             </div>
@@ -3415,7 +3415,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {!sidebarCollapsed && (
           <div style={{ padding:"8px 16px 6px", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", alignItems:"center", gap:5 }}>
             <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite", flexShrink:0 }} />
-            <span style={{ fontSize:10, color:"rgba(255,255,255,0.25)", fontWeight:400 }}>{liveCount} agents active</span>
+            <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontWeight:400 }}>{liveCount} agents active</span>
           </div>
         )}
         <div style={{ flex:1, overflowY:"auto", padding:"8px 0" }}>
@@ -3458,7 +3458,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <div style={{ position:"absolute", bottom:-60, left:-20, width:300, height:300, borderRadius:"50%", background:"radial-gradient(circle, rgba(241,113,48,0.08) 0%, transparent 70%)", pointerEvents:"none" }} />
               <div style={{ position:"absolute", top:30, left:"42%", width:220, height:220, borderRadius:"50%", background:"radial-gradient(circle, rgba(42,171,255,0.06) 0%, transparent 70%)", pointerEvents:"none" }} />
               <div style={{ position:"relative", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center" }}>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", fontWeight:600, marginBottom:20, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace" }}>Cloud Scenic × VitalLyfe</div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontWeight:600, marginBottom:20, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace" }}>Cloud Scenic × VitalLyfe</div>
                 <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:58, fontWeight:400, fontStyle:"italic", color:"#fff", margin:0, letterSpacing:-1, lineHeight:1 }}>War Room.</h1>
                 <p style={{ fontSize:13, color:"rgba(255,255,255,0.28)", margin:"14px 0 0", fontWeight:400, letterSpacing:0.1 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})} · {content.length} pieces in pipeline</p>
                 <div style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(48,209,88,0.12)", border:"1px solid rgba(48,209,88,0.22)", borderRadius:20, padding:"8px 18px", marginTop:20 }}>
@@ -3488,7 +3488,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             <div style={{ marginBottom:44 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:22 }}>
                 <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:26, fontWeight:400, fontStyle:"italic", color:"#f5f5f7", margin:0, letterSpacing:-0.5 }}>The Team</h2>
-                <span style={{ fontSize:11, color:"rgba(0,0,0,0.28)", fontWeight:400 }}>8 agents · {liveCount} active</span>
+                <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", fontWeight:400 }}>8 agents · {liveCount} active</span>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12 }}>
                 {agents.map(agent => <AgentCard key={agent.id} agent={agent} selected={selectedAgent?.id===agent.id} onClick={() => setSelectedAgent(selectedAgent?.id===agent.id?null:agent)} />)}
@@ -3506,11 +3506,11 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                       <div style={{ fontSize:11, color:selectedAgent.color, fontWeight:500, marginTop:3 }}>{selectedAgent.role} · {selectedAgent.type}</div>
                     </div>
                   </div>
-                  <button onClick={() => setSelectedAgent(null)} style={{ background:"rgba(255,255,255,0.07)", border:"none", color:"rgba(255,255,255,0.3)", cursor:"pointer", fontSize:14, borderRadius:10, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+                  <button onClick={() => setSelectedAgent(null)} style={{ background:"#111010", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, borderRadius:10, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
                 </div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                   {AGENT_TASKS[selectedAgent.name].slice(0,5).map((t,i) => (
-                    <div key={i} style={{ fontSize:11, color:"rgba(0,0,0,0.55)", padding:"6px 12px", background:"rgba(255,255,255,0.07)", borderRadius:20, fontWeight:400 }}>{t}</div>
+                    <div key={i} style={{ fontSize:11, color:"rgba(255,255,255,0.65)", padding:"6px 12px", background:"#111010", borderRadius:20, fontWeight:400 }}>{t}</div>
                   ))}
                 </div>
               </div>
@@ -3545,7 +3545,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>📸</div>
               <div>
                 <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>Instagram</h1>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:2 }}>@vitallyfe · {igItems.length} pieces in pipeline</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>@vitallyfe · {igItems.length} pieces in pipeline</div>
               </div>
               <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                 {["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"].map(s => {
@@ -3579,7 +3579,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#010101,#ff0050)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>♪</div>
               <div>
                 <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>TikTok</h1>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:2 }}>@vitallyfe · {ttItems.length} pieces in pipeline</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>@vitallyfe · {ttItems.length} pieces in pipeline</div>
               </div>
             </div>
             <ContentPipelineBoard title="TikTok Pipeline" icon="🎵"
@@ -3598,7 +3598,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#ff0000,#cc0000)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>▷</div>
               <div>
                 <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>YouTube</h1>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:2 }}>VitalLyfe · {ytItems.length} pieces · Long-form & Shorts</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>VitalLyfe · {ytItems.length} pieces · Long-form & Shorts</div>
               </div>
             </div>
             <ContentPipelineBoard title="Production Pipeline" icon="🎬"
@@ -3619,20 +3619,20 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             if (trackerSearch && !item.title.toLowerCase().includes(trackerSearch.toLowerCase())) return false;
             return true;
           });
-          const selStyle = { background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 12px", fontSize:12, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif", cursor:"pointer", appearance:"none" };
+          const selStyle = { background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 12px", fontSize:12, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif", cursor:"pointer", appearance:"none" };
           return (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
               <div>
                 <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>Content Tracker</h1>
-                <p style={{ fontSize:12, color:"rgba(255,255,255,0.4)", margin:0 }}>{filtered.length} of {content.length} pieces · Click any row to edit</p>
+                <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>{filtered.length} of {content.length} pieces · Click any row to edit</p>
               </div>
               <button onClick={handleAddNew} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>+ Add Content</button>
             </div>
             {/* Search + Filter Bar */}
             <div style={{ display:"flex", gap:10, marginBottom:20, flexWrap:"wrap" }}>
               <input value={trackerSearch} onChange={e=>setTrackerSearch(e.target.value)} placeholder="Search by title…"
-                style={{ flex:1, minWidth:180, background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 14px", fontSize:12, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif" }} />
+                style={{ flex:1, minWidth:180, background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 14px", fontSize:12, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif" }} />
               <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={selStyle}>
                 <option value="">All Statuses</option>
                 {STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
@@ -3648,7 +3648,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                 <option value="youtube">YouTube</option>
               </select>
               {(trackerSearch||filterStatus||filterPillar||filterPlatform) && (
-                <button onClick={()=>{setTrackerSearch("");setFilterStatus("");setFilterPillar("");setFilterPlatform("");}} style={{ fontSize:11, color:"rgba(255,255,255,0.4)", background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>✕ Clear</button>
+                <button onClick={()=>{setTrackerSearch("");setFilterStatus("");setFilterPillar("");setFilterPlatform("");}} style={{ fontSize:11, color:"rgba(255,255,255,0.5)", background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>✕ Clear</button>
               )}
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:24 }}>
@@ -3663,7 +3663,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                 ))}
               </div>
               {filtered.length === 0 && (
-                <div style={{ padding:"32px", textAlign:"center", color:"rgba(255,255,255,0.3)", fontSize:12 }}>No items match your filters.</div>
+                <div style={{ padding:"32px", textAlign:"center", color:"rgba(255,255,255,0.4)", fontSize:12 }}>No items match your filters.</div>
               )}
               {filtered.map((item, i) => {
                 const sc = STATUS_COLOR[item.status] || "#999";
@@ -3683,13 +3683,13 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     <div style={{ padding:"11px 14px", display:"flex", alignItems:"center" }}>
                       <span style={{ fontSize:10, fontWeight:700, color:ptColor, background:`${ptColor}15`, padding:"2px 7px", borderRadius:6 }}>{ptLabel}</span>
                     </div>
-                    <div style={{ fontSize:11, color:"rgba(0,0,0,0.55)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.campaign}</div>
-                    <div style={{ fontSize:11, color:"rgba(0,0,0,0.55)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.pillar}</div>
+                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.65)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.campaign}</div>
+                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.65)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.pillar}</div>
                     <div style={{ padding:"11px 14px", display:"flex", alignItems:"center" }}>
                       <span style={{ fontSize:9, fontWeight:600, color:sc, background:`${sc}15`, padding:"3px 8px", borderRadius:20, whiteSpace:"nowrap" }}>{item.status}</span>
                     </div>
-                    <div style={{ fontSize:11, color:"rgba(0,0,0,0.45)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.format}</div>
-                    <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", padding:"11px 10px", display:"flex", alignItems:"center" }}>{item.publish_date || "—"}</div>
+                    <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.format}</div>
+                    <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", padding:"11px 10px", display:"flex", alignItems:"center" }}>{item.publish_date || "—"}</div>
                     <div style={{ padding:"8px 12px", display:"flex", alignItems:"center", gap:5 }}>
                       {needsCaption && <button onClick={() => handleMuseWrite(item, "caption")} style={{ fontSize:9, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}>✍️ Cap</button>}
                       {needsScript && <button onClick={() => handleMuseWrite(item, "script")} style={{ fontSize:9, fontWeight:700, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}>✍️ Script</button>}
@@ -3707,7 +3707,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {activeNav === "taskboard" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
             <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:6, letterSpacing:-1 }}>Task Board</h1>
-            <p style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:24 }}>Tasks auto-advance every ~20s · Add tasks to the backlog below</p>
+            <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", marginBottom:24 }}>Tasks auto-advance every ~20s · Add tasks to the backlog below</p>
             <OpsBoard />
           </div>
         )}
@@ -3726,14 +3726,14 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
           <div style={{ animation:"fadeIn 0.4s ease" }}>
             <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28 }}>
               <div>
-                <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", letterSpacing:2, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Standard Operating Procedure</div>
+                <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)", letterSpacing:2, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Standard Operating Procedure</div>
                 <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>{VITAL_LYFE_SOP.title}</h1>
-                <div style={{ fontSize:13, color:"rgba(0,0,0,0.44)", marginTop:5 }}>{VITAL_LYFE_SOP.subtitle} · {VITAL_LYFE_SOP.version}</div>
+                <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", marginTop:5 }}>{VITAL_LYFE_SOP.subtitle} · {VITAL_LYFE_SOP.version}</div>
               </div>
               <Card style={{ padding:"12px 16px", textAlign:"center" }}>
                 <div style={{ fontSize:9, color:"rgba(48,209,88,0.6)", fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>Agents Trained On</div>
                 <div style={{ fontSize:24, fontWeight:700, color:"#2AABFF" }}>4</div>
-                <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)", marginTop:2 }}>Artgrid · Muse · Overseer · Scrappy</div>
+                <div style={{ fontSize:9, color:"rgba(255,255,255,0.5)", marginTop:2 }}>Artgrid · Muse · Overseer · Scrappy</div>
               </Card>
             </div>
             <Card style={{ padding:"16px 20px", marginBottom:24, borderLeft:"3px solid #2AABFF", background:"rgba(48,209,88,0.06)" }}>
@@ -3750,11 +3750,11 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                   const c = colors[i];
                   return (
                     <Card key={step.num} style={{ padding:"18px 22px", display:"grid", gridTemplateColumns:"52px 1fr", gap:16, alignItems:"flex-start" }}>
-                      <div style={{ fontSize:28, fontWeight:800, color:"rgba(0,0,0,0.06)", letterSpacing:-1, lineHeight:1 }}>{step.num}</div>
+                      <div style={{ fontSize:28, fontWeight:800, color:"rgba(255,255,255,0.08)", letterSpacing:-1, lineHeight:1 }}>{step.num}</div>
                       <div>
                         <div style={{ fontSize:9, color:c, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>{step.phase}</div>
                         <div style={{ fontSize:14, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.3, marginBottom:8 }}>{step.title}</div>
-                        <div style={{ fontSize:12, color:"rgba(0,0,0,0.48)", lineHeight:1.7, marginBottom:12 }}>{step.desc}</div>
+                        <div style={{ fontSize:12, color:"rgba(255,255,255,0.55)", lineHeight:1.7, marginBottom:12 }}>{step.desc}</div>
                         <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                           {step.tags.map(tag => <span key={tag} style={{ fontSize:9, color:c, background:`${c}12`, padding:"3px 9px", borderRadius:20, fontWeight:600, border:`1px solid ${c}20` }}>{tag}</span>)}
                         </div>
@@ -3769,8 +3769,8 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                 <h3 style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", margin:"0 0 14px", letterSpacing:1.5, textTransform:"uppercase" }}>Tools</h3>
                 {VITAL_LYFE_SOP.tools.map((t,i) => (
                   <div key={t} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                    <div style={{ width:24, height:24, borderRadius:7, background:"rgba(255,255,255,0.07)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, color:"rgba(255,255,255,0.4)", fontWeight:700 }}>{String(i+1).padStart(2,"0")}</div>
-                    <span style={{ fontSize:12, color:"rgba(0,0,0,0.65)", fontWeight:500 }}>{t}</span>
+                    <div style={{ width:24, height:24, borderRadius:7, background:"#111010", display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, color:"rgba(255,255,255,0.5)", fontWeight:700 }}>{String(i+1).padStart(2,"0")}</div>
+                    <span style={{ fontSize:12, color:"rgba(255,255,255,0.75)", fontWeight:500 }}>{t}</span>
                   </div>
                 ))}
               </Card>
@@ -3781,7 +3781,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                   return (
                     <div key={p} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
                       <div style={{ width:8, height:8, borderRadius:"50%", background:c, flexShrink:0 }} />
-                      <span style={{ fontSize:12, color:"rgba(0,0,0,0.65)", fontWeight:500 }}>{p}</span>
+                      <span style={{ fontSize:12, color:"rgba(255,255,255,0.75)", fontWeight:500 }}>{p}</span>
                     </div>
                   );
                 })}
@@ -3793,7 +3793,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                   return (
                     <div key={p} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
                       <div style={{ width:8, height:8, borderRadius:2, background:c, flexShrink:0 }} />
-                      <span style={{ fontSize:12, color:"rgba(0,0,0,0.65)", fontWeight:500 }}>{p}</span>
+                      <span style={{ fontSize:12, color:"rgba(255,255,255,0.75)", fontWeight:500 }}>{p}</span>
                     </div>
                   );
                 })}
