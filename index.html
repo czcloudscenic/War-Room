@@ -1942,8 +1942,8 @@ function AdROIHub() {
           const r=Number(roi(c)); const roas_=roas(c); const rc=roiColor(r);
           const statusColor = c.status==="Active"?"#2AABFF":c.status==="Paused"?"#ff9f0a":"rgba(0,0,0,0.3)";
           return (
-            <div key={c.id} style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr",borderBottom:`1px solid rgba(0,0,0,0.04)`,background:i%2===0?"#fff":"rgba(0,0,0,0.01)",transition:"background 0.15s"}}
-              onMouseEnter={e=>e.currentTarget.style.background="#f8f9ff"} onMouseLeave={e=>e.currentTarget.style.background=i%2===0?"#fff":"rgba(0,0,0,0.01)"}>
+            <div key={c.id} style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr",borderBottom:`1px solid rgba(255,255,255,0.05)`,background:"#111010",transition:"background 0.15s"}}
+              onMouseEnter={e=>e.currentTarget.style.background="rgba(42,171,255,0.06)"} onMouseLeave={e=>e.currentTarget.style.background="#111010"}>
               <div style={{padding:"13px 14px"}}>
                 <div style={{fontSize:12,fontWeight:600,color:"#f5f5f7",marginBottom:3}}>{c.name}</div>
                 <span style={{fontSize:9,fontWeight:600,color:statusColor,background:`${statusColor}15`,padding:"1px 7px",borderRadius:20}}>{c.status}</span>
@@ -3671,9 +3671,9 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                 const needsScript = item.format === "Reel" && (!item.script || item.script.length < 10);
                 return (
                   <div key={item.id}
-                    style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr 0.7fr auto", borderBottom:`1px solid rgba(255,255,255,0.05)`, transition:"background 0.15s", background:i%2===0?"#111010":"#0f0d0e" }}
+                    style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr 0.7fr auto", borderBottom:`1px solid rgba(255,255,255,0.05)`, transition:"background 0.15s", background:"#111010" }}
                     onMouseEnter={e => e.currentTarget.style.background="rgba(42,171,255,0.06)"}
-                    onMouseLeave={e => e.currentTarget.style.background=i%2===0?"#111010":"#0f0d0e"}>
+                    onMouseLeave={e => e.currentTarget.style.background="#111010"}>
                     <div onClick={() => setEditingItem(item)} style={{ fontSize:12, color:"#f5f5f7", fontWeight:500, padding:"11px 14px", lineHeight:1.3, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
                       {item.client_note && <span title={item.client_note} style={{ fontSize:8, color:"#ff453a", background:"rgba(255,69,58,0.1)", padding:"1px 5px", borderRadius:4, fontWeight:700, whiteSpace:"nowrap" }}>CLIENT NOTE</span>}
                       {item.title}
