@@ -8,7 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -83,7 +83,7 @@
       const STATUS_ORDER = ["Need Copy Approval","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"];
       const STATUS_COLOR = {
         "Need Copy Approval":"#3b82f6","Need Content Approval":"#ff453a",
-        "Needs Revisions":"#f97316","Approved":"#30d158",
+        "Needs Revisions":"#f97316","Approved":"#2AABFF",
         "Ready For Schedule":"#8b5cf6","Scheduled":"#64d2ff",
         "Ready For Copy Creation":"#f59e0b","Ready For Content Creation":"#10b981",
       };
@@ -128,7 +128,7 @@
           <div style={{ maxWidth:900, margin:"0 auto", padding:"32px 24px" }}>
             {/* Stats */}
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:32 }}>
-              {[["Needs Review", pending.length, "#ff9f0a"], ["Approved", approved.length, "#30d158"], ["Scheduled", scheduled.length, "#64d2ff"]].map(([label,val,color])=>(
+              {[["Needs Review", pending.length, "#ff9f0a"], ["Approved", approved.length, "#2AABFF"], ["Scheduled", scheduled.length, "#64d2ff"]].map(([label,val,color])=>(
                 <div key={label} style={{ background:"#fff", border:"1px solid #ebebeb", borderRadius:14, padding:"20px 22px" }}>
                   <div style={{ fontSize:28, fontWeight:700, color, letterSpacing:-1 }}>{val}</div>
                   <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", fontWeight:600, marginTop:4 }}>{label}</div>
@@ -158,7 +158,7 @@
                           </div>
                           <div style={{ display:"flex", gap:8, flexShrink:0 }}>
                             <button onClick={()=>setReviseOpen(isRevOpen?null:item.id)} style={{ fontSize:11, fontWeight:600, color:"#ff453a", background:"rgba(255,69,58,0.08)", border:"1px solid rgba(255,69,58,0.2)", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Request Revisions</button>
-                            <button onClick={()=>approve(item)} style={{ fontSize:11, fontWeight:600, color:"#fff", background:"#30d158", border:"none", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Approve ✓</button>
+                            <button onClick={()=>approve(item)} style={{ fontSize:11, fontWeight:600, color:"#fff", background:"#2AABFF", border:"none", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Approve ✓</button>
                           </div>
                         </div>
                         {isRevOpen && (
@@ -191,7 +191,7 @@
                       </div>
                       <span style={{ fontSize:9, color:c, background:`${c}12`, padding:"3px 8px", borderRadius:20, fontWeight:700, whiteSpace:"nowrap" }}>{item.status}</span>
                       {["Need Copy Approval","Need Content Approval"].includes(item.status) && (
-                        <button onClick={()=>approve(item)} style={{ fontSize:10, fontWeight:700, color:"#30d158", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:7, padding:"5px 10px", cursor:"pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap" }}>Approve</button>
+                        <button onClick={()=>approve(item)} style={{ fontSize:10, fontWeight:700, color:"#2AABFF", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:7, padding:"5px 10px", cursor:"pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap" }}>Approve</button>
                       )}
                       {!["Need Copy Approval","Need Content Approval"].includes(item.status) && <div style={{width:60}}/>}
                     </div>
@@ -239,7 +239,7 @@
 
       if (checking) return (
         <div style={{ minHeight:"100vh", background:"#0a0a0f", display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <div style={{ width:6, height:6, borderRadius:"50%", background:"#30d158", animation:"livePulse 1.5s ease-in-out infinite" }} />
+          <div style={{ width:6, height:6, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 1.5s ease-in-out infinite" }} />
         </div>
       );
       if (!session) return <LoginScreen onLogin={handleLogin} />;
@@ -251,7 +251,7 @@
 
 const fontLink = document.createElement("link");
 fontLink.rel = "stylesheet";
-fontLink.href = "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital@1&display=swap";
+fontLink.href = "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap";
 document.head.appendChild(fontLink);
 
 // ─── SOP DATA ────────────────────────────────────────────────────────────────
@@ -326,7 +326,7 @@ const AGENT_TASKS = {
   Scrappy: ["Scraping r/wellness: top posts this week", "Pulling HN trending — startup + water tech", "Scanning TikTok audio trends for hooks", "Cross-referencing Muse's last calendar", "Flagging viral angles for hydration niche", "Surfacing competitor content gaps", "Handing off trend brief to Muse ✓"],
 };
 const AGENTS_BASE = [
-  { id:1, name:"Sean", role:"Commander", type:"Orchestrator", color:"#30d158", grad:"linear-gradient(135deg,#1a4028,#0d2018)", taskIdx:0 },
+  { id:1, name:"Sean", role:"Commander", type:"Orchestrator", color:"#2AABFF", grad:"linear-gradient(135deg,#1a4028,#0d2018)", taskIdx:0 },
   { id:2, name:"Lacey", role:"Runner", type:"Executor", color:"#ff9f0a", grad:"linear-gradient(135deg,#3d2800,#1e1400)", taskIdx:2 },
   { id:3, name:"Ali", role:"Developer", type:"Builder", color:"#0a84ff", grad:"linear-gradient(135deg,#001a3d,#000d20)", taskIdx:0 },
   { id:4, name:"Sam", role:"Monitor", type:"Security", color:"#ffd60a", grad:"linear-gradient(135deg,#2d2500,#181200)", taskIdx:0 },
@@ -335,7 +335,7 @@ const AGENTS_BASE = [
   { id:7, name:"Overseer", role:"SOP Guardian", type:"Compliance", color:"#64d2ff", grad:"linear-gradient(135deg,#002040,#001020)", taskIdx:0 },
   { id:8, name:"Scrappy", role:"Trend Scout", type:"Research", color:"#5e5ce6", grad:"linear-gradient(135deg,#0f0e35,#080718)", taskIdx:0 },
 ];
-const ACTION_COLORS = { route:"#30d158", complete:"#30d158", deploy:"#0a84ff", research:"#bf5af2", execute:"#ff9f0a", alert:"#ff453a", success:"#30d158", check:"#64d2ff", optimize:"#0a84ff", schedule:"#ff375f", brief:"#bf5af2", publish:"#30d158", secure:"#ffd60a", metric:"#ff9f0a", spawn:"#64d2ff" };
+const ACTION_COLORS = { route:"#2AABFF", complete:"#2AABFF", deploy:"#0a84ff", research:"#bf5af2", execute:"#ff9f0a", alert:"#ff453a", success:"#2AABFF", check:"#64d2ff", optimize:"#0a84ff", schedule:"#ff375f", brief:"#bf5af2", publish:"#2AABFF", secure:"#ffd60a", metric:"#ff9f0a", spawn:"#64d2ff" };
 const ACTIVITY_POOL = [
   { agent:"Scrappy", action:"r/wellness top posts scraped — 12 signals found", type:"research" },
   { agent:"Scrappy", action:"trend brief handed to Muse — 7 angles flagged", type:"brief" },
@@ -386,7 +386,7 @@ const STATUS_COLOR = {
   "Ready For Content Creation": "#10b981",
   "Need Content Approval":      "#ff453a",
   "Needs Revisions":            "#f97316",
-  "Approved":                   "#30d158",
+  "Approved":                   "#2AABFF",
   "Ready For Schedule":         "#8b5cf6",
   "Scheduled":                  "#64d2ff",
   "Scrapped":                   "#ff453a",
@@ -539,7 +539,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
       <div onClick={e => e.stopPropagation()} style={{ background:"#fff", borderRadius:20, width:"100%", maxWidth:660, maxHeight:"92vh", overflowY:"auto", padding:"32px 36px", boxShadow:"0 24px 80px rgba(0,0,0,0.18)", fontFamily:"Inter, sans-serif" }}>
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
-          <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontStyle:"italic", fontSize:26, fontWeight:400, color:"#0f0f1a", margin:0 }}>{isNew ? "New Content" : "Edit Content"}</h2>
+          <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:"italic", fontSize:26, fontWeight:400, color:"#0f0f1a", margin:0 }}>{isNew ? "New Content" : "Edit Content"}</h2>
           <button onClick={onClose} style={{ background:"none", border:"none", fontSize:20, color:"rgba(0,0,0,0.35)", cursor:"pointer", lineHeight:1, padding:4 }}>×</button>
         </div>
 
@@ -674,7 +674,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
                   <div key={f.path} style={{ display:"flex", alignItems:"center", gap:10, background:"#fff", border:"1px solid #ebebeb", borderRadius:8, padding:"8px 12px" }}>
                     <span style={{ fontSize:16 }}>{isVideo(f) ? "🎬" : isImage(f) ? "🖼" : "📄"}</span>
                     <span style={{ fontSize:12, color:"#0f0f1a", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontWeight:500 }}>{f.name}</span>
-                    <button onClick={() => setPreviewFile(f)} style={{ fontSize:10, color:"#0a84ff", background:"rgba(10,132,255,0.07)", border:"1px solid rgba(10,132,255,0.2)", borderRadius:5, padding:"2px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:600, whiteSpace:"nowrap" }}>👁 Preview</button>
+                    <button onClick={() => setPreviewFile(f)} style={{ fontSize:10, color:"#0a84ff", background:"rgba(42,171,255,0.06)", border:"1px solid rgba(10,132,255,0.2)", borderRadius:5, padding:"2px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:600, whiteSpace:"nowrap" }}>👁 Preview</button>
                     <button onClick={() => removeFile(f)} style={{ fontSize:11, color:"#ff453a", background:"none", border:"none", cursor:"pointer", padding:"2px 6px", borderRadius:5, fontFamily:"Inter, sans-serif" }}>Remove</button>
                   </div>
                 ))}
@@ -688,7 +688,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
                 style={{ fontSize:12, fontWeight:600, color:"#0f0f1a", background:"#fff", border:"1px solid #e0e0e0", borderRadius:8, padding:"8px 16px", cursor:uploading?"not-allowed":"pointer", fontFamily:"Inter, sans-serif" }}>
                 {uploading ? "Uploading…" : "+ Upload File"}
               </button>
-              {uploadMsg && <span style={{ fontSize:11, color: uploadMsg.startsWith("✓") ? "#30d158" : "#ff453a" }}>{uploadMsg}</span>}
+              {uploadMsg && <span style={{ fontSize:11, color: uploadMsg.startsWith("✓") ? "#2AABFF" : "#ff453a" }}>{uploadMsg}</span>}
               {!uploadMsg && <span style={{ fontSize:10, color:"rgba(0,0,0,0.3)" }}>Video, image, PDF, PSD, Figma</span>}
             </div>
           </div>
@@ -756,7 +756,7 @@ function AgentAvatar({ agent, size=40 }) {
   return (
     <div style={{ position:"relative", width:size, height:size, flexShrink:0 }}>
       <div style={{ width:size, height:size, borderRadius:size*0.3, background:agent.grad, border:`1.5px solid ${agent.color}40`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.38, fontWeight:700, color:agent.color, boxShadow:beat?`0 0 12px ${agent.color}60`:"none", transition:"box-shadow 0.3s" }}>{agent.name[0]}</div>
-      <div style={{ position:"absolute", bottom:-1, right:-1, width:size*0.26, height:size*0.26, borderRadius:"50%", background:"#30d158", border:`2px solid #f5f5f7`, animation:"livePulse 2.5s ease-in-out infinite" }} />
+      <div style={{ position:"absolute", bottom:-1, right:-1, width:size*0.26, height:size*0.26, borderRadius:"50%", background:"#2AABFF", border:`2px solid #f5f5f7`, animation:"livePulse 2.5s ease-in-out infinite" }} />
     </div>
   );
 }
@@ -788,7 +788,7 @@ function MetricCard({ label, value, delta, color, large, sub }) {
       <div style={{ padding: large ? "36px 32px" : "22px 24px", height:"100%", display:"flex", flexDirection:"column", justifyContent: large ? "flex-end" : "flex-start" }}>
         {large && <div style={{ flex:1 }} />}
         <div style={{ fontSize:10, color:"rgba(0,0,0,0.32)", fontWeight:600, textTransform:"uppercase", letterSpacing:1.2, marginBottom:10 }}>{label}</div>
-        <div style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize: large ? 72 : 40, fontWeight:700, color:"#1d1d1f", letterSpacing: large ? -4 : -2, lineHeight:1 }}>{v.toLocaleString()}</div>
+        <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: large ? 72 : 40, fontWeight:700, color:"#1d1d1f", letterSpacing: large ? -4 : -2, lineHeight:1 }}>{v.toLocaleString()}</div>
         {(large || sub) && <div style={{ fontSize:11, color:"rgba(0,0,0,0.28)", marginTop:8 }}>{sub || "pieces in pipeline"}</div>}
       </div>
     </div>
@@ -811,7 +811,7 @@ function AgentCard({ agent, selected, onClick }) {
         <AgentAvatar agent={agent} size={36} />
         <div style={{ width:6, height:6, borderRadius:"50%", background: selected ? agent.color : "rgba(0,0,0,0.12)", marginTop:4, flexShrink:0, transition:"background 0.2s" }} />
       </div>
-      <div style={{ fontFamily:"'Playfair Display', Georgia, serif", fontWeight:700, fontStyle: selected ? "italic" : "normal", color:"#1d1d1f", fontSize:17, letterSpacing:-0.5, marginBottom:4, transition:"font-style 0.2s" }}>{agent.name}</div>
+      <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontWeight:700, fontStyle: selected ? "italic" : "normal", color:"#1d1d1f", fontSize:17, letterSpacing:-0.5, marginBottom:4, transition:"font-style 0.2s" }}>{agent.name}</div>
       <div style={{ fontSize:10, color:agent.color, fontWeight:500, marginBottom:16, letterSpacing:0.2 }}>{agent.role}</div>
       <TypingTask text={task} color="rgba(0,0,0,0.45)" />
       <div style={{ marginTop:14, height:3, background:"rgba(0,0,0,0.06)", borderRadius:3 }}>
@@ -846,7 +846,7 @@ function OpsBoard() {
     setOps(prev => ({ ...prev, backlog:[...prev.backlog,{ id:Date.now().toString(), title:newTask, agent:"Unassigned" }] }));
     setNewTask("");
   };
-  const cols = [{ key:"backlog", label:"Backlog", color:"rgba(0,0,0,0.4)" }, { key:"inProgress", label:"In Progress", color:"#ff9f0a" }, { key:"completed", label:"Completed", color:"#30d158" }];
+  const cols = [{ key:"backlog", label:"Backlog", color:"rgba(0,0,0,0.4)" }, { key:"inProgress", label:"In Progress", color:"#ff9f0a" }, { key:"completed", label:"Completed", color:"#2AABFF" }];
   return (
     <div style={{ display:"flex", gap:12 }}>
       {cols.map(col => (
@@ -866,7 +866,7 @@ function OpsBoard() {
             {col.key==="backlog" && (
               <div style={{ display:"flex", gap:6 }}>
                 <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key==="Enter" && addTask()} placeholder="Add task..." style={{ flex:1, background:"rgba(0,0,0,0.04)", border:"1px solid rgba(0,0,0,0.1)", borderRadius:10, padding:"8px 12px", color:"#1a1a2e", fontSize:11, outline:"none", fontFamily:"Inter, sans-serif" }} />
-                <button onClick={addTask} style={{ background:"rgba(48,209,88,0.15)", border:"1px solid rgba(48,209,88,0.3)", borderRadius:10, color:"#30d158", cursor:"pointer", padding:"8px 14px", fontSize:14, fontWeight:700 }}>+</button>
+                <button onClick={addTask} style={{ background:"rgba(48,209,88,0.15)", border:"1px solid rgba(48,209,88,0.3)", borderRadius:10, color:"#2AABFF", cursor:"pointer", padding:"8px 14px", fontSize:14, fontWeight:700 }}>+</button>
               </div>
             )}
           </div>
@@ -976,7 +976,7 @@ function ReferencesPage() {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ title:"", type:"Hook", pillar:"Education", platform:"IG", content:"", notes:"" });
   const setF = (k,v) => setForm(f => ({ ...f, [k]:v }));
-  const TYPE_COLOR = { "Hook":"#3b82f6", "Caption":"#10b981", "CTA":"#f59e0b", "Brand Voice":"#8b5cf6", "Campaign Brief":"#ff375f", "Script Sample":"#30d158" };
+  const TYPE_COLOR = { "Hook":"#3b82f6", "Caption":"#10b981", "CTA":"#f59e0b", "Brand Voice":"#8b5cf6", "Campaign Brief":"#ff375f", "Script Sample":"#2AABFF" };
   const TYPE_ICON = { "Hook":"⚡", "Caption":"✏️", "CTA":"🎯", "Brand Voice":"🎙", "Campaign Brief":"📋", "Script Sample":"📝" };
   const labelStyle = { fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(0,0,0,0.4)", marginBottom:5, display:"block" };
   const inp = { width:"100%", border:"1px solid #e5e5e5", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#0f0f1a", outline:"none", fontFamily:"Inter, sans-serif", background:"#fff", boxSizing:"border-box" };
@@ -992,7 +992,7 @@ function ReferencesPage() {
     <div style={{ animation:"fadeIn 0.4s ease" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:24 }}>
         <div>
-          <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1 }}>References</h1>
+          <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1 }}>References</h1>
           <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>Drop campaign examples, hooks, captions, and brand voice notes here. Muse + Overseer read from this folder.</p>
         </div>
         <button onClick={() => setAdding(true)} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>+ Add Reference</button>
@@ -1078,7 +1078,7 @@ function ArtgridScoutPage({ content }) {
   const [activeId, setActiveId] = useState(null);
   const [scoutingAll, setScoutingAll] = useState(false);
   const [allScoutResult, setAllScoutResult] = useState(null);
-  const PILLAR_COLOR = { Education:"#3b82f6", Entertainment:"#10b981", Inspiration:"#8b5cf6", Promotion:"#ff375f", Community:"#f59e0b", Access:"#06b6d4", Abundance:"#8b5cf6", Innovation:"#0a84ff", "Tierra Bomba":"#30d158", "Startup Diaries":"#ff9f0a", "Product Launch":"#ff375f", "Meet the Makers":"#64d2ff" };
+  const PILLAR_COLOR = { Education:"#3b82f6", Entertainment:"#10b981", Inspiration:"#8b5cf6", Promotion:"#ff375f", Community:"#f59e0b", Access:"#06b6d4", Abundance:"#8b5cf6", Innovation:"#0a84ff", "Tierra Bomba":"#2AABFF", "Startup Diaries":"#ff9f0a", "Product Launch":"#ff375f", "Meet the Makers":"#64d2ff" };
   const PRIORITY_COLOR = { HIGH:"#ff375f", MED:"#f59e0b", LOW:"rgba(0,0,0,0.3)" };
 
   // ── SCOUT ALL via backend action ──────────────────────────────────────────
@@ -1162,7 +1162,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
     <div style={{ animation:"fadeIn 0.4s ease" }}>
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:8 }}>
         <div>
-          <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1 }}>ArtGrid Scout</h1>
+          <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1 }}>ArtGrid Scout</h1>
           <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>AI-generated footage briefs. Scout one item or run all at once — get exact Artgrid.io search queries.</p>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -1292,7 +1292,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                     )}
                     <div style={{ background:"rgba(48,209,88,0.04)", borderRadius:10, padding:"12px 14px", border:"1px solid rgba(48,209,88,0.1)" }}>
                       <div style={{ fontSize:9, fontWeight:700, color:"rgba(48,209,88,0.6)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:6 }}>Summary</div>
-                      <div style={{ fontSize:13, fontWeight:700, color:"#30d158", marginBottom:4 }}>{sc.brief.totalClipsNeeded} clips needed</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:"#2AABFF", marginBottom:4 }}>{sc.brief.totalClipsNeeded} clips needed</div>
                       {sc.brief.notes && <div style={{ fontSize:10, color:"rgba(0,0,0,0.5)", lineHeight:1.5 }}>{sc.brief.notes}</div>}
                     </div>
                   </div>
@@ -1349,7 +1349,7 @@ function CalendarSaveButton({ items }) {
         </button>
       )}
       {status === "saving" && <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)" }}>⏳ Saving to tracker…</span>}
-      {status === "done" && <span style={{ fontSize:11, color:"#30d158", fontWeight:600 }}>✓ {items.length} items added to tracker — check Content Tracker</span>}
+      {status === "done" && <span style={{ fontSize:11, color:"#2AABFF", fontWeight:600 }}>✓ {items.length} items added to tracker — check Content Tracker</span>}
       {status === "error" && <span style={{ fontSize:11, color:"#ff453a" }}>❌ Save failed — check console</span>}
     </div>
   );
@@ -1556,7 +1556,7 @@ function AgentChatPage({ agents, content }) {
           <div style={{ padding:"8px 16px", borderBottom:"1px solid rgba(0,0,0,0.06)", display:"flex", gap:7, flexWrap:"wrap", background:"rgba(0,0,0,0.015)", flexShrink:0 }}>
             {sel.name === "Sean" && (
               <button onClick={() => runAgentAction("sean_briefing")} disabled={actionBusy}
-                style={{ fontSize:11, fontWeight:600, color:"#30d158", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
+                style={{ fontSize:11, fontWeight:600, color:"#2AABFF", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
                 {actionBusy ? "⏳ Running…" : "📋 Morning Briefing"}
               </button>
             )}
@@ -1578,7 +1578,7 @@ function AgentChatPage({ agents, content }) {
                 {actionBusy ? "⏳ Running…" : "⚡ Advance Pipeline"}
               </button>
               <button onClick={() => runAgentAction("lacey_trigger_n8n", { workflow: "vitallyfe-pipeline", message: "Triggered from War Room", triggeredBy: "Lacey" })} disabled={actionBusy}
-                style={{ fontSize:11, fontWeight:600, color:"#30d158", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1, marginLeft:8 }}>
+                style={{ fontSize:11, fontWeight:600, color:"#2AABFF", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1, marginLeft:8 }}>
                 {actionBusy ? "⏳ Running…" : "🔗 Trigger n8n"}
               </button>
             </>)}
@@ -1629,8 +1629,8 @@ function AgentChatPage({ agents, content }) {
               return (
                 <div key={i} style={{ borderRadius:14, padding:"12px 16px", background: m.err ? "rgba(255,69,58,0.06)" : "rgba(48,209,88,0.06)", border:"1px solid " + (m.err ? "rgba(255,69,58,0.18)" : "rgba(48,209,88,0.18)"), animation:"slideIn 0.3s ease" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:m.loading ? 0 : 8 }}>
-                    <div style={{ width:6, height:6, borderRadius:"50%", background: m.err ? "#ff453a" : "#30d158", animation: m.loading ? "livePulse 1s infinite" : "none" }} />
-                    <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", color: m.err ? "#ff453a" : "#30d158" }}>{m.loading ? "Agent Running…" : "Agent Action Result"}</span>
+                    <div style={{ width:6, height:6, borderRadius:"50%", background: m.err ? "#ff453a" : "#2AABFF", animation: m.loading ? "livePulse 1s infinite" : "none" }} />
+                    <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", color: m.err ? "#ff453a" : "#2AABFF" }}>{m.loading ? "Agent Running…" : "Agent Action Result"}</span>
                     <span style={{ fontSize:9, color:"rgba(0,0,0,0.3)", marginLeft:"auto" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</span>
                   </div>
                   {!m.loading && <div style={{ fontSize:12, color:"#1a1a2e", lineHeight:1.7, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>}
@@ -1716,7 +1716,7 @@ function QuickActionsDashboard() {
   const [expanded, setExpanded] = useState(false);
 
   const ACTIONS = [
-    { label: "📋 Morning Briefing", action: "sean_briefing", agent: "Sean", color: "#30d158" },
+    { label: "📋 Morning Briefing", action: "sean_briefing", agent: "Sean", color: "#2AABFF" },
     { label: "✍️ Generate Captions", action: "muse_generate_calendar", agent: "Muse", color: "#ff375f" },
     { label: "🔍 SOP Scan", action: "overseer_scan", agent: "Overseer", color: "#64d2ff" },
     { label: "⚡ Advance Pipeline", action: "lacey_advance", agent: "Lacey", color: "#ff9f0a" },
@@ -1766,7 +1766,7 @@ function QuickActionsDashboard() {
   return (
     <div style={{ marginBottom:28 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-        <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>Quick Actions</h2>
+        <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>Quick Actions</h2>
         <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)" }}>Agent-powered operations</span>
       </div>
       <div className="hover-card" style={{ background:"rgba(255,255,255,0.92)", border:"1px solid rgba(0,0,0,0.08)", borderRadius:16, overflow:"hidden", boxShadow:"0 2px 12px rgba(0,0,0,0.05)" }}>
@@ -1782,8 +1782,8 @@ function QuickActionsDashboard() {
           <div style={{ borderTop:"1px solid rgba(0,0,0,0.06)" }}>
             <div style={{ padding:"10px 18px", display:"flex", justifyContent:"space-between", alignItems:"center", background:"rgba(0,0,0,0.015)" }}>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <div style={{ width:6, height:6, borderRadius:"50%", background: result ? (result.ok ? "#30d158" : "#ff453a") : activeAction?.color, animation: !result ? "livePulse 1s infinite" : "none" }} />
-                <span style={{ fontSize:11, fontWeight:600, color: result ? (result.ok ? "#30d158" : "#ff453a") : "rgba(0,0,0,0.5)" }}>
+                <div style={{ width:6, height:6, borderRadius:"50%", background: result ? (result.ok ? "#2AABFF" : "#ff453a") : activeAction?.color, animation: !result ? "livePulse 1s infinite" : "none" }} />
+                <span style={{ fontSize:11, fontWeight:600, color: result ? (result.ok ? "#2AABFF" : "#ff453a") : "rgba(0,0,0,0.5)" }}>
                   {result ? (activeAction?.agent + " — " + activeAction?.label) : "Agent running…"}
                 </span>
               </div>
@@ -1831,7 +1831,7 @@ function AdROIHub() {
   const roas = (c) => c.spend > 0 ? (c.revenue / c.spend).toFixed(2) : 0;
   const cpl = (c) => c.leads > 0 ? (c.spend / c.leads).toFixed(2) : 0;
   const cvr = (c) => c.leads > 0 ? ((c.conversions / c.leads) * 100).toFixed(1) : 0;
-  const roiColor = (r) => r >= 100 ? "#30d158" : r >= 0 ? "#ff9f0a" : "#ff453a";
+  const roiColor = (r) => r >= 100 ? "#2AABFF" : r >= 0 ? "#ff9f0a" : "#ff453a";
 
   const totalSpend = campaigns.reduce((s,c)=>s+c.spend,0);
   const totalRevenue = campaigns.reduce((s,c)=>s+c.revenue,0);
@@ -1871,7 +1871,7 @@ function AdROIHub() {
     <div style={{animation:"fadeIn 0.4s ease"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
         <div>
-          <h1 style={{fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1}}>Ad ROI Hub</h1>
+          <h1 style={{fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1}}>Ad ROI Hub</h1>
           <p style={{fontSize:12,color:"rgba(0,0,0,0.4)",margin:0}}>Track spend vs return · AI-powered optimization · Know exactly if $5 in gets $10 out</p>
         </div>
         <div style={{display:"flex",gap:10}}>
@@ -1884,7 +1884,7 @@ function AdROIHub() {
 
       {/* ── TOTALS ── */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:28}}>
-        {[["Total Spend","$"+totalSpend.toLocaleString(),"#ff453a"],["Total Revenue","$"+totalRevenue.toLocaleString(),"#30d158"],["Overall ROAS",overallROAS+"x",overallROAS>=2?"#30d158":overallROAS>=1?"#ff9f0a":"#ff453a"],["Total Leads",totalLeads,"#0a84ff"],["Total Conversions",totalConversions,"#bf5af2"]].map(([label,val,color])=>(
+        {[["Total Spend","$"+totalSpend.toLocaleString(),"#ff453a"],["Total Revenue","$"+totalRevenue.toLocaleString(),"#2AABFF"],["Overall ROAS",overallROAS+"x",overallROAS>=2?"#2AABFF":overallROAS>=1?"#ff9f0a":"#ff453a"],["Total Leads",totalLeads,"#0a84ff"],["Total Conversions",totalConversions,"#bf5af2"]].map(([label,val,color])=>(
           <Card key={label} style={{padding:"18px 20px"}}>
             <div style={{fontSize:9,fontWeight:700,color:"rgba(0,0,0,0.35)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>{label}</div>
             <div style={{fontSize:26,fontWeight:700,color,letterSpacing:-1}}>{val}</div>
@@ -1940,7 +1940,7 @@ function AdROIHub() {
         </div>
         {campaigns.map((c,i)=>{
           const r=Number(roi(c)); const roas_=roas(c); const rc=roiColor(r);
-          const statusColor = c.status==="Active"?"#30d158":c.status==="Paused"?"#ff9f0a":"rgba(0,0,0,0.3)";
+          const statusColor = c.status==="Active"?"#2AABFF":c.status==="Paused"?"#ff9f0a":"rgba(0,0,0,0.3)";
           return (
             <div key={c.id} style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr",borderBottom:`1px solid rgba(0,0,0,0.04)`,background:i%2===0?"#fff":"rgba(0,0,0,0.01)",transition:"background 0.15s"}}
               onMouseEnter={e=>e.currentTarget.style.background="#f8f9ff"} onMouseLeave={e=>e.currentTarget.style.background=i%2===0?"#fff":"rgba(0,0,0,0.01)"}>
@@ -1950,8 +1950,8 @@ function AdROIHub() {
               </div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(0,0,0,0.55)"}}>{c.platform}</div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:600,color:"#ff453a"}}>${c.spend}</div>
-              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:600,color:"#30d158"}}>${c.revenue}</div>
-              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:700,color:Number(roas_)>=2?"#30d158":Number(roas_)>=1?"#ff9f0a":"#ff453a"}}>{roas_}x</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:600,color:"#2AABFF"}}>${c.revenue}</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:700,color:Number(roas_)>=2?"#2AABFF":Number(roas_)>=1?"#ff9f0a":"#ff453a"}}>{roas_}x</div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center"}}><span style={{fontSize:11,fontWeight:700,color:rc,background:`${rc}12`,padding:"2px 8px",borderRadius:20}}>{r>=0?"+":""}{r}%</span></div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(0,0,0,0.55)"}}>${cpl(c)}</div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(0,0,0,0.55)"}}>{cvr(c)}%</div>
@@ -2033,7 +2033,7 @@ function TeamBroadcast({ agents }) {
   return (
     <div style={{animation:"fadeIn 0.4s ease",display:"flex",flexDirection:"column",height:"calc(100vh - 80px)"}}>
       <div style={{marginBottom:20}}>
-        <h1 style={{fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1}}>Team Broadcast</h1>
+        <h1 style={{fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1}}>Team Broadcast</h1>
         <p style={{fontSize:12,color:"rgba(0,0,0,0.4)",margin:0}}>Send a brief or update to all 8 agents at once — each responds in their own voice and expertise.</p>
       </div>
 
@@ -2066,7 +2066,7 @@ function TeamBroadcast({ agents }) {
             {/* ── AGENT RESPONSES ── */}
             {b.loading ? (
               <div style={{display:"flex",gap:8,alignItems:"center",padding:"12px 16px",background:"rgba(0,0,0,0.03)",borderRadius:12}}>
-                {[0,0.2,0.4].map((d,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#30d158",animation:`livePulse 1.2s ${d}s infinite`}}/>)}
+                {[0,0.2,0.4].map((d,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#2AABFF",animation:`livePulse 1.2s ${d}s infinite`}}/>)}
                 <span style={{fontSize:11,color:"rgba(0,0,0,0.4)",marginLeft:6}}>All 8 agents responding…</span>
               </div>
             ) : (
@@ -2114,7 +2114,7 @@ function TeamBroadcast({ agents }) {
           placeholder="Send a brief, update, or direction to all 8 agents…" disabled={sending}
           style={{flex:1,background:"rgba(0,0,0,0.04)",border:`1px solid ${input?"rgba(48,209,88,0.4)":"rgba(0,0,0,0.1)"}`,borderRadius:12,padding:"12px 16px",color:"#0f0f1a",fontSize:13,outline:"none",fontFamily:"Inter,sans-serif"}}/>
         <button onClick={sendBroadcast} disabled={!input.trim()||sending}
-          style={{background:input.trim()&&!sending?"#30d158":"rgba(0,0,0,0.06)",border:"none",borderRadius:12,color:input.trim()&&!sending?"#fff":"rgba(0,0,0,0.22)",cursor:input.trim()&&!sending?"pointer":"default",padding:"12px 22px",fontSize:17,transition:"all 0.2s",fontFamily:"Inter,sans-serif"}}>
+          style={{background:input.trim()&&!sending?"#2AABFF":"rgba(0,0,0,0.06)",border:"none",borderRadius:12,color:input.trim()&&!sending?"#fff":"rgba(0,0,0,0.22)",cursor:input.trim()&&!sending?"pointer":"default",padding:"12px 22px",fontSize:17,transition:"all 0.2s",fontFamily:"Inter,sans-serif"}}>
           {sending?"⏳":"↑"}
         </button>
       </div>
@@ -2124,7 +2124,7 @@ function TeamBroadcast({ agents }) {
 
 // ─── SKILLS PAGE ─────────────────────────────────────────────────────────────
 function SkillsPage({ agents }) {
-  const AGENT_COLORS = { Sean:"#30d158", Lacey:"#ff9f0a", Ali:"#0a84ff", Sam:"#ffd60a", Artgrid:"#bf5af2", Muse:"#ff375f", Overseer:"#64d2ff", Scrappy:"#5e5ce6" };
+  const AGENT_COLORS = { Sean:"#2AABFF", Lacey:"#ff9f0a", Ali:"#0a84ff", Sam:"#ffd60a", Artgrid:"#bf5af2", Muse:"#ff375f", Overseer:"#64d2ff", Scrappy:"#5e5ce6" };
   const [briefs, setBriefs] = useState(() => {
     try { return JSON.parse(localStorage.getItem("skill_briefs") || "[]"); } catch { return []; }
   });
@@ -2134,7 +2134,7 @@ function SkillsPage({ agents }) {
   const [deployedId, setDeployedId] = useState(null);
   const setF = (k,v) => setForm(f=>({...f,[k]:v}));
   const inp = { width:"100%", border:"1px solid rgba(0,0,0,0.1)", borderRadius:10, padding:"10px 14px", fontSize:13, color:"#1d1d1f", outline:"none", fontFamily:"Inter, sans-serif", background:"rgba(255,255,255,0.8)", boxSizing:"border-box" };
-  const targetColor = form.target === "All Agents" ? "#30d158" : (AGENT_COLORS[form.target] || "#30d158");
+  const targetColor = form.target === "All Agents" ? "#2AABFF" : (AGENT_COLORS[form.target] || "#2AABFF");
   const TARGETS = ["All Agents", ...agents.map(a => a.name)];
 
   const deploy = () => {
@@ -2162,7 +2162,7 @@ function SkillsPage({ agents }) {
     <div style={{ animation:"fadeIn 0.4s ease" }}>
       {/* Header */}
       <div style={{ marginBottom:32 }}>
-        <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1 }}>Agent Skills</h1>
+        <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1 }}>Agent Skills</h1>
         <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>Write a skill brief and deploy it to a specific agent or broadcast to all 8. Agents receive it as a capability update.</p>
       </div>
 
@@ -2170,7 +2170,7 @@ function SkillsPage({ agents }) {
       <Card style={{ padding:"28px 32px", marginBottom:32 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:22, flexWrap:"wrap", gap:14 }}>
           <div>
-            <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>Brief Builder</h2>
+            <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>Brief Builder</h2>
             <div style={{ fontSize:11, color:"rgba(0,0,0,0.35)", marginTop:4 }}>Define a skill and deploy it as a capability update</div>
           </div>
           {/* Target selector */}
@@ -2179,7 +2179,7 @@ function SkillsPage({ agents }) {
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {TARGETS.map(t => {
                 const active = form.target === t;
-                const tc = t === "All Agents" ? "#30d158" : (AGENT_COLORS[t] || "#30d158");
+                const tc = t === "All Agents" ? "#2AABFF" : (AGENT_COLORS[t] || "#2AABFF");
                 return (
                   <button key={t} onClick={() => setF("target", t)} className="glass-btn"
                     style={{ fontSize:10, fontWeight:600, color: active ? "#fff" : tc, background: active ? tc : `${tc}12`, border:`1px solid ${tc}30`, borderRadius:20, padding:"5px 13px", cursor:"pointer", fontFamily:"Inter,sans-serif", transition:"all 0.15s" }}>
@@ -2217,7 +2217,7 @@ function SkillsPage({ agents }) {
               : `⚡ Deploy to ${form.target}`}
           </button>
           {deployedId && (
-            <span style={{ fontSize:12, color:"#30d158", fontWeight:600, animation:"fadeIn 0.3s ease" }}>
+            <span style={{ fontSize:12, color:"#2AABFF", fontWeight:600, animation:"fadeIn 0.3s ease" }}>
               ✓ Brief deployed to {briefs[0]?.target}
             </span>
           )}
@@ -2227,10 +2227,10 @@ function SkillsPage({ agents }) {
       {/* ── DEPLOYED BRIEFS LOG ── */}
       {briefs.length > 0 ? (
         <div>
-          <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:"0 0 18px", letterSpacing:-0.5 }}>Deployed Briefs</h2>
+          <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:"0 0 18px", letterSpacing:-0.5 }}>Deployed Briefs</h2>
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {briefs.map(brief => {
-              const tc = brief.target === "All Agents" ? "#30d158" : (AGENT_COLORS[brief.target] || "#30d158");
+              const tc = brief.target === "All Agents" ? "#2AABFF" : (AGENT_COLORS[brief.target] || "#2AABFF");
               const isOpen = expanded === brief.id;
               const isNew = brief.id === deployedId;
               return (
@@ -2322,7 +2322,7 @@ function CIDPage() {
             <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:2, textTransform:"uppercase" }}>Variation Breakdown</div>
             <div style={{ fontSize:14, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" }}>{variationView.title}</div>
           </div>
-          <div style={{ fontSize:10, background:"rgba(48,209,88,0.1)", color:"#30d158", borderRadius:20, padding:"5px 14px", fontWeight:700, fontFamily:"Inter, sans-serif" }}>
+          <div style={{ fontSize:10, background:"rgba(48,209,88,0.1)", color:"#2AABFF", borderRadius:20, padding:"5px 14px", fontWeight:700, fontFamily:"Inter, sans-serif" }}>
             🎯 VitalLyfe Ready
           </div>
         </div>
@@ -2338,9 +2338,9 @@ function CIDPage() {
               <div style={{ marginTop:8, fontSize:11, color:"rgba(0,0,0,0.3)", fontFamily:"Inter, sans-serif" }}>{variationView.creator} · {variationView.views} views</div>
             </div>
             <div style={{ background:"rgba(48,209,88,0.05)", border:"2px solid rgba(48,209,88,0.25)", borderRadius:14, padding:"20px" }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"#30d158", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>VitalLyfe Version</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>VitalLyfe Version</div>
               <div style={{ fontSize:13, color:"#1d1d1f", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontWeight:600 }}>"{variationView.variation}"</div>
-              <div style={{ marginTop:8, fontSize:11, color:"#30d158", fontFamily:"Inter, sans-serif", fontWeight:600 }}>← Use this</div>
+              <div style={{ marginTop:8, fontSize:11, color:"#2AABFF", fontFamily:"Inter, sans-serif", fontWeight:600 }}>← Use this</div>
             </div>
           </div>
 
@@ -2417,7 +2417,7 @@ function CIDPage() {
             <div style={{ fontSize:11, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>🧠 Why The Original Worked</div>
             {variationView.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
               <div key={i} style={{ display:"flex", gap:10, marginBottom:10, alignItems:"flex-start" }}>
-                <span style={{ fontSize:11, color:"#30d158", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
+                <span style={{ fontSize:11, color:"#2AABFF", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
                 <span style={{ fontSize:13, color:"rgba(0,0,0,0.65)", lineHeight:1.6, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
               </div>
             ))}
@@ -2466,7 +2466,7 @@ function CIDPage() {
                 </div>
                 <div style={{ textAlign:"right" }}>
                   <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", marginBottom:2 }}>Predicted Score</div>
-                  <div style={{ fontSize:24, fontWeight:700, color:"#30d158" }}>{briefData.predicted_score}<span style={{fontSize:12}}>/100</span></div>
+                  <div style={{ fontSize:24, fontWeight:700, color:"#2AABFF" }}>{briefData.predicted_score}<span style={{fontSize:12}}>/100</span></div>
                 </div>
               </div>
               <div style={{ padding:"20px" }}>
@@ -2520,7 +2520,7 @@ function CIDPage() {
                   </div>
                 </div>
                 <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:12, padding:"14px 16px", marginBottom:16 }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:"#30d158", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>📈 Why This Should Perform</div>
+                  <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>📈 Why This Should Perform</div>
                   <div style={{ fontSize:12, color:"#1d1d1f", lineHeight:1.6 }}>{briefData.predicted_rationale}</div>
                 </div>
                 <button onClick={async () => {
@@ -2552,7 +2552,7 @@ function CIDPage() {
                     });
                     alert("✅ Added to Content Tracker!");
                   } catch(e) { alert("Error: " + e.message); }
-                }} style={{ width:"100%", padding:"14px", background:"rgba(48,209,88,0.1)", color:"#30d158", border:"2px solid rgba(48,209,88,0.3)", borderRadius:14, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
+                }} style={{ width:"100%", padding:"14px", background:"rgba(48,209,88,0.1)", color:"#2AABFF", border:"2px solid rgba(48,209,88,0.3)", borderRadius:14, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
                   ➕ Send to Content Tracker
                 </button>
               </div>
@@ -2565,13 +2565,13 @@ function CIDPage() {
               {abData.map((v, i) => (
                 <div key={i} style={{ background:"#fff", border:`1px solid ${i===0?"rgba(48,209,88,0.3)":"rgba(0,0,0,0.07)"}`, borderRadius:14, padding:"16px 18px", marginBottom:12 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-                    <div style={{ width:28, height:28, borderRadius:"50%", background: i===0?"#30d158":i===1?"#ff9f0a":"#636366", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:"#fff", flexShrink:0 }}>
+                    <div style={{ width:28, height:28, borderRadius:"50%", background: i===0?"#2AABFF":i===1?"#ff9f0a":"#636366", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:"#fff", flexShrink:0 }}>
                       {v.rank}
                     </div>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:11, fontWeight:700, color:"rgba(0,0,0,0.4)", textTransform:"uppercase", letterSpacing:0.5 }}>{v.angle}</div>
                     </div>
-                    <div style={{ fontSize:13, fontWeight:700, color: i===0?"#30d158":i===1?"#ff9f0a":"#636366" }}>{v.predicted_score}/100</div>
+                    <div style={{ fontSize:13, fontWeight:700, color: i===0?"#2AABFF":i===1?"#ff9f0a":"#636366" }}>{v.predicted_score}/100</div>
                   </div>
                   <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:10 }}>
                     <div style={{ background:"rgba(0,0,0,0.03)", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#1d1d1f", fontStyle:"italic" }}>🎤 "{v.voice_hook}"</div>
@@ -2641,7 +2641,7 @@ function CIDPage() {
           <div style={{ flex:1, fontSize:13, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" }}>{selected.creator} — {selected.title}</div>
           <div style={{ display:"flex", gap:16 }}>
             <span style={{ fontSize:12, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif" }}>👁 {selected.views}</span>
-            <span style={{ fontSize:12, color:"#30d158", fontWeight:700, fontFamily:"Inter, sans-serif" }}>↑ {selected.engagement}</span>
+            <span style={{ fontSize:12, color:"#2AABFF", fontWeight:700, fontFamily:"Inter, sans-serif" }}>↑ {selected.engagement}</span>
           </div>
         </div>
         {/* Body */}
@@ -2693,7 +2693,7 @@ function CIDPage() {
               <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🧠 Why It Worked</div>
               {selected.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
                 <div key={i} style={{ display:"flex", gap:8, marginBottom:8, alignItems:"flex-start" }}>
-                  <span style={{ fontSize:10, color:"#30d158", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
+                  <span style={{ fontSize:10, color:"#2AABFF", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
                   <span style={{ fontSize:12, color:"rgba(0,0,0,0.7)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
                 </div>
               ))}
@@ -2712,22 +2712,22 @@ function CIDPage() {
                     <span style={{ fontSize:11, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" }}>{score}/100</span>
                   </div>
                   <div style={{ height:4, background:"rgba(0,0,0,0.06)", borderRadius:4, overflow:"hidden" }}>
-                    <div style={{ width:`${score}%`, height:"100%", background: score > 80 ? "#30d158" : score > 65 ? "#ff9f0a" : "#ff453a", borderRadius:4 }} />
+                    <div style={{ width:`${score}%`, height:"100%", background: score > 80 ? "#2AABFF" : score > 65 ? "#F17130" : "#ff453a", borderRadius:4 }} />
                   </div>
                 </div>
               ))}
             </div>
             {/* VitalLyfe Adaptation */}
             <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:12, padding:"14px 16px" }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"#30d158", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}>🎯 VitalLyfe Adaptation</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}>🎯 VitalLyfe Adaptation</div>
               <div style={{ fontSize:12, color:"#1d1d1f", lineHeight:1.6, fontStyle:"italic", fontFamily:"Inter, sans-serif" }}>"{selected.variation}"</div>
               <div style={{ marginTop:10, display:"flex", gap:6, justifyContent:"space-between", alignItems:"center" }}>
                 <div style={{ display:"flex", gap:6 }}>
-                  <span style={{ fontSize:10, background:"rgba(48,209,88,0.15)", color:"#30d158", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>Ready to use</span>
+                  <span style={{ fontSize:10, background:"rgba(48,209,88,0.15)", color:"#2AABFF", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>Ready to use</span>
                   <span style={{ fontSize:10, background:"rgba(0,0,0,0.05)", color:"rgba(0,0,0,0.4)", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>{selected.format}</span>
                 </div>
                 <button onClick={() => { setVariationView(selected); setVideoFullscreen(false); }}
-                  style={{ fontSize:11, fontWeight:700, color:"#30d158", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif", textDecoration:"underline", padding:0 }}>
+                  style={{ fontSize:11, fontWeight:700, color:"#2AABFF", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif", textDecoration:"underline", padding:0 }}>
                   View Full Breakdown →
                 </button>
               </div>
@@ -2744,7 +2744,7 @@ function CIDPage() {
         {/* Header */}
         <div style={{ marginBottom:28 }}>
           <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>🕵️ Intelligence</div>
-          <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>Competitor Intel Dashboard</h1>
+          <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>Competitor Intel Dashboard</h1>
           <p style={{ fontSize:13, color:"rgba(0,0,0,0.4)", margin:"8px 0 0", fontFamily:"Inter, sans-serif" }}>What's working in your space — and why. Click any post to see the breakdown.</p>
         </div>
 
@@ -2814,7 +2814,7 @@ function CIDPage() {
                   <div style={{ fontSize:11, fontWeight:600, color:"rgba(0,0,0,0.4)", marginBottom:4, fontFamily:"Inter, sans-serif" }}>{post.creator}</div>
                   <div style={{ fontSize:12, fontWeight:600, color:"#1d1d1f", lineHeight:1.4, fontFamily:"Inter, sans-serif", marginBottom:8 }}>{post.title}</div>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <span style={{ fontSize:10, color:"#30d158", fontWeight:700 }}>↑ {post.engagement}</span>
+                    <span style={{ fontSize:10, color:"#2AABFF", fontWeight:700 }}>↑ {post.engagement}</span>
                     <span style={{ fontSize:10, color:"rgba(0,0,0,0.35)", fontFamily:"Inter, sans-serif" }}>{post.format}</span>
                   </div>
                 </div>
@@ -2876,13 +2876,13 @@ function CIDPage() {
                   <div style={{ background:"rgba(0,0,0,0.02)", borderRadius:8, padding:"10px 12px", marginBottom:10 }}>
                     {item.why.split('. ').filter(s=>s.trim()).map((pt,j) => (
                       <div key={j} style={{ display:"flex", gap:6, marginBottom:6, alignItems:"flex-start" }}>
-                        <span style={{ color:"#30d158", fontSize:10, fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
+                        <span style={{ color:"#2AABFF", fontSize:10, fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
                         <span style={{ fontSize:11, color:"rgba(0,0,0,0.6)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{pt.trim()}{pt.trim().endsWith('.')?'':'.'}</span>
                       </div>
                     ))}
                   </div>
                   <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.15)", borderRadius:8, padding:"8px 12px" }}>
-                    <span style={{ fontSize:10, fontWeight:700, color:"#30d158", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:1 }}>🎯 VitalLyfe Version: </span>
+                    <span style={{ fontSize:10, fontWeight:700, color:"#2AABFF", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:1 }}>🎯 VitalLyfe Version: </span>
                     <span style={{ fontSize:11, color:"#1d1d1f", fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>{item.adaptation}</span>
                   </div>
                 </div>
@@ -2940,7 +2940,7 @@ function CIDPage() {
               <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🧠 Why It Worked</div>
               {selected.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
                 <div key={i} style={{ display:"flex", gap:8, marginBottom:8, alignItems:"flex-start" }}>
-                  <span style={{ fontSize:10, color:"#30d158", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
+                  <span style={{ fontSize:10, color:"#2AABFF", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
                   <span style={{ fontSize:12, color:"rgba(0,0,0,0.7)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
                 </div>
               ))}
@@ -2960,7 +2960,7 @@ function CIDPage() {
                     <span style={{ fontSize:11, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" }}>{score}/100</span>
                   </div>
                   <div style={{ height:4, background:"rgba(0,0,0,0.06)", borderRadius:4, overflow:"hidden" }}>
-                    <div style={{ width:`${score}%`, height:"100%", background: score > 80 ? "#30d158" : score > 65 ? "#ff9f0a" : "#ff453a", borderRadius:4, transition:"width 0.5s" }} />
+                    <div style={{ width:`${score}%`, height:"100%", background: score > 80 ? "#2AABFF" : score > 65 ? "#F17130" : "#ff453a", borderRadius:4, transition:"width 0.5s" }} />
                   </div>
                 </div>
               ))}
@@ -2968,15 +2968,15 @@ function CIDPage() {
 
             {/* VitalLyfe Variation */}
             <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"#30d158", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}>🎯 VitalLyfe Adaptation</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}>🎯 VitalLyfe Adaptation</div>
               <div style={{ fontSize:12, color:"#1d1d1f", lineHeight:1.6, fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>"{selected.variation}"</div>
               <div style={{ marginTop:10, display:"flex", gap:6, alignItems:"center", justifyContent:"space-between" }}>
                 <div style={{ display:"flex", gap:6 }}>
-                  <span style={{ fontSize:10, background:"rgba(48,209,88,0.15)", color:"#30d158", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>Ready to use</span>
+                  <span style={{ fontSize:10, background:"rgba(48,209,88,0.15)", color:"#2AABFF", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>Ready to use</span>
                   <span style={{ fontSize:10, background:"rgba(0,0,0,0.05)", color:"rgba(0,0,0,0.4)", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>{selected.format}</span>
                 </div>
                 <button onClick={() => setVariationView(selected)}
-                  style={{ fontSize:11, fontWeight:700, color:"#30d158", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif", textDecoration:"underline", padding:0 }}>
+                  style={{ fontSize:11, fontWeight:700, color:"#2AABFF", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif", textDecoration:"underline", padding:0 }}>
                   View Full Breakdown →
                 </button>
               </div>
@@ -3236,10 +3236,10 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   if (previewMode) {
     return (
       <div style={{ position:"relative", minHeight:"100vh" }}>
-        <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999, background:"#0f0f1a", borderBottom:"2px solid #30d158", padding:"0 20px", height:44, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999, background:"#0f0f1a", borderBottom:"2px solid #2AABFF", padding:"0 20px", height:44, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:8, height:8, borderRadius:"50%", background:"#30d158", animation:"livePulse 2s infinite" }} />
-            <span style={{ fontSize:12, fontWeight:700, color:"#30d158", letterSpacing:0.3 }}>PREVIEW MODE</span>
+            <div style={{ width:8, height:8, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2s infinite" }} />
+            <span style={{ fontSize:12, fontWeight:700, color:"#2AABFF", letterSpacing:0.3 }}>PREVIEW MODE</span>
             <span style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>— You're seeing exactly what the client sees</span>
           </div>
           <button onClick={() => setPreviewMode(false)} style={{ background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:8, color:"#fff", fontSize:12, fontWeight:600, padding:"6px 16px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
@@ -3254,7 +3254,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   }
 
   return (
-    <div style={{ display:"flex", height:"100vh", background:"linear-gradient(160deg, #f0eff6 0%, #e9e8f2 45%, #ece8f4 100%)", color:"#1d1d1f", fontFamily:"-apple-system, 'SF Pro Display', Inter, sans-serif", overflow:"hidden" }}>
+    <div style={{ display:"flex", height:"100vh", background:"#fafafa", color:"#1d1d1f", fontFamily:"-apple-system, 'SF Pro Display', Inter, sans-serif", overflow:"hidden" }}>
       {/* ── MUSE TOAST ── */}
       {museToast && (
         <div style={{ position:"fixed", bottom:28, right:28, zIndex:9999, animation:"slideIn 0.3s ease", maxWidth:380 }}>
@@ -3324,14 +3324,14 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
       <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, display:"none" }} />
 
       {/* ── SIDEBAR ── */}
-      <div style={{ width:sidebarW, minWidth:sidebarW, background:"linear-gradient(180deg, #1c1c22 0%, #131318 55%, #0e0e13 100%)", borderRight:"1px solid rgba(255,255,255,0.05)", display:"flex", flexDirection:"column", overflow:"hidden", transition:"width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s cubic-bezier(0.4,0,0.2,1)", zIndex:20, position:"relative" }}>
+      <div style={{ width:sidebarW, minWidth:sidebarW, background:"linear-gradient(180deg, #0e0c0d 0%, #0a0809 60%, #070607 100%)", borderRight:"1px solid rgba(255,255,255,0.05)", display:"flex", flexDirection:"column", overflow:"hidden", transition:"width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s cubic-bezier(0.4,0,0.2,1)", zIndex:20, position:"relative" }}>
         <div style={{ padding:sidebarCollapsed?"16px 0":"16px 16px 14px", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
 
           {/* ── COLLAPSED ── */}
           {sidebarCollapsed && (
             <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:10 }}>
               <div style={{ width:36, height:36, borderRadius:10, background:"rgba(255,255,255,0.1)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                <span style={{ fontSize:12, fontWeight:700, color:"#fff", letterSpacing:-0.5 }}>VL</span>
+                <span style={{ fontSize:11, fontWeight:600, color:"#2AABFF", letterSpacing:1, fontFamily:"'Geist Mono', monospace", textTransform:"uppercase" }}>VL</span>
               </div>
               <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.3)", cursor:"pointer", fontSize:14, padding:2, lineHeight:1 }}>›</button>
             </div>
@@ -3343,13 +3343,13 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               {/* Row 1: icon + wordmark + collapse toggle */}
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
                 <div style={{ width:36, height:36, borderRadius:10, background:"rgba(255,255,255,0.1)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                  <span style={{ fontSize:12, fontWeight:700, color:"#fff", letterSpacing:-0.5 }}>VL</span>
+                  <span style={{ fontSize:11, fontWeight:600, color:"#2AABFF", letterSpacing:1, fontFamily:"'Geist Mono', monospace", textTransform:"uppercase" }}>VL</span>
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:14, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.4, lineHeight:1.2 }}>War Room</div>
                   <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:3 }}>
-                    <div style={{ width:5, height:5, borderRadius:"50%", background: dbStatus==="live"?"#30d158":dbStatus==="error"?"#ff453a":"#ff9f0a", flexShrink:0 }} />
-                    <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontWeight:400 }}>VitalLyfe</span>
+                    <div style={{ width:5, height:5, borderRadius:"50%", background: dbStatus==="live"?"#2AABFF":dbStatus==="error"?"#ff453a":"#F17130", flexShrink:0 }} />
+                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", fontWeight:500, fontFamily:"'Geist Mono', monospace", letterSpacing:1.5, textTransform:"uppercase" }}>VitalLyfe</span>
                   </div>
                 </div>
                 <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.25)", cursor:"pointer", fontSize:16, padding:"2px 4px", lineHeight:1, flexShrink:0 }}>‹</button>
@@ -3414,7 +3414,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         </div>
         {!sidebarCollapsed && (
           <div style={{ padding:"8px 16px 6px", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", alignItems:"center", gap:5 }}>
-            <div style={{ width:5, height:5, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite", flexShrink:0 }} />
+            <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite", flexShrink:0 }} />
             <span style={{ fontSize:10, color:"rgba(255,255,255,0.25)", fontWeight:400 }}>{liveCount} agents active</span>
           </div>
         )}
@@ -3425,7 +3425,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               {group.items.map(item => (
                 <div key={item.id} style={{ padding:sidebarCollapsed?"0":"0 6px" }}>
                   <button onClick={() => setActiveNav(item.id)} title={sidebarCollapsed?item.label:undefined}
-                    style={{ display:"flex", alignItems:"center", gap:9, width:"100%", padding:sidebarCollapsed?"9px 0":"8px 10px", justifyContent:sidebarCollapsed?"center":"flex-start", background:activeNav===item.id?"rgba(255,255,255,0.1)":"transparent", border:"none", borderRadius:9, color:activeNav===item.id?"#ffffff":"rgba(255,255,255,0.42)", cursor:"pointer", fontSize:13, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===item.id?590:400, transition:"background 0.12s, color 0.12s", letterSpacing:-0.1 }}>
+                    style={{ display:"flex", alignItems:"center", gap:9, width:"100%", padding:sidebarCollapsed?"9px 0":"8px 10px", justifyContent:sidebarCollapsed?"center":"flex-start", background:activeNav===item.id?"rgba(42,171,255,0.12)":"transparent", border:"none", borderRadius:9, color:activeNav===item.id?"#2AABFF":"rgba(255,255,255,0.42)", cursor:"pointer", fontSize:13, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===item.id?590:400, transition:"background 0.12s, color 0.12s", letterSpacing:-0.1 }}>
                     <span style={{ fontSize:13, opacity:activeNav===item.id?1:0.6 }}>{item.icon}</span>
                     {!sidebarCollapsed && item.label}
                   </button>
@@ -3453,16 +3453,16 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {activeNav === "dashboard" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
             {/* ── ATMOSPHERIC HERO ── */}
-            <div style={{ background:"linear-gradient(135deg, #0d0d18 0%, #15082c 45%, #081522 100%)", borderRadius:24, padding:"44px 48px", marginBottom:24, position:"relative", overflow:"hidden" }}>
-              <div style={{ position:"absolute", top:-80, right:40, width:380, height:380, borderRadius:"50%", background:"radial-gradient(circle, rgba(48,209,88,0.14) 0%, transparent 70%)", pointerEvents:"none" }} />
-              <div style={{ position:"absolute", bottom:-60, left:-20, width:300, height:300, borderRadius:"50%", background:"radial-gradient(circle, rgba(130,80,255,0.09) 0%, transparent 70%)", pointerEvents:"none" }} />
-              <div style={{ position:"absolute", top:30, left:"42%", width:220, height:220, borderRadius:"50%", background:"radial-gradient(circle, rgba(10,132,255,0.07) 0%, transparent 70%)", pointerEvents:"none" }} />
+            <div style={{ background:"linear-gradient(135deg, #0a0809 0%, #0d0b0c 50%, #0a0809 100%)", borderRadius:24, padding:"44px 48px", marginBottom:24, position:"relative", overflow:"hidden" }}>
+              <div style={{ position:"absolute", top:-80, right:40, width:380, height:380, borderRadius:"50%", background:"radial-gradient(circle, rgba(42,171,255,0.12) 0%, transparent 70%)", pointerEvents:"none" }} />
+              <div style={{ position:"absolute", bottom:-60, left:-20, width:300, height:300, borderRadius:"50%", background:"radial-gradient(circle, rgba(241,113,48,0.08) 0%, transparent 70%)", pointerEvents:"none" }} />
+              <div style={{ position:"absolute", top:30, left:"42%", width:220, height:220, borderRadius:"50%", background:"radial-gradient(circle, rgba(42,171,255,0.06) 0%, transparent 70%)", pointerEvents:"none" }} />
               <div style={{ position:"relative", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center" }}>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", fontWeight:600, marginBottom:20, letterSpacing:3, textTransform:"uppercase" }}>Cloud Scenic × VitalLyfe</div>
-                <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:58, fontWeight:400, fontStyle:"italic", color:"#fff", margin:0, letterSpacing:-1.5, lineHeight:1 }}>War Room.</h1>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", fontWeight:600, marginBottom:20, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace" }}>Cloud Scenic × VitalLyfe</div>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:58, fontWeight:400, fontStyle:"italic", color:"#fff", margin:0, letterSpacing:-1, lineHeight:1 }}>War Room.</h1>
                 <p style={{ fontSize:13, color:"rgba(255,255,255,0.28)", margin:"14px 0 0", fontWeight:400, letterSpacing:0.1 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})} · {content.length} pieces in pipeline</p>
                 <div style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(48,209,88,0.12)", border:"1px solid rgba(48,209,88,0.22)", borderRadius:20, padding:"8px 18px", marginTop:20 }}>
-                  <div style={{ width:5, height:5, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite" }} />
+                  <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite" }} />
                   <span style={{ fontSize:11, color:"rgba(255,255,255,0.55)", fontWeight:500 }}>{liveCount} agents active</span>
                 </div>
               </div>
@@ -3471,7 +3471,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             {/* ── ASYMMETRIC METRIC GRID ── */}
             <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 1fr", gridTemplateRows:"auto auto", gap:14, marginBottom:44 }}>
               <div style={{ gridRow:"1 / span 2" }}>
-                <MetricCard label="Content Pieces" value={content.length} delta={0} color="#30d158" large />
+                <MetricCard label="Content Pieces" value={content.length} delta={0} color="#2AABFF" large />
               </div>
               <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
               <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#bf5af2" />
@@ -3487,7 +3487,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             {/* ── AGENT GRID ── */}
             <div style={{ marginBottom:44 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:22 }}>
-                <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:26, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>The Team</h2>
+                <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:26, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>The Team</h2>
                 <span style={{ fontSize:11, color:"rgba(0,0,0,0.28)", fontWeight:400 }}>8 agents · {liveCount} active</span>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12 }}>
@@ -3502,7 +3502,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                   <div style={{ display:"flex", alignItems:"center", gap:14 }}>
                     <AgentAvatar agent={selectedAgent} size={44} />
                     <div>
-                      <div style={{ fontFamily:"'Playfair Display', Georgia, serif", fontWeight:700, fontStyle:"italic", color:"#1d1d1f", fontSize:22, letterSpacing:-0.5 }}>{selectedAgent.name}</div>
+                      <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontWeight:700, fontStyle:"italic", color:"#1d1d1f", fontSize:22, letterSpacing:-0.5 }}>{selectedAgent.name}</div>
                       <div style={{ fontSize:11, color:selectedAgent.color, fontWeight:500, marginTop:3 }}>{selectedAgent.role} · {selectedAgent.type}</div>
                     </div>
                   </div>
@@ -3519,15 +3519,15 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             {/* ── LIVE ACTIVITY ── */}
             <div style={{ marginBottom:44 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:18 }}>
-                <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:26, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>Live Activity</h2>
-                <div style={{ width:5, height:5, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite" }} />
+                <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:26, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:0, letterSpacing:-0.5 }}>Live Activity</h2>
+                <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite" }} />
               </div>
               <Card style={{ padding:"4px 0", maxHeight:320, overflowY:"auto" }}><ActivityFeed feed={feed} /></Card>
             </div>
 
             {/* ── OPERATIONS BOARD ── */}
             <div style={{ marginBottom:28 }}>
-              <h2 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:"0 0 18px", letterSpacing:-0.5 }}>Operations</h2>
+              <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#1d1d1f", margin:"0 0 18px", letterSpacing:-0.5 }}>Operations</h2>
               <OpsBoard />
             </div>
           </div>
@@ -3544,7 +3544,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:28 }}>
               <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>📸</div>
               <div>
-                <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:30, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>Instagram</h1>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:30, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>Instagram</h1>
                 <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginTop:2 }}>@vitallyfe · {igItems.length} pieces in pipeline</div>
               </div>
               <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
@@ -3559,13 +3559,13 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             </div>
             <ContentPipelineBoard title="Reels & Graphics Pipeline" icon="🎬"
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
-              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
+              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#2AABFF","#8b5cf6","#64d2ff"]}
               items={igItems.filter(x => x.type==="reel" || x.type==="graphic")}
               onCardClick={setEditingItem} onMuseWrite={handleMuseWrite}
             />
             <ContentPipelineBoard title="Carousels & Threads" icon="◻"
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
-              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
+              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#2AABFF","#8b5cf6","#64d2ff"]}
               items={igItems.filter(x => x.type==="carousel" || x.type==="thread")}
               onCardClick={setEditingItem} onMuseWrite={handleMuseWrite}
             />
@@ -3578,13 +3578,13 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:28 }}>
               <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#010101,#ff0050)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>♪</div>
               <div>
-                <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:30, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>TikTok</h1>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:30, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>TikTok</h1>
                 <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginTop:2 }}>@vitallyfe · {ttItems.length} pieces in pipeline</div>
               </div>
             </div>
             <ContentPipelineBoard title="TikTok Pipeline" icon="🎵"
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
-              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
+              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#2AABFF","#8b5cf6","#64d2ff"]}
               items={ttItems}
               onCardClick={setEditingItem} onMuseWrite={handleMuseWrite}
             />
@@ -3597,13 +3597,13 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:28 }}>
               <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#ff0000,#cc0000)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>▷</div>
               <div>
-                <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:30, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>YouTube</h1>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:30, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>YouTube</h1>
                 <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginTop:2 }}>VitalLyfe · {ytItems.length} pieces · Long-form & Shorts</div>
               </div>
             </div>
             <ContentPipelineBoard title="Production Pipeline" icon="🎬"
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
-              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#30d158","#8b5cf6","#64d2ff"]}
+              stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#2AABFF","#8b5cf6","#64d2ff"]}
               items={ytItems}
               onCardClick={setEditingItem} onMuseWrite={handleMuseWrite}
             />
@@ -3624,7 +3624,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
           <div style={{ animation:"fadeIn 0.4s ease" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
               <div>
-                <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1 }}>Content Tracker</h1>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:4, letterSpacing:-1 }}>Content Tracker</h1>
                 <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", margin:0 }}>{filtered.length} of {content.length} pieces · Click any row to edit</p>
               </div>
               <button onClick={handleAddNew} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>+ Add Content</button>
@@ -3652,7 +3652,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               )}
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:24 }}>
-              <MetricCard label="Total Pieces" value={content.length} delta={0} color="#30d158" />
+              <MetricCard label="Total Pieces" value={content.length} delta={0} color="#2AABFF" />
               <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#bf5af2" />
               <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#0a84ff" />
             </div>
@@ -3693,7 +3693,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     <div style={{ padding:"8px 12px", display:"flex", alignItems:"center", gap:5 }}>
                       {needsCaption && <button onClick={() => handleMuseWrite(item, "caption")} style={{ fontSize:9, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}>✍️ Cap</button>}
                       {needsScript && <button onClick={() => handleMuseWrite(item, "script")} style={{ fontSize:9, fontWeight:700, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}>✍️ Script</button>}
-                      {!needsCaption && !needsScript && <span style={{ fontSize:9, color:"#30d158", fontWeight:600 }}>✓</span>}
+                      {!needsCaption && !needsScript && <span style={{ fontSize:9, color:"#2AABFF", fontWeight:600 }}>✓</span>}
                     </div>
                   </div>
                 );
@@ -3706,7 +3706,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {/* TASK BOARD */}
         {activeNav === "taskboard" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
-            <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:6, letterSpacing:-1 }}>Task Board</h1>
+            <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", marginBottom:6, letterSpacing:-1 }}>Task Board</h1>
             <p style={{ fontSize:12, color:"rgba(0,0,0,0.4)", marginBottom:24 }}>Tasks auto-advance every ~20s · Add tasks to the backlog below</p>
             <OpsBoard />
           </div>
@@ -3727,18 +3727,18 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28 }}>
               <div>
                 <div style={{ fontSize:9, color:"rgba(0,0,0,0.3)", letterSpacing:2, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Standard Operating Procedure</div>
-                <h1 style={{ fontFamily:"'Playfair Display', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>{VITAL_LYFE_SOP.title}</h1>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#1d1d1f", margin:0, letterSpacing:-1 }}>{VITAL_LYFE_SOP.title}</h1>
                 <div style={{ fontSize:13, color:"rgba(0,0,0,0.44)", marginTop:5 }}>{VITAL_LYFE_SOP.subtitle} · {VITAL_LYFE_SOP.version}</div>
               </div>
               <Card style={{ padding:"12px 16px", textAlign:"center" }}>
                 <div style={{ fontSize:9, color:"rgba(48,209,88,0.6)", fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>Agents Trained On</div>
-                <div style={{ fontSize:24, fontWeight:700, color:"#30d158" }}>4</div>
+                <div style={{ fontSize:24, fontWeight:700, color:"#2AABFF" }}>4</div>
                 <div style={{ fontSize:9, color:"rgba(0,0,0,0.4)", marginTop:2 }}>Artgrid · Muse · Overseer · Scrappy</div>
               </Card>
             </div>
-            <Card style={{ padding:"16px 20px", marginBottom:24, borderLeft:"3px solid #30d158", background:"rgba(48,209,88,0.06)" }}>
+            <Card style={{ padding:"16px 20px", marginBottom:24, borderLeft:"3px solid #2AABFF", background:"rgba(48,209,88,0.06)" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <div style={{ width:6, height:6, borderRadius:"50%", background:"#30d158", animation:"livePulse 2.5s ease-in-out infinite", flexShrink:0 }} />
+                <div style={{ width:6, height:6, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite", flexShrink:0 }} />
                 <span style={{ fontSize:12, color:"rgba(48,209,88,0.8)", fontWeight:500 }}>Artgrid, Muse, and Overseer have been programmed with this SOP. They understand all 7 steps and operate within this framework automatically.</span>
               </div>
             </Card>
@@ -3746,7 +3746,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <h2 style={{ fontSize:17, fontWeight:600, color:"#1d1d1f", margin:"0 0 16px", letterSpacing:-0.4 }}>Workflow Steps</h2>
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 {VITAL_LYFE_SOP.steps.map((step,i) => {
-                  const colors = ["#30d158","#0a84ff","#bf5af2","#ff9f0a","#ff375f","#64d2ff","#ffd60a"];
+                  const colors = ["#2AABFF","#0a84ff","#bf5af2","#ff9f0a","#ff375f","#64d2ff","#ffd60a"];
                   const c = colors[i];
                   return (
                     <Card key={step.num} style={{ padding:"18px 22px", display:"grid", gridTemplateColumns:"52px 1fr", gap:16, alignItems:"flex-start" }}>
@@ -3789,7 +3789,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <Card style={{ padding:"20px" }}>
                 <h3 style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.35)", margin:"0 0 14px", letterSpacing:1.5, textTransform:"uppercase" }}>Content Pillars</h3>
                 {VITAL_LYFE_SOP.contentPillars.map((p,i) => {
-                  const c = ["#30d158","#0a84ff","#ff9f0a","#ff375f","#bf5af2"][i];
+                  const c = ["#2AABFF","#0a84ff","#ff9f0a","#ff375f","#bf5af2"][i];
                   return (
                     <div key={p} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
                       <div style={{ width:8, height:8, borderRadius:2, background:c, flexShrink:0 }} />
