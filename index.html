@@ -3008,7 +3008,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   const notifDragging = React.useRef(false);
   const notifDragOffset = React.useRef({ x: 0, y: 0 });
   // Use content from App (shared with ClientView) — fall back to local state only if not passed in
-  const [localContent, setLocalContent] = useState(INITIAL_CONTENT);
+  const [localContent, setLocalContent] = useState([]);
   const content = contentProp ?? localContent;
   const setContent = setContentProp ?? setLocalContent;
   const [dbStatus, setDbStatus] = useState(DB_CONNECTED ? "connecting" : "offline");
@@ -3026,9 +3026,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
           if (data && data.length > 0) {
             setContent(data.map(r => ({ ...r, platforms: r.platforms || [] })));
           } else {
-            sb.from("content_items").insert(INITIAL_CONTENT).then(({ error: e }) => {
-              if (!e) setDbStatus("live");
-            });
+            setContent([]);
           }
           setDbStatus("live");
         });
