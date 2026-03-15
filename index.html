@@ -2631,44 +2631,107 @@ function CIDPage() {
     )}
 
     {videoFullscreen && selected && (
-      <div
-        onClick={() => setVideoFullscreen(false)}
-        style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.92)", zIndex:20000, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}>
-        {/* Click trap — prevent closing when clicking the video content itself */}
-        <div onClick={e => e.stopPropagation()} style={{ position:"relative", width:"min(420px, 90vw)", maxHeight:"90vh", borderRadius:20, overflow:"hidden", boxShadow:"0 24px 80px rgba(0,0,0,0.6)" }}>
-          {/* Video / thumbnail */}
-          <div style={{ position:"relative", background:"#000", aspectRatio:"9/16" }}>
-            <img src={selected.thumbnail} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", opacity:0.7 }} />
-            {/* Platform badge */}
-            <div style={{ position:"absolute", top:16, left:16, background:"rgba(0,0,0,0.6)", borderRadius:20, padding:"5px 12px", fontSize:11, fontWeight:700, color:"#fff", textTransform:"uppercase", letterSpacing:0.5 }}>
-              {selected.platform}
-            </div>
-            {/* Close button */}
-            <button onClick={() => setVideoFullscreen(false)}
-              style={{ position:"absolute", top:16, right:16, background:"rgba(0,0,0,0.6)", border:"none", borderRadius:"50%", width:36, height:36, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:16, color:"#fff" }}>
-              ✕
-            </button>
-            {/* Play button — opens actual URL */}
-            <a href={selected.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
-              style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none" }}>
-              <div style={{ background:"rgba(255,255,255,0.2)", border:"3px solid rgba(255,255,255,0.6)", borderRadius:"50%", width:72, height:72, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(8px)", transition:"transform 0.15s" }}>
-                <span style={{ fontSize:28, marginLeft:6, color:"#fff" }}>▶</span>
-              </div>
-            </a>
-            {/* Bottom info */}
-            <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"40px 20px 20px", background:"linear-gradient(transparent, rgba(0,0,0,0.8))" }}>
-              <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", marginBottom:4, fontFamily:"Inter, sans-serif" }}>{selected.creator}</div>
-              <div style={{ fontSize:14, fontWeight:700, color:"#fff", fontFamily:"Inter, sans-serif", lineHeight:1.3, marginBottom:8 }}>{selected.title}</div>
-              <div style={{ display:"flex", gap:12 }}>
-                <span style={{ fontSize:12, color:"rgba(255,255,255,0.7)", fontFamily:"Inter, sans-serif" }}>👁 {selected.views}</span>
-                <span style={{ fontSize:12, color:"#30d158", fontWeight:700, fontFamily:"Inter, sans-serif" }}>↑ {selected.engagement}</span>
+      <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:20000, display:"flex", flexDirection:"column" }}>
+        {/* Header */}
+        <div style={{ padding:"14px 24px", borderBottom:"1px solid rgba(0,0,0,0.07)", display:"flex", alignItems:"center", gap:16, background:"#fff", flexShrink:0 }}>
+          <button onClick={() => setVideoFullscreen(false)}
+            style={{ background:"none", border:"1px solid rgba(0,0,0,0.1)", borderRadius:20, padding:"6px 14px", fontSize:12, fontWeight:600, cursor:"pointer", color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif" }}>
+            ← Collapse
+          </button>
+          <div style={{ flex:1, fontSize:13, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" }}>{selected.creator} — {selected.title}</div>
+          <div style={{ display:"flex", gap:16 }}>
+            <span style={{ fontSize:12, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif" }}>👁 {selected.views}</span>
+            <span style={{ fontSize:12, color:"#30d158", fontWeight:700, fontFamily:"Inter, sans-serif" }}>↑ {selected.engagement}</span>
+          </div>
+        </div>
+        {/* Body */}
+        <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
+          {/* LEFT — video */}
+          <div style={{ width:"42%", background:"#0a0a0a", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, padding:"24px" }}>
+            <div style={{ position:"relative", width:"100%", maxWidth:320, aspectRatio:"9/16", margin:"0 auto", borderRadius:16, overflow:"hidden" }}>
+              <img src={selected.thumbnail} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity:0.65 }} />
+              <a href={selected.url} target="_blank" rel="noreferrer"
+                style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none" }}>
+                <div style={{ background:"rgba(255,255,255,0.15)", border:"3px solid rgba(255,255,255,0.5)", borderRadius:"50%", width:72, height:72, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(8px)" }}>
+                  <span style={{ fontSize:28, marginLeft:6, color:"#fff" }}>▶</span>
+                </div>
+              </a>
+              <div style={{ position:"absolute", top:12, left:12, background:"rgba(0,0,0,0.6)", borderRadius:20, padding:"4px 10px", fontSize:10, fontWeight:700, color:"#fff", textTransform:"uppercase", letterSpacing:0.5 }}>{selected.platform}</div>
+              <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"40px 16px 16px", background:"linear-gradient(transparent, rgba(0,0,0,0.85))" }}>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", marginBottom:3, fontFamily:"Inter, sans-serif" }}>{selected.creator}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:"#fff", fontFamily:"Inter, sans-serif", lineHeight:1.3 }}>{selected.title}</div>
               </div>
             </div>
           </div>
-        </div>
-        {/* Hint */}
-        <div style={{ position:"absolute", bottom:32, left:0, right:0, textAlign:"center", fontSize:11, color:"rgba(255,255,255,0.3)", fontFamily:"Inter, sans-serif" }}>
-          Click anywhere to close
+          {/* RIGHT — analysis */}
+          <div style={{ flex:1, overflowY:"auto", padding:"24px 32px" }}>
+            {/* Stats */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:20 }}>
+              {[["👁 Views", selected.views], ["📈 Engagement", selected.engagement], ["🎬 Format", selected.format]].map(([label, val]) => (
+                <div key={label} style={{ background:"#f8f8f8", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(0,0,0,0.07)", textAlign:"center" }}>
+                  <div style={{ fontSize:10, color:"rgba(0,0,0,0.35)", fontFamily:"Inter, sans-serif", marginBottom:3 }}>{label}</div>
+                  <div style={{ fontSize:12, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" }}>{val}</div>
+                </div>
+              ))}
+            </div>
+            {/* Hook Detection */}
+            <div style={{ background:"#fff", border:"1px solid rgba(0,0,0,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🎣 Hook Detection</div>
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif" }}>🎤 Voice Hook</div>
+                <div style={{ background:"rgba(0,0,0,0.03)", borderRadius:8, padding:"10px 12px", fontSize:12, color:"#1d1d1f", fontStyle:"italic" }}>{selected.voiceHook || `"${selected.hook}"`}</div>
+              </div>
+              <div style={{ marginBottom:8 }}>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(0,0,0,0.3)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif" }}>📺 Text on Video</div>
+                <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}>{selected.textHook || selected.hook.toUpperCase()}</div>
+              </div>
+              <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", fontFamily:"Inter, sans-serif" }}>⚡ Trigger: <strong style={{color:"#1d1d1f"}}>{selected.trigger}</strong></div>
+            </div>
+            {/* Why It Worked */}
+            <div style={{ background:"#fff", border:"1px solid rgba(0,0,0,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🧠 Why It Worked</div>
+              {selected.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
+                <div key={i} style={{ display:"flex", gap:8, marginBottom:8, alignItems:"flex-start" }}>
+                  <span style={{ fontSize:10, color:"#30d158", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
+                  <span style={{ fontSize:12, color:"rgba(0,0,0,0.7)", lineHeight:1.5, fontFamily:"Inter, sans-serif" }}>{point.trim()}{point.trim().endsWith('.')?'':'.'}</span>
+                </div>
+              ))}
+            </div>
+            {/* Score bars */}
+            <div style={{ background:"#fff", border:"1px solid rgba(0,0,0,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(0,0,0,0.4)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>📊 Engagement Score</div>
+              {[
+                { label:"Hook Strength", score: parseInt(selected.engagement) > 10 ? 95 : parseInt(selected.engagement) > 7 ? 80 : 65 },
+                { label:"Shareability", score: parseInt(selected.engagement) > 10 ? 90 : parseInt(selected.engagement) > 7 ? 75 : 60 },
+                { label:"Save Rate Est.", score: parseInt(selected.engagement) > 10 ? 85 : parseInt(selected.engagement) > 7 ? 70 : 55 },
+              ].map(({ label, score }) => (
+                <div key={label} style={{ marginBottom:8 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                    <span style={{ fontSize:11, color:"rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif" }}>{label}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:"#1d1d1f", fontFamily:"Inter, sans-serif" }}>{score}/100</span>
+                  </div>
+                  <div style={{ height:4, background:"rgba(0,0,0,0.06)", borderRadius:4, overflow:"hidden" }}>
+                    <div style={{ width:`${score}%`, height:"100%", background: score > 80 ? "#30d158" : score > 65 ? "#ff9f0a" : "#ff453a", borderRadius:4 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* VitalLyfe Adaptation */}
+            <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:12, padding:"14px 16px" }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"#30d158", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}>🎯 VitalLyfe Adaptation</div>
+              <div style={{ fontSize:12, color:"#1d1d1f", lineHeight:1.6, fontStyle:"italic", fontFamily:"Inter, sans-serif" }}>"{selected.variation}"</div>
+              <div style={{ marginTop:10, display:"flex", gap:6, justifyContent:"space-between", alignItems:"center" }}>
+                <div style={{ display:"flex", gap:6 }}>
+                  <span style={{ fontSize:10, background:"rgba(48,209,88,0.15)", color:"#30d158", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>Ready to use</span>
+                  <span style={{ fontSize:10, background:"rgba(0,0,0,0.05)", color:"rgba(0,0,0,0.4)", borderRadius:20, padding:"3px 10px", fontWeight:600, fontFamily:"Inter, sans-serif" }}>{selected.format}</span>
+                </div>
+                <button onClick={() => { setVariationView(selected); setVideoFullscreen(false); }}
+                  style={{ fontSize:11, fontWeight:700, color:"#30d158", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif", textDecoration:"underline", padding:0 }}>
+                  View Full Breakdown →
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )}
