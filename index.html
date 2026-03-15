@@ -3671,9 +3671,9 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                 const needsScript = item.format === "Reel" && (!item.script || item.script.length < 10);
                 return (
                   <div key={item.id}
-                    style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr 0.7fr auto", borderBottom:`1px solid rgba(0,0,0,0.04)`, transition:"background 0.15s", background:i%2===0?"#fff":"rgba(0,0,0,0.01)" }}
-                    onMouseEnter={e => e.currentTarget.style.background="#f5f0ff"}
-                    onMouseLeave={e => e.currentTarget.style.background=i%2===0?"#fff":"rgba(0,0,0,0.01)"}>
+                    style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr 0.7fr auto", borderBottom:`1px solid rgba(255,255,255,0.05)`, transition:"background 0.15s", background:i%2===0?"#111010":"#0f0d0e" }}
+                    onMouseEnter={e => e.currentTarget.style.background="rgba(42,171,255,0.06)"}
+                    onMouseLeave={e => e.currentTarget.style.background=i%2===0?"#111010":"#0f0d0e"}>
                     <div onClick={() => setEditingItem(item)} style={{ fontSize:12, color:"#f5f5f7", fontWeight:500, padding:"11px 14px", lineHeight:1.3, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
                       {item.client_note && <span title={item.client_note} style={{ fontSize:8, color:"#ff453a", background:"rgba(255,69,58,0.1)", padding:"1px 5px", borderRadius:4, fontWeight:700, whiteSpace:"nowrap" }}>CLIENT NOTE</span>}
                       {item.title}
