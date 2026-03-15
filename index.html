@@ -529,8 +529,8 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
   const isImage = (f) => /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f.name);
   const isVideo = (f) => /\.(mp4|mov|avi|webm)$/i.test(f.name);
 
-  const labelStyle = { fontSize: 9, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(0,0,0,0.4)", marginBottom: 5, display: "block" };
-  const inputStyle = { width: "100%", border: "1px solid #e5e5e5", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#0f0f1a", outline: "none", fontFamily: "Inter, sans-serif", background: "#fff", boxSizing: "border-box" };
+  const labelStyle = { fontSize: 9, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 5, display: "block" };
+  const inputStyle = { width: "100%", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#ffffff", outline: "none", fontFamily: "Inter, sans-serif", background: "#1a1818", boxSizing: "border-box" };
   const textareaStyle = { ...inputStyle, resize: "vertical", lineHeight: 1.6 };
   const selectStyle = { ...inputStyle, appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' fill='none' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", cursor: "pointer" };
 
@@ -582,7 +582,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
             {PLATFORMS_LIST.map(p => {
               const active = (form.platforms || []).includes(p);
               return (
-                <button key={p} onClick={() => togglePlatform(p)} style={{ padding:"7px 14px", borderRadius:8, fontSize:12, fontWeight:600, cursor:"pointer", transition:"all 0.15s", border: active ? "none" : "1px solid #e0e0e0", background: active ? "#0f0f1a" : "#fff", color: active ? "#fff" : "rgba(0,0,0,0.5)", fontFamily:"Inter, sans-serif" }}>{p}</button>
+                <button key={p} onClick={() => togglePlatform(p)} style={{ padding:"7px 14px", borderRadius:8, fontSize:12, fontWeight:600, cursor:"pointer", transition:"all 0.15s", border: active ? "1px solid rgba(42,171,255,0.4)" : "1px solid rgba(255,255,255,0.1)", background: active ? "rgba(42,171,255,0.15)" : "#1a1818", color: active ? "#2AABFF" : "rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>{p}</button>
               );
             })}
           </div>
@@ -913,7 +913,7 @@ function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardC
                 {stageItems.map((item) => (
                   <div key={item.id} className="hover-card" style={{ padding:"10px 12px", marginBottom:7, borderRadius:10, borderLeft:`2px solid ${c}`, background:"#111010", backdropFilter:"blur(12px)", boxShadow:"0 1px 6px rgba(0,0,0,0.4)" }}>
                     <div onClick={() => onCardClick(item)} style={{ cursor:"pointer" }}>
-                      <div style={{ fontSize:11, color:"#1a1a2e", fontWeight:600, lineHeight:1.35, marginBottom:5 }}>{item.title}</div>
+                      <div style={{ fontSize:11, color:"#ffffff", fontWeight:600, lineHeight:1.35, marginBottom:5 }}>{item.title}</div>
                       <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", marginBottom:5, lineHeight:1.4 }}>{item.campaign}</div>
                       <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:6 }}>
                         <span style={{ fontSize:8, color:c, background:`${c}15`, padding:"2px 5px", borderRadius:4, fontWeight:700 }}>{item.pillar}</span>
