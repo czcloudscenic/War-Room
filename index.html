@@ -149,7 +149,7 @@
                     const c = STATUS_COLOR[item.status]||"#999";
                     const isRevOpen = reviseOpen === item.id;
                     return (
-                      <div key={item.id} style={{ background:"#111010", border:`1px solid ${isRevOpen?"rgba(255,69,58,0.25)":"#ebebeb"}`, borderRadius:14, padding:"18px 20px" }}>
+                      <div key={item.id} style={{ background:"#111010", border:`1px solid ${isRevOpen?"rgba(255,69,58,0.25)":"rgba(255,255,255,0.08)"}`, borderRadius:14, padding:"18px 20px" }}>
                         <div style={{ display:"flex", alignItems:"center", gap:16 }}>
                           <div style={{ flex:1 }}>
                             <div style={{ fontSize:13, fontWeight:600, color:"#f5f5f7", marginBottom:4 }}>{item.title}</div>
@@ -658,7 +658,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
         {/* Client Note */}
         <div style={{ marginBottom:28 }}>
           <label style={{ ...labelStyle, color:"rgba(255,69,58,0.6)" }}>Client Note</label>
-          <textarea style={{ ...textareaStyle, minHeight:56, borderColor: form.client_note ? "rgba(255,69,58,0.3)" : "#e5e5e5", background: form.client_note ? "rgba(255,69,58,0.02)" : "#fff" }}
+          <textarea style={{ ...textareaStyle, minHeight:56, borderColor: form.client_note ? "rgba(255,69,58,0.3)" : "rgba(255,255,255,0.1)", background: form.client_note ? "rgba(255,69,58,0.08)" : "#1a1818" }}
             value={form.client_note || ""} onChange={e => set("client_note", e.target.value)}
             placeholder="Client revision notes will appear here…" />
         </div>
@@ -1648,7 +1648,7 @@ function AgentChatPage({ agents, content }) {
                   <div style={{ width:28, height:28, borderRadius:8, background:sel.grad, border:"1px solid " + sel.color + "40", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:sel.color, flexShrink:0, marginTop:2 }}>{sel.name[0]}</div>
                 )}
                 <div style={{ maxWidth:"76%" }}>
-                  <div style={{ background:m.role === "user" ? "#0f0f1a" : m.err ? "rgba(255,69,58,0.07)" : "#f7f7f5", border:m.role === "user" ? "none" : "1px solid " + (m.err ? "rgba(255,69,58,0.18)" : "rgba(0,0,0,0.07)"), borderRadius:m.role === "user" ? "15px 15px 3px 15px" : "3px 15px 15px 15px", padding:"10px 13px" }}>
+                  <div style={{ background:m.role === "user" ? "#0f0f1a" : m.err ? "rgba(255,69,58,0.07)" : "#1a1818", border:m.role === "user" ? "none" : "1px solid " + (m.err ? "rgba(255,69,58,0.18)" : "rgba(255,255,255,0.07)"), borderRadius:m.role === "user" ? "15px 15px 3px 15px" : "3px 15px 15px 15px", padding:"10px 13px" }}>
                     <div style={{ fontSize:13, color:m.role === "user" ? "#fff" : m.err ? "#ff453a" : "#1a1a2e", lineHeight:1.65, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>
                     <div style={{ fontSize:9, color:m.role === "user" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.22)", marginTop:4, textAlign:m.role === "user" ? "right" : "left" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</div>
                   </div>
@@ -1668,7 +1668,7 @@ function AgentChatPage({ agents, content }) {
           {busy && (
             <div style={{ display:"flex", gap:9, alignItems:"flex-start" }}>
               <div style={{ width:28, height:28, borderRadius:8, background:sel.grad, border:"1px solid " + sel.color + "40", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:sel.color, flexShrink:0 }}>{sel.name[0]}</div>
-              <div style={{ background:"#f7f7f5", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"3px 15px 15px 15px", padding:"11px 15px", display:"flex", gap:4, alignItems:"center" }}>
+              <div style={{ background:"#1a1818", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"3px 15px 15px 15px", padding:"11px 15px", display:"flex", gap:4, alignItems:"center" }}>
                 <div style={{ width:6, height:6, borderRadius:"50%", background:sel.color, animation:"livePulse 1.2s ease-in-out 0s infinite" }} />
                 <div style={{ width:6, height:6, borderRadius:"50%", background:sel.color, animation:"livePulse 1.2s ease-in-out 0.2s infinite" }} />
                 <div style={{ width:6, height:6, borderRadius:"50%", background:sel.color, animation:"livePulse 1.2s ease-in-out 0.4s infinite" }} />
@@ -3256,7 +3256,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
       {/* ── MUSE TOAST ── */}
       {museToast && (
         <div style={{ position:"fixed", bottom:28, right:28, zIndex:9999, animation:"slideIn 0.3s ease", maxWidth:380 }}>
-          <div style={{ background: museToast.status==="error" ? "#fff" : "#fff", border:`1px solid ${museToast.status==="error"?"rgba(255,69,58,0.3)":museToast.status==="done"?"rgba(255,55,95,0.3)":"rgba(255,55,95,0.2)"}`, borderRadius:14, padding:"14px 18px", boxShadow:"0 8px 32px rgba(0,0,0,0.12)", display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ background: museToast.status==="error" ? "#1a1818" : "#1a1818", border:`1px solid ${museToast.status==="error"?"rgba(255,69,58,0.3)":museToast.status==="done"?"rgba(255,55,95,0.3)":"rgba(255,55,95,0.2)"}`, borderRadius:14, padding:"14px 18px", boxShadow:"0 8px 32px rgba(0,0,0,0.12)", display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:8, height:8, borderRadius:"50%", background: museToast.status==="error"?"#ff453a":"#ff375f", flexShrink:0, animation: museToast.status==="writing"?"livePulse 1s infinite":"none" }} />
             <div>
               <div style={{ fontSize:12, fontWeight:600, color: museToast.status==="error"?"#ff453a":"#ff375f" }}>
@@ -3389,7 +3389,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                         <div style={{ padding:"20px 14px", fontSize:11, color:"rgba(255,255,255,0.4)", textAlign:"center" }}>No client actions yet</div>
                       )}
                       {notifications.slice(0,10).map(n => (
-                        <div key={n.id} style={{ padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,0.04)", display:"flex", gap:10, alignItems:"flex-start" }}>
+                        <div key={n.id} style={{ padding:"10px 14px", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", gap:10, alignItems:"flex-start" }}>
                           <span style={{ fontSize:14, flexShrink:0 }}>{n.type==="approved" ? "✅" : "🔄"}</span>
                           <div style={{ flex:1 }}>
                             <div style={{ fontSize:11, fontWeight:600, color:"#f5f5f7", lineHeight:1.4 }}>{n.type==="approved" ? "Approved" : "Revisions requested"}</div>
