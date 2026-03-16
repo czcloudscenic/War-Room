@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Cloud Scenic × VitalLyfe — War Room</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -16,6 +16,15 @@
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #f0f0f0; }
     ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+    /* iOS safe area support */
+    body { padding-bottom: env(safe-area-inset-bottom, 0); }
+    /* Prevent iOS font size boost */
+    * { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    /* Prevent iOS tap highlight */
+    * { -webkit-tap-highlight-color: transparent; }
+    /* Mobile input zoom fix — min 16px on inputs prevents iOS zoom */
+    input, textarea, select { font-size: 16px !important; }
+    @media (min-width: 768px) { input, textarea, select { font-size: inherit !important; } }
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -23,6 +32,25 @@
   <div id="root"></div>
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useCallback } = React;
+
+    // ─── PLATFORM DETECTION ───────────────────────────────────────────────────
+    const getIsMobile = () => {
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase());
+      const isSmallScreen = window.innerWidth < 768;
+      return isMobileUA || isSmallScreen;
+    };
+
+    function useIsMobile() {
+      const [isMobile, setIsMobile] = useState(getIsMobile);
+      useEffect(() => {
+        const handler = () => setIsMobile(getIsMobile());
+        window.addEventListener("resize", handler);
+        window.addEventListener("orientationchange", handler);
+        return () => { window.removeEventListener("resize", handler); window.removeEventListener("orientationchange", handler); };
+      }, []);
+      return isMobile;
+    }
 
     // ─── SUPABASE CONFIG ──────────────────────────────────────────────────────
     const SUPABASE_URL  = "https://wjcstqqihtebkpyuacop.supabase.co";
@@ -32,6 +60,7 @@
 
     // ─── LOGIN SCREEN ─────────────────────────────────────────────────────────
     function LoginScreen({ onLogin }) {
+      const isMobile = useIsMobile();
       const [email, setEmail]       = useState("");
       const [password, setPassword] = useState("");
       const [error, setError]       = useState("");
@@ -53,8 +82,8 @@
       const inp = { width:"100%", background:"#111010", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"12px 14px", fontSize:13, color:"#fff", outline:"none", fontFamily:"Inter, sans-serif", marginBottom:12, boxSizing:"border-box" };
 
       return (
-        <div style={{ minHeight:"100vh", background:"#0a0a0f", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter, sans-serif" }}>
-          <div style={{ width:380, padding:"40px 36px", background:"#111118", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, boxShadow:"0 32px 80px rgba(0,0,0,0.6)" }}>
+        <div style={{ minHeight:"100vh", minHeight:"100dvh", background:"#0a0a0f", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter, sans-serif", padding: isMobile ? "0" : "24px" }}>
+          <div style={{ width: isMobile ? "100vw" : 380, minHeight: isMobile ? "100dvh" : "auto", padding: isMobile ? "60px 28px 40px" : "40px 36px", background:"#111118", border: isMobile ? "none" : "1px solid rgba(255,255,255,0.08)", borderRadius: isMobile ? 0 : 20, boxShadow: isMobile ? "none" : "0 32px 80px rgba(0,0,0,0.6)", display:"flex", flexDirection:"column", justifyContent: isMobile ? "center" : "flex-start" }}>
             <div style={{ marginBottom:32 }}>
               <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", letterSpacing:2, textTransform:"uppercase", fontWeight:700, marginBottom:10 }}>Cloud Scenic</div>
               <h1 style={{ fontSize:24, fontWeight:700, color:"#fff", margin:"0 0 6px", letterSpacing:-0.5 }}>War Room</h1>
@@ -80,6 +109,7 @@
 
     // ─── CLIENT VIEW ──────────────────────────────────────────────────────────
     function ClientView({ user, content, setContent, onSignOut, isPreview }) {
+      const isMobile = useIsMobile();
       const STATUS_ORDER = ["Need Copy Approval","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"];
       const STATUS_COLOR = {
         "Need Copy Approval":"#3b82f6","Need Content Approval":"#ff453a",
@@ -127,11 +157,11 @@
 
           <div style={{ maxWidth:900, margin:"0 auto", padding:"32px 24px" }}>
             {/* Stats */}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:32 }}>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(3,1fr)" : "repeat(3,1fr)", gap: isMobile ? 8 : 12, marginBottom:32 }}>
               {[["Needs Review", pending.length, "#ff9f0a"], ["Approved", approved.length, "#2AABFF"], ["Scheduled", scheduled.length, "#64d2ff"]].map(([label,val,color])=>(
-                <div key={label} style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, padding:"20px 22px" }}>
-                  <div style={{ fontSize:28, fontWeight:700, color, letterSpacing:-1 }}>{val}</div>
-                  <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontWeight:600, marginTop:4 }}>{label}</div>
+                <div key={label} style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius: isMobile ? 10 : 14, padding: isMobile ? "14px 12px" : "20px 22px" }}>
+                  <div style={{ fontSize: isMobile ? 22 : 28, fontWeight:700, color, letterSpacing:-1 }}>{val}</div>
+                  <div style={{ fontSize: isMobile ? 9 : 11, color:"rgba(255,255,255,0.5)", fontWeight:600, marginTop:4 }}>{label}</div>
                 </div>
               ))}
             </div>
@@ -2990,6 +3020,8 @@ function CIDPage() {
 }
 
 function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setContentProp }) {
+  const isMobile = useIsMobile();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeNav, setActiveNav] = useState("dashboard");
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [feed, setFeed] = useState([]);
@@ -3252,10 +3284,10 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   }
 
   return (
-    <div style={{ display:"flex", height:"100vh", background:"#0a0809", color:"#f5f5f7", fontFamily:"-apple-system, 'SF Pro Display', Inter, sans-serif", overflow:"hidden" }}>
+    <div style={{ display:"flex", height: isMobile ? "100dvh" : "100vh", background:"#0a0809", color:"#f5f5f7", fontFamily:"-apple-system, 'SF Pro Display', Inter, sans-serif", overflow:"hidden", flexDirection: isMobile ? "column" : "row" }}>
       {/* ── MUSE TOAST ── */}
       {museToast && (
-        <div style={{ position:"fixed", bottom:28, right:28, zIndex:9999, animation:"slideIn 0.3s ease", maxWidth:380 }}>
+        <div style={{ position:"fixed", bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : 28, right: isMobile ? 16 : 28, zIndex:9999, animation:"slideIn 0.3s ease", maxWidth: isMobile ? "calc(100vw - 32px)" : 380 }}>
           <div style={{ background: museToast.status==="error" ? "#1a1818" : "#1a1818", border:`1px solid ${museToast.status==="error"?"rgba(255,69,58,0.3)":museToast.status==="done"?"rgba(255,55,95,0.3)":"rgba(255,55,95,0.2)"}`, borderRadius:14, padding:"14px 18px", boxShadow:"0 8px 32px rgba(0,0,0,0.12)", display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:8, height:8, borderRadius:"50%", background: museToast.status==="error"?"#ff453a":"#ff375f", flexShrink:0, animation: museToast.status==="writing"?"livePulse 1s infinite":"none" }} />
             <div>
@@ -3271,6 +3303,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.35)} }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
         @keyframes slideIn { from{transform:translateY(-4px);opacity:0} to{transform:translateY(0);opacity:1} }
+        @keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
         @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
         @keyframes progressBar { from{width:5%} to{width:95%} }
         ::-webkit-scrollbar { width:3px; height:3px }
@@ -3281,6 +3314,9 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         input::placeholder { color:rgba(0,0,0,0.28) }
         textarea::placeholder { color:rgba(0,0,0,0.22); font-style:italic }
         h1,h2,h3 { letter-spacing:-0.5px }
+        .mobile-scroll { -webkit-overflow-scrolling:touch; overflow-x:auto; }
+        .mobile-tap { -webkit-tap-highlight-color:transparent; }
+        .mobile-card:active { opacity:0.8; transform:scale(0.98); transition:all 0.1s; }
         .glass-btn {
           transition: all 0.18s cubic-bezier(0.4,0,0.2,1) !important;
           position: relative;
@@ -3321,8 +3357,58 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
 
       <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, display:"none" }} />
 
-      {/* ── SIDEBAR ── */}
-      <div style={{ width:sidebarW, minWidth:sidebarW, background:"linear-gradient(180deg, #0e0c0d 0%, #0a0809 60%, #070607 100%)", borderRight:"1px solid rgba(255,255,255,0.05)", display:"flex", flexDirection:"column", overflow:"hidden", transition:"width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s cubic-bezier(0.4,0,0.2,1)", zIndex:20, position:"relative" }}>
+      {/* ── MOBILE TOP BAR ── */}
+      {isMobile && (
+        <div style={{ height:52, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", padding:"0 16px", gap:12, zIndex:50, flexShrink:0, paddingTop:"env(safe-area-inset-top,0)" }}>
+          <div style={{ width:30, height:30, borderRadius:8, background:"#161414", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <span style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1, fontFamily:"'Geist Mono',monospace" }}>VL</span>
+          </div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:"#f5f5f7", letterSpacing:-0.3 }}>War Room</div>
+            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+              <div style={{ width:4, height:4, borderRadius:"50%", background: dbStatus==="live"?"#2AABFF":"#ff453a" }} />
+              <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", fontWeight:500, letterSpacing:1.5, textTransform:"uppercase", fontFamily:"'Geist Mono',monospace" }}>VitalLyfe</span>
+            </div>
+          </div>
+          <button onClick={() => setMobileNavOpen(o => !o)}
+            style={{ background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#f5f5f7", width:34, height:34, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:16 }}>
+            {mobileNavOpen ? "✕" : "☰"}
+          </button>
+        </div>
+      )}
+
+      {/* ── MOBILE NAV DRAWER ── */}
+      {isMobile && mobileNavOpen && (
+        <div style={{ position:"fixed", inset:0, zIndex:200 }} onClick={() => setMobileNavOpen(false)}>
+          <div style={{ position:"absolute", top:52, left:0, right:0, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.08)", animation:"slideUp 0.2s ease", maxHeight:"80vh", overflowY:"auto" }}
+            onClick={e => e.stopPropagation()}>
+            {[
+              { section:"COMMAND", items:[{id:"dashboard",label:"Dashboard",icon:"⬡"},{id:"agents",label:"Agents",icon:"◈"}] },
+              { section:"CONTENT", items:[{id:"instagram",label:"Instagram",icon:"◎"},{id:"tiktok",label:"TikTok",icon:"◎"},{id:"youtube",label:"YouTube",icon:"◎"},{id:"tracker",label:"Content Tracker",icon:"◫"},{id:"taskboard",label:"Task Board",icon:"◫"}] },
+              { section:"BUSINESS", items:[{id:"adroihub",label:"Ad ROI Hub",icon:"◈"},{id:"broadcast",label:"Team Broadcast",icon:"◎"}] },
+              { section:"OPERATIONS", items:[{id:"artgrid",label:"ArtGrid Scout",icon:"◈"},{id:"references",label:"References",icon:"◫"},{id:"skills",label:"Skills",icon:"◫"},{id:"sops",label:"SOPs",icon:"◫"}] },
+            ].map(({ section, items }) => (
+              <div key={section}>
+                <div style={{ padding:"10px 20px 4px", fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.25)", letterSpacing:2, textTransform:"uppercase", fontFamily:"'Geist Mono',monospace" }}>{section}</div>
+                {items.map(item => (
+                  <button key={item.id} onClick={() => { setActiveNav(item.id); setMobileNavOpen(false); }}
+                    style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"13px 20px", background: activeNav===item.id ? "rgba(42,171,255,0.08)" : "none", border:"none", borderLeft: activeNav===item.id ? "2px solid #2AABFF" : "2px solid transparent", color: activeNav===item.id ? "#2AABFF" : "rgba(255,255,255,0.65)", fontSize:13, fontWeight: activeNav===item.id ? 600 : 400, cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            ))}
+            <div style={{ padding:"12px 20px", borderTop:"1px solid rgba(255,255,255,0.06)", display:"flex", gap:10 }}>
+              <button onClick={() => { setPreviewMode(true); setMobileNavOpen(false); }} style={{ flex:1, fontSize:12, color:"rgba(255,255,255,0.6)", background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>👁 Client View</button>
+              <button onClick={onSignOut} style={{ fontSize:12, color:"rgba(255,255,255,0.4)", background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"10px 16px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>Sign Out</button>
+            </div>
+            <div style={{ height:"env(safe-area-inset-bottom,16px)", minHeight:16 }} />
+          </div>
+        </div>
+      )}
+
+      {/* ── DESKTOP SIDEBAR ── */}
+      {!isMobile && (
         <div style={{ padding:sidebarCollapsed?"16px 0":"16px 16px 14px", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
 
           {/* ── COLLAPSED ── */}
@@ -3443,42 +3529,53 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
           </div>
         )}
       </div>
+      )} {/* end !isMobile desktop sidebar */}
 
       {/* ── MAIN ── */}
-      <div style={{ flex:1, overflowY:"auto", padding:"36px 40px", position:"relative", zIndex:25, background:"#0a0809" }}>
+      <div style={{ flex:1, overflowY:"auto", padding: isMobile ? "16px 16px calc(72px + env(safe-area-inset-bottom,0px))" : "36px 40px", position:"relative", zIndex:25, background:"#0a0809", WebkitOverflowScrolling:"touch" }}>
 
         {/* DASHBOARD */}
         {activeNav === "dashboard" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
             {/* ── ATMOSPHERIC HERO ── */}
-            <div style={{ background:"linear-gradient(135deg, #0a0809 0%, #0d0b0c 50%, #0a0809 100%)", borderRadius:24, padding:"44px 48px", marginBottom:24, position:"relative", overflow:"hidden" }}>
+            <div style={{ background:"linear-gradient(135deg, #0a0809 0%, #0d0b0c 50%, #0a0809 100%)", borderRadius: isMobile ? 16 : 24, padding: isMobile ? "28px 20px" : "44px 48px", marginBottom: isMobile ? 16 : 24, position:"relative", overflow:"hidden" }}>
               <div style={{ position:"absolute", top:-80, right:40, width:380, height:380, borderRadius:"50%", background:"radial-gradient(circle, rgba(42,171,255,0.12) 0%, transparent 70%)", pointerEvents:"none" }} />
               <div style={{ position:"absolute", bottom:-60, left:-20, width:300, height:300, borderRadius:"50%", background:"radial-gradient(circle, rgba(241,113,48,0.08) 0%, transparent 70%)", pointerEvents:"none" }} />
-              <div style={{ position:"absolute", top:30, left:"42%", width:220, height:220, borderRadius:"50%", background:"radial-gradient(circle, rgba(42,171,255,0.06) 0%, transparent 70%)", pointerEvents:"none" }} />
               <div style={{ position:"relative", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center" }}>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontWeight:600, marginBottom:20, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace" }}>Cloud Scenic × VitalLyfe</div>
-                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:58, fontWeight:400, fontStyle:"italic", color:"#fff", margin:0, letterSpacing:-1, lineHeight:1 }}>War Room.</h1>
-                <p style={{ fontSize:13, color:"rgba(255,255,255,0.28)", margin:"14px 0 0", fontWeight:400, letterSpacing:0.1 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})} · {content.length} pieces in pipeline</p>
-                <div style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(48,209,88,0.12)", border:"1px solid rgba(48,209,88,0.22)", borderRadius:20, padding:"8px 18px", marginTop:20 }}>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontWeight:600, marginBottom: isMobile ? 12 : 20, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace" }}>Cloud Scenic × VitalLyfe</div>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 38 : 58, fontWeight:400, fontStyle:"italic", color:"#fff", margin:0, letterSpacing:-1, lineHeight:1 }}>War Room.</h1>
+                <p style={{ fontSize:12, color:"rgba(255,255,255,0.28)", margin: isMobile ? "10px 0 0" : "14px 0 0", fontWeight:400 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})} · {content.length} pieces</p>
+                <div style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(48,209,88,0.12)", border:"1px solid rgba(48,209,88,0.22)", borderRadius:20, padding:"7px 16px", marginTop: isMobile ? 14 : 20 }}>
                   <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite" }} />
                   <span style={{ fontSize:11, color:"rgba(255,255,255,0.55)", fontWeight:500 }}>{liveCount} agents active</span>
                 </div>
               </div>
             </div>
 
-            {/* ── ASYMMETRIC METRIC GRID ── */}
-            <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 1fr", gridTemplateRows:"auto auto", gap:14, marginBottom:44 }}>
-              <div style={{ gridRow:"1 / span 2" }}>
-                <MetricCard label="Content Pieces" value={content.length} delta={0} color="#2AABFF" large />
-              </div>
-              <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
-              <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#bf5af2" />
-              <MetricCard label="Need Attention" value={content.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
-              <MetricCard label="In Production" value={content.filter(x=>["Ready For Content Creation","Ready For Copy Creation"].includes(x.status)).length} delta={0} color="#ff375f" />
+            {/* ── METRIC GRID — 2x2 on mobile, asymmetric on desktop ── */}
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1.4fr 1fr 1fr", gridTemplateRows:"auto", gap: isMobile ? 10 : 14, marginBottom: isMobile ? 24 : 44 }}>
+              {isMobile ? (
+                <>
+                  <MetricCard label="Content Pieces" value={content.length} delta={0} color="#2AABFF" />
+                  <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
+                  <MetricCard label="Need Attention" value={content.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
+                  <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#bf5af2" />
+                </>
+              ) : (
+                <>
+                  <div style={{ gridRow:"1 / span 2" }}>
+                    <MetricCard label="Content Pieces" value={content.length} delta={0} color="#2AABFF" large />
+                  </div>
+                  <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
+                  <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#bf5af2" />
+                  <MetricCard label="Need Attention" value={content.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
+                  <MetricCard label="In Production" value={content.filter(x=>["Ready For Content Creation","Ready For Copy Creation"].includes(x.status)).length} delta={0} color="#ff375f" />
+                </>
+              )}
             </div>
 
             {/* ── QUICK ACTIONS ── */}
-            <div style={{ marginBottom:44 }}>
+            <div style={{ marginBottom: isMobile ? 24 : 44 }}>
               <QuickActionsDashboard />
             </div>
 
@@ -3801,6 +3898,30 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         )}
 
       </div>
+
+      {/* ── MOBILE BOTTOM NAV ── */}
+      {isMobile && (
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:"rgba(10,8,9,0.96)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderTop:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", paddingBottom:"env(safe-area-inset-bottom,0)", height:"calc(58px + env(safe-area-inset-bottom,0px))" }}>
+          {[
+            { id:"dashboard", label:"Home", icon:"⬡" },
+            { id:"tracker", label:"Content", icon:"◫" },
+            { id:"agents", label:"Agents", icon:"◈" },
+            { id:"adroihub", label:"ROI", icon:"◎" },
+            { id:"broadcast", label:"Broadcast", icon:"◎" },
+          ].map(tab => {
+            const active = activeNav === tab.id;
+            return (
+              <button key={tab.id} onClick={() => setActiveNav(tab.id)}
+                style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, background:"none", border:"none", cursor:"pointer", padding:"8px 0", height:58 }}>
+                <div style={{ width:20, height:20, borderRadius:6, background: active ? "rgba(42,171,255,0.15)" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}>
+                  <span style={{ fontSize:13, color: active ? "#2AABFF" : "rgba(255,255,255,0.35)" }}>{tab.icon}</span>
+                </div>
+                <span style={{ fontSize:9, fontWeight: active ? 700 : 400, color: active ? "#2AABFF" : "rgba(255,255,255,0.3)", letterSpacing:0.3, fontFamily:"Inter,sans-serif" }}>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
