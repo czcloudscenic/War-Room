@@ -1386,7 +1386,8 @@ function CalendarSaveButton({ items }) {
 }
 
 function AgentChatPage({ agents, content }) {
-  const PROMPTS = {
+  const isMobile = useIsMobile();
+  const [mobileAgentList, setMobileAgentList] = useState(false);
     Sean: "You are Sean, Commander Agent for the VitalLyfe War Room by Cloud Scenic. Orchestrate all 7 agents, own the content pipeline. VitalLyfe is a wellness/hydration brand. Campaigns: Drip Campaign, Meet the Makers, Product Launch. Platforms: Instagram, TikTok, YouTube. Pipeline: Ready For Copy Creation, Need Copy Approval, Ready For Content Creation, Need Content Approval, Needs Revisions, Approved, Ready For Schedule, Scheduled. Team: Lacey (Runner), Ali (Developer), Sam (Monitor), Artgrid (Footage Scout), Muse (Content Ideation), Overseer (SOP Guardian). Personality: decisive, calm, short punchy sentences.",
     Lacey: "You are Lacey, Runner Agent for the VitalLyfe War Room by Cloud Scenic. Execute tasks: n8n and Zapier workflows, deliverable batches, SOPs, Drive sync. Personality: fast, pragmatic, loves checklists, dry humor when things break.",
     Ali: "You are Ali, Developer Agent for the VitalLyfe War Room by Cloud Scenic. Tech stack: single HTML file React CDN plus Babel around 1700 lines, Supabase, Google Drive API, Netlify. Surgical edits only. Personality: precise, technical, ships clean code.",
@@ -1543,7 +1544,26 @@ function AgentChatPage({ agents, content }) {
   const caps = QUICK[sel.name] || [];
 
   return (
-    <div style={{ animation:"fadeIn 0.4s ease", display:"flex", gap:16, height:"calc(100vh - 80px)" }}>
+    <div style={{ animation:"fadeIn 0.4s ease", display:"flex", flexDirection: isMobile ? "column" : "row", gap:16, height: isMobile ? "auto" : "calc(100vh - 80px)" }}>
+
+      {/* Mobile: agent selector bar */}
+      {isMobile && (
+        <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:4, WebkitOverflowScrolling:"touch" }}>
+          {agents.map(ag => {
+            const active = sel.id === ag.id;
+            return (
+              <button key={ag.id} onClick={() => setSel(ag)}
+                style={{ flexShrink:0, display:"flex", alignItems:"center", gap:7, background: active ? ag.color + "18" : "#111010", border:"1px solid " + (active ? ag.color + "40" : "rgba(255,255,255,0.08)"), borderRadius:20, padding:"7px 12px", cursor:"pointer" }}>
+                <AgentAvatar agent={ag} size={22} />
+                <span style={{ fontSize:12, fontWeight: active ? 700 : 400, color: active ? ag.color : "rgba(255,255,255,0.55)", whiteSpace:"nowrap", fontFamily:"Inter,sans-serif" }}>{ag.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Desktop: sidebar agent list */}
+      {!isMobile && (
       <div style={{ width:210, flexShrink:0, display:"flex", flexDirection:"column", gap:6 }}>
         <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>7 Agents</div>
         {agents.map(ag => {
@@ -1566,6 +1586,7 @@ function AgentChatPage({ agents, content }) {
           );
         })}
       </div>
+      )}
 
       <div className="hover-card" style={{ flex:1, display:"flex", flexDirection:"column", background:"#161414", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, overflow:"hidden", boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
         <div style={{ padding:"16px 22px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", gap:13, flexShrink:0 }}>
@@ -1716,7 +1737,7 @@ function AgentChatPage({ agents, content }) {
           </div>
         )}
 
-        <div style={{ padding:"12px 16px", borderTop:"1px solid rgba(0,0,0,0.07)", display:"flex", gap:9, flexShrink:0 }}>
+        <div style={{ padding: isMobile ? "10px 12px" : "12px 16px", borderTop:"1px solid rgba(0,0,0,0.07)", display:"flex", gap:9, flexShrink:0, paddingBottom: isMobile ? "max(10px, env(safe-area-inset-bottom, 10px))" : "12px" }}>
           <input
             ref={inputRef}
             value={input}
@@ -1724,12 +1745,12 @@ function AgentChatPage({ agents, content }) {
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }}
             placeholder={"Message " + sel.name + "..."}
             disabled={busy}
-            style={{ flex:1, background:"#111010", border:"1px solid " + (input ? sel.color + "40" : "rgba(0,0,0,0.1)"), borderRadius:11, padding:"10px 15px", color:"#f5f5f7", fontSize:13, outline:"none", fontFamily:"Inter,sans-serif" }}
+            style={{ flex:1, background:"#111010", border:"1px solid " + (input ? sel.color + "40" : "rgba(0,0,0,0.1)"), borderRadius:11, padding: isMobile ? "12px 14px" : "10px 15px", color:"#f5f5f7", fontSize:isMobile ? 16 : 13, outline:"none", fontFamily:"Inter,sans-serif" }}
           />
           <button
             onClick={() => sendMsg()}
             disabled={!input.trim() || busy}
-            style={{ background:input.trim() && !busy ? sel.color : "rgba(255,255,255,0.07)", border:"none", borderRadius:11, color:input.trim() && !busy ? "#fff" : "rgba(255,255,255,0.3)", cursor:input.trim() && !busy ? "pointer" : "default", padding:"10px 18px", fontSize:17, transition:"all 0.2s", fontFamily:"Inter,sans-serif" }}>
+            style={{ background:input.trim() && !busy ? sel.color : "rgba(255,255,255,0.07)", border:"none", borderRadius:11, color:input.trim() && !busy ? "#fff" : "rgba(255,255,255,0.3)", cursor:input.trim() && !busy ? "pointer" : "default", padding: isMobile ? "12px 20px" : "10px 18px", fontSize:17, transition:"all 0.2s", fontFamily:"Inter,sans-serif", minWidth: isMobile ? 52 : "auto" }}>
             {"\u2191"}
           </button>
         </div>
