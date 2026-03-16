@@ -447,6 +447,7 @@ function useInterval(cb, delay) {
 
 // ─── EDIT CONTENT MODAL ───────────────────────────────────────────────────────
 function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew = false }) {
+  const isMobile = useIsMobile();
   const [form, setForm] = useState({ ...item });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -565,8 +566,8 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
   const selectStyle = { ...inputStyle, appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' fill='none' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", cursor: "pointer" };
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.35)", backdropFilter:"blur(4px)" }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background:"#111010", borderRadius:20, width:"100%", maxWidth:660, maxHeight:"92vh", overflowY:"auto", padding:"32px 36px", boxShadow:"0 24px 80px rgba(0,0,0,0.18)", fontFamily:"Inter, sans-serif" }}>
+    <div style={{ position:"fixed", inset:0, zIndex:1000, display:"flex", alignItems: isMobile ? "flex-end" : "center", justifyContent:"center", background:"rgba(0,0,0,0.35)", backdropFilter:"blur(4px)" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background:"#111010", borderRadius: isMobile ? "20px 20px 0 0" : 20, width:"100%", maxWidth: isMobile ? "100%" : 660, maxHeight: isMobile ? "92dvh" : "92vh", overflowY:"auto", padding: isMobile ? "24px 20px 32px" : "32px 36px", boxShadow:"0 24px 80px rgba(0,0,0,0.18)", fontFamily:"Inter, sans-serif", paddingBottom: isMobile ? "calc(32px + env(safe-area-inset-bottom,0px))" : "32px" }}>
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
           <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:"italic", fontSize:26, fontWeight:400, color:"#f5f5f7", margin:0 }}>{isNew ? "New Content" : "Edit Content"}</h2>
@@ -574,7 +575,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
         </div>
 
         {/* Row 1: Campaign + Status */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:18 }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:16, marginBottom:18 }}>
           <div>
             <label style={labelStyle}>Campaign</label>
             <select style={selectStyle} value={form.campaign} onChange={e => set("campaign", e.target.value)}>
@@ -1863,6 +1864,7 @@ function QuickActionsDashboard() {
 
 // ─── AD ROI HUB ──────────────────────────────────────────────────────────────
 function AdROIHub() {
+  const isMobile = useIsMobile();
   const [campaigns, setCampaigns] = useState([
     { id:"c1", name:"Drip Campaign — IG Reels", platform:"Instagram", spend:320, leads:18, conversions:4, revenue:1200, status:"Active" },
     { id:"c2", name:"Access is Freedom — TikTok", platform:"TikTok", spend:150, leads:34, conversions:7, revenue:2100, status:"Active" },
@@ -1984,6 +1986,8 @@ function AdROIHub() {
 
       {/* ── CAMPAIGNS TABLE ── */}
       <Card style={{padding:"0",overflow:"hidden"}}>
+        <div style={{overflowX:"auto", WebkitOverflowScrolling:"touch"}}>
+        <div style={{minWidth:640}}>
         <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
           {["Campaign","Platform","Spend","Revenue","ROAS","ROI","CPL","CVR"].map(h=>(
             <div key={h} style={{fontSize:9,color:"rgba(255,255,255,0.35)",fontWeight:700,letterSpacing:1.2,textTransform:"uppercase",padding:"12px 14px"}}>{h}</div>
@@ -2009,6 +2013,8 @@ function AdROIHub() {
             </div>
           );
         })}
+        </div>
+        </div>
       </Card>
 
       <div style={{marginTop:16,padding:"12px 16px",background:"#111010",borderRadius:10,display:"flex",gap:20,flexWrap:"wrap"}}>
@@ -2021,6 +2027,7 @@ function AdROIHub() {
 
 // ─── TEAM BROADCAST ──────────────────────────────────────────────────────────
 function TeamBroadcast({ agents }) {
+  const isMobile = useIsMobile();
   const [broadcasts, setBroadcasts] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -2160,13 +2167,13 @@ function TeamBroadcast({ agents }) {
           ))}
         </div>
       )}
-      <div style={{display:"flex",gap:10,paddingTop:12,borderTop:"1px solid rgba(0,0,0,0.07)"}}>
+      <div style={{display:"flex",gap:10,paddingTop:12,borderTop:"1px solid rgba(0,0,0,0.07)",flexWrap: isMobile ? "wrap" : "nowrap"}}>
         <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendBroadcast();}}}
-          placeholder="Send a brief, update, or direction to all 8 agents…" disabled={sending}
-          style={{flex:1,background:"#111010",border:`1px solid ${input?"rgba(48,209,88,0.4)":"rgba(0,0,0,0.1)"}`,borderRadius:12,padding:"12px 16px",color:"#f5f5f7",fontSize:13,outline:"none",fontFamily:"Inter,sans-serif"}}/>
+          placeholder="Send a brief to all 8 agents…" disabled={sending}
+          style={{flex:1, width: isMobile ? "100%" : "auto", background:"#111010",border:`1px solid ${input?"rgba(48,209,88,0.4)":"rgba(0,0,0,0.1)"}`,borderRadius:12,padding:"12px 16px",color:"#f5f5f7",fontSize: isMobile ? 16 : 13,outline:"none",fontFamily:"Inter,sans-serif"}}/>
         <button onClick={sendBroadcast} disabled={!input.trim()||sending}
-          style={{background:input.trim()&&!sending?"#2AABFF":"rgba(255,255,255,0.07)",border:"none",borderRadius:12,color:input.trim()&&!sending?"#fff":"rgba(255,255,255,0.3)",cursor:input.trim()&&!sending?"pointer":"default",padding:"12px 22px",fontSize:17,transition:"all 0.2s",fontFamily:"Inter,sans-serif"}}>
-          {sending?"⏳":"↑"}
+          style={{background:input.trim()&&!sending?"#2AABFF":"rgba(255,255,255,0.07)",border:"none",borderRadius:12,color:input.trim()&&!sending?"#fff":"rgba(255,255,255,0.3)",cursor:input.trim()&&!sending?"pointer":"default",padding:"12px 22px",fontSize:17,transition:"all 0.2s",fontFamily:"Inter,sans-serif", width: isMobile ? "100%" : "auto"}}>
+          {sending?"⏳ Sending…":"↑ Broadcast"}
         </button>
       </div>
     </div>
@@ -3738,46 +3745,51 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
           const selStyle = { background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 12px", fontSize:12, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif", cursor:"pointer", appearance:"none" };
           return (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20, gap:12, flexWrap:"wrap" }}>
               <div>
-                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>Content Tracker</h1>
-                <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>{filtered.length} of {content.length} pieces · Click any row to edit</p>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 24 : 32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>Content Tracker</h1>
+                <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>{filtered.length} of {content.length} pieces · Tap any row to edit</p>
               </div>
-              <button onClick={handleAddNew} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>+ Add Content</button>
+              <button onClick={handleAddNew} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap" }}>+ Add Content</button>
             </div>
             {/* Search + Filter Bar */}
-            <div style={{ display:"flex", gap:10, marginBottom:20, flexWrap:"wrap" }}>
+            <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
               <input value={trackerSearch} onChange={e=>setTrackerSearch(e.target.value)} placeholder="Search by title…"
-                style={{ flex:1, minWidth:180, background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 14px", fontSize:12, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif" }} />
-              <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={selStyle}>
-                <option value="">All Statuses</option>
-                {STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
-              </select>
-              <select value={filterPillar} onChange={e=>setFilterPillar(e.target.value)} style={selStyle}>
-                <option value="">All Pillars</option>
-                {PILLARS_LIST.map(p=><option key={p} value={p}>{p}</option>)}
-              </select>
-              <select value={filterPlatform} onChange={e=>setFilterPlatform(e.target.value)} style={selStyle}>
-                <option value="">All Platforms</option>
-                <option value="instagram">Instagram</option>
-                <option value="tiktok">TikTok</option>
-                <option value="youtube">YouTube</option>
-              </select>
-              {(trackerSearch||filterStatus||filterPillar||filterPlatform) && (
-                <button onClick={()=>{setTrackerSearch("");setFilterStatus("");setFilterPillar("");setFilterPlatform("");}} style={{ fontSize:11, color:"rgba(255,255,255,0.5)", background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>✕ Clear</button>
-              )}
+                style={{ flex:1, minWidth: isMobile ? "100%" : 180, background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 14px", fontSize:isMobile ? 16 : 12, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif" }} />
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap", width: isMobile ? "100%" : "auto" }}>
+                <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={{ ...selStyle, flex: isMobile ? 1 : "none", fontSize: isMobile ? 14 : 12 }}>
+                  <option value="">All Statuses</option>
+                  {STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
+                </select>
+                <select value={filterPillar} onChange={e=>setFilterPillar(e.target.value)} style={{ ...selStyle, flex: isMobile ? 1 : "none", fontSize: isMobile ? 14 : 12 }}>
+                  <option value="">All Pillars</option>
+                  {PILLARS_LIST.map(p=><option key={p} value={p}>{p}</option>)}
+                </select>
+                <select value={filterPlatform} onChange={e=>setFilterPlatform(e.target.value)} style={{ ...selStyle, flex: isMobile ? 1 : "none", fontSize: isMobile ? 14 : 12 }}>
+                  <option value="">All Platforms</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="youtube">YouTube</option>
+                </select>
+                {(trackerSearch||filterStatus||filterPillar||filterPlatform) && (
+                  <button onClick={()=>{setTrackerSearch("");setFilterStatus("");setFilterPillar("");setFilterPlatform("");}} style={{ fontSize:11, color:"rgba(255,255,255,0.5)", background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>✕ Clear</button>
+                )}
+              </div>
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:24 }}>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3,1fr)", gap: isMobile ? 10 : 14, marginBottom:24 }}>
               <MetricCard label="Total Pieces" value={content.length} delta={0} color="#2AABFF" />
               <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#bf5af2" />
-              <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#0a84ff" />
+              {!isMobile && <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#0a84ff" />}
             </div>
+            {/* Table — horizontal scroll on mobile */}
             <Card style={{ padding:"0", overflow:"hidden" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr 0.7fr auto", gap:0, borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-                {["Title","Platform","Campaign","Pillar","Status","Format","Date","Write"].map(h => (
-                  <div key={h} style={{ fontSize:9, color:"rgba(255,255,255,0.35)", fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", padding:"12px 14px" }}>{h}</div>
-                ))}
-              </div>
+              <div style={{ overflowX:"auto", WebkitOverflowScrolling:"touch" }}>
+                <div style={{ minWidth: isMobile ? 640 : "auto" }}>
+                <div style={{ display:"grid", gridTemplateColumns:"2fr 0.7fr 1fr 1fr 1.3fr 0.8fr 0.7fr auto", gap:0, borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+                  {["Title","Platform","Campaign","Pillar","Status","Format","Date","Write"].map(h => (
+                    <div key={h} style={{ fontSize:9, color:"rgba(255,255,255,0.35)", fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", padding:"12px 14px" }}>{h}</div>
+                  ))}
+                </div>
               {filtered.length === 0 && (
                 <div style={{ padding:"32px", textAlign:"center", color:"rgba(255,255,255,0.4)", fontSize:12 }}>No items match your filters.</div>
               )}
@@ -3814,6 +3826,8 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                   </div>
                 );
               })}
+                </div>
+              </div>
             </Card>
           </div>
           );
@@ -3829,8 +3843,8 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         )}
 
         {activeNav === "cid" && React.createElement(CIDPage, null)}
-        {activeNav === "sales" && <AdROIHub />}
-        {activeNav === "chat" && <TeamBroadcast agents={agents} />}
+        {(activeNav === "sales" || activeNav === "adroihub") && <AdROIHub />}
+        {(activeNav === "chat" || activeNav === "broadcast") && <TeamBroadcast agents={agents} />}
         {activeNav === "artgrid" && <ArtgridScoutPage content={content} />}
         {activeNav === "references" && <ReferencesPage />}
 
