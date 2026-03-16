@@ -1000,6 +1000,7 @@ const INITIAL_REFS = [
 ];
 
 function ReferencesPage() {
+  const isMobile = useIsMobile();
   const [refs, setRefs] = useState(() => {
     try { const saved = JSON.parse(localStorage.getItem("warroom_refs") || "null"); return saved && saved.length > 0 ? saved : INITIAL_REFS; } catch { return INITIAL_REFS; }
   });
@@ -1024,7 +1025,7 @@ function ReferencesPage() {
     <div style={{ animation:"fadeIn 0.4s ease" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:24 }}>
         <div>
-          <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>References</h1>
+          <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 24 : 32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>References</h1>
           <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>Drop campaign examples, hooks, captions, and brand voice notes here. Muse + Overseer read from this folder.</p>
         </div>
         <button onClick={() => setAdding(true)} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>+ Add Reference</button>
@@ -1101,6 +1102,7 @@ function ReferencesPage() {
 
 // ─── ARTGRID SCOUT ────────────────────────────────────────────────────────────
 function ArtgridScoutPage({ content }) {
+  const isMobile = useIsMobile();
   // SOP Step 03 — scout footage for video formats not yet scheduled or scrapped
   const needsFootage = content.filter(x =>
     ["Reel", "YouTube", "Short"].includes(x.format) &&
@@ -1194,7 +1196,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
     <div style={{ animation:"fadeIn 0.4s ease" }}>
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:8 }}>
         <div>
-          <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>ArtGrid Scout</h1>
+          <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 24 : 32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>ArtGrid Scout</h1>
           <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>AI-generated footage briefs. Scout one item or run all at once — get exact Artgrid.io search queries.</p>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -1232,9 +1234,9 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
       )}
 
       <Card style={{ padding:"18px 22px", marginBottom:28, marginTop:20, background:"rgba(191,90,242,0.04)", border:"1px solid rgba(191,90,242,0.12)" }}>
-        <div style={{ display:"flex", gap:24 }}>
+        <div style={{ display:"flex", gap: isMobile ? 12 : 24, flexWrap: isMobile ? "wrap" : "nowrap" }}>
           {[{ step:"01", label:"Click Scout", desc:"Agent reads your script + director notes" }, { step:"02", label:"Get Brief", desc:"6–8 exact Artgrid search queries" }, { step:"03", label:"Search Artgrid", desc:"Click any query — opens Artgrid.io pre-filled" }, { step:"04", label:"Download", desc:"Select clips. Back to post-production." }].map(s => (
-            <div key={s.step} style={{ flex:1 }}>
+            <div key={s.step} style={{ flex: isMobile ? "1 0 calc(50% - 6px)" : 1 }}>
               <div style={{ fontSize:9, fontWeight:700, color:"rgba(191,90,242,0.6)", letterSpacing:1.5, marginBottom:4 }}>{s.step}</div>
               <div style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", marginBottom:3 }}>{s.label}</div>
               <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", lineHeight:1.5 }}>{s.desc}</div>
@@ -1925,12 +1927,12 @@ function AdROIHub() {
 
   return (
     <div style={{animation:"fadeIn 0.4s ease"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom: isMobile ? 16 : 28, flexWrap:"wrap", gap:12}}>
         <div>
-          <h1 style={{fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1}}>Ad ROI Hub</h1>
-          <p style={{fontSize:12,color:"rgba(255,255,255,0.5)",margin:0}}>Track spend vs return · AI-powered optimization · Know exactly if $5 in gets $10 out</p>
+          <h1 style={{fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 24 : 32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1}}>Ad ROI Hub</h1>
+          <p style={{fontSize:12,color:"rgba(255,255,255,0.5)",margin:0}}>Track spend vs return · AI-powered optimization</p>
         </div>
-        <div style={{display:"flex",gap:10}}>
+        <div style={{display:"flex",gap:10, flexWrap:"wrap"}}>
           <button onClick={runAIAnalysis} disabled={analyzing} style={{background:analyzing?"rgba(255,214,10,0.1)":"#ffd60a",border:"none",borderRadius:12,color:analyzing?"#ffd60a":"#0a0a0f",cursor:analyzing?"default":"pointer",padding:"10px 20px",fontSize:13,fontWeight:700,fontFamily:"Inter,sans-serif",display:"flex",alignItems:"center",gap:7}}>
             {analyzing?<><div style={{width:7,height:7,borderRadius:"50%",background:"#ffd60a",animation:"livePulse 1s infinite"}}/>Analyzing…</>:"💊 AI Analysis"}
           </button>
@@ -1939,7 +1941,7 @@ function AdROIHub() {
       </div>
 
       {/* ── TOTALS ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:28}}>
+      <div style={{display:"grid",gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(5,1fr)",gap:12,marginBottom:28}}>
         {[["Total Spend","$"+totalSpend.toLocaleString(),"#ff453a"],["Total Revenue","$"+totalRevenue.toLocaleString(),"#2AABFF"],["Overall ROAS",overallROAS+"x",overallROAS>=2?"#2AABFF":overallROAS>=1?"#ff9f0a":"#ff453a"],["Total Leads",totalLeads,"#0a84ff"],["Total Conversions",totalConversions,"#bf5af2"]].map(([label,val,color])=>(
           <Card key={label} style={{padding:"18px 20px"}}>
             <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.35)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>{label}</div>
@@ -2092,10 +2094,10 @@ function TeamBroadcast({ agents }) {
   ];
 
   return (
-    <div style={{animation:"fadeIn 0.4s ease",display:"flex",flexDirection:"column",height:"calc(100vh - 80px)"}}>
-      <div style={{marginBottom:20}}>
-        <h1 style={{fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1}}>Team Broadcast</h1>
-        <p style={{fontSize:12,color:"rgba(255,255,255,0.5)",margin:0}}>Send a brief or update to all 8 agents at once — each responds in their own voice and expertise.</p>
+    <div style={{animation:"fadeIn 0.4s ease",display:"flex",flexDirection:"column",height: isMobile ? "auto" : "calc(100vh - 80px)"}}>
+      <div style={{marginBottom: isMobile ? 12 : 20}}>
+        <h1 style={{fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 24 : 32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1}}>Team Broadcast</h1>
+        <p style={{fontSize:12,color:"rgba(255,255,255,0.5)",margin:0}}>Send a brief to all 8 agents — each responds in their own voice.</p>
       </div>
 
       <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:20,paddingBottom:20}}>
@@ -3668,14 +3670,14 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {/* INSTAGRAM */}
         {activeNav === "instagram" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:28 }}>
-              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>📸</div>
-              <div>
-                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>Instagram</h1>
+            <div style={{ display:"flex", alignItems: isMobile ? "flex-start" : "center", gap:14, marginBottom: isMobile ? 16 : 28, flexWrap:"wrap" }}>
+              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>📸</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>Instagram</h1>
                 <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>@vitallyfe · {igItems.length} pieces in pipeline</div>
               </div>
-              <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                {["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"].map(s => {
+              <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", width: isMobile ? "100%" : "auto" }}>
+                {!isMobile && ["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"].map(s => {
                   const c = STATUS_COLOR[s] || "#999";
                   const n = igItems.filter(x=>x.stage===s).length;
                   if (!n) return null;
@@ -3702,10 +3704,10 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {/* TIKTOK */}
         {activeNav === "tiktok" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:28 }}>
-              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#010101,#ff0050)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>♪</div>
+            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom: isMobile ? 16 : 28 }}>
+              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#010101,#ff0050)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>♪</div>
               <div>
-                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>TikTok</h1>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>TikTok</h1>
                 <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>@vitallyfe · {ttItems.length} pieces in pipeline</div>
               </div>
             </div>
@@ -3721,10 +3723,10 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {/* YOUTUBE */}
         {activeNav === "youtube" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:28 }}>
-              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#ff0000,#cc0000)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>▷</div>
+            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom: isMobile ? 16 : 28 }}>
+              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#ff0000,#cc0000)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>▷</div>
               <div>
-                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>YouTube</h1>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>YouTube</h1>
                 <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>VitalLyfe · {ytItems.length} pieces · Long-form & Shorts</div>
               </div>
             </div>
@@ -3858,10 +3860,10 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {/* SOPs */}
         {activeNav === "sops" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
-            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:28 }}>
+            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom: isMobile ? 16 : 28, flexWrap:"wrap", gap:12 }}>
               <div>
                 <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)", letterSpacing:2, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Standard Operating Procedure</div>
-                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>{VITAL_LYFE_SOP.title}</h1>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 32, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>{VITAL_LYFE_SOP.title}</h1>
                 <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", marginTop:5 }}>{VITAL_LYFE_SOP.subtitle} · {VITAL_LYFE_SOP.version}</div>
               </div>
               <Card style={{ padding:"12px 16px", textAlign:"center" }}>
