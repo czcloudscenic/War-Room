@@ -65,9 +65,9 @@
       const [password, setPassword] = useState("");
       const [error, setError]       = useState("");
       const [loading, setLoading]   = useState(false);
-      const canvasRef = useRef(null);
+      const mountRef = useRef(null);
 
-      // Inject liquid glass CSS once
+      // Inject liquid glass CSS
       useEffect(() => {
         if (document.getElementById('lg-css')) return;
         const s = document.createElement('style');
@@ -77,7 +77,8 @@
             background: rgba(255,255,255,0.04);
             backdrop-filter: blur(50px);
             -webkit-backdrop-filter: blur(50px);
-            box-shadow: 4px 4px 20px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.15);
+            box-shadow: 4px 4px 20px rgba(0,0,0,0.25),
+                        inset 0 1px 1px rgba(255,255,255,0.15);
             position: relative;
             overflow: hidden;
             border-radius: 24px;
@@ -89,12 +90,12 @@
             padding: 0.8px;
             border-radius: 24px;
             background: linear-gradient(160deg,
-              rgba(255,255,255,0.50) 0%,
+              rgba(255,255,255,0.55) 0%,
               rgba(255,255,255,0.18) 25%,
               transparent 45%,
               transparent 55%,
               rgba(255,255,255,0.18) 75%,
-              rgba(255,255,255,0.50) 100%
+              rgba(255,255,255,0.55) 100%
             );
             -webkit-mask: linear-gradient(#fff 0 0) content-box,
                           linear-gradient(#fff 0 0);
@@ -118,10 +119,10 @@
             transition: background 0.2s, border-color 0.2s;
           }
           .lg-input:focus {
-            background: rgba(255,255,255,0.10);
-            border-bottom-color: rgba(42,171,255,0.6);
+            background: rgba(255,255,255,0.11);
+            border-bottom-color: rgba(42,171,255,0.7);
           }
-          .lg-input::placeholder { color: rgba(255,255,255,0.30); }
+          .lg-input::placeholder { color: rgba(255,255,255,0.28); }
           .lg-btn {
             width: 100%;
             padding: 14px;
@@ -133,9 +134,10 @@
             border-radius: 12px;
             cursor: pointer;
             font-family: Inter, sans-serif;
-            background: rgba(42,171,255,0.25);
+            background: rgba(42,171,255,0.22);
             backdrop-filter: blur(10px);
-            box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), 0 0 20px rgba(42,171,255,0.15);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,0.20),
+                        0 0 24px rgba(42,171,255,0.12);
             position: relative;
             overflow: hidden;
             transition: transform 0.15s, background 0.2s;
@@ -147,190 +149,181 @@
             padding: 0.8px;
             border-radius: 12px;
             background: linear-gradient(160deg,
-              rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.15) 30%,
+              rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 30%,
               transparent 50%, transparent 70%,
-              rgba(255,255,255,0.15) 85%, rgba(255,255,255,0.50) 100%
+              rgba(255,255,255,0.15) 85%, rgba(255,255,255,0.55) 100%
             );
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box,
+                          linear-gradient(#fff 0 0);
             -webkit-mask-composite: xor;
             mask-composite: exclude;
           }
-          .lg-btn:hover:not(:disabled) { transform: scale(1.02); background: rgba(42,171,255,0.35); }
-          .lg-btn:active:not(:disabled) { transform: scale(0.98); }
-          .lg-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+          .lg-btn:hover:not(:disabled) { transform:scale(1.02); background:rgba(42,171,255,0.32); }
+          .lg-btn:active:not(:disabled) { transform:scale(0.98); }
+          .lg-btn:disabled { opacity:0.45; cursor:not-allowed; }
         `;
         document.head.appendChild(s);
       }, []);
 
-      // Rotating planet on canvas
+      // Three.js hyper-realistic Earth
       useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        let raf, t = 0;
-        const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-        resize();
-        window.addEventListener('resize', resize);
+        const mount = mountRef.current;
+        if (!mount) return;
 
-        const STARS = Array.from({ length: 220 }, () => ({
-          x: Math.random(), y: Math.random(),
-          r: Math.random() * 1.0 + 0.2,
-          a: Math.random() * 0.55 + 0.08,
-          ph: Math.random() * Math.PI * 2,
-        }));
+        // Load Three.js r128 from CDN
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+        script.onload = () => initGlobe();
+        document.head.appendChild(script);
 
-        // Continent outlines (lon, lat degrees)
-        const LANDS = {
-          northAmerica: [[-168,72],[-140,72],[-125,60],[-123,49],[-117,32],[-105,20],[-84,10],[-77,8],[-65,18],[-60,15],[-75,0],[-80,8],[-88,16],[-97,26],[-80,40],[-70,47],[-55,47],[-65,44],[-75,42],[-83,45],[-92,52],[-110,60],[-130,55],[-148,60],[-168,72]],
-          southAmerica: [[-80,10],[-62,10],[-52,4],[-48,-2],[-35,-5],[-38,-15],[-43,-23],[-50,-32],[-58,-38],[-65,-55],[-72,-50],[-70,-35],[-75,-10],[-80,0],[-80,10]],
-          europe: [[-10,36],[5,40],[15,42],[28,36],[30,46],[20,56],[10,62],[0,52],[-10,36]],
-          africa: [[-18,15],[10,15],[20,15],[42,12],[44,10],[42,2],[36,-20],[28,-35],[15,-30],[10,-5],[2,6],[-16,10],[-18,15]],
-          asia: [[25,70],[80,72],[140,72],[170,64],[165,55],[145,45],[122,30],[105,10],[100,-5],[115,0],[130,15],[145,35],[155,48],[140,72]],
-          australia: [[115,-22],[130,-12],[140,-18],[152,-25],[154,-28],[150,-36],[138,-35],[115,-28],[114,-24],[115,-22]],
-          greenland: [[-55,76],[-20,76],[-18,72],[-30,65],[-52,62],[-60,72],[-55,76]],
-        };
+        let renderer, scene, camera, earth, clouds, stars, animId;
 
-        const proj = (lonDeg, latDeg, rotY, tilt, cx, cy, R) => {
-          const lon = lonDeg * Math.PI/180, lat = latDeg * Math.PI/180;
-          const cl = Math.cos(lat), sl = Math.sin(lat);
-          const x = cl * Math.sin(lon + rotY);
-          const y = sl;
-          const z = cl * Math.cos(lon + rotY);
-          const y2 = y*Math.cos(tilt) - z*Math.sin(tilt);
-          const z2 = y*Math.sin(tilt) + z*Math.cos(tilt);
-          return { sx: cx + x*R, sy: cy - y2*R, z: z2, vis: z2 > -0.08 };
-        };
+        function initGlobe() {
+          const THREE = window.THREE;
+          const W = window.innerWidth, H = window.innerHeight;
 
-        const draw = () => {
-          t += 0.003;
-          const W = canvas.width, H = canvas.height;
-          const cx = W/2, cy = H/2;
-          const R = Math.min(W,H) * (isMobile ? 0.40 : 0.37);
-          const rotY = t * 0.09;
-          const tilt = 0.30 + Math.sin(t*0.07) * 0.025;
+          // Renderer
+          renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+          renderer.setSize(W, H);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          renderer.toneMapping = THREE.ACESFilmicToneMapping;
+          renderer.toneMappingExposure = 1.1;
+          mount.appendChild(renderer.domElement);
 
-          // Pure black bg
-          ctx.fillStyle = '#000000';
-          ctx.fillRect(0, 0, W, H);
+          // Scene
+          scene = new THREE.Scene();
+          scene.background = new THREE.Color(0x000000);
+
+          // Camera
+          camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 1000);
+          camera.position.z = 2.8;
+
+          // Texture loader
+          const loader = new THREE.TextureLoader();
+          loader.crossOrigin = 'anonymous';
+
+          // NASA Blue Marble textures (public domain)
+          const earthDay   = loader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg');
+          const earthBump  = loader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg');
+          const earthSpec  = loader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg');
+          const earthNight = loader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_lights_2048.png');
+          const cloudTex   = loader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png');
+
+          // Earth sphere
+          const earthGeo = new THREE.SphereGeometry(1, 64, 64);
+          const earthMat = new THREE.MeshPhongMaterial({
+            map:          earthDay,
+            bumpMap:      earthBump,
+            bumpScale:    0.05,
+            specularMap:  earthSpec,
+            specular:     new THREE.Color(0x4466aa),
+            shininess:    18,
+            emissiveMap:  earthNight,
+            emissive:     new THREE.Color(0xffeedd),
+            emissiveIntensity: 0.6,
+          });
+          earth = new THREE.Mesh(earthGeo, earthMat);
+          earth.rotation.x = 0.28;
+          scene.add(earth);
+
+          // Cloud layer
+          const cloudGeo = new THREE.SphereGeometry(1.008, 64, 64);
+          const cloudMat = new THREE.MeshPhongMaterial({
+            map:         cloudTex,
+            transparent: true,
+            opacity:     0.82,
+            depthWrite:  false,
+          });
+          clouds = new THREE.Mesh(cloudGeo, cloudMat);
+          clouds.rotation.x = 0.28;
+          scene.add(clouds);
+
+          // Atmosphere glow (additive shell)
+          const atmGeo = new THREE.SphereGeometry(1.035, 64, 64);
+          const atmMat = new THREE.MeshPhongMaterial({
+            color:       new THREE.Color(0x3399ff),
+            transparent: true,
+            opacity:     0.10,
+            side:        THREE.BackSide,
+            depthWrite:  false,
+          });
+          scene.add(new THREE.Mesh(atmGeo, atmMat));
+
+          // Outer atmosphere rim
+          const rimGeo = new THREE.SphereGeometry(1.06, 64, 64);
+          const rimMat = new THREE.MeshPhongMaterial({
+            color:       new THREE.Color(0x1166cc),
+            transparent: true,
+            opacity:     0.055,
+            side:        THREE.BackSide,
+            depthWrite:  false,
+          });
+          scene.add(new THREE.Mesh(rimGeo, rimMat));
 
           // Stars
-          STARS.forEach(s => {
-            ctx.beginPath();
-            ctx.arc(s.x*W, s.y*H, s.r, 0, Math.PI*2);
-            ctx.fillStyle = `rgba(220,235,255,${s.a*(0.5+0.5*Math.sin(t*0.8+s.ph))})`;
-            ctx.fill();
-          });
+          const starVerts = [];
+          for (let i = 0; i < 8000; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi   = Math.acos(2 * Math.random() - 1);
+            const r     = 80 + Math.random() * 120;
+            starVerts.push(
+              r * Math.sin(phi) * Math.cos(theta),
+              r * Math.sin(phi) * Math.sin(theta),
+              r * Math.cos(phi)
+            );
+          }
+          const starGeo = new THREE.BufferGeometry();
+          starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+          const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.18, sizeAttenuation: true });
+          stars = new THREE.Points(starGeo, starMat);
+          scene.add(stars);
 
-          // Outer atmosphere
-          const atm = ctx.createRadialGradient(cx,cy,R*0.96,cx,cy,R*1.25);
-          atm.addColorStop(0,   'rgba(80,150,255,0.16)');
-          atm.addColorStop(0.5, 'rgba(50,120,220,0.06)');
-          atm.addColorStop(1,   'transparent');
-          ctx.beginPath(); ctx.arc(cx, cy, R*1.25, 0, Math.PI*2);
-          ctx.fillStyle = atm; ctx.fill();
+          // Lighting
+          // Sun light (directional — left-top)
+          const sunLight = new THREE.DirectionalLight(0xfff5e8, 2.2);
+          sunLight.position.set(-3, 1.5, 2);
+          scene.add(sunLight);
 
-          // Ocean base
-          ctx.save();
-          ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.clip();
-          const ocean = ctx.createRadialGradient(cx-R*0.3,cy-R*0.3,0,cx,cy,R);
-          ocean.addColorStop(0,   '#1a5fa0');
-          ocean.addColorStop(0.4, '#134d8a');
-          ocean.addColorStop(0.75,'#0a2f5c');
-          ocean.addColorStop(1,   '#050e22');
-          ctx.fillStyle = ocean; ctx.fillRect(cx-R,cy-R,R*2,R*2);
-          ctx.restore();
+          // Soft fill (right, dim)
+          const fillLight = new THREE.DirectionalLight(0x6699bb, 0.18);
+          fillLight.position.set(4, -1, -2);
+          scene.add(fillLight);
 
-          // Continents
-          ctx.save();
-          ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.clip();
-          Object.values(LANDS).forEach(pts => {
-            let vis = 0;
-            pts.forEach(([lo,la]) => { if (proj(lo,la,rotY,tilt,cx,cy,R).vis) vis++; });
-            if (vis < 3) return;
-            ctx.beginPath();
-            let started = false;
-            pts.forEach(([lo,la]) => {
-              const p = proj(lo,la,rotY,tilt,cx,cy,R);
-              if (!p.vis) { started = false; return; }
-              if (!started) { ctx.moveTo(p.sx,p.sy); started=true; }
-              else ctx.lineTo(p.sx,p.sy);
-            });
-            ctx.closePath();
-            const g = ctx.createLinearGradient(cx-R,cy-R,cx+R,cy+R);
-            g.addColorStop(0,'rgba(85,135,55,0.92)');
-            g.addColorStop(0.5,'rgba(105,145,60,0.90)');
-            g.addColorStop(1,'rgba(120,110,50,0.88)');
-            ctx.fillStyle = g; ctx.fill();
-          });
-          ctx.restore();
+          // Ambient (night side)
+          scene.add(new THREE.AmbientLight(0x111122, 0.8));
 
-          // Ice caps
-          ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
-          [82,-76].forEach(latDeg => {
-            const pts=[];
-            for(let lo=0;lo<=360;lo+=5){ const p=proj(lo,latDeg,rotY,tilt,cx,cy,R); if(p.vis)pts.push(p); }
-            if(pts.length<2) return;
-            const pole = proj(0,latDeg>0?90:-90,rotY,tilt,cx,cy,R);
-            ctx.beginPath(); ctx.moveTo(pts[0].sx,pts[0].sy);
-            pts.forEach(p=>ctx.lineTo(p.sx,p.sy));
-            if(pole.vis) ctx.lineTo(pole.sx,pole.sy);
-            ctx.closePath();
-            ctx.fillStyle='rgba(220,232,255,0.88)'; ctx.fill();
-          });
-          ctx.restore();
+          // Resize handler
+          const onResize = () => {
+            const w = window.innerWidth, h = window.innerHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+          };
+          window.addEventListener('resize', onResize);
 
-          // Cloud bands
-          ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
-          [{la:50,off:0.9,w:16,a:0.22},{la:25,off:1.8,w:12,a:0.16},{la:-8,off:2.5,w:14,a:0.18},{la:-35,off:0.5,w:18,a:0.20}].forEach(cb=>{
-            const top=[],bot=[];
-            for(let lo=-180;lo<=180;lo+=4){
-              const p1=proj(lo,cb.la-cb.w/2,rotY+cb.off,tilt,cx,cy,R*0.993);
-              const p2=proj(lo,cb.la+cb.w/2,rotY+cb.off,tilt,cx,cy,R*0.993);
-              if(p1.vis){top.push(p1);bot.push(p2);}
-            }
-            if(top.length<3)return;
-            ctx.beginPath(); ctx.moveTo(top[0].sx,top[0].sy);
-            top.forEach(p=>ctx.lineTo(p.sx,p.sy));
-            for(let i=bot.length-1;i>=0;i--)ctx.lineTo(bot[i].sx,bot[i].sy);
-            ctx.closePath();
-            ctx.fillStyle=`rgba(255,255,255,${cb.a})`; ctx.fill();
-          });
-          ctx.restore();
+          // Animate
+          const animate = () => {
+            animId = requestAnimationFrame(animate);
+            earth.rotation.y  += 0.0008;
+            clouds.rotation.y += 0.0011;
+            renderer.render(scene, camera);
+          };
+          animate();
 
-          // Specular
-          ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
-          const sp=ctx.createRadialGradient(cx-R*0.35,cy-R*0.35,0,cx-R*0.15,cy-R*0.15,R*0.6);
-          sp.addColorStop(0,'rgba(255,255,255,0.13)'); sp.addColorStop(0.4,'rgba(200,220,255,0.06)'); sp.addColorStop(1,'transparent');
-          ctx.fillStyle=sp; ctx.fillRect(cx-R,cy-R,R*2,R*2); ctx.restore();
+          // Store cleanup ref
+          mount._cleanup = () => {
+            cancelAnimationFrame(animId);
+            window.removeEventListener('resize', onResize);
+            renderer.dispose();
+            if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
+          };
+        }
 
-          // Night shadow
-          ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
-          const sh=ctx.createRadialGradient(cx+R*0.44,cy+R*0.06,0,cx+R*0.18,cy,R*1.05);
-          sh.addColorStop(0,'rgba(0,0,0,0.90)'); sh.addColorStop(0.38,'rgba(0,0,0,0.62)');
-          sh.addColorStop(0.68,'rgba(0,0,0,0.18)'); sh.addColorStop(1,'transparent');
-          ctx.fillStyle=sh; ctx.fillRect(cx-R,cy-R,R*2,R*2); ctx.restore();
-
-          // Atmosphere rim
-          const rim=ctx.createRadialGradient(cx,cy,R*0.90,cx,cy,R*1.04);
-          rim.addColorStop(0,'transparent');
-          rim.addColorStop(0.7,`rgba(80,160,255,${0.20+0.04*Math.sin(t*0.4)})`);
-          rim.addColorStop(0.92,`rgba(110,185,255,${0.38+0.06*Math.sin(t*0.4)})`);
-          rim.addColorStop(1,'rgba(70,140,255,0.08)');
-          ctx.beginPath(); ctx.arc(cx,cy,R*1.04,0,Math.PI*2); ctx.fillStyle=rim; ctx.fill();
-          ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
-          ctx.strokeStyle=`rgba(100,170,255,${0.55+0.07*Math.sin(t*0.5)})`;
-          ctx.lineWidth=1.2; ctx.stroke();
-
-          // Vignette
-          const vig=ctx.createRadialGradient(cx,cy,R*0.45,cx,cy,Math.max(W,H)*0.82);
-          vig.addColorStop(0,'transparent'); vig.addColorStop(0.5,'rgba(0,0,0,0.10)'); vig.addColorStop(1,'rgba(0,0,0,0.88)');
-          ctx.fillStyle=vig; ctx.fillRect(0,0,W,H);
-
-          raf = requestAnimationFrame(draw);
+        return () => {
+          document.head.removeChild(script);
+          if (mount._cleanup) mount._cleanup();
         };
-        draw();
-        return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
-      }, [isMobile]);
+      }, []);
 
       const handleLogin = async () => {
         if (!email || !password) { setError("Email and password required."); return; }
@@ -347,28 +340,26 @@
       return (
         <div style={{ minHeight:"100vh", minHeight:"100dvh", background:"#000", position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter, sans-serif" }}>
 
-          {/* Canvas planet */}
-          <canvas ref={canvasRef} style={{ position:"absolute", inset:0, width:"100%", height:"100%", zIndex:0 }} />
+          {/* Three.js WebGL mount */}
+          <div ref={mountRef} style={{ position:"absolute", inset:0, zIndex:0 }} />
 
-          {/* Subtle dark center gradient so card reads against planet */}
-          <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 70% 80% at 50% 50%, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.08) 40%, transparent 70%)", zIndex:1, pointerEvents:"none" }} />
+          {/* Subtle center vignette so card reads */}
+          <div style={{ position:"absolute", inset:0, zIndex:1, background:"radial-gradient(ellipse 60% 70% at 50% 50%, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.55) 100%)", pointerEvents:"none" }} />
 
-          {/* Login box — liquid glass */}
-          <div className="lg-box" style={{ position:"relative", zIndex:10, width: isMobile ? "calc(100vw - 40px)" : 380, padding: isMobile ? "36px 28px 40px" : "48px 44px" }}>
+          {/* Login box */}
+          <div className="lg-box" style={{ position:"relative", zIndex:10, width: isMobile ? "calc(100vw - 36px)" : 370, padding: isMobile ? "36px 24px 40px" : "48px 44px" }}>
 
-            {/* Header */}
-            <div style={{ marginBottom:36, textAlign:"center" }}>
-              <div style={{ width:48, height:48, borderRadius:14, background:"rgba(42,171,255,0.15)", border:"1px solid rgba(42,171,255,0.25)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 18px" }}>
-                <span style={{ fontSize:20, fontWeight:800, color:"#2AABFF", letterSpacing:-0.5 }}>W</span>
+            <div style={{ marginBottom:32, textAlign:"center" }}>
+              <div style={{ width:46, height:46, borderRadius:13, background:"rgba(42,171,255,0.14)", border:"1px solid rgba(42,171,255,0.28)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 18px" }}>
+                <span style={{ fontSize:18, fontWeight:800, color:"#2AABFF" }}>W</span>
               </div>
-              <div style={{ fontSize:10, color:"rgba(255,255,255,0.40)", letterSpacing:3, textTransform:"uppercase", fontWeight:600, marginBottom:8 }}>Cloud Scenic</div>
-              <h1 style={{ fontSize:26, fontWeight:500, color:"#fff", margin:"0 0 6px", letterSpacing:-0.6 }}>War Room</h1>
-              <p style={{ fontSize:12, color:"rgba(255,255,255,0.38)", margin:0 }}>VitalLyfe Content Operations</p>
+              <div style={{ fontSize:9, color:"rgba(255,255,255,0.38)", letterSpacing:3, textTransform:"uppercase", fontWeight:600, marginBottom:7 }}>Cloud Scenic</div>
+              <h1 style={{ fontSize:24, fontWeight:500, color:"#fff", margin:"0 0 5px", letterSpacing:-0.5 }}>War Room</h1>
+              <p style={{ fontSize:11, color:"rgba(255,255,255,0.35)", margin:0 }}>VitalLyfe Content Operations</p>
             </div>
 
-            {/* Fields */}
-            <div style={{ marginBottom:6 }}>
-              <label style={{ fontSize:10, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.42)", display:"block", marginBottom:6 }}>Email</label>
+            <div>
+              <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.8, textTransform:"uppercase", color:"rgba(255,255,255,0.40)", display:"block", marginBottom:6 }}>Email</label>
               <input className="lg-input" type="email" value={email}
                 onChange={e=>setEmail(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&handleLogin()}
@@ -376,7 +367,7 @@
             </div>
 
             <div style={{ marginBottom:20 }}>
-              <label style={{ fontSize:10, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.42)", display:"block", marginBottom:6 }}>Password</label>
+              <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.8, textTransform:"uppercase", color:"rgba(255,255,255,0.40)", display:"block", marginBottom:6 }}>Password</label>
               <input className="lg-input" type="password" value={password}
                 onChange={e=>setPassword(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&handleLogin()}
@@ -384,7 +375,7 @@
             </div>
 
             {error && (
-              <div style={{ fontSize:11, color:"rgba(255,110,110,0.95)", marginBottom:14, padding:"9px 13px", background:"rgba(255,60,60,0.08)", borderRadius:8, border:"1px solid rgba(255,60,60,0.15)" }}>
+              <div style={{ fontSize:11, color:"rgba(255,110,100,0.95)", marginBottom:14, padding:"9px 13px", background:"rgba(255,50,50,0.08)", borderRadius:8, border:"1px solid rgba(255,60,60,0.15)" }}>
                 {error}
               </div>
             )}
@@ -393,13 +384,12 @@
               {loading ? "Signing in…" : "Enter War Room →"}
             </button>
 
-            {/* Footer status */}
-            <div style={{ marginTop:24, display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
+            <div style={{ marginTop:22, display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
               <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2s infinite" }} />
-              <span style={{ fontSize:10, color:"rgba(255,255,255,0.28)" }}>7 agents · Live operations</span>
+              <span style={{ fontSize:10, color:"rgba(255,255,255,0.26)" }}>7 agents · Live operations</span>
             </div>
-
           </div>
+
         </div>
       );
     }
