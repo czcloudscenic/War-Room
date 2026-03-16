@@ -67,7 +67,7 @@
       const [loading, setLoading]   = useState(false);
       const canvasRef = useRef(null);
 
-      // ── Cinematic VitalLyfe river animation ──────────────────────────────
+      // ── Cinematic rotating globe ─────────────────────────────────────────
       useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -77,131 +77,232 @@
         resize();
         window.addEventListener("resize", resize);
 
-        const project = (x, y, z, W, H, fov, rotX, rotY) => {
-          const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-          const x1 = x * cosY - z * sinY, z1 = x * sinY + z * cosY;
-          const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
-          const y1 = y * cosX - z1 * sinX, z2 = y * sinX + z1 * cosX;
-          const d = fov / (fov + z2 + 60);
-          return { sx: W/2 + x1 * d, sy: H/2 + y1 * d, d, z: z2 };
+        // Globe geometry — lat/lon grid points
+        const VERTS = [];
+        const LAT_SEGS = 28, LON_SEGS = 52;
+        for (let la = 0; la <= LAT_SEGS; la++) {
+          for (let lo = 0; lo <= LON_SEGS; lo++) {
+            const lat = (la / LAT_SEGS) * Math.PI - Math.PI/2;
+            const lon = (lo / LON_SEGS) * Math.PI * 2;
+            VERTS.push({ lat, lon, lo, la });
+          }
+        }
+
+        // Continent mask — simplified continent dots using lat/lon
+        const inContinent = (lat, lon) => {
+          const la = lat * 180/Math.PI, lo = ((lon * 180/Math.PI) + 360) % 360;
+          // North America
+          if (la > 10 && la < 72 && lo > 230 && lo < 300) return true;
+          // South America
+          if (la > -55 && la < 12 && lo > 285 && lo < 320) return true;
+          // Europe
+          if (la > 35 && la < 70 && lo > 345 || (la > 35 && la < 70 && lo < 40)) return true;
+          // Africa
+          if (la > -35 && la < 37 && lo > 340 || (la > -35 && la < 37 && lo < 52)) return true;
+          // Asia
+          if (la > 5 && la < 75 && lo > 40 && lo < 145) return true;
+          // Australia
+          if (la > -40 && la < -10 && lo > 115 && lo < 155) return true;
+          return false;
         };
 
-        const GRID_SIZE = 24, GRID_SPAN = 200;
+        // Stars
+        const STARS = Array.from({ length: 200 }, () => ({
+          x: Math.random(), y: Math.random(),
+          r: Math.random() * 1.2 + 0.2,
+          a: Math.random() * 0.6 + 0.1,
+          ph: Math.random() * Math.PI * 2,
+        }));
 
         const draw = () => {
-          t += 0.004;
+          t += 0.003;
           const W = canvas.width, H = canvas.height;
-          ctx.fillStyle = "#000508";
+          const cx = W * 0.5, cy = H * 0.5;
+          const R = Math.min(W, H) * (isMobile ? 0.42 : 0.38);
+
+          // Deep space background
+          const bg = ctx.createRadialGradient(cx, cy*0.9, 0, cx, cy, Math.max(W,H)*0.85);
+          bg.addColorStop(0,   "#040d0f");
+          bg.addColorStop(0.4, "#020a0c");
+          bg.addColorStop(1,   "#010507");
+          ctx.fillStyle = bg;
           ctx.fillRect(0, 0, W, H);
 
           // Stars
-          for (let s = 0; s < 120; s++) {
-            const sx = (Math.sin(s * 127.1) * 0.5 + 0.5) * W;
-            const sy = (Math.sin(s * 311.7) * 0.5 + 0.5) * H;
-            const sa = 0.15 + 0.25 * Math.abs(Math.sin(s * 0.8 + t * 0.3));
-            ctx.beginPath(); ctx.arc(sx, sy, 0.6, 0, Math.PI*2);
-            ctx.fillStyle = `rgba(180,220,255,${sa})`; ctx.fill();
-          }
+          STARS.forEach(s => {
+            const twinkle = s.a * (0.5 + 0.5 * Math.sin(t * 1.2 + s.ph));
+            ctx.beginPath();
+            ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI*2);
+            ctx.fillStyle = `rgba(200,230,255,${twinkle})`;
+            ctx.fill();
+          });
 
-          const rotY = t * 0.18;
-          const rotX = 0.52 + Math.sin(t * 0.12) * 0.08;
-          const fov = Math.min(W, H) * 0.85;
-          const floorY = 40;
+          // Globe rotation
+          const rotY = t * 0.12;
+          const tiltX = 0.22;
 
-          // Floor grid
-          for (let i = -GRID_SIZE; i <= GRID_SIZE; i++) {
-            const x = (i / GRID_SIZE) * GRID_SPAN;
-            const fade = 1 - Math.abs(i / GRID_SIZE);
-            const alpha = 0.10 + 0.20 * fade;
-            const lw = i === 0 ? 1.2 : 0.5;
+          // Project 3D sphere point to 2D
+          const project3D = (lat, lon) => {
+            const cosLat = Math.cos(lat), sinLat = Math.sin(lat);
+            const cosLon = Math.cos(lon + rotY), sinLon = Math.sin(lon + rotY);
+            // Sphere coords
+            let x = cosLat * sinLon;
+            let y = sinLat;
+            let z = cosLat * cosLon;
+            // Tilt around X
+            const y2 = y * Math.cos(tiltX) - z * Math.sin(tiltX);
+            const z2 = y * Math.sin(tiltX) + z * Math.cos(tiltX);
+            return { sx: cx + x * R, sy: cy - y2 * R, z: z2, vis: z2 > -0.15 };
+          };
 
-            const p1 = project(x, floorY, -GRID_SPAN, W, H, fov, rotX, rotY);
-            const p2 = project(x, floorY,  GRID_SPAN, W, H, fov, rotX, rotY);
-            if (p1.d > 0 && p2.d > 0) {
-              ctx.beginPath(); ctx.moveTo(p1.sx,p1.sy); ctx.lineTo(p2.sx,p2.sy);
-              ctx.strokeStyle = `rgba(0,120,255,${alpha})`; ctx.lineWidth = lw; ctx.stroke();
-            }
-            const p3 = project(-GRID_SPAN, floorY, x, W, H, fov, rotX, rotY);
-            const p4 = project( GRID_SPAN, floorY, x, W, H, fov, rotX, rotY);
-            if (p3.d > 0 && p4.d > 0) {
-              ctx.beginPath(); ctx.moveTo(p3.sx,p3.sy); ctx.lineTo(p4.sx,p4.sy);
-              ctx.strokeStyle = `rgba(0,120,255,${alpha})`; ctx.lineWidth = lw; ctx.stroke();
-            }
-          }
+          // ── ATMOSPHERE GLOW (outer rim) ──────────────────────────────────
+          // Deep outer glow
+          const atmO = ctx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.32);
+          atmO.addColorStop(0,   "rgba(30, 160, 120, 0.22)");
+          atmO.addColorStop(0.4, "rgba(20, 120, 90,  0.10)");
+          atmO.addColorStop(0.8, "rgba(10, 80,  60,  0.04)");
+          atmO.addColorStop(1,   "transparent");
+          ctx.fillStyle = atmO;
+          ctx.beginPath();
+          ctx.arc(cx, cy, R * 1.32, 0, Math.PI*2);
+          ctx.fill();
 
-          // Back wall
-          for (let i = -GRID_SIZE; i <= GRID_SIZE; i++) {
-            const pos = (i / GRID_SIZE) * GRID_SPAN;
-            const fade = 1 - Math.abs(i / GRID_SIZE);
-            const alpha = 0.06 + 0.08 * fade;
-            const p1 = project(pos, -GRID_SPAN, -GRID_SPAN, W, H, fov, rotX, rotY);
-            const p2 = project(pos,  GRID_SPAN, -GRID_SPAN, W, H, fov, rotX, rotY);
-            if (p1.d > 0 && p2.d > 0) {
-              ctx.beginPath(); ctx.moveTo(p1.sx,p1.sy); ctx.lineTo(p2.sx,p2.sy);
-              ctx.strokeStyle = `rgba(0,100,220,${alpha})`; ctx.lineWidth=0.4; ctx.stroke();
-            }
-            const p3 = project(-GRID_SPAN, pos, -GRID_SPAN, W, H, fov, rotX, rotY);
-            const p4 = project( GRID_SPAN, pos, -GRID_SPAN, W, H, fov, rotX, rotY);
-            if (p3.d > 0 && p4.d > 0) {
-              ctx.beginPath(); ctx.moveTo(p3.sx,p3.sy); ctx.lineTo(p4.sx,p4.sy);
-              ctx.strokeStyle = `rgba(0,100,220,${alpha})`; ctx.lineWidth=0.4; ctx.stroke();
-            }
-          }
+          // Inner bright rim
+          const atmI = ctx.createRadialGradient(cx - R*0.1, cy - R*0.1, R * 0.7, cx, cy, R * 1.08);
+          atmI.addColorStop(0,   "transparent");
+          atmI.addColorStop(0.8, "rgba(40, 200, 150, 0.08)");
+          atmI.addColorStop(0.95,"rgba(60, 220, 170, 0.25)");
+          atmI.addColorStop(1,   "rgba(80, 240, 190, 0.08)");
+          ctx.fillStyle = atmI;
+          ctx.beginPath();
+          ctx.arc(cx, cy, R * 1.08, 0, Math.PI*2);
+          ctx.fill();
 
-          // Grid intersection glow dots
-          const step = Math.floor(GRID_SIZE / 6);
-          for (let ix = -GRID_SIZE; ix <= GRID_SIZE; ix += step) {
-            for (let iz = -GRID_SIZE; iz <= GRID_SIZE; iz += step) {
-              const p = project((ix/GRID_SIZE)*GRID_SPAN, floorY, (iz/GRID_SIZE)*GRID_SPAN, W, H, fov, rotX, rotY);
-              if (p.d > 0.2) {
-                const pulse = 0.4 + 0.6 * Math.abs(Math.sin(t * 1.5 + ix * 0.4 + iz * 0.3));
-                ctx.beginPath(); ctx.arc(p.sx, p.sy, 2*p.d, 0, Math.PI*2);
-                ctx.fillStyle = `rgba(80,180,255,${pulse*0.6*p.d})`; ctx.fill();
-              }
-            }
-          }
+          // ── GLOBE BASE (ocean) ────────────────────────────────────────────
+          const oceanGrad = ctx.createRadialGradient(cx - R*0.25, cy - R*0.25, 0, cx, cy, R);
+          oceanGrad.addColorStop(0,   "#1a6b55");
+          oceanGrad.addColorStop(0.4, "#0e4a3a");
+          oceanGrad.addColorStop(0.8, "#082e24");
+          oceanGrad.addColorStop(1,   "#041a14");
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, R, 0, Math.PI*2);
+          ctx.clip();
+          ctx.fillStyle = oceanGrad;
+          ctx.fillRect(cx - R, cy - R, R*2, R*2);
+          ctx.restore();
 
-          // Horizon glow
-          const hg = ctx.createLinearGradient(0, H*0.35, 0, H*0.65);
-          const ha = 0.055 + 0.02 * Math.sin(t * 0.3);
-          hg.addColorStop(0, "transparent");
-          hg.addColorStop(0.5, `rgba(0,100,255,${ha})`);
-          hg.addColorStop(1, "transparent");
-          ctx.fillStyle = hg; ctx.fillRect(0, 0, W, H);
-
-          // Scan line sweeping floor
-          const scanZ = (Math.sin(t*0.4)*0.5+0.5)*GRID_SPAN*2 - GRID_SPAN;
-          for (let x = -GRID_SPAN; x <= GRID_SPAN; x += 8) {
-            const p = project(x, floorY, scanZ, W, H, fov, rotX, rotY);
-            if (p.d > 0) {
-              ctx.beginPath(); ctx.arc(p.sx, p.sy, 1.5*p.d, 0, Math.PI*2);
-              ctx.fillStyle = `rgba(100,200,255,${0.5*p.d})`; ctx.fill();
-            }
-          }
-
-          // Floating data nodes orbiting
-          for (let n = 0; n < 18; n++) {
-            const angle = n*(Math.PI*2/18) + t*0.08;
-            const radius = 80 + (n%3)*40;
-            const p = project(Math.cos(angle)*radius, -30+Math.sin(n*1.7+t*0.2)*25, Math.sin(angle)*radius, W, H, fov, rotX, rotY);
-            if (p.d > 0.1) {
-              const pulse = 0.5 + 0.5*Math.sin(t*2+n*0.8);
-              const a = pulse*0.7*Math.min(p.d,1);
-              const r = (3+(n%3))*p.d;
-              const grd = ctx.createRadialGradient(p.sx,p.sy,0,p.sx,p.sy,r*4);
-              grd.addColorStop(0,`rgba(0,180,255,${a*0.4})`); grd.addColorStop(1,"transparent");
-              ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(p.sx,p.sy,r*4,0,Math.PI*2); ctx.fill();
-              ctx.beginPath(); ctx.arc(p.sx,p.sy,r,0,Math.PI*2);
-              ctx.fillStyle=`rgba(120,220,255,${a})`; ctx.fill();
+          // ── CONTINENT DOTS ────────────────────────────────────────────────
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, R, 0, Math.PI*2);
+          ctx.clip();
+          const step = 3.2;
+          for (let la = -90; la <= 90; la += step) {
+            for (let lo = 0; lo < 360; lo += step / Math.max(0.2, Math.cos(la * Math.PI/180))) {
+              const lat = la * Math.PI/180;
+              const lon = lo * Math.PI/180;
+              if (!inContinent(lat, lon)) continue;
+              const p = project3D(lat, lon);
+              if (!p.vis) continue;
+              const depth = (p.z + 1) / 2;
+              const bright = 0.3 + depth * 0.5;
+              const pulse = 0.85 + 0.15 * Math.sin(t * 0.8 + la * 0.1 + lo * 0.05);
+              const sz = 1.2 + depth * 0.8;
+              ctx.beginPath();
+              ctx.arc(p.sx, p.sy, sz * pulse, 0, Math.PI*2);
+              // Teal-green continent color matching reference
+              ctx.fillStyle = `rgba(${Math.floor(40 + depth*80)}, ${Math.floor(160 + depth*60)}, ${Math.floor(100 + depth*40)}, ${bright * 0.85})`;
+              ctx.fill();
             }
           }
+          ctx.restore();
 
-          // Vignette
-          const vig = ctx.createRadialGradient(W/2,H/2,W*0.1,W/2,H/2,W*0.75);
-          vig.addColorStop(0,"transparent");
-          vig.addColorStop(0.5,"rgba(0,3,10,0.15)");
-          vig.addColorStop(1,"rgba(0,3,10,0.82)");
-          ctx.fillStyle=vig; ctx.fillRect(0,0,W,H);
+          // ── LAT/LON GRID LINES ────────────────────────────────────────────
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, R, 0, Math.PI*2);
+          ctx.clip();
+          // Latitude circles
+          for (let la = -75; la <= 75; la += 15) {
+            const lat = la * Math.PI/180;
+            ctx.beginPath();
+            let first = true;
+            for (let lo = 0; lo <= 360; lo += 3) {
+              const p = project3D(lat, lo * Math.PI/180);
+              if (!p.vis) { first = true; continue; }
+              if (first) { ctx.moveTo(p.sx, p.sy); first = false; }
+              else ctx.lineTo(p.sx, p.sy);
+            }
+            ctx.strokeStyle = "rgba(60,200,140,0.06)";
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+          // Longitude lines
+          for (let lo = 0; lo < 360; lo += 15) {
+            const lon = lo * Math.PI/180;
+            ctx.beginPath();
+            let first = true;
+            for (let la = -90; la <= 90; la += 3) {
+              const p = project3D(la * Math.PI/180, lon);
+              if (!p.vis) { first = true; continue; }
+              if (first) { ctx.moveTo(p.sx, p.sy); first = false; }
+              else ctx.lineTo(p.sx, p.sy);
+            }
+            ctx.strokeStyle = "rgba(60,200,140,0.06)";
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+          ctx.restore();
+
+          // ── SPECULAR HIGHLIGHT (sun reflection) ───────────────────────────
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, R, 0, Math.PI*2);
+          ctx.clip();
+          const spec = ctx.createRadialGradient(cx - R*0.35, cy - R*0.35, 0, cx - R*0.2, cy - R*0.2, R * 0.7);
+          spec.addColorStop(0,   "rgba(200,255,230,0.12)");
+          spec.addColorStop(0.4, "rgba(120,220,180,0.06)");
+          spec.addColorStop(1,   "transparent");
+          ctx.fillStyle = spec;
+          ctx.fillRect(cx-R, cy-R, R*2, R*2);
+          ctx.restore();
+
+          // ── TERMINATOR SHADOW (night side) ────────────────────────────────
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, R, 0, Math.PI*2);
+          ctx.clip();
+          const shadow = ctx.createRadialGradient(cx + R*0.4, cy + R*0.1, 0, cx + R*0.2, cy, R*1.1);
+          shadow.addColorStop(0,   "rgba(0,0,0,0.75)");
+          shadow.addColorStop(0.5, "rgba(0,0,0,0.45)");
+          shadow.addColorStop(0.8, "rgba(0,0,0,0.1)");
+          shadow.addColorStop(1,   "transparent");
+          ctx.fillStyle = shadow;
+          ctx.fillRect(cx-R, cy-R, R*2, R*2);
+          ctx.restore();
+
+          // ── ATMOSPHERE EDGE HIGHLIGHT ─────────────────────────────────────
+          ctx.beginPath();
+          ctx.arc(cx, cy, R, 0, Math.PI*2);
+          ctx.strokeStyle = `rgba(60, 200, 150, ${0.35 + 0.08 * Math.sin(t * 0.5)})`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Second softer glow ring
+          ctx.beginPath();
+          ctx.arc(cx, cy, R * 1.012, 0, Math.PI*2);
+          ctx.strokeStyle = `rgba(40, 170, 130, ${0.15 + 0.05 * Math.sin(t * 0.4)})`;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          // ── DEEP VIGNETTE ──────────────────────────────────────────────────
+          const vig = ctx.createRadialGradient(cx, cy, R*0.5, cx, cy, Math.max(W,H)*0.75);
+          vig.addColorStop(0,   "transparent");
+          vig.addColorStop(0.6, "rgba(1,5,4,0.15)");
+          vig.addColorStop(1,   "rgba(1,5,4,0.90)");
+          ctx.fillStyle = vig;
+          ctx.fillRect(0, 0, W, H);
 
           raf = requestAnimationFrame(draw);
         };
@@ -209,6 +310,7 @@
         draw();
         return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
       }, [isMobile]);
+
 
       const handleLogin = async () => {
         if (!email || !password) { setError("Email and password required."); return; }
@@ -223,19 +325,19 @@
         setLoading(false);
       };
 
-      const inp = { width:"100%", background:"#111010", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"12px 14px", fontSize:13, color:"#fff", outline:"none", fontFamily:"Inter, sans-serif", marginBottom:12, boxSizing:"border-box" };
+      const inp = { width:"100%", background:"rgba(10,30,22,0.7)", border:"1px solid rgba(50,180,130,0.2)", borderRadius:10, padding:"12px 14px", fontSize:16, color:"#fff", outline:"none", fontFamily:"Inter, sans-serif", marginBottom:12, boxSizing:"border-box" };
 
       return (
-        <div style={{ minHeight:"100vh", minHeight:"100dvh", background:"#000508", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter, sans-serif", padding: isMobile ? "0" : "24px", position:"relative", overflow:"hidden" }}>
-          {/* River canvas background */}
+        <div style={{ minHeight:"100vh", minHeight:"100dvh", background:"#010507", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter, sans-serif", padding: isMobile ? "0" : "24px", position:"relative", overflow:"hidden" }}>
+          {/* Globe canvas */}
           <canvas ref={canvasRef} style={{ position:"absolute", inset:0, width:"100%", height:"100%", zIndex:0 }} />
-          {/* Deep space vignette overlay */}
-          <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse at center, transparent 20%, rgba(0,3,10,0.7) 70%, rgba(0,3,10,0.95) 100%)", zIndex:1, pointerEvents:"none" }} />
-          {/* Login card */}
-          <div style={{ position:"relative", zIndex:2, width: isMobile ? "100vw" : 380, minHeight: isMobile ? "100dvh" : "auto", padding: isMobile ? "60px 28px 40px" : "40px 36px", background: isMobile ? "rgba(0,5,18,0.88)" : "rgba(0,6,20,0.80)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", border: isMobile ? "none" : "1px solid rgba(0,120,255,0.18)", borderRadius: isMobile ? 0 : 24, boxShadow: isMobile ? "none" : "0 0 0 1px rgba(0,80,200,0.08), 0 0 60px rgba(0,100,255,0.08), 0 40px 80px rgba(0,0,0,0.8)", display:"flex", flexDirection:"column", justifyContent: isMobile ? "center" : "flex-start" }}>
+          {/* Atmospheric overlay */}
+          <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 80% 80% at 50% 50%, transparent 30%, rgba(1,5,4,0.55) 70%, rgba(1,5,4,0.92) 100%)", zIndex:1, pointerEvents:"none" }} />
+          {/* Login card — dark teal glass */}
+          <div style={{ position:"relative", zIndex:2, width: isMobile ? "100vw" : 400, minHeight: isMobile ? "100dvh" : "auto", padding: isMobile ? "60px 28px 40px" : "44px 40px", background: isMobile ? "rgba(2,10,8,0.92)" : "rgba(4,14,11,0.76)", backdropFilter:"blur(32px)", WebkitBackdropFilter:"blur(32px)", border: isMobile ? "none" : "1px solid rgba(50,180,130,0.15)", borderRadius: isMobile ? 0 : 24, boxShadow: isMobile ? "none" : "0 0 0 1px rgba(40,160,110,0.06), 0 0 80px rgba(20,120,80,0.12), 0 40px 80px rgba(0,0,0,0.8)", display:"flex", flexDirection:"column", justifyContent: isMobile ? "center" : "flex-start" }}>
             <div style={{ marginBottom:32 }}>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", letterSpacing:2, textTransform:"uppercase", fontWeight:700, marginBottom:10 }}>Cloud Scenic</div>
-              <h1 style={{ fontSize:24, fontWeight:700, color:"#fff", margin:"0 0 6px", letterSpacing:-0.5 }}>War Room</h1>
+              <div style={{ fontSize:11, color:"rgba(60,200,140,0.7)", letterSpacing:2, textTransform:"uppercase", fontWeight:700, marginBottom:10 }}>Cloud Scenic</div>
+              <h1 style={{ fontSize:26, fontWeight:700, color:"#fff", margin:"0 0 6px", letterSpacing:-0.5 }}>War Room</h1>
               <p style={{ fontSize:12, color:"rgba(255,255,255,0.35)", margin:0 }}>VitalLyfe Content Operations</p>
             </div>
             <div>
@@ -247,8 +349,8 @@
                 onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="••••••••" />
               {error && <div style={{ fontSize:11, color:"#ff453a", marginBottom:12, padding:"8px 12px", background:"rgba(255,69,58,0.1)", borderRadius:8 }}>{error}</div>}
               <button onClick={handleLogin} disabled={loading}
-                style={{ width:"100%", background:loading?"rgba(255,255,255,0.1)":"#fff", color:loading?"rgba(255,255,255,0.3)":"#0a0a0f", border:"none", borderRadius:10, padding:"13px", fontSize:13, fontWeight:700, cursor:loading?"not-allowed":"pointer", fontFamily:"Inter, sans-serif", transition:"all 0.2s" }}>
-                {loading ? "Signing in…" : "Sign In"}
+                style={{ width:"100%", background:loading?"rgba(50,180,130,0.15)":"rgba(50,200,140,0.9)", color:loading?"rgba(255,255,255,0.3)":"#010f0a", border:"1px solid rgba(50,200,140,0.3)", borderRadius:10, padding:"13px", fontSize:13, fontWeight:700, cursor:loading?"not-allowed":"pointer", fontFamily:"Inter, sans-serif", transition:"all 0.2s", letterSpacing:0.3 }}>
+                {loading ? "Signing in…" : "Sign In →"}
               </button>
             </div>
           </div>
