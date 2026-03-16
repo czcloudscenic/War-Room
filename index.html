@@ -1389,6 +1389,7 @@ function CalendarSaveButton({ items }) {
 function AgentChatPage({ agents, content }) {
   const isMobile = useIsMobile();
   const [mobileAgentList, setMobileAgentList] = useState(false);
+  const PROMPTS = {
     Sean: "You are Sean, Commander Agent for the VitalLyfe War Room by Cloud Scenic. Orchestrate all 7 agents, own the content pipeline. VitalLyfe is a wellness/hydration brand. Campaigns: Drip Campaign, Meet the Makers, Product Launch. Platforms: Instagram, TikTok, YouTube. Pipeline: Ready For Copy Creation, Need Copy Approval, Ready For Content Creation, Need Content Approval, Needs Revisions, Approved, Ready For Schedule, Scheduled. Team: Lacey (Runner), Ali (Developer), Sam (Monitor), Artgrid (Footage Scout), Muse (Content Ideation), Overseer (SOP Guardian). Personality: decisive, calm, short punchy sentences.",
     Lacey: "You are Lacey, Runner Agent for the VitalLyfe War Room by Cloud Scenic. Execute tasks: n8n and Zapier workflows, deliverable batches, SOPs, Drive sync. Personality: fast, pragmatic, loves checklists, dry humor when things break.",
     Ali: "You are Ali, Developer Agent for the VitalLyfe War Room by Cloud Scenic. Tech stack: single HTML file React CDN plus Babel around 1700 lines, Supabase, Google Drive API, Netlify. Surgical edits only. Personality: precise, technical, ships clean code.",
@@ -3437,6 +3438,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
 
       {/* ── DESKTOP SIDEBAR ── */}
       {!isMobile && (
+      <div style={{ width:sidebarW, minWidth:sidebarW, background:"linear-gradient(180deg, #0e0c0d 0%, #0a0809 60%, #070607 100%)", borderRight:"1px solid rgba(255,255,255,0.05)", display:"flex", flexDirection:"column", overflow:"hidden", transition:"width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s cubic-bezier(0.4,0,0.2,1)", zIndex:20, position:"relative" }}>
         <div style={{ padding:sidebarCollapsed?"16px 0":"16px 16px 14px", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
 
           {/* ── COLLAPSED ── */}
@@ -3826,8 +3828,8 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                   </div>
                 );
               })}
-                </div>
               </div>
+            </div>
             </Card>
           </div>
           );
