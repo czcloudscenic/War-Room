@@ -3176,6 +3176,106 @@ function CIDPage() {
   );
 }
 
+    // ─── ASK FLOW ─────────────────────────────────────────────────────────────
+    function AskFlow({ content }) {
+      const [open, setOpen] = useState(false);
+      const [loading, setLoading] = useState(false);
+      const [brief, setBrief] = useState("");
+      const [question, setQuestion] = useState("");
+
+      const generateBrief = async (customQ) => {
+        setLoading(true); setBrief("");
+        const approved     = content.filter(x => x.status === "Approved").length;
+        const scheduled    = content.filter(x => x.status === "Scheduled").length;
+        const revisions    = content.filter(x => x.status === "Needs Revisions").length;
+        const needsCopy    = content.filter(x => x.status === "Need Copy Approval").length;
+        const needsContent = content.filter(x => x.status === "Need Content Approval").length;
+        const inProd       = content.filter(x => ["Ready For Content Creation","Ready For Copy Creation"].includes(x.status)).length;
+        const revItems     = content.filter(x => x.status === "Needs Revisions").slice(0,3).map(x => `"${x.title}": ${x.client_note||x.notes||"no notes"}`).join("; ");
+        const pendingItems = content.filter(x => ["Need Copy Approval","Need Content Approval"].includes(x.status)).slice(0,4).map(x => `"${x.title}" (${x.format})`).join(", ");
+        const ctx = `LIVE PIPELINE — VitalLyfe Content Ops (${new Date().toLocaleDateString()}):\nTotal: ${content.length} | Approved: ${approved} | Scheduled: ${scheduled} | Needs Revisions: ${revisions}${revItems ? " ("+revItems+")" : ""} | Awaiting Copy Approval: ${needsCopy}${pendingItems ? " ("+pendingItems+")" : ""} | Awaiting Content Approval: ${needsContent} | In Production: ${inProd}\nCampaigns: Drip Campaign, Meet the Makers, Product Launch\n8 agents live: Sean (Commander), Lacey (Runner), Ali (Dev), Sam (Monitor), Artgrid (Footage), Muse (Ideation), Overseer (SOP), Scrappy (Trends)`;
+        const userMsg = customQ
+          ? `${ctx}\n\nTeam question: ${customQ}\n\nAnswer directly and specifically.`
+          : `${ctx}\n\nGive a sharp executive brief on VitalLyfe content ops. Lead with what needs immediate attention, then what's moving well, then one action item. Direct, specific, under 200 words.`;
+        try {
+          const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 1000,
+              messages: [{ role: "user", content: userMsg }]
+            })
+          });
+          const data = await res.json();
+          setBrief(data.content?.map(b => b.text||"").join("") || data.error?.message || "No response.");
+        } catch (e) { setBrief("Error: " + e.message); }
+        setLoading(false);
+      };
+
+      if (!open) return (
+        <button onClick={() => { setOpen(true); generateBrief(""); }}
+          style={{ display:"flex", alignItems:"center", gap:9, background:"linear-gradient(135deg,rgba(42,171,255,0.15),rgba(42,171,255,0.08))", border:"1px solid rgba(42,171,255,0.3)", borderRadius:12, padding:"11px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif", color:"#2AABFF", fontSize:12, fontWeight:600, letterSpacing:0.2, boxShadow:"0 0 20px rgba(42,171,255,0.1)", flexShrink:0 }}>
+          <span style={{ fontSize:14 }}>⚡</span> Ask Flow
+        </button>
+      );
+
+      return (
+        <div style={{ position:"fixed", inset:0, zIndex:2000, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)" }} onClick={() => setOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:"#111010", border:"1px solid rgba(42,171,255,0.2)", borderRadius:24, width:"100%", maxWidth:640, maxHeight:"85vh", overflowY:"auto", padding:"32px 36px", fontFamily:"Inter, sans-serif", boxShadow:"0 32px 80px rgba(0,0,0,0.4)" }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ width:32, height:32, borderRadius:10, background:"rgba(42,171,255,0.15)", border:"1px solid rgba(42,171,255,0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:15 }}>⚡</div>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:700, color:"#f5f5f7", letterSpacing:-0.3 }}>Ask Flow</div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", marginTop:1 }}>AI Brief · Live Pipeline</div>
+                </div>
+              </div>
+              <button onClick={() => setOpen(false)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.35)", cursor:"pointer", fontSize:20, padding:4, lineHeight:1 }}>×</button>
+            </div>
+            <div style={{ background:"#0d0c0c", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:"20px 22px", marginBottom:20, minHeight:120 }}>
+              {loading ? (
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 1.2s ease-in-out infinite" }} />
+                  <span style={{ fontSize:12, color:"rgba(255,255,255,0.4)", fontStyle:"italic" }}>Reading live pipeline…</span>
+                </div>
+              ) : brief ? (
+                <div style={{ fontSize:13, color:"rgba(255,255,255,0.82)", lineHeight:1.7, whiteSpace:"pre-wrap" }}>{brief}</div>
+              ) : (
+                <div style={{ fontSize:12, color:"rgba(255,255,255,0.3)", fontStyle:"italic" }}>Brief will appear here…</div>
+              )}
+            </div>
+            <div style={{ display:"flex", gap:10 }}>
+              <input value={question} onChange={e => setQuestion(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && question.trim()) { generateBrief(question); setQuestion(""); } }}
+                placeholder="Ask anything… (e.g. what needs attention today?)"
+                style={{ flex:1, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"11px 14px", fontSize:12, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif" }} />
+              <button onClick={() => { if (question.trim()) { generateBrief(question); setQuestion(""); } }}
+                disabled={loading || !question.trim()}
+                style={{ background:"#2AABFF", border:"none", borderRadius:10, padding:"11px 18px", cursor:loading||!question.trim()?"not-allowed":"pointer", color:"#fff", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif", opacity:loading||!question.trim()?0.45:1 }}>
+                Ask
+              </button>
+            </div>
+            <div style={{ display:"flex", gap:8, marginTop:12, flexWrap:"wrap" }}>
+              {["What needs attention today?","What's blocked?","Ready to schedule?","SOP compliance?"].map(q => (
+                <button key={q} onClick={() => generateBrief(q)} disabled={loading}
+                  style={{ fontSize:10, color:"rgba(255,255,255,0.5)", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:20, padding:"5px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
+                  {q}
+                </button>
+              ))}
+            </div>
+            <div style={{ marginTop:16, display:"flex", justifyContent:"flex-end" }}>
+              <button onClick={() => generateBrief("")} disabled={loading}
+                style={{ fontSize:11, color:"rgba(42,171,255,0.6)", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
+                ↺ Refresh brief
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+
 function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setContentProp }) {
   const isMobile = useIsMobile();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
