@@ -16,6 +16,9 @@
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.22) !important; }
     input:not(.lg-input), textarea { color: #f0eeef !important; }
+    /* Pause all pulse animations when AI is off */
+    body.ai-disabled .livePulse-el,
+    body.ai-disabled [style*="livePulse"] { animation-play-state: paused !important; opacity: 0.3 !important; }
     /* Background grid */
     .war-grid-bg {
       background-image:
@@ -3218,7 +3221,12 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
     const next = !aiEnabled;
     setAiEnabled(next);
     try { localStorage.setItem("warroom_ai_enabled", String(next)); } catch {}
+    document.body.classList.toggle("ai-disabled", !next);
   };
+  // Sync body class on mount
+  useEffect(() => {
+    document.body.classList.toggle("ai-disabled", !aiEnabled);
+  }, []);
   // Global AI gate — all agent/chat calls check this ref before firing
   const aiEnabledRef = React.useRef(aiEnabled);
   useEffect(() => { aiEnabledRef.current = aiEnabled; }, [aiEnabled]);
@@ -3337,8 +3345,8 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
     setFeed(prev => [{ ...item, time:now(), id:feedIdRef.current++ }, ...prev].slice(0,60));
   }, []);
 
-  useEffect(() => { for (let i=0; i<10; i++) setTimeout(pushFeed, i*150); }, []);
-  useInterval(pushFeed, 2200);
+  useEffect(() => { if (aiEnabled) { for (let i=0; i<10; i++) setTimeout(pushFeed, i*150); } }, [aiEnabled]);
+  useInterval(pushFeed, aiEnabled ? 2200 : null);
 
   // Draggable notification panel
   useEffect(() => {
@@ -3380,7 +3388,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
       document.removeEventListener("touchend", onUp);
     };
   }, []);
-  useInterval(() => setLiveCount(Math.floor(Math.random()*2)+6), 15000);
+  useInterval(() => setLiveCount(Math.floor(Math.random()*2)+6), aiEnabled ? 15000 : null);
 
   const handleSave = (updated) => {
     // Derive platform (singular) and type from platforms array + format
@@ -3840,7 +3848,10 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             <div style={{ marginBottom:44 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:18 }}>
                 <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 20 : 24, fontWeight:400, fontStyle:"italic", color:"#f0eeef", margin:0, letterSpacing:-0.5 }}>Live Activity</h2>
-                <div style={{ width:4, height:4, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite" }} />
+                {aiEnabled
+                  ? <div style={{ width:4, height:4, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite" }} />
+                  : <span style={{ fontSize:9, color:"rgba(255,80,80,0.7)", fontFamily:"'Geist Mono',monospace", letterSpacing:1.5, fontWeight:700, textTransform:"uppercase" }}>Paused</span>
+                }
               </div>
               <Card style={{ padding:"4px 0", maxHeight:320, overflowY:"auto" }}><ActivityFeed feed={feed} /></Card>
             </div>
