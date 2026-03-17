@@ -14,6 +14,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #0a0809; font-family: Inter, sans-serif; }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
+    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.22) !important; }
+    input:not(.lg-input), textarea { color: #f0eeef !important; }
     /* Background grid */
     .war-grid-bg {
       background-image:
@@ -315,7 +317,7 @@
                           <div style={{ flex:1 }}>
                             <div style={{ fontSize:13, fontWeight:600, color:"#f5f5f7", marginBottom:4 }}>{item.title}</div>
                             <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginBottom:8 }}>{item.campaign} · {item.format}</div>
-                            <span style={{ fontSize:9, color:c, background:`${c}15`, padding:"3px 8px", borderRadius:20, fontWeight:700, border:`1px solid ${c}25` }}>{item.status}</span>
+                            <span style={{ fontSize:9, color:"rgba(255,255,255,0.5)", background:"rgba(255,255,255,0.07)", padding:"3px 8px", borderRadius:20, fontWeight:700, border:"1px solid rgba(255,255,255,0.1)" }}>{item.status}</span>
                           </div>
                           <div style={{ display:"flex", gap:8, flexShrink:0 }}>
                             <button onClick={()=>setReviseOpen(isRevOpen?null:item.id)} style={{ fontSize:11, fontWeight:600, color:"#ff453a", background:"rgba(255,69,58,0.08)", border:"1px solid rgba(255,69,58,0.2)", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Request Revisions</button>
@@ -350,7 +352,7 @@
                         <div style={{ fontSize:12, fontWeight:600, color:"#f5f5f7" }}>{item.title}</div>
                         <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", marginTop:2 }}>{item.campaign} · {item.format}</div>
                       </div>
-                      <span style={{ fontSize:9, color:c, background:`${c}12`, padding:"3px 8px", borderRadius:20, fontWeight:700, whiteSpace:"nowrap" }}>{item.status}</span>
+                      <span style={{ fontSize:9, color:"rgba(255,255,255,0.6)", background:"rgba(255,255,255,0.06)", padding:"3px 8px", borderRadius:20, fontWeight:700, whiteSpace:"nowrap" }}>{item.status}</span>
                       {["Need Copy Approval","Need Content Approval"].includes(item.status) && (
                         <button onClick={()=>approve(item)} style={{ fontSize:10, fontWeight:700, color:"#2AABFF", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:7, padding:"5px 10px", cursor:"pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap" }}>Approve</button>
                       )}
@@ -491,12 +493,12 @@ const AGENTS_BASE = [
   { id:2, name:"Lacey", role:"Runner", type:"Executor", color:"#ff9f0a", grad:"linear-gradient(135deg,#3d2800,#1e1400)", taskIdx:2 },
   { id:3, name:"Ali", role:"Developer", type:"Builder", color:"#0a84ff", grad:"linear-gradient(135deg,#001a3d,#000d20)", taskIdx:0 },
   { id:4, name:"Sam", role:"Monitor", type:"Security", color:"#ffd60a", grad:"linear-gradient(135deg,#2d2500,#181200)", taskIdx:0 },
-  { id:5, name:"Artgrid", role:"Footage Scout", type:"Creative", color:"#bf5af2", grad:"linear-gradient(135deg,#1e0a35,#100520)", taskIdx:0 },
+  { id:5, name:"Artgrid", role:"Footage Scout", type:"Creative", color:"#2AABFF", grad:"linear-gradient(135deg,#1e0a35,#100520)", taskIdx:0 },
   { id:6, name:"Muse", role:"Content Ideation", type:"Strategy", color:"#ff375f", grad:"linear-gradient(135deg,#3d0010,#200008)", taskIdx:0 },
   { id:7, name:"Overseer", role:"SOP Guardian", type:"Compliance", color:"#64d2ff", grad:"linear-gradient(135deg,#002040,#001020)", taskIdx:0 },
   { id:8, name:"Scrappy", role:"Trend Scout", type:"Research", color:"#5e5ce6", grad:"linear-gradient(135deg,#0f0e35,#080718)", taskIdx:0 },
 ];
-const ACTION_COLORS = { route:"#2AABFF", complete:"#2AABFF", deploy:"#0a84ff", research:"#bf5af2", execute:"#ff9f0a", alert:"#ff453a", success:"#2AABFF", check:"#64d2ff", optimize:"#0a84ff", schedule:"#ff375f", brief:"#bf5af2", publish:"#2AABFF", secure:"#ffd60a", metric:"#ff9f0a", spawn:"#64d2ff" };
+const ACTION_COLORS = { route:"#2AABFF", complete:"#2AABFF", deploy:"#0a84ff", research:"#2AABFF", execute:"#ff9f0a", alert:"#ff453a", success:"#2AABFF", check:"#64d2ff", optimize:"#0a84ff", schedule:"#ff375f", brief:"#2AABFF", publish:"#2AABFF", secure:"#ffd60a", metric:"#ff9f0a", spawn:"#64d2ff" };
 const ACTIVITY_POOL = [
   { agent:"Scrappy", action:"r/wellness top posts scraped — 12 signals found", type:"research" },
   { agent:"Scrappy", action:"trend brief handed to Muse — 7 angles flagged", type:"brief" },
@@ -949,7 +951,7 @@ function MetricCard({ label, value, delta, color, large, sub }) {
       <div style={{ padding: large ? "36px 32px" : "22px 24px", height:"100%", display:"flex", flexDirection:"column", justifyContent: large ? "flex-end" : "flex-start" }}>
         {large && <div style={{ flex:1 }} />}
         <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontWeight:600, textTransform:"uppercase", letterSpacing:1.5, marginBottom:8 }}>{label}</div>
-        <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: large ? 72 : 40, fontWeight:400, color:color, letterSpacing: large ? -4 : -2, lineHeight:1 }}>{v.toLocaleString()}</div>
+        <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: large ? 72 : 40, fontWeight:400, color:'#f0eeef', letterSpacing: large ? -4 : -2, lineHeight:1 }}>{v.toLocaleString()}</div>
         {(large || sub) && <div style={{ fontSize:11, color:"rgba(255,255,255,0.28)", marginTop:8 }}>{sub || "pieces in pipeline"}</div>}
       </div>
     </div>
@@ -1005,21 +1007,21 @@ function OpsBoard() {
       {cols.map(col => (
         <div key={col.key} style={{ flex:1 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-            <span style={{ fontSize:12, fontWeight:600, color:col.color }}>{col.label}</span>
-            <span style={{ fontSize:11, color:col.color, background:`${col.color}18`, padding:"2px 8px", borderRadius:20, fontWeight:600 }}>{ops[col.key].length}</span>
+            <span style={{ fontSize:12, fontWeight:500, color:"rgba(255,255,255,0.6)" }}>{col.label}</span>
+            <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", background:"rgba(255,255,255,0.07)", padding:"2px 8px", borderRadius:20, fontWeight:500 }}>{ops[col.key].length}</span>
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {ops[col.key].map((task,i) => (
-              <Card key={task.id} style={{ padding:"12px 14px", borderLeft:`3px solid ${col.color}80`, borderRadius:12, animation:i===0&&col.key==="inProgress"?"slideIn 0.3s ease":"none" }}>
+              <Card key={task.id} style={{ padding:"12px 14px", borderLeft:"3px solid rgba(255,255,255,0.08)", borderRadius:12, animation:i===0&&col.key==="inProgress"?"slideIn 0.3s ease":"none" }}>
                 <div style={{ fontSize:12, color:"#ffffff", fontWeight:500, marginBottom:4, lineHeight:1.4 }}>{task.title}</div>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)" }}>{task.agent}</div>
-                {col.key==="inProgress" && <div style={{ marginTop:10, height:2, background:"#111010", borderRadius:2 }}><div style={{ height:"100%", width:"55%", background:col.color, borderRadius:2, animation:"progressBar 28s linear forwards" }} /></div>}
+                {col.key==="inProgress" && <div style={{ marginTop:10, height:2, background:"#111010", borderRadius:2 }}><div style={{ height:"100%", width:"55%", background:"rgba(255,255,255,0.2)", borderRadius:2, animation:"progressBar 28s linear forwards" }} /></div>}
               </Card>
             ))}
             {col.key==="backlog" && (
               <div style={{ display:"flex", gap:6 }}>
                 <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key==="Enter" && addTask()} placeholder="Add task..." style={{ flex:1, background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"8px 12px", color:"#ffffff", fontSize:11, outline:"none", fontFamily:"Inter, sans-serif" }} />
-                <button onClick={addTask} style={{ background:"rgba(48,209,88,0.15)", border:"1px solid rgba(48,209,88,0.3)", borderRadius:10, color:"#2AABFF", cursor:"pointer", padding:"8px 14px", fontSize:14, fontWeight:700 }}>+</button>
+                <button onClick={addTask} style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, color:"rgba(255,255,255,0.6)", cursor:"pointer", padding:"8px 14px", fontSize:14, fontWeight:400 }}>+</button>
               </div>
             )}
           </div>
@@ -1069,7 +1071,7 @@ function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardC
                       <div style={{ fontSize:11, color:"#ffffff", fontWeight:600, lineHeight:1.35, marginBottom:5 }}>{item.title}</div>
                       <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", marginBottom:5, lineHeight:1.4 }}>{item.campaign}</div>
                       <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:6 }}>
-                        <span style={{ fontSize:8, color:c, background:`${c}15`, padding:"2px 5px", borderRadius:4, fontWeight:700 }}>{item.pillar}</span>
+                        <span style={{ fontSize:8, color:"rgba(255,255,255,0.5)", background:"rgba(255,255,255,0.07)", padding:"2px 5px", borderRadius:4, fontWeight:700 }}>{item.pillar}</span>
                         {item.platforms.slice(0,2).map(p => <span key={p} style={{ fontSize:8, color:"rgba(255,255,255,0.35)", background:"#111010", padding:"2px 5px", borderRadius:4 }}>{p}</span>)}
                       </div>
                     </div>
@@ -1079,7 +1081,7 @@ function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardC
                           <button onClick={() => onMuseWrite(item, "caption")} style={{ fontSize:8, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:5, padding:"2px 7px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}> Caption</button>
                         )}
                         {item.format === "Reel" && (!item.script || item.script.length < 10) && (
-                          <button onClick={() => onMuseWrite(item, "script")} style={{ fontSize:8, fontWeight:700, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:5, padding:"2px 7px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}> Script</button>
+                          <button onClick={() => onMuseWrite(item, "script")} style={{ fontSize:8, fontWeight:700, color:"#2AABFF", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:5, padding:"2px 7px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}> Script</button>
                         )}
                       </div>
                     )}
@@ -1154,7 +1156,7 @@ function ReferencesPage() {
 
       <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
         {REF_TYPES.map(t => { const c=TYPE_COLOR[t]; const n=refs.filter(r=>r.type===t).length; return (
-          <span key={t} style={{ fontSize:10, color:c, background:`${c}12`, padding:"4px 12px", borderRadius:20, fontWeight:600, border:`1px solid ${c}25` }}>{t}{n>0?` · ${n}`:""}</span>
+          <span key={t} style={{ fontSize:10, color:"rgba(255,255,255,0.6)", background:"rgba(255,255,255,0.06)", padding:"4px 12px", borderRadius:20, fontWeight:600, border:"1px solid rgba(255,255,255,0.1)" }}>{t}{n>0?` · ${n}`:""}</span>
         );})}
       </div>
 
@@ -1185,11 +1187,11 @@ function ReferencesPage() {
           return (
             <Card key={ref.id} style={{ overflow:"hidden", border:isOpen?"1px solid rgba(0,0,0,0.12)":"1px solid rgba(0,0,0,0.07)" }}>
               <div onClick={() => setExpanded(isOpen?null:ref.id)} style={{ display:"flex", alignItems:"center", gap:14, padding:"16px 20px", cursor:"pointer" }}>
-                <div style={{ width:36, height:36, borderRadius:10, background:`${c}12`, border:`1px solid ${c}25`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:14 }}>{TYPE_ICON[ref.type]}</div>
+                <div style={{ width:36, height:36, borderRadius:10, background:`${c}12`, border:"1px solid rgba(255,255,255,0.1)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:14 }}>{TYPE_ICON[ref.type]}</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:14, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.2, marginBottom:4 }}>{ref.title}</div>
                   <div style={{ display:"flex", gap:6 }}>
-                    <span style={{ fontSize:9, color:c, background:`${c}12`, padding:"2px 8px", borderRadius:20, fontWeight:600 }}>{ref.type}</span>
+                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.6)", background:"rgba(255,255,255,0.06)", padding:"2px 8px", borderRadius:20, fontWeight:600 }}>{ref.type}</span>
                     <span style={{ fontSize:9, color:"rgba(255,255,255,0.5)", background:"#111010", padding:"2px 8px", borderRadius:20 }}>{ref.pillar}</span>
                     <span style={{ fontSize:9, color:"rgba(255,255,255,0.5)", background:"#111010", padding:"2px 8px", borderRadius:20 }}>{ref.platform}</span>
                   </div>
@@ -1322,14 +1324,14 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <button onClick={runScoutAll} disabled={scoutingAll}
-            style={{ background:scoutingAll?"rgba(191,90,242,0.1)":"#bf5af2", border:"none", borderRadius:12, color:scoutingAll?"#bf5af2":"#fff", cursor:scoutingAll?"default":"pointer", padding:"10px 20px", fontSize:13, fontWeight:700, fontFamily:"Inter,sans-serif", opacity:scoutingAll?0.8:1, display:"flex", alignItems:"center", gap:7 }}>
+            style={{ background:scoutingAll?"rgba(191,90,242,0.1)":"#2AABFF", border:"none", borderRadius:12, color:scoutingAll?"#2AABFF":"#fff", cursor:scoutingAll?"default":"pointer", padding:"10px 20px", fontSize:13, fontWeight:700, fontFamily:"Inter,sans-serif", opacity:scoutingAll?0.8:1, display:"flex", alignItems:"center", gap:7 }}>
             {scoutingAll ? (
-              <><div style={{ width:7, height:7, borderRadius:"50%", background:"#bf5af2", animation:"livePulse 1s infinite" }} /> Scouting All…</>
+              <><div style={{ width:7, height:7, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 1s infinite" }} /> Scouting All…</>
             ) : " Scout All Items"}
           </button>
           <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 16px", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:12 }}>
-            <div style={{ width:7, height:7, borderRadius:"50%", background:"#bf5af2", animation:"livePulse 2.5s ease-in-out infinite" }} />
-            <span style={{ fontSize:11, color:"#bf5af2", fontWeight:600 }}>Artgrid Agent · Ready</span>
+            <div style={{ width:7, height:7, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite" }} />
+            <span style={{ fontSize:11, color:"#2AABFF", fontWeight:600 }}>Artgrid Agent · Ready</span>
           </div>
         </div>
       </div>
@@ -1338,7 +1340,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
         <div style={{ padding:"12px 16px", background:allScoutResult.ok?"rgba(191,90,242,0.06)":"rgba(255,69,58,0.06)", border:"1px solid " + (allScoutResult.ok?"rgba(191,90,242,0.2)":"rgba(255,69,58,0.2)"), borderRadius:12, marginBottom:16, animation:"slideIn 0.3s ease" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
             <div>
-              <div style={{ fontSize:12, fontWeight:600, color:allScoutResult.ok?"#bf5af2":"#ff453a", marginBottom:allScoutResult.summary?6:0 }}>{allScoutResult.message}</div>
+              <div style={{ fontSize:12, fontWeight:600, color:allScoutResult.ok?"#2AABFF":"#ff453a", marginBottom:allScoutResult.summary?6:0 }}>{allScoutResult.message}</div>
               {allScoutResult.summary && <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", lineHeight:1.6, whiteSpace:"pre-line" }}>{allScoutResult.summary}</div>}
             </div>
             <button onClick={() => setAllScoutResult(null)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, padding:"2px 6px", marginLeft:12, flexShrink:0 }}></button>
@@ -1385,7 +1387,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                 </div>
                 <div style={{ display:"flex", gap:8, flexShrink:0 }}>
                   {(sc?.brief || sc?.keywords) && <button onClick={() => setActiveId(isActive?null:item.id)} style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, color:"rgba(255,255,255,0.65)", cursor:"pointer", padding:"9px 16px", fontSize:12, fontWeight:500, fontFamily:"Inter, sans-serif" }}>{isActive?"Hide":"View Keywords"}</button>}
-                  <button onClick={() => runScout(item)} disabled={sc?.loading} style={{ background:sc?.loading?"rgba(191,90,242,0.1)":"#bf5af2", border:"none", borderRadius:10, color:sc?.loading?"#bf5af2":"#fff", cursor:sc?.loading?"default":"pointer", padding:"9px 18px", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif", opacity:sc?.loading?0.8:1 }}>
+                  <button onClick={() => runScout(item)} disabled={sc?.loading} style={{ background:sc?.loading?"rgba(191,90,242,0.1)":"#2AABFF", border:"none", borderRadius:10, color:sc?.loading?"#2AABFF":"#fff", cursor:sc?.loading?"default":"pointer", padding:"9px 18px", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif", opacity:sc?.loading?0.8:1 }}>
                     {sc?.loading?"Scouting...":sc?.brief?"Re-Scout ":"Scout "}
                   </button>
                 </div>
@@ -1394,7 +1396,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
               {sc?.loading && (
                 <div style={{ padding:"0 22px 18px" }}>
                   <div style={{ height:2, background:"rgba(191,90,242,0.15)", borderRadius:2, overflow:"hidden" }}>
-                    <div style={{ height:"100%", background:"#bf5af2", borderRadius:2, animation:"progressBar 3s ease-in-out infinite alternate" }} />
+                    <div style={{ height:"100%", background:"#2AABFF", borderRadius:2, animation:"progressBar 3s ease-in-out infinite alternate" }} />
                   </div>
                   <div style={{ fontSize:10, color:"rgba(191,90,242,0.7)", marginTop:6 }}>Artgrid agent reading script + director notes...</div>
                 </div>
@@ -1431,7 +1433,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                             <span style={{ fontSize:9, fontWeight:700, color:pc2, background:`${pc2}15`, padding:"2px 7px", borderRadius:20, whiteSpace:"nowrap" }}>{s.priority}</span>
                             <span style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", flex:1 }}>{s.query}</span>
                             <span style={{ fontSize:10, color:"rgba(255,255,255,0.5)" }}>{s.use}</span>
-                            <span style={{ fontSize:11, color:"#bf5af2" }}>↗</span>
+                            <span style={{ fontSize:11, color:"#2AABFF" }}>↗</span>
                           </a>
                         );
                       })}
@@ -1467,7 +1469,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                         onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(191,90,242,0.4)"}
                         onMouseLeave={e=>e.currentTarget.style.borderColor="rgba(0,0,0,0.08)"}>
                         <span style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", flex:1 }}>{kw}</span>
-                        <span style={{ fontSize:11, color:"#bf5af2" }}>↗</span>
+                        <span style={{ fontSize:11, color:"#2AABFF" }}>↗</span>
                       </a>
                     ))}
                   </div>
@@ -1767,7 +1769,7 @@ function AgentChatPage({ agents, content }) {
             )}
             {sel.name === "Artgrid" && (
               <button onClick={() => runAgentAction("artgrid_scout")} disabled={actionBusy}
-                style={{ fontSize:11, fontWeight:600, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
+                style={{ fontSize:11, fontWeight:600, color:"#2AABFF", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
                 {actionBusy ? "⏳ Scouting…" : " Scout All Video Items"}
               </button>
             )}
@@ -2067,8 +2069,8 @@ function AdROIHub() {
           <p style={{fontSize:12,color:"rgba(255,255,255,0.5)",margin:0}}>Track spend vs return · AI-powered optimization</p>
         </div>
         <div style={{display:"flex",gap:10, flexWrap:"wrap"}}>
-          <button onClick={runAIAnalysis} disabled={analyzing} style={{background:analyzing?"rgba(255,214,10,0.1)":"#ffd60a",border:"none",borderRadius:12,color:analyzing?"#ffd60a":"#0a0a0f",cursor:analyzing?"default":"pointer",padding:"10px 20px",fontSize:13,fontWeight:700,fontFamily:"Inter,sans-serif",display:"flex",alignItems:"center",gap:7}}>
-            {analyzing?<><div style={{width:7,height:7,borderRadius:"50%",background:"#ffd60a",animation:"livePulse 1s infinite"}}/>Analyzing…</>:" AI Analysis"}
+          <button onClick={runAIAnalysis} disabled={analyzing} style={{background:analyzing?"rgba(255,255,255,0.05)":"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:12,color:"rgba(255,255,255,0.85)",cursor:analyzing?"default":"pointer",padding:"10px 20px",fontSize:13,fontWeight:600,fontFamily:"Inter,sans-serif",display:"flex",alignItems:"center",gap:7}}>
+            {analyzing?<><div style={{width:7,height:7,borderRadius:"50%",background:"rgba(255,255,255,0.08)",animation:"livePulse 1s infinite"}}/>Analyzing…</>:" AI Analysis"}
           </button>
           <button onClick={()=>setAdding(true)} style={{background:"#0f0f1a",border:"none",borderRadius:12,color:"#fff",fontSize:13,fontWeight:600,padding:"10px 20px",cursor:"pointer",fontFamily:"Inter,sans-serif"}}>+ Add Campaign</button>
         </div>
@@ -2076,7 +2078,7 @@ function AdROIHub() {
 
       {/*  TOTALS  */}
       <div style={{display:"grid",gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(5,1fr)",gap:12,marginBottom:28}}>
-        {[["Total Spend","$"+totalSpend.toLocaleString(),"#ff453a"],["Total Revenue","$"+totalRevenue.toLocaleString(),"#2AABFF"],["Overall ROAS",overallROAS+"x",overallROAS>=2?"#2AABFF":overallROAS>=1?"#ff9f0a":"#ff453a"],["Total Leads",totalLeads,"#0a84ff"],["Total Conversions",totalConversions,"#bf5af2"]].map(([label,val,color])=>(
+        {[["Total Spend","$"+totalSpend.toLocaleString(),"#ff453a"],["Total Revenue","$"+totalRevenue.toLocaleString(),"#2AABFF"],["Overall ROAS",overallROAS+"x",overallROAS>=2?"#2AABFF":overallROAS>=1?"#ff9f0a":"#ff453a"],["Total Leads",totalLeads,"#0a84ff"],["Total Conversions",totalConversions,"#2AABFF"]].map(([label,val,color])=>(
           <Card key={label} style={{padding:"18px 20px"}}>
             <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.35)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>{label}</div>
             <div style={{fontSize:26,fontWeight:700,color,letterSpacing:-1}}>{val}</div>
@@ -2089,8 +2091,8 @@ function AdROIHub() {
         <Card style={{padding:"20px 24px",marginBottom:24,borderLeft:"3px solid #ffd60a",background:"rgba(255,214,10,0.04)",animation:"slideIn 0.3s ease"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:7,height:7,borderRadius:"50%",background:"#ffd60a"}}/>
-              <span style={{fontSize:11,fontWeight:700,color:"#ffd60a",letterSpacing:0.8}}>SAM · AD ANALYSIS</span>
+              <div style={{width:7,height:7,borderRadius:"50%",background:"rgba(255,255,255,0.08)"}}/>
+              <span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.3)",letterSpacing:0.8}}>SAM · AD ANALYSIS</span>
             </div>
             <button onClick={()=>setAiInsight(null)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.4)",cursor:"pointer",fontSize:14}}></button>
           </div>
@@ -2143,9 +2145,9 @@ function AdROIHub() {
                 <span style={{fontSize:9,fontWeight:600,color:statusColor,background:`${statusColor}15`,padding:"1px 7px",borderRadius:20}}>{c.status}</span>
               </div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(255,255,255,0.65)"}}>{c.platform}</div>
-              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:600,color:"#ff453a"}}>${c.spend}</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:600,color:"rgba(255,255,255,0.75)"}}>${c.spend}</div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:600,color:"#2AABFF"}}>${c.revenue}</div>
-              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:700,color:Number(roas_)>=2?"#2AABFF":Number(roas_)>=1?"#ff9f0a":"#ff453a"}}>{roas_}x</div>
+              <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.75)"}}>{roas_}x</div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center"}}><span style={{fontSize:11,fontWeight:700,color:rc,background:`${rc}12`,padding:"2px 8px",borderRadius:20}}>{r>=0?"+":""}{r}%</span></div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(255,255,255,0.65)"}}>${cpl(c)}</div>
               <div style={{padding:"13px 14px",display:"flex",alignItems:"center",fontSize:11,color:"rgba(255,255,255,0.65)"}}>{cvr(c)}%</div>
@@ -2321,7 +2323,7 @@ function TeamBroadcast({ agents }) {
 
 //  SKILLS PAGE 
 function SkillsPage({ agents }) {
-  const AGENT_COLORS = { Sean:"#2AABFF", Lacey:"#ff9f0a", Ali:"#0a84ff", Sam:"#ffd60a", Artgrid:"#bf5af2", Muse:"#ff375f", Overseer:"#64d2ff", Scrappy:"#5e5ce6" };
+  const AGENT_COLORS = { Sean:"#2AABFF", Lacey:"#ff9f0a", Ali:"#0a84ff", Sam:"#ffd60a", Artgrid:"#2AABFF", Muse:"#ff375f", Overseer:"#64d2ff", Scrappy:"#5e5ce6" };
   const [briefs, setBriefs] = useState(() => {
     try { return JSON.parse(localStorage.getItem("skill_briefs") || "[]"); } catch { return []; }
   });
@@ -2330,7 +2332,7 @@ function SkillsPage({ agents }) {
   const [deploying, setDeploying] = useState(false);
   const [deployedId, setDeployedId] = useState(null);
   const setF = (k,v) => setForm(f=>({...f,[k]:v}));
-  const inp = { width:"100%", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"10px 14px", fontSize:13, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif", background:"rgba(255,255,255,0.8)", boxSizing:"border-box" };
+  const inp = { width:"100%", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"10px 14px", fontSize:13, color:"rgba(255,255,255,0.85)", outline:"none", fontFamily:"Inter, sans-serif", background:"#0f0d0e", boxSizing:"border-box" };
   const targetColor = form.target === "All Agents" ? "#2AABFF" : (AGENT_COLORS[form.target] || "#2AABFF");
   const TARGETS = ["All Agents", ...agents.map(a => a.name)];
 
@@ -2408,7 +2410,7 @@ function SkillsPage({ agents }) {
 
         <div style={{ display:"flex", alignItems:"center", gap:14 }}>
           <button onClick={deploy} disabled={deploying || !form.title.trim() || !form.content.trim()} className="glass-btn"
-            style={{ background: (form.title.trim() && form.content.trim()) ? targetColor : "rgba(0,0,0,0.08)", border:"none", borderRadius:12, color: (form.title.trim() && form.content.trim()) ? "#fff" : "rgba(0,0,0,0.25)", padding:"12px 28px", fontSize:13, fontWeight:700, cursor:(form.title.trim()&&form.content.trim()&&!deploying)?"pointer":"default", fontFamily:"Inter,sans-serif", display:"flex", alignItems:"center", gap:8 }}>
+            style={{ background: (form.title.trim() && form.content.trim()) ? targetColor : "rgba(255,255,255,0.05)", border:"none", borderRadius:12, color: (form.title.trim() && form.content.trim()) ? "#fff" : "rgba(255,255,255,0.25)", padding:"12px 28px", fontSize:13, fontWeight:700, cursor:(form.title.trim()&&form.content.trim()&&!deploying)?"pointer":"default", fontFamily:"Inter,sans-serif", display:"flex", alignItems:"center", gap:8 }}>
             {deploying
               ? <><div style={{ width:7,height:7,borderRadius:"50%",background:"#fff",animation:"livePulse 1s infinite" }} />Deploying…</>
               : ` Deploy to ${form.target}`}
@@ -3686,8 +3688,8 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         ::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.1); border-radius:99px }
         * { box-sizing:border-box; -webkit-font-smoothing:antialiased }
         button { font-family:-apple-system, Inter, sans-serif }
-        input::placeholder { color:rgba(0,0,0,0.28) }
-        textarea::placeholder { color:rgba(0,0,0,0.22); font-style:italic }
+        input::placeholder { color:rgba(255,255,255,0.22) }
+        textarea::placeholder { color:rgba(255,255,255,0.2); font-style:italic }
         h1,h2,h3 { letter-spacing:-0.5px }
         .mobile-scroll { -webkit-overflow-scrolling:touch; overflow-x:auto; }
         .mobile-tap { -webkit-tap-highlight-color:transparent; }
@@ -3935,7 +3937,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                   <MetricCard label="Content Pieces" value={content.length} delta={0} color="#2AABFF" />
                   <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
                   <MetricCard label="Need Attention" value={content.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
-                  <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#bf5af2" />
+                  <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#2AABFF" />
                 </>
               ) : (
                 <>
@@ -3943,7 +3945,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     <MetricCard label="Content Pieces" value={content.length} delta={0} color="#2AABFF" large />
                   </div>
                   <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
-                  <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#bf5af2" />
+                  <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#2AABFF" />
                   <MetricCard label="Need Attention" value={content.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
                   <MetricCard label="In Production" value={content.filter(x=>["Ready For Content Creation","Ready For Copy Creation"].includes(x.status)).length} delta={0} color="#ff375f" />
                 </>
@@ -4023,7 +4025,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                   const c = STATUS_COLOR[s] || "#999";
                   const n = igItems.filter(x=>x.stage===s).length;
                   if (!n) return null;
-                  return <span key={s} style={{ fontSize:9, color:c, background:`${c}15`, padding:"3px 8px", borderRadius:20, fontWeight:600 }}>{s} · {n}</span>;
+                  return <span key={s} style={{ fontSize:9, color:"rgba(255,255,255,0.5)", background:"rgba(255,255,255,0.07)", padding:"3px 8px", borderRadius:20, fontWeight:600 }}>{s} · {n}</span>;
                 })}
                 <button onClick={handleAddNew} style={{ background:"#0f0f1a", border:"none", borderRadius:10, color:"#fff", fontSize:12, fontWeight:600, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif", flexShrink:0 }}>+ Add</button>
               </div>
@@ -4126,7 +4128,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             </div>
             <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3,1fr)", gap: isMobile ? 10 : 14, marginBottom:24 }}>
               <MetricCard label="Total Pieces" value={content.length} delta={0} color="#2AABFF" />
-              <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#bf5af2" />
+              <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#2AABFF" />
               {!isMobile && <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#0a84ff" />}
             </div>
             {/* Table — horizontal scroll on mobile */}
@@ -4168,7 +4170,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", padding:"11px 10px", display:"flex", alignItems:"center" }}>{item.publish_date || "—"}</div>
                     <div style={{ padding:"8px 12px", display:"flex", alignItems:"center", gap:5 }}>
                       {needsCaption && <button onClick={() => handleMuseWrite(item, "caption")} style={{ fontSize:9, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}> Cap</button>}
-                      {needsScript && <button onClick={() => handleMuseWrite(item, "script")} style={{ fontSize:9, fontWeight:700, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}> Script</button>}
+                      {needsScript && <button onClick={() => handleMuseWrite(item, "script")} style={{ fontSize:9, fontWeight:700, color:"#2AABFF", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}> Script</button>}
                       {!needsCaption && !needsScript && <span style={{ fontSize:9, color:"#2AABFF", fontWeight:600 }}></span>}
                     </div>
                   </div>
@@ -4224,7 +4226,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <h2 style={{ fontSize:17, fontWeight:600, color:"#f5f5f7", margin:"0 0 16px", letterSpacing:-0.4 }}>Workflow Steps</h2>
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 {VITAL_LYFE_SOP.steps.map((step,i) => {
-                  const colors = ["#2AABFF","#0a84ff","#bf5af2","#ff9f0a","#ff375f","#64d2ff","#ffd60a"];
+                  const colors = ["#2AABFF","#0a84ff","#2AABFF","#ff9f0a","#ff375f","#64d2ff","#ffd60a"];
                   const c = colors[i];
                   return (
                     <Card key={step.num} style={{ padding:"18px 22px", display:"grid", gridTemplateColumns:"52px 1fr", gap:16, alignItems:"flex-start" }}>
@@ -4234,7 +4236,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                         <div style={{ fontSize:14, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.3, marginBottom:8 }}>{step.title}</div>
                         <div style={{ fontSize:12, color:"rgba(255,255,255,0.55)", lineHeight:1.7, marginBottom:12 }}>{step.desc}</div>
                         <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                          {step.tags.map(tag => <span key={tag} style={{ fontSize:9, color:c, background:`${c}12`, padding:"3px 9px", borderRadius:20, fontWeight:600, border:`1px solid ${c}20` }}>{tag}</span>)}
+                          {step.tags.map(tag => <span key={tag} style={{ fontSize:9, color:"rgba(255,255,255,0.6)", background:"rgba(255,255,255,0.06)", padding:"3px 9px", borderRadius:20, fontWeight:600, border:`1px solid ${c}20` }}>{tag}</span>)}
                         </div>
                       </div>
                     </Card>
@@ -4267,7 +4269,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <Card style={{ padding:"20px" }}>
                 <h3 style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", margin:"0 0 14px", letterSpacing:1.5, textTransform:"uppercase" }}>Content Pillars</h3>
                 {VITAL_LYFE_SOP.contentPillars.map((p,i) => {
-                  const c = ["#2AABFF","#0a84ff","#ff9f0a","#ff375f","#bf5af2"][i];
+                  const c = ["#2AABFF","#0a84ff","#ff9f0a","#ff375f","#2AABFF"][i];
                   return (
                     <div key={p} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
                       <div style={{ width:8, height:8, borderRadius:2, background:c, flexShrink:0 }} />
