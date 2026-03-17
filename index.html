@@ -3183,6 +3183,81 @@ function CIDPage() {
       const [brief, setBrief] = useState("");
       const [question, setQuestion] = useState("");
 
+      // ── JARVIS CSS injected once ─────────────────────────────────────────────
+      useEffect(() => {
+        if (document.getElementById('jarvis-css')) return;
+        const s = document.createElement('style');
+        s.id = 'jarvis-css';
+        s.textContent = `
+          @keyframes jarvisRotate        { from{transform:rotate(0deg)}   to{transform:rotate(360deg)} }
+          @keyframes jarvisRotateReverse { from{transform:rotate(0deg)}   to{transform:rotate(-360deg)} }
+          @keyframes jarvisCore {
+            0%,100%{ opacity:.85; transform:scale(1);    filter:brightness(1); }
+            50%    { opacity:1;   transform:scale(1.07); filter:brightness(1.4); }
+          }
+          @keyframes jarvisRipple1 { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(2.6);opacity:0} }
+          @keyframes jarvisRipple2 { 0%{transform:scale(1);opacity:.4}  100%{transform:scale(2.1);opacity:0} }
+          @keyframes jarvisRipple3 { 0%{transform:scale(1);opacity:.28} 100%{transform:scale(1.75);opacity:0} }
+          @keyframes jarvisLabel {
+            0%,100%{ opacity:.75; letter-spacing:2.5px; text-shadow:0 0 8px rgba(42,171,255,0.6); }
+            50%    { opacity:1;   letter-spacing:3px;   text-shadow:0 0 16px rgba(42,171,255,1); }
+          }
+          @keyframes jarvisHexSpin {
+            0%  { transform:rotate(0deg)   scale(1); }
+            50% { transform:rotate(180deg) scale(1.06); }
+            100%{ transform:rotate(360deg) scale(1); }
+          }
+          .jarvis-wrap { position:fixed; top:24px; right:28px; z-index:9000; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+          .jarvis-wrap:hover .jarvis-ring1 { filter:brightness(1.35); }
+          .jarvis-wrap:hover .jarvis-core  { filter:brightness(1.5); }
+          .jarvis-orb { position:relative; width:56px; height:56px; display:flex; align-items:center; justify-content:center; }
+          .jarvis-ripple { position:absolute; inset:0; border-radius:50%; border:1.5px solid rgba(42,171,255,0.55); }
+          .jarvis-r1 { animation: jarvisRipple1 2.2s ease-out infinite; }
+          .jarvis-r2 { animation: jarvisRipple2 2.2s ease-out infinite 0.65s; }
+          .jarvis-r3 { animation: jarvisRipple3 2.2s ease-out infinite 1.3s; }
+          .jarvis-ring1 {
+            position:absolute; inset:3px; border-radius:50%;
+            border:1.5px solid transparent;
+            border-top-color: rgba(42,171,255,0.9);
+            border-right-color: rgba(42,171,255,0.45);
+            animation: jarvisRotate 2.4s linear infinite;
+            box-shadow: 0 0 8px rgba(42,171,255,0.4);
+          }
+          .jarvis-ring2 {
+            position:absolute; inset:8px; border-radius:50%;
+            border:1px solid transparent;
+            border-bottom-color: rgba(100,210,255,0.8);
+            border-left-color: rgba(100,210,255,0.3);
+            animation: jarvisRotateReverse 1.8s linear infinite;
+          }
+          .jarvis-ring3 {
+            position:absolute; inset:14px; border-radius:50%;
+            border:1px dashed rgba(42,171,255,0.25);
+            animation: jarvisRotate 4s linear infinite;
+          }
+          .jarvis-core {
+            position:absolute; inset:17px; border-radius:50%;
+            background: radial-gradient(circle at 38% 35%, rgba(140,220,255,0.95) 0%, rgba(42,171,255,0.85) 40%, rgba(10,80,180,0.9) 100%);
+            box-shadow:
+              0 0 12px rgba(42,171,255,0.9),
+              0 0 28px rgba(42,171,255,0.5),
+              0 0 50px rgba(42,171,255,0.2),
+              inset 0 1px 3px rgba(255,255,255,0.6);
+            animation: jarvisCore 3s ease-in-out infinite;
+          }
+          .jarvis-label {
+            font-family: 'Geist Mono', 'SF Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: rgba(42,171,255,0.9);
+            animation: jarvisLabel 3s ease-in-out infinite;
+          }
+        `;
+        document.head.appendChild(s);
+      }, []);
+
       const generateBrief = async (customQ) => {
         setLoading(true); setBrief("");
         const approved     = content.filter(x => x.status === "Approved").length;
@@ -3213,65 +3288,98 @@ function CIDPage() {
         setLoading(false);
       };
 
-      if (!open) return (
-        <button onClick={() => { setOpen(true); generateBrief(""); }}
-          style={{ display:"flex", alignItems:"center", gap:9, background:"linear-gradient(135deg,rgba(42,171,255,0.15),rgba(42,171,255,0.08))", border:"1px solid rgba(42,171,255,0.3)", borderRadius:12, padding:"11px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif", color:"#2AABFF", fontSize:12, fontWeight:600, letterSpacing:0.2, boxShadow:"0 0 20px rgba(42,171,255,0.1)", flexShrink:0 }}>
-          <span style={{ fontSize:14 }}>⚡</span> Ask Flow
-        </button>
-      );
-
       return (
-        <div style={{ position:"fixed", inset:0, zIndex:2000, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)" }} onClick={() => setOpen(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background:"#111010", border:"1px solid rgba(42,171,255,0.2)", borderRadius:24, width:"100%", maxWidth:640, maxHeight:"85vh", overflowY:"auto", padding:"32px 36px", fontFamily:"Inter, sans-serif", boxShadow:"0 32px 80px rgba(0,0,0,0.4)" }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <div style={{ width:32, height:32, borderRadius:10, background:"rgba(42,171,255,0.15)", border:"1px solid rgba(42,171,255,0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:15 }}>⚡</div>
-                <div>
-                  <div style={{ fontSize:15, fontWeight:700, color:"#f5f5f7", letterSpacing:-0.3 }}>Ask Flow</div>
-                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", marginTop:1 }}>AI Brief · Live Pipeline</div>
+        <>
+          {/* ── JARVIS FLOATING ORB ── fixed top-right ─────────────────────── */}
+          <div className="jarvis-wrap" onClick={() => { setOpen(true); if (!brief) generateBrief(""); }}>
+            <div className="jarvis-orb">
+              {/* Ripple rings */}
+              <div className="jarvis-ripple jarvis-r1" />
+              <div className="jarvis-ripple jarvis-r2" />
+              <div className="jarvis-ripple jarvis-r3" />
+              {/* Spinning arcs */}
+              <div className="jarvis-ring1" />
+              <div className="jarvis-ring2" />
+              <div className="jarvis-ring3" />
+              {/* Core */}
+              <div className="jarvis-core" />
+            </div>
+            <div className="jarvis-label">Ask Flow</div>
+          </div>
+
+          {/* ── MODAL ────────────────────────────────────────────────────────── */}
+          {open && (
+            <div style={{ position:"fixed", inset:0, zIndex:10000, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.65)", backdropFilter:"blur(8px)" }} onClick={() => setOpen(false)}>
+              <div onClick={e => e.stopPropagation()} style={{ background:"#0d0c0f", border:"1px solid rgba(42,171,255,0.25)", borderRadius:24, width:"100%", maxWidth:640, maxHeight:"85vh", overflowY:"auto", padding:"32px 36px", fontFamily:"Inter, sans-serif", boxShadow:"0 0 60px rgba(42,171,255,0.15), 0 32px 80px rgba(0,0,0,0.6)" }}>
+                {/* Header */}
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                    {/* Mini Jarvis orb in header */}
+                    <div style={{ position:"relative", width:36, height:36, flexShrink:0 }}>
+                      <div style={{ position:"absolute", inset:0, borderRadius:"50%", border:"1px solid rgba(42,171,255,0.5)", animation:"jarvisRipple1 2.2s ease-out infinite" }} />
+                      <div style={{ position:"absolute", inset:3, borderRadius:"50%", border:"1.5px solid transparent", borderTopColor:"rgba(42,171,255,0.9)", borderRightColor:"rgba(42,171,255,0.4)", animation:"jarvisRotate 2.4s linear infinite", boxShadow:"0 0 6px rgba(42,171,255,0.4)" }} />
+                      <div style={{ position:"absolute", inset:8, borderRadius:"50%", border:"1px solid transparent", borderBottomColor:"rgba(100,210,255,0.7)", animation:"jarvisRotateReverse 1.8s linear infinite" }} />
+                      <div style={{ position:"absolute", inset:11, borderRadius:"50%", background:"radial-gradient(circle at 38% 35%, rgba(140,220,255,0.9) 0%, rgba(42,171,255,0.8) 45%, rgba(10,80,180,0.9) 100%)", boxShadow:"0 0 10px rgba(42,171,255,0.8), inset 0 1px 2px rgba(255,255,255,0.5)", animation:"jarvisCore 3s ease-in-out infinite" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize:15, fontWeight:700, color:"#f5f5f7", letterSpacing:-0.3 }}>Ask Flow</div>
+                      <div style={{ fontSize:9, color:"rgba(42,171,255,0.7)", fontWeight:600, letterSpacing:2, textTransform:"uppercase", marginTop:1 }}>AI Brief · Live Pipeline</div>
+                    </div>
+                  </div>
+                  <button onClick={() => setOpen(false)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.35)", cursor:"pointer", fontSize:20, padding:4, lineHeight:1 }}>×</button>
+                </div>
+
+                {/* Brief output */}
+                <div style={{ background:"rgba(42,171,255,0.04)", border:"1px solid rgba(42,171,255,0.12)", borderRadius:16, padding:"20px 22px", marginBottom:20, minHeight:120 }}>
+                  {loading ? (
+                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                      <div style={{ position:"relative", width:18, height:18, flexShrink:0 }}>
+                        <div style={{ position:"absolute", inset:0, borderRadius:"50%", border:"1.5px solid transparent", borderTopColor:"#2AABFF", animation:"jarvisRotate 1s linear infinite" }} />
+                        <div style={{ position:"absolute", inset:4, borderRadius:"50%", background:"rgba(42,171,255,0.6)", animation:"jarvisCore 1.5s ease-in-out infinite" }} />
+                      </div>
+                      <span style={{ fontSize:12, color:"rgba(255,255,255,0.45)", fontStyle:"italic", letterSpacing:0.3 }}>Reading live pipeline…</span>
+                    </div>
+                  ) : brief ? (
+                    <div style={{ fontSize:13, color:"rgba(255,255,255,0.85)", lineHeight:1.75, whiteSpace:"pre-wrap" }}>{brief}</div>
+                  ) : (
+                    <div style={{ fontSize:12, color:"rgba(255,255,255,0.25)", fontStyle:"italic" }}>Brief will appear here…</div>
+                  )}
+                </div>
+
+                {/* Input row */}
+                <div style={{ display:"flex", gap:10, marginBottom:12 }}>
+                  <input value={question} onChange={e => setQuestion(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" && question.trim()) { generateBrief(question); setQuestion(""); } }}
+                    placeholder="Ask anything… (e.g. what needs attention today?)"
+                    style={{ flex:1, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(42,171,255,0.15)", borderRadius:10, padding:"11px 14px", fontSize:12, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif" }} />
+                  <button onClick={() => { if (question.trim()) { generateBrief(question); setQuestion(""); } }}
+                    disabled={loading || !question.trim()}
+                    style={{ background:"linear-gradient(135deg,rgba(42,171,255,0.8),rgba(42,171,255,0.5))", border:"1px solid rgba(42,171,255,0.4)", borderRadius:10, padding:"11px 18px", cursor:loading||!question.trim()?"not-allowed":"pointer", color:"#fff", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif", opacity:loading||!question.trim()?0.4:1, boxShadow:"0 0 16px rgba(42,171,255,0.2)" }}>
+                    Ask
+                  </button>
+                </div>
+
+                {/* Quick chips */}
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
+                  {["What needs attention today?","What's blocked?","Ready to schedule?","SOP compliance?"].map(q => (
+                    <button key={q} onClick={() => generateBrief(q)} disabled={loading}
+                      style={{ fontSize:10, color:"rgba(42,171,255,0.75)", background:"rgba(42,171,255,0.06)", border:"1px solid rgba(42,171,255,0.18)", borderRadius:20, padding:"5px 13px", cursor:"pointer", fontFamily:"Inter, sans-serif", transition:"all 0.15s" }}>
+                      {q}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Refresh */}
+                <div style={{ display:"flex", justifyContent:"flex-end" }}>
+                  <button onClick={() => generateBrief("")} disabled={loading}
+                    style={{ fontSize:11, color:"rgba(42,171,255,0.55)", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
+                    ↺ Refresh brief
+                  </button>
                 </div>
               </div>
-              <button onClick={() => setOpen(false)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.35)", cursor:"pointer", fontSize:20, padding:4, lineHeight:1 }}>×</button>
             </div>
-            <div style={{ background:"#0d0c0c", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:"20px 22px", marginBottom:20, minHeight:120 }}>
-              {loading ? (
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 1.2s ease-in-out infinite" }} />
-                  <span style={{ fontSize:12, color:"rgba(255,255,255,0.4)", fontStyle:"italic" }}>Reading live pipeline…</span>
-                </div>
-              ) : brief ? (
-                <div style={{ fontSize:13, color:"rgba(255,255,255,0.82)", lineHeight:1.7, whiteSpace:"pre-wrap" }}>{brief}</div>
-              ) : (
-                <div style={{ fontSize:12, color:"rgba(255,255,255,0.3)", fontStyle:"italic" }}>Brief will appear here…</div>
-              )}
-            </div>
-            <div style={{ display:"flex", gap:10 }}>
-              <input value={question} onChange={e => setQuestion(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && question.trim()) { generateBrief(question); setQuestion(""); } }}
-                placeholder="Ask anything… (e.g. what needs attention today?)"
-                style={{ flex:1, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"11px 14px", fontSize:12, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif" }} />
-              <button onClick={() => { if (question.trim()) { generateBrief(question); setQuestion(""); } }}
-                disabled={loading || !question.trim()}
-                style={{ background:"#2AABFF", border:"none", borderRadius:10, padding:"11px 18px", cursor:loading||!question.trim()?"not-allowed":"pointer", color:"#fff", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif", opacity:loading||!question.trim()?0.45:1 }}>
-                Ask
-              </button>
-            </div>
-            <div style={{ display:"flex", gap:8, marginTop:12, flexWrap:"wrap" }}>
-              {["What needs attention today?","What's blocked?","Ready to schedule?","SOP compliance?"].map(q => (
-                <button key={q} onClick={() => generateBrief(q)} disabled={loading}
-                  style={{ fontSize:10, color:"rgba(255,255,255,0.5)", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:20, padding:"5px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
-                  {q}
-                </button>
-              ))}
-            </div>
-            <div style={{ marginTop:16, display:"flex", justifyContent:"flex-end" }}>
-              <button onClick={() => generateBrief("")} disabled={loading}
-                style={{ fontSize:11, color:"rgba(42,171,255,0.6)", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
-                ↺ Refresh brief
-              </button>
-            </div>
-          </div>
-        </div>
+          )}
+        </>
       );
     }
 
