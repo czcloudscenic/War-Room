@@ -1888,7 +1888,7 @@ function AgentChatPage({ agents, content }) {
 }
 
 //  QUICK ACTIONS DASHBOARD PANEL 
-function QuickActionsDashboard() {
+function QuickActionsDashboard({ aiEnabled = true }) {
   const isMobile = useIsMobile();
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -1920,6 +1920,12 @@ function QuickActionsDashboard() {
 
   const run = async (action, agent, color, label, payload = {}) => {
     if (busy) return;
+    if (!aiEnabled) {
+      setExpanded(true);
+      setResult({ ok: false, text: "AI is currently disabled. Turn it back on from the sidebar kill switch.", color: "#ff453a" });
+      setActiveAction({ action, agent, label, color });
+      return;
+    }
     setBusy(true);
     setActiveAction({ action, agent, label, color });
     setResult(null);
@@ -3205,6 +3211,26 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifPos, setNotifPos] = useState({ x: window.innerWidth - 320, y: 60 });
+  const [aiEnabled, setAiEnabled] = useState(() => {
+    try { return localStorage.getItem("warroom_ai_enabled") !== "false"; } catch { return true; }
+  });
+  const toggleAI = () => {
+    const next = !aiEnabled;
+    setAiEnabled(next);
+    try { localStorage.setItem("warroom_ai_enabled", String(next)); } catch {}
+  };
+  // Global AI gate — all agent/chat calls check this ref before firing
+  const aiEnabledRef = React.useRef(aiEnabled);
+  useEffect(() => { aiEnabledRef.current = aiEnabled; }, [aiEnabled]);
+  const safeAgentFetch = async (url, opts) => {
+    if (!aiEnabledRef.current) throw new Error("AI_DISABLED");
+    return fetch(url, opts);
+  };
+  const toggleAI = () => {
+    const next = !aiEnabled;
+    setAiEnabled(next);
+    try { localStorage.setItem("warroom_ai_enabled", String(next)); } catch {}
+  };
   const notifDragRef = React.useRef(null);
   const notifDragging = React.useRef(false);
   const notifDragOffset = React.useRef({ x: 0, y: 0 });
@@ -3697,6 +3723,25 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontWeight:400 }}>{liveCount} agents active</span>
           </div>
         )}
+        {!sidebarCollapsed && (
+          <div style={{ padding:"10px 16px", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+              <div style={{ width:6, height:6, borderRadius:"50%", background: aiEnabled ? "#2AABFF" : "#ff453a", flexShrink:0, transition:"background 0.2s" }} />
+              <span style={{ fontSize:10, color: aiEnabled ? "rgba(255,255,255,0.55)" : "rgba(255,80,80,0.8)", fontWeight:500, transition:"color 0.2s" }}>
+                {aiEnabled ? "AI Active" : "AI Disabled"}
+              </span>
+            </div>
+            <button onClick={toggleAI} style={{
+              background: aiEnabled ? "rgba(255,255,255,0.06)" : "rgba(255,60,60,0.12)",
+              border: aiEnabled ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255,60,60,0.3)",
+              borderRadius:6, padding:"4px 10px", cursor:"pointer",
+              fontSize:9, fontWeight:700, color: aiEnabled ? "rgba(255,255,255,0.5)" : "rgba(255,100,80,0.9)",
+              fontFamily:"'Geist Mono', monospace", letterSpacing:1, textTransform:"uppercase", transition:"all 0.2s"
+            }}>
+              {aiEnabled ? "Kill" : "Enable"}
+            </button>
+          </div>
+        )}
         <div style={{ flex:1, overflowY:"auto", padding:"8px 0" }}>
           {NAV.map(group => (
             <div key={group.section} style={{ padding:"12px 0 0" }}>
@@ -3761,7 +3806,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
 
             {/*  QUICK ACTIONS  */}
             <div style={{ marginBottom: isMobile ? 24 : 44 }}>
-              <QuickActionsDashboard />
+              <QuickActionsDashboard aiEnabled={aiEnabled} />
             </div>
 
             {/*  AGENT GRID  */}
