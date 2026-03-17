@@ -3188,214 +3188,6 @@ function CIDPage() {
   );
 }
 
-    //  ASK FLOW 
-    function AskFlow({ content }) {
-      const [open, setOpen] = useState(false);
-      const [loading, setLoading] = useState(false);
-      const [brief, setBrief] = useState("");
-      const [question, setQuestion] = useState("");
-
-      //  JARVIS CSS injected once 
-      useEffect(() => {
-        if (document.getElementById('jarvis-css')) return;
-        const s = document.createElement('style');
-        s.id = 'jarvis-css';
-        s.textContent = `
-          @keyframes jarvisRotate        { from{transform:rotate(0deg)}   to{transform:rotate(360deg)} }
-          @keyframes jarvisRotateReverse { from{transform:rotate(0deg)}   to{transform:rotate(-360deg)} }
-          @keyframes jarvisCore {
-            0%,100%{ opacity:.85; transform:scale(1);    filter:brightness(1); }
-            50%    { opacity:1;   transform:scale(1.07); filter:brightness(1.4); }
-          }
-          @keyframes jarvisRipple1 { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(2.6);opacity:0} }
-          @keyframes jarvisRipple2 { 0%{transform:scale(1);opacity:.4}  100%{transform:scale(2.1);opacity:0} }
-          @keyframes jarvisRipple3 { 0%{transform:scale(1);opacity:.28} 100%{transform:scale(1.75);opacity:0} }
-          @keyframes jarvisLabel {
-            0%,100%{ opacity:.75; letter-spacing:2.5px; text-shadow:0 0 8px rgba(42,171,255,0.6); }
-            50%    { opacity:1;   letter-spacing:3px;   text-shadow:0 0 16px rgba(42,171,255,1); }
-          }
-          @keyframes jarvisHexSpin {
-            0%  { transform:rotate(0deg)   scale(1); }
-            50% { transform:rotate(180deg) scale(1.06); }
-            100%{ transform:rotate(360deg) scale(1); }
-          }
-          .jarvis-wrap { position:fixed; top:24px; right:28px; z-index:9000; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; user-select:none; }
-          .jarvis-wrap:hover .jarvis-ring1 { filter:brightness(1.35); }
-          .jarvis-wrap:hover .jarvis-core  { filter:brightness(1.5); }
-          .jarvis-orb { position:relative; width:56px; height:56px; display:flex; align-items:center; justify-content:center; }
-          .jarvis-ripple { position:absolute; inset:0; border-radius:50%; border:1.5px solid rgba(42,171,255,0.55); }
-          .jarvis-r1 { animation: jarvisRipple1 2.2s ease-out infinite; }
-          .jarvis-r2 { animation: jarvisRipple2 2.2s ease-out infinite 0.65s; }
-          .jarvis-r3 { animation: jarvisRipple3 2.2s ease-out infinite 1.3s; }
-          .jarvis-ring1 {
-            position:absolute; inset:3px; border-radius:50%;
-            border:1.5px solid transparent;
-            border-top-color: rgba(42,171,255,0.9);
-            border-right-color: rgba(42,171,255,0.45);
-            animation: jarvisRotate 2.4s linear infinite;
-            box-shadow: 0 0 8px rgba(42,171,255,0.4);
-          }
-          .jarvis-ring2 {
-            position:absolute; inset:8px; border-radius:50%;
-            border:1px solid transparent;
-            border-bottom-color: rgba(100,210,255,0.8);
-            border-left-color: rgba(100,210,255,0.3);
-            animation: jarvisRotateReverse 1.8s linear infinite;
-          }
-          .jarvis-ring3 {
-            position:absolute; inset:14px; border-radius:50%;
-            border:1px dashed rgba(42,171,255,0.25);
-            animation: jarvisRotate 4s linear infinite;
-          }
-          .jarvis-core {
-            position:absolute; inset:17px; border-radius:50%;
-            background: radial-gradient(circle at 38% 35%, rgba(140,220,255,0.95) 0%, rgba(42,171,255,0.85) 40%, rgba(10,80,180,0.9) 100%);
-            box-shadow:
-              0 0 12px rgba(42,171,255,0.9),
-              0 0 28px rgba(42,171,255,0.5),
-              0 0 50px rgba(42,171,255,0.2),
-              inset 0 1px 3px rgba(255,255,255,0.6);
-            animation: jarvisCore 3s ease-in-out infinite;
-          }
-          .jarvis-label {
-            font-family: 'Geist Mono', 'SF Mono', monospace;
-            font-size: 8px;
-            font-weight: 700;
-            letter-spacing: 2.5px;
-            text-transform: uppercase;
-            color: rgba(42,171,255,0.9);
-            animation: jarvisLabel 3s ease-in-out infinite;
-          }
-        `;
-        document.head.appendChild(s);
-      }, []);
-
-      const generateBrief = async (customQ) => {
-        setLoading(true); setBrief("");
-        const approved     = content.filter(x => x.status === "Approved").length;
-        const scheduled    = content.filter(x => x.status === "Scheduled").length;
-        const revisions    = content.filter(x => x.status === "Needs Revisions").length;
-        const needsCopy    = content.filter(x => x.status === "Need Copy Approval").length;
-        const needsContent = content.filter(x => x.status === "Need Content Approval").length;
-        const inProd       = content.filter(x => ["Ready For Content Creation","Ready For Copy Creation"].includes(x.status)).length;
-        const revItems     = content.filter(x => x.status === "Needs Revisions").slice(0,3).map(x => `"${x.title}": ${x.client_note||x.notes||"no notes"}`).join("; ");
-        const pendingItems = content.filter(x => ["Need Copy Approval","Need Content Approval"].includes(x.status)).slice(0,4).map(x => `"${x.title}" (${x.format})`).join(", ");
-        const ctx = `LIVE PIPELINE — VitalLyfe Content Ops (${new Date().toLocaleDateString()}):\nTotal: ${content.length} | Approved: ${approved} | Scheduled: ${scheduled} | Needs Revisions: ${revisions}${revItems ? " ("+revItems+")" : ""} | Awaiting Copy Approval: ${needsCopy}${pendingItems ? " ("+pendingItems+")" : ""} | Awaiting Content Approval: ${needsContent} | In Production: ${inProd}\nCampaigns: Drip Campaign, Meet the Makers, Product Launch\n8 agents live: Sean (Commander), Lacey (Runner), Ali (Dev), Sam (Monitor), Artgrid (Footage), Muse (Ideation), Overseer (SOP), Scrappy (Trends)`;
-        const userMsg = customQ
-          ? `${ctx}\n\nTeam question: ${customQ}\n\nAnswer directly and specifically.`
-          : `${ctx}\n\nGive a sharp executive brief on VitalLyfe content ops. Lead with what needs immediate attention, then what's moving well, then one action item. Direct, specific, under 200 words.`;
-        try {
-          const res = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-20250514",
-              max_tokens: 1000,
-              messages: [{ role: "user", content: userMsg }]
-            })
-          });
-          const data = await res.json();
-          setBrief(data.content?.map(b => b.text||"").join("") || data.error?.message || "No response.");
-        } catch (e) { setBrief("Error: " + e.message); }
-        setLoading(false);
-      };
-
-      return (
-        <>
-          {/*  JARVIS FLOATING ORB  fixed top-right  */}
-          <div className="jarvis-wrap" onClick={() => { setOpen(true); if (!brief) generateBrief(""); }}>
-            <div className="jarvis-orb">
-              {/* Ripple rings */}
-              <div className="jarvis-ripple jarvis-r1" />
-              <div className="jarvis-ripple jarvis-r2" />
-              <div className="jarvis-ripple jarvis-r3" />
-              {/* Spinning arcs */}
-              <div className="jarvis-ring1" />
-              <div className="jarvis-ring2" />
-              <div className="jarvis-ring3" />
-              {/* Core */}
-              <div className="jarvis-core" />
-            </div>
-            <div className="jarvis-label">Ask Flow</div>
-          </div>
-
-          {/*  MODAL  */}
-          {open && (
-            <div style={{ position:"fixed", inset:0, zIndex:10000, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.65)", backdropFilter:"blur(8px)" }} onClick={() => setOpen(false)}>
-              <div onClick={e => e.stopPropagation()} style={{ background:"#0d0c0f", border:"1px solid rgba(42,171,255,0.25)", borderRadius:24, width:"100%", maxWidth:640, maxHeight:"85vh", overflowY:"auto", padding:"32px 36px", fontFamily:"Inter, sans-serif", boxShadow:"0 0 60px rgba(42,171,255,0.15), 0 32px 80px rgba(0,0,0,0.6)" }}>
-                {/* Header */}
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-                    {/* Mini Jarvis orb in header */}
-                    <div style={{ position:"relative", width:36, height:36, flexShrink:0 }}>
-                      <div style={{ position:"absolute", inset:0, borderRadius:"50%", border:"1px solid rgba(42,171,255,0.5)", animation:"jarvisRipple1 2.2s ease-out infinite" }} />
-                      <div style={{ position:"absolute", inset:3, borderRadius:"50%", border:"1.5px solid transparent", borderTopColor:"rgba(42,171,255,0.9)", borderRightColor:"rgba(42,171,255,0.4)", animation:"jarvisRotate 2.4s linear infinite", boxShadow:"0 0 6px rgba(42,171,255,0.4)" }} />
-                      <div style={{ position:"absolute", inset:8, borderRadius:"50%", border:"1px solid transparent", borderBottomColor:"rgba(100,210,255,0.7)", animation:"jarvisRotateReverse 1.8s linear infinite" }} />
-                      <div style={{ position:"absolute", inset:11, borderRadius:"50%", background:"radial-gradient(circle at 38% 35%, rgba(140,220,255,0.9) 0%, rgba(42,171,255,0.8) 45%, rgba(10,80,180,0.9) 100%)", boxShadow:"0 0 10px rgba(42,171,255,0.8), inset 0 1px 2px rgba(255,255,255,0.5)", animation:"jarvisCore 3s ease-in-out infinite" }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize:15, fontWeight:700, color:"#f5f5f7", letterSpacing:-0.3 }}>Ask Flow</div>
-                      <div style={{ fontSize:9, color:"rgba(42,171,255,0.7)", fontWeight:600, letterSpacing:2, textTransform:"uppercase", marginTop:1 }}>AI Brief · Live Pipeline</div>
-                    </div>
-                  </div>
-                  <button onClick={() => setOpen(false)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.35)", cursor:"pointer", fontSize:20, padding:4, lineHeight:1 }}></button>
-                </div>
-
-                {/* Brief output */}
-                <div style={{ background:"rgba(42,171,255,0.04)", border:"1px solid rgba(42,171,255,0.12)", borderRadius:16, padding:"20px 22px", marginBottom:20, minHeight:120 }}>
-                  {loading ? (
-                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                      <div style={{ position:"relative", width:18, height:18, flexShrink:0 }}>
-                        <div style={{ position:"absolute", inset:0, borderRadius:"50%", border:"1.5px solid transparent", borderTopColor:"#2AABFF", animation:"jarvisRotate 1s linear infinite" }} />
-                        <div style={{ position:"absolute", inset:4, borderRadius:"50%", background:"rgba(42,171,255,0.6)", animation:"jarvisCore 1.5s ease-in-out infinite" }} />
-                      </div>
-                      <span style={{ fontSize:12, color:"rgba(255,255,255,0.45)", fontStyle:"italic", letterSpacing:0.3 }}>Reading live pipeline…</span>
-                    </div>
-                  ) : brief ? (
-                    <div style={{ fontSize:13, color:"rgba(255,255,255,0.85)", lineHeight:1.75, whiteSpace:"pre-wrap" }}>{brief}</div>
-                  ) : (
-                    <div style={{ fontSize:12, color:"rgba(255,255,255,0.25)", fontStyle:"italic" }}>Brief will appear here…</div>
-                  )}
-                </div>
-
-                {/* Input row */}
-                <div style={{ display:"flex", gap:10, marginBottom:12 }}>
-                  <input value={question} onChange={e => setQuestion(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter" && question.trim()) { generateBrief(question); setQuestion(""); } }}
-                    placeholder="Ask anything… (e.g. what needs attention today?)"
-                    style={{ flex:1, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(42,171,255,0.15)", borderRadius:10, padding:"11px 14px", fontSize:12, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif" }} />
-                  <button onClick={() => { if (question.trim()) { generateBrief(question); setQuestion(""); } }}
-                    disabled={loading || !question.trim()}
-                    style={{ background:"linear-gradient(135deg,rgba(42,171,255,0.8),rgba(42,171,255,0.5))", border:"1px solid rgba(42,171,255,0.4)", borderRadius:10, padding:"11px 18px", cursor:loading||!question.trim()?"not-allowed":"pointer", color:"#fff", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif", opacity:loading||!question.trim()?0.4:1, boxShadow:"0 0 16px rgba(42,171,255,0.2)" }}>
-                    Ask
-                  </button>
-                </div>
-
-                {/* Quick chips */}
-                <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
-                  {["What needs attention today?","What's blocked?","Ready to schedule?","SOP compliance?"].map(q => (
-                    <button key={q} onClick={() => generateBrief(q)} disabled={loading}
-                      style={{ fontSize:10, color:"rgba(42,171,255,0.75)", background:"rgba(42,171,255,0.06)", border:"1px solid rgba(42,171,255,0.18)", borderRadius:20, padding:"5px 13px", cursor:"pointer", fontFamily:"Inter, sans-serif", transition:"all 0.15s" }}>
-                      {q}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Refresh */}
-                <div style={{ display:"flex", justifyContent:"flex-end" }}>
-                  <button onClick={() => generateBrief("")} disabled={loading}
-                    style={{ fontSize:11, color:"rgba(42,171,255,0.55)", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
-                     Refresh brief
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      );
-    }
-
-
 function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setContentProp }) {
   const isMobile = useIsMobile();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -3661,7 +3453,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   }
 
   return (
-    <div style={{ display:"flex", height: isMobile ? "100dvh" : "100vh", background:"#0a0809", color:"#f5f5f7", fontFamily:"-apple-system, 'SF Pro Display', Inter, sans-serif", overflow:"hidden", flexDirection: isMobile ? "column" : "row" }}>
+    <div className="war-grid-bg" style={{ display:"flex", height: isMobile ? "100dvh" : "100vh", background:"#0a0809", color:"#f5f5f7", fontFamily:"-apple-system, 'SF Pro Display', Inter, sans-serif", overflow:"hidden", flexDirection: isMobile ? "column" : "row" }}>
       {/*  MUSE TOAST  */}
       {museToast && (
         <div style={{ position:"fixed", bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : 28, right: isMobile ? 16 : 28, zIndex:9999, animation:"slideIn 0.3s ease", maxWidth: isMobile ? "calc(100vw - 32px)" : 380 }}>
@@ -3899,7 +3691,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
       )} {/* end !isMobile desktop sidebar */}
 
       {/*  MAIN  */}
-      <div className="war-grid-bg" style={{ flex:1, overflowY:"auto", padding: isMobile ? "24px 16px calc(72px + env(safe-area-inset-bottom,0px))" : "48px 52px", position:"relative", zIndex:25, background:"#0a0809", WebkitOverflowScrolling:"touch" }}>
+      <div style={{ flex:1, overflowY:"auto", padding: isMobile ? "24px 16px calc(72px + env(safe-area-inset-bottom,0px))" : "48px 52px", position:"relative", zIndex:25, background:"transparent", WebkitOverflowScrolling:"touch" }}>
 
         {/* DASHBOARD */}
         {activeNav === "dashboard" && (
@@ -3909,7 +3701,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", fontWeight:600, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace", marginBottom:12 }}>Cloud Scenic / VitalLyfe</div>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
                 <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 36 : 52, fontWeight:400, fontStyle:"italic", color:"#f0eeef", margin:0, letterSpacing:-1, lineHeight:1 }}>War Room.</h1>
-                <AskFlow content={content} />
+
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:16, marginTop:16 }}>
                 <p style={{ fontSize:12, color:"rgba(255,255,255,0.25)", margin:0 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</p>
