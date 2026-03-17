@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Cloud Scenic × VitalLyfe — War Room</title>
+  <title>Cloud Scenic  VitalLyfe — War Room</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -33,7 +33,7 @@
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    // ─── PLATFORM DETECTION ───────────────────────────────────────────────────
+    //  PLATFORM DETECTION 
     const getIsMobile = () => {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
       const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase());
@@ -52,13 +52,13 @@
       return isMobile;
     }
 
-    // ─── SUPABASE CONFIG ──────────────────────────────────────────────────────
+    //  SUPABASE CONFIG 
     const SUPABASE_URL  = "https://wjcstqqihtebkpyuacop.supabase.co";
     const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqY3N0cXFpaHRlYmtweXVhY29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MjU1NTgsImV4cCI6MjA4ODQwMTU1OH0.JZV0r7LRQldTVJLz5BOnVx9M4GfW-Xz28PbBS30Vl4o";
     const DB_CONNECTED  = true;
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // ─── LOGIN SCREEN ─────────────────────────────────────────────────────────
+    //  LOGIN SCREEN 
     function LoginScreen({ onLogin }) {
       const isMobile = useIsMobile();
       const [email, setEmail]       = useState("");
@@ -175,7 +175,7 @@
       return (
         <div style={{ minHeight:"100vh", minHeight:"100dvh", background:"#000", position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter, sans-serif" }}>
 
-          {/* ── FULL SCREEN WATERFALL VIDEO ── */}
+          {/*  FULL SCREEN WATERFALL VIDEO  */}
           <video
             autoPlay muted loop playsInline
             style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", zIndex:0 }}
@@ -188,7 +188,7 @@
           {/* Radial gradient — focuses eye on center */}
           <div style={{ position:"absolute", inset:0, zIndex:2, background:"radial-gradient(ellipse 65% 75% at 50% 50%, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.30) 65%, rgba(0,0,0,0.70) 100%)", pointerEvents:"none" }} />
 
-          {/* ── LIQUID GLASS LOGIN BOX ── */}
+          {/*  LIQUID GLASS LOGIN BOX  */}
           <div className="lg-box" style={{ position:"relative", zIndex:10, width: isMobile ? "calc(100vw - 36px)" : 370, padding: isMobile ? "36px 24px 40px" : "48px 44px" }}>
 
             <div style={{ marginBottom:32, textAlign:"center" }}>
@@ -222,7 +222,7 @@
 
             <div style={{ marginTop:22, display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
               <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2s infinite" }} />
-              <span style={{ fontSize:10, color:"rgba(255,255,255,0.26)" }}>7 agents · Live operations</span>
+              <span style={{ fontSize:10, color:"rgba(255,255,255,0.22)" }}>Live operations</span>
             </div>
           </div>
 
@@ -231,7 +231,7 @@
     }
 
 
-    // ─── CLIENT VIEW ──────────────────────────────────────────────────────────
+    //  CLIENT VIEW 
     function ClientView({ user, content, setContent, onSignOut, isPreview }) {
       const isMobile = useIsMobile();
       const STATUS_ORDER = ["Need Copy Approval","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"];
@@ -312,7 +312,7 @@
                           </div>
                           <div style={{ display:"flex", gap:8, flexShrink:0 }}>
                             <button onClick={()=>setReviseOpen(isRevOpen?null:item.id)} style={{ fontSize:11, fontWeight:600, color:"#ff453a", background:"rgba(255,69,58,0.08)", border:"1px solid rgba(255,69,58,0.2)", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Request Revisions</button>
-                            <button onClick={()=>approve(item)} style={{ fontSize:11, fontWeight:600, color:"#fff", background:"#2AABFF", border:"none", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Approve ✓</button>
+                            <button onClick={()=>approve(item)} style={{ fontSize:11, fontWeight:600, color:"#fff", background:"#2AABFF", border:"none", borderRadius:8, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Approve </button>
                           </div>
                         </div>
                         {isRevOpen && (
@@ -358,7 +358,7 @@
       );
     }
 
-    // ─── ROOT APP WRAPPER ─────────────────────────────────────────────────────
+    //  ROOT APP WRAPPER 
     function App() {
       const [session, setSession] = useState(null);
       const [role, setRole]       = useState(null);
@@ -400,7 +400,7 @@
       if (role === "client") return <ClientView user={session.user} content={content} setContent={setContent} onSignOut={handleSignOut} />;
       return <WarRoom onSignOut={handleSignOut} userEmail={session.user?.email} content={content} setContent={setContent} />;
     }
-    // ─────────────────────────────────────────────────────────────────────────
+    // 
 
 
 const fontLink = document.createElement("link");
@@ -408,10 +408,10 @@ fontLink.rel = "stylesheet";
 fontLink.href = "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap";
 document.head.appendChild(fontLink);
 
-// ─── SOP DATA ────────────────────────────────────────────────────────────────
+//  SOP DATA 
 const VITAL_LYFE_SOP = {
   title: "Master Content Workflow",
-  subtitle: "Cloud Scenic × VitalLyfe",
+  subtitle: "Cloud Scenic  VitalLyfe",
   version: "v1.0 · 2026",
   steps: [
     { num: "01", phase: "Discovery", title: "Ideation & Concept Alignment", desc: "Cloud Scenic meets with VitalLyfe's Marketing Director to align on creative direction, brand goals, campaign objectives, and overall content strategy. All ideas, angles, and priorities are discussed and confirmed before any content work begins.", tags: ["Ideation", "Strategy Session", "Marketing Director"] },
@@ -427,7 +427,7 @@ const VITAL_LYFE_SOP = {
   contentPillars: ["Education", "Entertainment", "Inspiration", "Promotion", "Community"],
 };
 
-// ─── CONTENT LIBRARY ──────────────────────────────────────────────────────────
+//  CONTENT LIBRARY 
 const CAMPAIGNS = ["Drip Campaign", "Meet the Makers", "Product Launch"];
 const STATUSES = ["Ready For Copy Creation", "Need Copy Approval", "Ready For Content Creation", "Need Content Approval", "Needs Revisions", "Approved", "Ready For Schedule", "Scheduled", "Scrapped"];
 const FORMATS = ["Reel", "Graphics (IMG)", "Carousel", "Thread", "Story", "YouTube", "Short"];
@@ -452,23 +452,23 @@ const INITIAL_CONTENT = [
   {id:"vl-15", platform:"instagram", type:"graphic", stage:"Ready For Copy Creation", campaign:"Product Launch", status:"Ready For Copy Creation", format:"Graphics (IMG)", pillar:"Product Launch", platforms:["IG","LI"], title:"The Launch", description:"Hero product reveal graphic. Top of funnel awareness. Clean, editorial product shot with minimal copy overlay.", script:"", caption:"What we've been building toward. Access, engineered.", cta:"The future of water autonomy is here. Learn more (Link in bio)", seoKeywords:"water technology launch, Vital Lyfe product", hashtags:"#VitalLyfe #ProductLaunch #WaterAutonomy", startWeek:5, duration:1, notes:"Top of funnel. Supports all campaigns."},
   {id:"vl-16", platform:"youtube", type:"reel", stage:"Need Copy Approval", campaign:"Product Launch", status:"Need Copy Approval", format:"Reel", pillar:"Product Launch", platforms:["IG","TT","YT"], title:"How It Works", description:"Product demo reel. Clean, editorial aesthetic. Device in action across environments — no complex tech reveals.", script:"Opening Scene: Product in hand, wide landscape.\nMiddle: Device in use — coast, city, field.\nClosing Frame: Vital Lyfe logo lockup.", caption:"Abundance has always been here. We just built the key.", cta:"See Vital Lyfe in action. Join the movement (Link in bio)", seoKeywords:"water tech demo, Vital Lyfe how it works", hashtags:"#VitalLyfe #HowItWorks #WaterTech", startWeek:5, duration:2, notes:"No complex tech reveals — form, motion, human precision only."},
 
-  // ── NEEDS REVISIONS ──────────────────────────────────────────────────────────
+  //  NEEDS REVISIONS 
   {id:"vl-17", platform:"instagram", type:"reel", stage:"Needs Revisions", campaign:"Drip Campaign", status:"Needs Revisions", format:"Reel", pillar:"Tierra Bomba", platforms:["IG","TT"], title:"Tierra Bomba — First Look", description:"Documentary-style reel capturing the team's first arrival on the island. Community portraits, sea horizon, collaboration moments.", script:"Opening Scene: Aerial view of Tierra Bomba island surrounded by ocean.\nMiddle: Team meets Amigos del Mar partners — handshakes, smiles, shared purpose.\nClosing Frame: 'Where innovation meets reality.'", caption:"Surrounded by water. Still waiting for access.", cta:"Follow the mission. Join us (Link in bio)", seoKeywords:"Tierra Bomba, water access, Colombia", hashtags:"#VitalLyfe #TierraBomba #AccessMatters", startWeek:4, duration:2, notes:"Client revision: swap opening clip — use wide ocean shot not drone footage"},
   {id:"vl-18", platform:"tiktok", type:"reel", stage:"Needs Revisions", campaign:"Meet the Makers", status:"Needs Revisions", format:"Reel", pillar:"Startup Diaries", platforms:["TT","IG"], title:"The Build Room", description:"A fast-cut TikTok-first reel inside VitalLyfe's build lab. Tools, prototypes, hands-on energy.", script:"Fast cut montage — workbench, components, testing rigs.\nOverlay text: 'This is what the future of water looks like.'\nEnd card: VitalLyfe logo.", caption:"This is where it gets built.", cta:"See the full process. Join us (Link in bio)", seoKeywords:"startup behind the scenes, product build", hashtags:"#VitalLyfe #StartupDiaries #BehindTheBuild", startWeek:3, duration:1, notes:"Revise: audio too loud in first 3 seconds, rebalance levels"},
 
-  // ── READY FOR SCHEDULE ────────────────────────────────────────────────────────
+  //  READY FOR SCHEDULE 
   {id:"vl-19", platform:"instagram", type:"reel", stage:"Ready For Schedule", campaign:"Drip Campaign", status:"Ready For Schedule", format:"Reel", pillar:"Abundance", platforms:["IG","TT"], title:"The River Always Finds a Way", description:"A meditative reel showing rivers navigating obstacles — metaphor for resilience and flow.", script:"Time-lapse river bending around rock formations.\nText overlay: 'The river always finds a way.'\nClose: VitalLyfe wordmark.", caption:"Water doesn't stop. Neither do we.", cta:"Join the movement. (Link in bio)", seoKeywords:"water resilience, flow state, cinematic nature", hashtags:"#VitalLyfe #Abundance #WaterFindsAWay", startWeek:2, duration:1, notes:"Approved — schedule Week 2 IG + TT"},
   {id:"vl-20", platform:"instagram", type:"graphic", stage:"Ready For Schedule", campaign:"Drip Campaign", status:"Ready For Schedule", format:"Graphics (IMG)", pillar:"Access", platforms:["IG"], title:"Access is a Right (Graphic)", description:"Bold typographic graphic — single statement, clean background, VitalLyfe brand mark.", script:"", caption:"2.2 billion people live without safe drinking water. Access is not a luxury — it's a right.", cta:"Learn more. Join us (Link in bio)", seoKeywords:"water rights, global access", hashtags:"#VitalLyfe #WaterIsARight #AccessForAll", startWeek:2, duration:1, notes:"Approved — schedule Week 2 IG feed"},
   {id:"vl-21", platform:"tiktok", type:"reel", stage:"Ready For Schedule", campaign:"Drip Campaign", status:"Ready For Schedule", format:"Reel", pillar:"Innovation", platforms:["TT","IG"], title:"From Blueprint to Reality", description:"Split-screen reel showing engineering sketches cross-dissolving to finished product in the field.", script:"Left frame: blueprint/sketch. Right frame: product in use.\nText: 'Blueprint → Reality'\nEnd card: VitalLyfe.", caption:"Every innovation starts with a question. Ours started with water.", cta:"See what we built. (Link in bio)", seoKeywords:"product innovation, engineering, water tech", hashtags:"#VitalLyfe #Innovation #BlueprintToReality", startWeek:3, duration:1, notes:"Approved — queue TikTok Week 3"},
   {id:"vl-22", platform:"youtube", type:"reel", stage:"Ready For Schedule", campaign:"Product Launch", status:"Ready For Schedule", format:"Reel", pillar:"Product Launch", platforms:["YT","IG"], title:"Product Reveal — 60s Cut", description:"60-second product hero cut for YouTube pre-roll. Wide landscapes, device in hand, zero dialogue.", script:"Opens on coastline. Device revealed in hand.\nMontage: coast, desert, mountain, city.\nEnd: VitalLyfe wordmark. 'Access, engineered.'", caption:"The future of water autonomy. Here now.", cta:"Watch the full film. (Link in bio)", seoKeywords:"product launch, water technology, VitalLyfe", hashtags:"#VitalLyfe #ProductLaunch #AccessEngineered", startWeek:5, duration:1, notes:"Approved for YouTube pre-roll — schedule Week 5"},
 
-  // ── SCHEDULED ─────────────────────────────────────────────────────────────────
+  //  SCHEDULED 
   {id:"vl-23", platform:"instagram", type:"reel", stage:"Scheduled", campaign:"Drip Campaign", status:"Scheduled", format:"Reel", pillar:"Abundance", platforms:["IG","TT"], title:"The Source — Launch Post", description:"The opening reel of the Drip Campaign. First post to go live. Sets the tone for the entire series.", script:"Single droplet hits still water — slow motion.\nRipples expand to ocean.\n'Every drop is a beginning. This is ours.'", caption:"Every drop holds potential.\n\nRipples expand outward — from a single origin to an ocean of movement.\n\nThis is how abundance becomes access.\n\nJoin us (Link in bio)", cta:"Join us (Link in bio)", seoKeywords:"water origin, ripple effect", hashtags:"#VitalLyfe #TheSource #AbundanceToAccess", startWeek:1, duration:1, notes:"Scheduled: Mon Mar 10 · 5:30 PM via Sprout Social"},
   {id:"vl-24", platform:"instagram", type:"carousel", stage:"Scheduled", campaign:"Drip Campaign", status:"Scheduled", format:"Carousel", pillar:"Innovation", platforms:["IG"], title:"The Turning Point — Carousel", description:"The approved innovation carousel. Scheduled to go out Week 1 alongside The Source reel.", script:"", caption:"Water shapes us. We shape access.\n\nSlide through to see the moment everything changes.", cta:"See the moment everything changes. Join us (Link in bio)", seoKeywords:"water innovation, turning point", hashtags:"#VitalLyfe #Innovation #WaterTech", startWeek:1, duration:2, notes:"Scheduled: Wed Mar 12 · 12:00 PM via Sprout Social"},
   {id:"vl-25", platform:"tiktok", type:"reel", stage:"Scheduled", campaign:"Drip Campaign", status:"Scheduled", format:"Reel", pillar:"Access", platforms:["TT","IG"], title:"Access is Freedom — TikTok", description:"Adapted cut of Access is Freedom, paced for TikTok. Tighter hook, same cinematic feel.", script:"Hook: 'Freedom isn\'t given — it\'s built.'\nFast montage: landscapes, people moving, water flowing.\nEnd: VitalLyfe handle + follow CTA.", caption:"Freedom isn't given, it's built. #VitalLyfe", cta:"Follow for more. (Link in bio)", seoKeywords:"water freedom, TikTok content", hashtags:"#VitalLyfe #WaterFreedom #AccessIsEverything", startWeek:1, duration:1, notes:"Scheduled: Tue Mar 11 · 7:00 PM via Sprout Social"},
 ];
 
-// ─── AGENTS ──────────────────────────────────────────────────────────────────
+//  AGENTS 
 const AGENT_TASKS = {
   Sean: ["Deploying agents on priority tasks...", "Heartbeat check across all nodes", "Orchestrating morning briefing", "Routing new leads to Funnel", "Cross-checking SOP Step 07 compliance", "Spinning up content pipeline", "Monitoring agent uptime — all green"],
   Lacey: ["Building n8n workflow: lead capture", "Updating SOPs — revenue data v2", "Automating onboarding sequence", "Executing client deliverable batch", "Wiring Zapier → Supabase pipeline", "Running QA on automation flows", "Syncing deliverables to Drive"],
@@ -477,7 +477,7 @@ const AGENT_TASKS = {
   Artgrid: ["Scouting Art Grid: lifestyle + wellness clips", "Filtering footage for IG Reel #14", "Matching clips to Content Pillar: Inspiration", "Downloading B-roll batch: 8 clips", "Cross-referencing approved tracker Step 03", "Queuing B-roll for post-production", "Reviewing licensing on selected footage"],
   Muse: ["Generating March content ideas — all platforms", "Analyzing trending hooks on TikTok", "Writing 5 hook variations for next Reel", "Mapping ideas to Content Pillars framework", "Building April content calendar", "Writing IG caption batch — 12 posts", "Analyzing competitor hooks — Vital Lyfe niche"],
   Overseer: ["Reviewing Artgrid selections vs SOP Step 03", "Cross-checking Muse output vs Content Pillars", "Verifying tracker approval gate — Step 02", "Routing approved assets to Sprout Social", "Monitoring full SOP compliance — 7 steps", "Coordinating client review via Wipster", "Final sign-off check before go-live"],
-  Scrappy: ["Scraping r/wellness: top posts this week", "Pulling HN trending — startup + water tech", "Scanning TikTok audio trends for hooks", "Cross-referencing Muse's last calendar", "Flagging viral angles for hydration niche", "Surfacing competitor content gaps", "Handing off trend brief to Muse ✓"],
+  Scrappy: ["Scraping r/wellness: top posts this week", "Pulling HN trending — startup + water tech", "Scanning TikTok audio trends for hooks", "Cross-referencing Muse's last calendar", "Flagging viral angles for hydration niche", "Surfacing competitor content gaps", "Handing off trend brief to Muse "],
 };
 const AGENTS_BASE = [
   { id:1, name:"Sean", role:"Commander", type:"Orchestrator", color:"#2AABFF", grad:"linear-gradient(135deg,#1a4028,#0d2018)", taskIdx:0 },
@@ -527,13 +527,13 @@ const OPS_INIT = {
   ],
 };
 const NAV = [
-  { section:"COMMAND", items:[{ id:"dashboard", icon:"⊞", label:"Dashboard" }, { id:"agents", icon:"◎", label:"Agents" }, { id:"cid", icon:"🕵️", label:"CID" }]},
-  { section:"CONTENT", items:[{ id:"instagram", icon:"◈", label:"Instagram" }, { id:"tiktok", icon:"♪", label:"TikTok" }, { id:"youtube", icon:"▷", label:"YouTube" }, { id:"tracker", icon:"⊟", label:"Content Tracker" }, { id:"taskboard", icon:"⊕", label:"Task Board" }]},
-  { section:"BUSINESS", items:[{ id:"sales", icon:"◐", label:"Ad ROI Hub" }, { id:"chat", icon:"◷", label:"Team Broadcast" }]},
-  { section:"OPERATIONS", items:[{ id:"artgrid", icon:"◭", label:"ArtGrid Scout" }, { id:"references", icon:"◫", label:"References" }, { id:"skills", icon:"◆", label:"Skills" }, { id:"sops", icon:"⊟", label:"SOPs" }]},
+  { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"agents", label:"Agents" }, { id:"cid", label:"CID" }]},
+  { section:"CONTENT", items:[{ id:"instagram", label:"Instagram" }, { id:"tiktok", label:"TikTok" }, { id:"youtube", label:"YouTube" }, { id:"tracker", label:"Content Tracker" }, { id:"taskboard", label:"Task Board" }]},
+  { section:"BUSINESS", items:[{ id:"sales", label:"Ad ROI Hub" }, { id:"chat", label:"Team Broadcast" }]},
+  { section:"OPERATIONS", items:[{ id:"artgrid", label:"ArtGrid Scout" }, { id:"references", label:"References" }, { id:"skills", label:"Skills" }, { id:"sops", label:"SOPs" }]},
 ];
 
-// ─── STATUS COLORS ────────────────────────────────────────────────────────────
+//  STATUS COLORS 
 const STATUS_COLOR = {
   "Ready For Copy Creation":    "#f59e0b",
   "Need Copy Approval":         "#3b82f6",
@@ -546,19 +546,19 @@ const STATUS_COLOR = {
   "Scrapped":                   "#ff453a",
 };
 
-// ─── SHORT STAGE LABELS ───────────────────────────────────────────────────────
+//  SHORT STAGE LABELS 
 const STAGE_SHORT = {
   "Ready For Copy Creation":    "Copy Creation",
   "Need Copy Approval":         "Copy Approval",
   "Ready For Content Creation": "Content Creation",
   "Need Content Approval":      "Content Approval",
   "Needs Revisions":            "Needs Revisions",
-  "Approved":                   "✓ Approved",
+  "Approved":                   "Approved",
   "Ready For Schedule":         "Ready to Schedule",
   "Scheduled":                  "Scheduled",
 };
 
-// ─── HOOKS ────────────────────────────────────────────────────────────────────
+//  HOOKS 
 function useInterval(cb, delay) {
   const cbRef = useRef(cb);
   useEffect(() => { cbRef.current = cb; }, [cb]);
@@ -569,7 +569,7 @@ function useInterval(cb, delay) {
   }, [delay]);
 }
 
-// ─── EDIT CONTENT MODAL ───────────────────────────────────────────────────────
+//  EDIT CONTENT MODAL 
 function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew = false }) {
   const isMobile = useIsMobile();
   const [form, setForm] = useState({ ...item });
@@ -606,7 +606,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
     set("platforms", cur.includes(p) ? cur.filter(x => x !== p) : [...cur, p]);
   };
 
-  // ── GOOGLE DRIVE UPLOAD ───────────────────────────────────────────────────
+  //  GOOGLE DRIVE UPLOAD 
   const GDRIVE_CLIENT_ID = "458336864067-sf7s9meaogm9ltk4qcupv8tu943in6ft.apps.googleusercontent.com";
   const GDRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
   const [uploading, setUploading] = useState(false);
@@ -663,7 +663,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
 
       const files = [...(form.files || []), { name: file.name, url: data.webViewLink, driveId: data.id }];
       set("files", files);
-      setUploadMsg(`✓ ${file.name} uploaded to Drive`);
+      setUploadMsg(` ${file.name} uploaded to Drive`);
     } catch (err) {
       setUploadMsg("Upload failed: " + err.message);
     }
@@ -695,7 +695,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
           <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:"italic", fontSize:26, fontWeight:400, color:"#f5f5f7", margin:0 }}>{isNew ? "New Content" : "Edit Content"}</h2>
-          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:20, color:"rgba(255,255,255,0.35)", cursor:"pointer", lineHeight:1, padding:4 }}>×</button>
+          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:20, color:"rgba(255,255,255,0.35)", cursor:"pointer", lineHeight:1, padding:4 }}></button>
         </div>
 
         {/* Row 1: Campaign + Status */}
@@ -827,9 +827,9 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
               <div style={{ marginBottom:12, display:"flex", flexDirection:"column", gap:6 }}>
                 {(form.files || []).map(f => (
                   <div key={f.path} style={{ display:"flex", alignItems:"center", gap:10, background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"8px 12px" }}>
-                    <span style={{ fontSize:16 }}>{isVideo(f) ? "🎬" : isImage(f) ? "🖼" : "📄"}</span>
+                    <span style={{ fontSize:16 }}>{isVideo(f) ? "" : isImage(f) ? "" : ""}</span>
                     <span style={{ fontSize:12, color:"#f5f5f7", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontWeight:500 }}>{f.name}</span>
-                    <button onClick={() => setPreviewFile(f)} style={{ fontSize:10, color:"#0a84ff", background:"rgba(42,171,255,0.06)", border:"1px solid rgba(10,132,255,0.2)", borderRadius:5, padding:"2px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:600, whiteSpace:"nowrap" }}>👁 Preview</button>
+                    <button onClick={() => setPreviewFile(f)} style={{ fontSize:10, color:"#0a84ff", background:"rgba(42,171,255,0.06)", border:"1px solid rgba(10,132,255,0.2)", borderRadius:5, padding:"2px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:600, whiteSpace:"nowrap" }}> Preview</button>
                     <button onClick={() => removeFile(f)} style={{ fontSize:11, color:"#ff453a", background:"none", border:"none", cursor:"pointer", padding:"2px 6px", borderRadius:5, fontFamily:"Inter, sans-serif" }}>Remove</button>
                   </div>
                 ))}
@@ -843,7 +843,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
                 style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", background:"#111010", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"8px 16px", cursor:uploading?"not-allowed":"pointer", fontFamily:"Inter, sans-serif" }}>
                 {uploading ? "Uploading…" : "+ Upload File"}
               </button>
-              {uploadMsg && <span style={{ fontSize:11, color: uploadMsg.startsWith("✓") ? "#2AABFF" : "#ff453a" }}>{uploadMsg}</span>}
+              {uploadMsg && <span style={{ fontSize:11, color: uploadMsg.startsWith("") ? "#2AABFF" : "#ff453a" }}>{uploadMsg}</span>}
               {!uploadMsg && <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>Video, image, PDF, PSD, Figma</span>}
             </div>
           </div>
@@ -852,11 +852,11 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
         {/* SOP Gate */}
         {sopGates.length > 0 && (
           <div style={{ marginBottom:16, background: hardBlocked ? "rgba(255,69,58,0.04)" : hasWarnings ? "rgba(255,159,10,0.04)" : "rgba(48,209,88,0.04)", border:`1px solid ${hardBlocked?"rgba(255,69,58,0.2)":hasWarnings?"rgba(255,159,10,0.2)":"rgba(48,209,88,0.2)"}`, borderRadius:12, padding:"12px 16px" }}>
-            <div style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color: hardBlocked?"rgba(255,69,58,0.7)":hasWarnings?"rgba(255,159,10,0.7)":"rgba(48,209,88,0.7)", marginBottom:8 }}>☑ SOP Checklist</div>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color: hardBlocked?"rgba(255,69,58,0.7)":hasWarnings?"rgba(255,159,10,0.7)":"rgba(48,209,88,0.7)", marginBottom:8 }}> SOP Checklist</div>
             <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
               {sopGates.map((g,i) => (
                 <div key={i} style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ fontSize:12, flexShrink:0 }}>{g.ok ? "✅" : g.hard ? "🚫" : "⚠️"}</span>
+                  <span style={{ fontSize:12, flexShrink:0 }}>{g.ok ? "" : g.hard ? "" : ""}</span>
                   <span style={{ fontSize:11, color: g.ok ? "rgba(0,0,0,0.5)" : g.hard ? "#ff453a" : "#ff9f0a", fontWeight: g.ok ? 400 : 600, textDecoration: g.ok ? "line-through" : "none" }}>{g.label}</span>
                   {!g.ok && <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontStyle:"italic" }}>— {g.fix}</span>}
                 </div>
@@ -869,11 +869,11 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
         <div style={{ display:"flex", gap:12, alignItems:"center" }}>
           <button onClick={() => { if (!hardBlocked) onSave(form); }} disabled={hardBlocked}
             style={{ flex:1, background: hardBlocked ? "rgba(0,0,0,0.1)" : "#0f0f1a", border:"none", borderRadius:12, color: hardBlocked ? "rgba(0,0,0,0.3)" : "#fff", fontSize:14, fontWeight:600, padding:"14px", cursor: hardBlocked ? "not-allowed" : "pointer", fontFamily:"Inter, sans-serif", letterSpacing:-0.2 }}>
-            {hardBlocked ? "🚫 Fix required fields" : isNew ? "Add Content" : "Save Changes"}
+            {hardBlocked ? " Fix required fields" : isNew ? "Add Content" : "Save Changes"}
           </button>
           <button onClick={onClose} style={{ padding:"14px 22px", background:"none", border:"none", color:"rgba(255,255,255,0.5)", fontSize:14, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Cancel</button>
-          {!isNew && onDuplicate && <button onClick={() => onDuplicate(form)} title="Duplicate this item" style={{ padding:"14px 16px", background:"none", border:"1px solid rgba(255,255,255,0.12)", borderRadius:12, color:"rgba(255,255,255,0.55)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}>⧉ Dupe</button>}
-          {!isNew && onDelete && <button onClick={() => onDelete(form.id)} style={{ padding:"14px 18px", background:"none", border:"1px solid rgba(255,69,58,0.25)", borderRadius:12, color:"rgba(255,69,58,0.7)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}>🗑</button>}
+          {!isNew && onDuplicate && <button onClick={() => onDuplicate(form)} title="Duplicate this item" style={{ padding:"14px 16px", background:"none", border:"1px solid rgba(255,255,255,0.12)", borderRadius:12, color:"rgba(255,255,255,0.55)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}> Dupe</button>}
+          {!isNew && onDelete && <button onClick={() => onDelete(form.id)} style={{ padding:"14px 18px", background:"none", border:"1px solid rgba(255,69,58,0.25)", borderRadius:12, color:"rgba(255,69,58,0.7)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, flexShrink:0 }}></button>}
         </div>
       </div>
 
@@ -883,7 +883,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
           <div onClick={e=>e.stopPropagation()} style={{ background:"#111010", borderRadius:16, overflow:"hidden", maxWidth:"90vw", maxHeight:"90vh", width:"100%", display:"flex", flexDirection:"column", position:"relative" }}>
             <div style={{ padding:"12px 18px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <span style={{ fontSize:13, fontWeight:600, color:"#f5f5f7" }}>{previewFile.name}</span>
-              <button onClick={() => setPreviewFile(null)} style={{ background:"#111010", border:"none", borderRadius:8, width:28, height:28, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+              <button onClick={() => setPreviewFile(null)} style={{ background:"#111010", border:"none", borderRadius:8, width:28, height:28, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}></button>
             </div>
             <div style={{ flex:1, overflow:"auto", display:"flex", alignItems:"center", justifyContent:"center", minHeight:300, background:"#161414" }}>
               {isImage(previewFile) ? (
@@ -901,7 +901,7 @@ function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew 
   );
 }
 
-// ─── COMPONENTS ───────────────────────────────────────────────────────────────
+//  COMPONENTS 
 function AgentAvatar({ agent, size=40 }) {
   const [beat, setBeat] = useState(false);
   useEffect(() => {
@@ -928,7 +928,7 @@ function TypingTask({ text, color }) {
 }
 function Card({ children, style={}, glowColor, onClick }) {
   return (
-    <div onClick={onClick} className="hover-card" style={{ background:"#111010", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:20, boxShadow: glowColor ? `0 4px 28px rgba(0,0,0,0.09), 0 0 0 1px ${glowColor}15` : "0 2px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.03)", ...style }}>
+    <div onClick={onClick} className="hover-card" style={{ background:"#0f0d0e", border:"1px solid rgba(255,255,255,0.06)", borderRadius:16, boxShadow:"0 1px 12px rgba(0,0,0,0.12)", ...style }}>
       {children}
     </div>
   );
@@ -938,44 +938,34 @@ function MetricCard({ label, value, delta, color, large, sub }) {
   useEffect(() => { setV(value); }, [value]);
   useInterval(() => { if (delta > 0) setV(p => p + Math.floor(Math.random()*delta)); }, delta > 0 ? 5000 + Math.random()*3000 : null);
   return (
-    <div className="hover-card" style={{ background:"#111010", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", borderRadius:20, border:"1px solid rgba(255,255,255,0.09)", boxShadow:"0 2px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.03)", overflow:"hidden", position:"relative", height:large?"100%":"auto" }}>
-      <div style={{ position:"absolute", top:0, left:0, width:"100%", height:3, background:color }} />
+    <div className="hover-card" style={{ background:"#0f0d0e", borderRadius:16, border:"1px solid rgba(255,255,255,0.06)", overflow:"hidden", position:"relative", height:large?"100%":"auto" }}>
       <div style={{ padding: large ? "36px 32px" : "22px 24px", height:"100%", display:"flex", flexDirection:"column", justifyContent: large ? "flex-end" : "flex-start" }}>
         {large && <div style={{ flex:1 }} />}
-        <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontWeight:600, textTransform:"uppercase", letterSpacing:1.2, marginBottom:10 }}>{label}</div>
-        <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: large ? 72 : 40, fontWeight:700, color:"#f5f5f7", letterSpacing: large ? -4 : -2, lineHeight:1 }}>{v.toLocaleString()}</div>
-        {(large || sub) && <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:8 }}>{sub || "pieces in pipeline"}</div>}
+        <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontWeight:600, textTransform:"uppercase", letterSpacing:1.5, marginBottom:8 }}>{label}</div>
+        <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: large ? 72 : 40, fontWeight:400, color:color, letterSpacing: large ? -4 : -2, lineHeight:1 }}>{v.toLocaleString()}</div>
+        {(large || sub) && <div style={{ fontSize:11, color:"rgba(255,255,255,0.28)", marginTop:8 }}>{sub || "pieces in pipeline"}</div>}
       </div>
     </div>
   );
 }
 function AgentCard({ agent, selected, onClick }) {
-  const [taskIdx, setTaskIdx] = useState(agent.taskIdx);
-  const [progress, setProgress] = useState(Math.floor(Math.random()*60)+10);
-  useInterval(() => {
-    setProgress(p => {
-      if (p >= 100) { setTaskIdx(i => (i+1) % AGENT_TASKS[agent.name].length); return 0; }
-      return p + Math.floor(Math.random()*5)+1;
-    });
-  }, 1000 + Math.random()*500);
-  const task = AGENT_TASKS[agent.name][taskIdx];
+  const tasks = AGENT_TASKS[agent.name] || [];
   return (
-    <div onClick={onClick} className="hover-card" style={{ background: selected ? "#1a1818" : "#111010", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", border:`1px solid ${selected ? agent.color+"40" : "rgba(255,255,255,0.65)"}`, borderRadius:20, padding:"24px 20px 20px", cursor:"pointer", boxShadow: selected ? `0 8px 36px ${agent.color}25, 0 2px 12px rgba(0,0,0,0.06)` : "0 2px 20px rgba(0,0,0,0.05)", position:"relative", overflow:"hidden" }}>
-      {selected && <div style={{ position:"absolute", top:0, left:0, width:"100%", height:2, background:`linear-gradient(90deg, ${agent.color}, ${agent.color}80)` }} />}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:18 }}>
-        <AgentAvatar agent={agent} size={36} />
-        <div style={{ width:6, height:6, borderRadius:"50%", background: selected ? agent.color : "rgba(255,255,255,0.2)", marginTop:4, flexShrink:0, transition:"background 0.2s" }} />
+    <div onClick={onClick} className="hover-card" style={{ background: selected ? "#131011" : "#0f0d0e", border:`1px solid ${selected ? agent.color+"30" : "rgba(255,255,255,0.06)"}`, borderRadius:16, padding:"20px 18px", cursor:"pointer", position:"relative", overflow:"hidden", transition:"border-color 0.15s, background 0.15s" }}>
+      {selected && <div style={{ position:"absolute", top:0, left:0, width:"100%", height:1, background:agent.color, opacity:0.6 }} />}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:14 }}>
+        <AgentAvatar agent={agent} size={32} />
+        <div style={{ width:5, height:5, borderRadius:"50%", background: selected ? agent.color : "rgba(255,255,255,0.18)", flexShrink:0, transition:"background 0.2s" }} />
       </div>
-      <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontWeight:700, fontStyle: selected ? "italic" : "normal", color:"#f5f5f7", fontSize:17, letterSpacing:-0.5, marginBottom:4, transition:"font-style 0.2s" }}>{agent.name}</div>
-      <div style={{ fontSize:10, color:agent.color, fontWeight:500, marginBottom:16, letterSpacing:0.2 }}>{agent.role}</div>
-      <TypingTask text={task} color="rgba(255,255,255,0.6)" />
-      <div style={{ marginTop:14, height:3, background:"#111010", borderRadius:3 }}>
-        <div style={{ height:"100%", width:`${progress}%`, background:`linear-gradient(90deg,${agent.color}80,${agent.color})`, borderRadius:3, transition:"width 1s ease-out" }} />
-      </div>
-      <div style={{ display:"flex", justifyContent:"space-between", marginTop:5 }}>
-        <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)" }}>progress</span>
-        <span style={{ fontSize:9, color:agent.color, fontWeight:600 }}>{progress}%</span>
-      </div>
+      <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:"italic", color:"#f0eeef", fontSize:16, letterSpacing:-0.3, marginBottom:3 }}>{agent.name}</div>
+      <div style={{ fontSize:10, color:agent.color, fontWeight:500, letterSpacing:0.3, opacity:0.85 }}>{agent.role}</div>
+      {selected && (
+        <div style={{ marginTop:14, borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:12 }}>
+          {tasks.slice(0,3).map((t,i) => (
+            <div key={i} style={{ fontSize:10, color:"rgba(255,255,255,0.42)", marginBottom:5, lineHeight:1.5 }}>{t}</div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1045,7 +1035,7 @@ function ActivityFeed({ feed }) {
   );
 }
 
-// ─── CONTENT PIPELINE BOARD (clickable cards) ─────────────────────────────────
+//  CONTENT PIPELINE BOARD (clickable cards) 
 function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardClick, onMuseWrite }) {
   return (
     <div style={{ marginBottom:32 }}>
@@ -1079,10 +1069,10 @@ function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardC
                     {onMuseWrite && (
                       <div style={{ display:"flex", gap:4 }}>
                         {(!item.caption || item.caption.length < 10) && (
-                          <button onClick={() => onMuseWrite(item, "caption")} style={{ fontSize:8, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:5, padding:"2px 7px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>✍️ Caption</button>
+                          <button onClick={() => onMuseWrite(item, "caption")} style={{ fontSize:8, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:5, padding:"2px 7px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}> Caption</button>
                         )}
                         {item.format === "Reel" && (!item.script || item.script.length < 10) && (
-                          <button onClick={() => onMuseWrite(item, "script")} style={{ fontSize:8, fontWeight:700, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:5, padding:"2px 7px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>✍️ Script</button>
+                          <button onClick={() => onMuseWrite(item, "script")} style={{ fontSize:8, fontWeight:700, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:5, padding:"2px 7px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}> Script</button>
                         )}
                       </div>
                     )}
@@ -1113,8 +1103,8 @@ function PlaceholderPage({ icon, title, badge, desc }) {
   );
 }
 
-// ─── MAIN APP ─────────────────────────────────────────────────────────────────
-// ─── REFERENCES FOLDER ───────────────────────────────────────────────────────
+//  MAIN APP 
+//  REFERENCES FOLDER 
 const REF_TYPES = ["Hook", "Caption", "CTA", "Brand Voice", "Campaign Brief", "Script Sample"];
 const INITIAL_REFS = [
   { id:"ref-1", title:"Drip Campaign — Hook Bank", type:"Hook", pillar:"Abundance", platform:"IG/TT", content:"Every drop holds potential.\n\nFreedom isn't given, it's built.\n\nNothing changes until water moves. Then everything does.\n\nProgress doesn't stop where comfort ends.\n\nWhat if abundance was never the problem? What if it's been here all along.\n\n70% of our planet is covered in water, yet most remains out of reach.", notes:"These hooks work because they're poetic but grounded. Lead with the metaphor — let the product follow. Never open with the brand name." },
@@ -1134,7 +1124,7 @@ function ReferencesPage() {
   const [form, setForm] = useState({ title:"", type:"Hook", pillar:"Education", platform:"IG", content:"", notes:"" });
   const setF = (k,v) => setForm(f => ({ ...f, [k]:v }));
   const TYPE_COLOR = { "Hook":"#3b82f6", "Caption":"#10b981", "CTA":"#f59e0b", "Brand Voice":"#8b5cf6", "Campaign Brief":"#ff375f", "Script Sample":"#2AABFF" };
-  const TYPE_ICON = { "Hook":"⚡", "Caption":"✏️", "CTA":"🎯", "Brand Voice":"🎙", "Campaign Brief":"📋", "Script Sample":"📝" };
+  const TYPE_ICON = { "Hook":"", "Caption":"", "CTA":"", "Brand Voice":"", "Campaign Brief":"", "Script Sample":"" };
   const labelStyle = { fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.5)", marginBottom:5, display:"block" };
   const inp = { width:"100%", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif", background:"#111010", boxSizing:"border-box" };
 
@@ -1165,7 +1155,7 @@ function ReferencesPage() {
         <Card style={{ padding:"28px", marginBottom:24, border:"1px solid rgba(255,255,255,0.12)" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
             <h3 style={{ fontSize:15, fontWeight:600, color:"#f5f5f7", margin:0 }}>New Reference</h3>
-            <button onClick={() => setAdding(false)} style={{ background:"none", border:"none", fontSize:18, color:"rgba(255,255,255,0.35)", cursor:"pointer" }}>×</button>
+            <button onClick={() => setAdding(false)} style={{ background:"none", border:"none", fontSize:18, color:"rgba(255,255,255,0.35)", cursor:"pointer" }}></button>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", gap:12, marginBottom:14 }}>
             <div><label style={labelStyle}>Title</label><input style={inp} value={form.title} onChange={e=>setF("title",e.target.value)} placeholder="e.g. Money Moves — Hook Bank" /></div>
@@ -1199,7 +1189,7 @@ function ReferencesPage() {
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                   <button onClick={e=>{e.stopPropagation();setRefs(prev=>prev.filter(r=>r.id!==ref.id));}} style={{ background:"none", border:"none", fontSize:11, color:"rgba(255,255,255,0.4)", cursor:"pointer", padding:"4px 8px", borderRadius:6 }}>Delete</button>
-                  <span style={{ fontSize:13, color:"rgba(255,255,255,0.4)", transform:isOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s", display:"inline-block" }}>▾</span>
+                  <span style={{ fontSize:13, color:"rgba(255,255,255,0.4)", transform:isOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s", display:"inline-block" }}></span>
                 </div>
               </div>
               {isOpen && (
@@ -1224,7 +1214,7 @@ function ReferencesPage() {
   );
 }
 
-// ─── ARTGRID SCOUT ────────────────────────────────────────────────────────────
+//  ARTGRID SCOUT 
 function ArtgridScoutPage({ content }) {
   const isMobile = useIsMobile();
   // SOP Step 03 — scout footage for video formats not yet scheduled or scrapped
@@ -1239,7 +1229,7 @@ function ArtgridScoutPage({ content }) {
   const PILLAR_COLOR = { Education:"#3b82f6", Entertainment:"#10b981", Inspiration:"#8b5cf6", Promotion:"#ff375f", Community:"#f59e0b", Access:"#06b6d4", Abundance:"#8b5cf6", Innovation:"#0a84ff", "Tierra Bomba":"#2AABFF", "Startup Diaries":"#ff9f0a", "Product Launch":"#ff375f", "Meet the Makers":"#64d2ff" };
   const PRIORITY_COLOR = { HIGH:"#ff375f", MED:"#f59e0b", LOW:"rgba(0,0,0,0.3)" };
 
-  // ── SCOUT ALL via backend action ──────────────────────────────────────────
+  //  SCOUT ALL via backend action 
   const runScoutAll = async () => {
     if (scoutingAll) return;
     setScoutingAll(true);
@@ -1261,12 +1251,12 @@ function ArtgridScoutPage({ content }) {
       }
       setAllScoutResult({ ok: true, message: d.message, summary: d.summary });
     } catch(e) {
-      setAllScoutResult({ ok: false, message: `❌ Scout failed: ${e.message}` });
+      setAllScoutResult({ ok: false, message: ` Scout failed: ${e.message}` });
     }
     setScoutingAll(false);
   };
 
-  // ── SCOUT SINGLE ITEM via frontend chat proxy ─────────────────────────────
+  //  SCOUT SINGLE ITEM via frontend chat proxy 
   const runScout = async (item) => {
     setScouts(prev => ({ ...prev, [item.id]: { loading:true, brief:null } }));
     setActiveId(item.id);
@@ -1328,7 +1318,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
             style={{ background:scoutingAll?"rgba(191,90,242,0.1)":"#bf5af2", border:"none", borderRadius:12, color:scoutingAll?"#bf5af2":"#fff", cursor:scoutingAll?"default":"pointer", padding:"10px 20px", fontSize:13, fontWeight:700, fontFamily:"Inter,sans-serif", opacity:scoutingAll?0.8:1, display:"flex", alignItems:"center", gap:7 }}>
             {scoutingAll ? (
               <><div style={{ width:7, height:7, borderRadius:"50%", background:"#bf5af2", animation:"livePulse 1s infinite" }} /> Scouting All…</>
-            ) : "✦ Scout All Items"}
+            ) : " Scout All Items"}
           </button>
           <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 16px", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:12 }}>
             <div style={{ width:7, height:7, borderRadius:"50%", background:"#bf5af2", animation:"livePulse 2.5s ease-in-out infinite" }} />
@@ -1344,14 +1334,14 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
               <div style={{ fontSize:12, fontWeight:600, color:allScoutResult.ok?"#bf5af2":"#ff453a", marginBottom:allScoutResult.summary?6:0 }}>{allScoutResult.message}</div>
               {allScoutResult.summary && <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", lineHeight:1.6, whiteSpace:"pre-line" }}>{allScoutResult.summary}</div>}
             </div>
-            <button onClick={() => setAllScoutResult(null)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, padding:"2px 6px", marginLeft:12, flexShrink:0 }}>✕</button>
+            <button onClick={() => setAllScoutResult(null)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, padding:"2px 6px", marginLeft:12, flexShrink:0 }}></button>
           </div>
         </div>
       )}
 
       {needsFootage.length === 0 && (
         <div style={{ padding:"32px", textAlign:"center", background:"rgba(191,90,242,0.04)", border:"1px solid rgba(191,90,242,0.1)", borderRadius:16, marginBottom:16 }}>
-          <div style={{ fontSize:32, marginBottom:12, opacity:0.3 }}>✦</div>
+          <div style={{ fontSize:32, marginBottom:12, opacity:0.3 }}></div>
           <div style={{ fontSize:14, fontWeight:600, color:"rgba(255,255,255,0.5)", marginBottom:6 }}>No video items need footage right now</div>
           <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)" }}>All Reels, YouTube, and Short format content is either scheduled or scrapped.</div>
         </div>
@@ -1389,7 +1379,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                 <div style={{ display:"flex", gap:8, flexShrink:0 }}>
                   {(sc?.brief || sc?.keywords) && <button onClick={() => setActiveId(isActive?null:item.id)} style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, color:"rgba(255,255,255,0.65)", cursor:"pointer", padding:"9px 16px", fontSize:12, fontWeight:500, fontFamily:"Inter, sans-serif" }}>{isActive?"Hide":"View Keywords"}</button>}
                   <button onClick={() => runScout(item)} disabled={sc?.loading} style={{ background:sc?.loading?"rgba(191,90,242,0.1)":"#bf5af2", border:"none", borderRadius:10, color:sc?.loading?"#bf5af2":"#fff", cursor:sc?.loading?"default":"pointer", padding:"9px 18px", fontSize:12, fontWeight:600, fontFamily:"Inter, sans-serif", opacity:sc?.loading?0.8:1 }}>
-                    {sc?.loading?"Scouting...":sc?.brief?"Re-Scout ✦":"Scout ✦"}
+                    {sc?.loading?"Scouting...":sc?.brief?"Re-Scout ":"Scout "}
                   </button>
                 </div>
               </div>
@@ -1445,7 +1435,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                     {sc.brief.avoidKeywords?.length>0 && (
                       <div style={{ background:"rgba(255,69,58,0.04)", borderRadius:10, padding:"12px 14px", border:"1px solid rgba(255,69,58,0.1)" }}>
                         <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,69,58,0.6)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:6 }}>Avoid on Artgrid</div>
-                        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>{sc.brief.avoidKeywords.map((k,i)=><span key={i} style={{ fontSize:10, color:"rgba(255,69,58,0.7)", background:"rgba(255,69,58,0.08)", padding:"2px 8px", borderRadius:6 }}>✕ {k}</span>)}</div>
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>{sc.brief.avoidKeywords.map((k,i)=><span key={i} style={{ fontSize:10, color:"rgba(255,69,58,0.7)", background:"rgba(255,69,58,0.08)", padding:"2px 8px", borderRadius:6 }}> {k}</span>)}</div>
                       </div>
                     )}
                     <div style={{ background:"rgba(48,209,88,0.04)", borderRadius:10, padding:"12px 14px", border:"1px solid rgba(48,209,88,0.1)" }}>
@@ -1474,7 +1464,7 @@ Include 6-8 search queries. Hyper-specific beats generic every time.`;
                       </a>
                     ))}
                   </div>
-                  <div style={{ marginTop:10, fontSize:10, color:"rgba(255,255,255,0.35)" }}>Hit "Scout ✦" on any item for the full AI brief with mood, pacing, and clip types.</div>
+                  <div style={{ marginTop:10, fontSize:10, color:"rgba(255,255,255,0.35)" }}>Hit "Scout " on any item for the full AI brief with mood, pacing, and clip types.</div>
                 </div>
               )}
             </Card>
@@ -1503,12 +1493,12 @@ function CalendarSaveButton({ items }) {
     <div style={{ marginTop:10 }}>
       {status === "idle" && (
         <button onClick={save} style={{ fontSize:11, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.25)", borderRadius:10, padding:"8px 16px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>
-          💾 Save {items.length} items to Tracker
+           Save {items.length} items to Tracker
         </button>
       )}
       {status === "saving" && <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)" }}>⏳ Saving to tracker…</span>}
-      {status === "done" && <span style={{ fontSize:11, color:"#2AABFF", fontWeight:600 }}>✓ {items.length} items added to tracker — check Content Tracker</span>}
-      {status === "error" && <span style={{ fontSize:11, color:"#ff453a" }}>❌ Save failed — check console</span>}
+      {status === "done" && <span style={{ fontSize:11, color:"#2AABFF", fontWeight:600 }}> {items.length} items added to tracker — check Content Tracker</span>}
+      {status === "error" && <span style={{ fontSize:11, color:"#ff453a" }}> Save failed — check console</span>}
     </div>
   );
 }
@@ -1604,23 +1594,23 @@ function AgentChatPage({ agents, content }) {
       }
       if (d.results && d.results.length > 0) {
         display += "\n\n" + d.results.map(r =>
-          `📍 "${r.title}"\nSearch keywords:\n${(r.keywords || []).map(k => `  ✦ ${k}`).join("\n")}`
+          ` "${r.title}"\nSearch keywords:\n${(r.keywords || []).map(k => `   ${k}`).join("\n")}`
         ).join("\n\n");
         if (d.summary) display += "\n\n---\n" + d.summary;
       }
       // Scrappy research result
       if (d.report?.trendPulse) {
-        display += `\n\n📡 Trend Pulse: ${d.report.trendPulse}`;
-        if (d.dataPoints) display += `\n📊 Data: ${d.dataPoints.sources || 0} live sources · ${d.dataPoints.queries || 0} search queries`;
+        display += `\n\n Trend Pulse: ${d.report.trendPulse}`;
+        if (d.dataPoints) display += `\n Data: ${d.dataPoints.sources || 0} live sources · ${d.dataPoints.queries || 0} search queries`;
         if (d.summary) display += "\n\n" + d.summary;
-        if (d.report.competitorMoves) display += `\n\n🔭 In the space right now:\n${d.report.competitorMoves}`;
-        if (d.report.avoidZones?.length) display += `\n\n⚠️ Avoid: ${d.report.avoidZones.join(", ")}`;
+        if (d.report.competitorMoves) display += `\n\n In the space right now:\n${d.report.competitorMoves}`;
+        if (d.report.avoidZones?.length) display += `\n\n Avoid: ${d.report.avoidZones.join(", ")}`;
       }
-      // Scrappy × Muse collab result
+      // Scrappy  Muse collab result
       if (d.contentIdeas && d.contentIdeas.length > 0) {
-        display += `\n\n📡 Trend Pulse: ${d.trendPulse || "—"}`;
-        if (d.dataPoints) display += `\n📊 Sources: ${d.dataPoints.sources || 0} live sources searched`;
-        display += `\n\n✍️ Fresh Ideas (${d.contentIdeas.length}):\n` + d.summary;
+        display += `\n\n Trend Pulse: ${d.trendPulse || "—"}`;
+        if (d.dataPoints) display += `\n Sources: ${d.dataPoints.sources || 0} live sources searched`;
+        display += `\n\n Fresh Ideas (${d.contentIdeas.length}):\n` + d.summary;
       }
       const calendarItems = (action === "muse_generate_calendar" && d.items?.length > 0) ? d.items : null;
       setHists(h => {
@@ -1630,7 +1620,7 @@ function AgentChatPage({ agents, content }) {
     } catch(e) {
       setHists(h => {
         const thread = (h[sel.id]||[]).filter(m => !m.loading);
-        return { ...h, [sel.id]: [...thread, { role: "system", content: `❌ Action failed: ${e.message}`, ts: Date.now(), err: true }] };
+        return { ...h, [sel.id]: [...thread, { role: "system", content: ` Action failed: ${e.message}`, ts: Date.now(), err: true }] };
       });
     }
     setActionBusy(false);
@@ -1731,57 +1721,57 @@ function AgentChatPage({ agents, content }) {
           {msgs.length > 0 && <button onClick={() => setHists(h => { const n = { ...h, [sel.id]: [] }; try { const t={}; Object.keys(n).forEach(k=>{t[k]=(n[k]||[]).slice(-10);}); localStorage.setItem("warroom_agent_hists",JSON.stringify(t)); } catch {} return n; })} style={{ background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, color:"rgba(255,255,255,0.35)", fontSize:11, cursor:"pointer", padding:"5px 11px", fontFamily:"Inter,sans-serif" }}>Clear</button>}
         </div>
 
-        {/* ── AGENT ACTION BUTTONS ── */}
+        {/*  AGENT ACTION BUTTONS  */}
         {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Overseer" || sel.name === "Lacey" || sel.name === "Sam" || sel.name === "Artgrid" || sel.name === "Scrappy") && (
           <div style={{ padding:"8px 16px", borderBottom:"1px solid rgba(255,255,255,0.06)", display:"flex", gap:7, flexWrap:"wrap", background:"rgba(0,0,0,0.015)", flexShrink:0 }}>
             {sel.name === "Sean" && (
               <button onClick={() => runAgentAction("sean_briefing")} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#2AABFF", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-                {actionBusy ? "⏳ Running…" : "📋 Morning Briefing"}
+                {actionBusy ? "⏳ Running…" : " Morning Briefing"}
               </button>
             )}
             {sel.name === "Muse" && (
               <button onClick={() => runAgentAction("muse_generate_calendar")} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-                {actionBusy ? "⏳ Running…" : "✍️ Generate Calendar"}
+                {actionBusy ? "⏳ Running…" : " Generate Calendar"}
               </button>
             )}
             {sel.name === "Overseer" && (
               <button onClick={() => runAgentAction("overseer_scan")} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#64d2ff", background:"rgba(100,210,255,0.08)", border:"1px solid rgba(100,210,255,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-                {actionBusy ? "⏳ Running…" : "🔍 SOP Scan"}
+                {actionBusy ? "⏳ Running…" : " SOP Scan"}
               </button>
             )}
             {sel.name === "Lacey" && (<>
               <button onClick={() => runAgentAction("lacey_advance")} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#ff9f0a", background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-                {actionBusy ? "⏳ Running…" : "⚡ Advance Pipeline"}
+                {actionBusy ? "⏳ Running…" : " Advance Pipeline"}
               </button>
               <button onClick={() => runAgentAction("lacey_trigger_n8n", { workflow: "vitallyfe-pipeline", message: "Triggered from War Room", triggeredBy: "Lacey" })} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#2AABFF", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1, marginLeft:8 }}>
-                {actionBusy ? "⏳ Running…" : "🔗 Trigger n8n"}
+                {actionBusy ? "⏳ Running…" : " Trigger n8n"}
               </button>
             </>)}
             {sel.name === "Sam" && (
               <button onClick={() => runAgentAction("sam_health")} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#ffd60a", background:"rgba(255,214,10,0.08)", border:"1px solid rgba(255,214,10,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-                {actionBusy ? "⏳ Running…" : "💊 Health Check"}
+                {actionBusy ? "⏳ Running…" : " Health Check"}
               </button>
             )}
             {sel.name === "Artgrid" && (
               <button onClick={() => runAgentAction("artgrid_scout")} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-                {actionBusy ? "⏳ Scouting…" : "✦ Scout All Video Items"}
+                {actionBusy ? "⏳ Scouting…" : " Scout All Video Items"}
               </button>
             )}
             {sel.name === "Scrappy" && (<>
               <button onClick={() => runAgentAction("scrappy_research")} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#5e5ce6", background:"rgba(94,92,230,0.08)", border:"1px solid rgba(94,92,230,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-                {actionBusy ? "⏳ Scraping…" : "🕵️ Research Trends"}
+                {actionBusy ? "⏳ Scraping…" : " Research Trends"}
               </button>
               <button onClick={() => runAgentAction("scrappy_muse_collab")} disabled={actionBusy}
                 style={{ fontSize:11, fontWeight:600, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-                {actionBusy ? "⏳ Collaborating…" : "🕵️✍️ Scrappy × Muse"}
+                {actionBusy ? "⏳ Collaborating…" : " Scrappy  Muse"}
               </button>
             </>)}
           </div>
@@ -1836,7 +1826,7 @@ function AgentChatPage({ agents, content }) {
                     <div style={{ marginTop:6, display:"flex", gap:6 }}>
                       <button onClick={() => { navigator.clipboard.writeText(m.content).catch(()=>{}); }}
                         style={{ fontSize:10, fontWeight:600, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:8, padding:"4px 10px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>
-                        📋 Copy Caption
+                         Copy Caption
                       </button>
                     </div>
                   )}
@@ -1888,7 +1878,7 @@ function AgentChatPage({ agents, content }) {
   );
 }
 
-// ─── QUICK ACTIONS DASHBOARD PANEL ───────────────────────────────────────────
+//  QUICK ACTIONS DASHBOARD PANEL 
 function QuickActionsDashboard() {
   const isMobile = useIsMobile();
   const [busy, setBusy] = useState(false);
@@ -1897,12 +1887,12 @@ function QuickActionsDashboard() {
   const [expanded, setExpanded] = useState(false);
 
   const ACTIONS = [
-    { label: "📋 Morning Briefing", action: "sean_briefing", agent: "Sean", color: "#2AABFF" },
-    { label: "✍️ Generate Captions", action: "muse_generate_calendar", agent: "Muse", color: "#ff375f" },
-    { label: "🔍 SOP Scan", action: "overseer_scan", agent: "Overseer", color: "#64d2ff" },
-    { label: "⚡ Advance Pipeline", action: "lacey_advance", agent: "Lacey", color: "#ff9f0a" },
-    { label: "💊 Health Check", action: "sam_health", agent: "Sam", color: "#ffd60a" },
-    { label: "🔗 Trigger n8n", action: "lacey_trigger_n8n", agent: "Lacey", color: "#bf5af2", payload: { workflow: "vitallyfe-pipeline", message: "Triggered from War Room Quick Actions", triggeredBy: "War Room" } },
+    { label: " Morning Briefing", action: "sean_briefing", agent: "Sean", color: "#2AABFF" },
+    { label: " Generate Captions", action: "muse_generate_calendar", agent: "Muse", color: "#ff375f" },
+    { label: " SOP Scan", action: "overseer_scan", agent: "Overseer", color: "#64d2ff" },
+    { label: " Advance Pipeline", action: "lacey_advance", agent: "Lacey", color: "#ff9f0a" },
+    { label: " Health Check", action: "sam_health", agent: "Sam", color: "#ffd60a" },
+    { label: " Trigger n8n", action: "lacey_trigger_n8n", agent: "Lacey", color: "#bf5af2", payload: { workflow: "vitallyfe-pipeline", message: "Triggered from War Room Quick Actions", triggeredBy: "War Room" } },
   ];
 
   const run = async (action, agent, color, label, payload = {}) => {
@@ -1939,7 +1929,7 @@ function QuickActionsDashboard() {
       }
       setResult({ ok: true, text: display, color });
     } catch(e) {
-      setResult({ ok: false, text: `❌ ${e.message}`, color: "#ff453a" });
+      setResult({ ok: false, text: ` ${e.message}`, color: "#ff453a" });
     }
     setBusy(false);
   };
@@ -1969,7 +1959,7 @@ function QuickActionsDashboard() {
                 </span>
               </div>
               <button onClick={() => { setExpanded(false); setResult(null); setActiveAction(null); }}
-                style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, padding:"2px 6px", fontFamily:"Inter,sans-serif" }}>✕</button>
+                style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, padding:"2px 6px", fontFamily:"Inter,sans-serif" }}></button>
             </div>
             {result && (
               <div style={{ padding:"14px 18px", maxHeight:320, overflowY:"auto" }}>
@@ -1991,7 +1981,7 @@ function QuickActionsDashboard() {
   );
 }
 
-// ─── AD ROI HUB ──────────────────────────────────────────────────────────────
+//  AD ROI HUB 
 function AdROIHub() {
   const isMobile = useIsMobile();
   const [campaigns, setCampaigns] = useState([
@@ -2035,7 +2025,7 @@ function AdROIHub() {
       });
       const d = await res.json(); const blk = d.content?.find(x=>x.type==="text");
       setAiInsight(blk?.text || "Analysis unavailable.");
-    } catch(e) { setAiInsight("❌ Analysis failed: " + e.message); }
+    } catch(e) { setAiInsight(" Analysis failed: " + e.message); }
     setAnalyzing(false);
   };
 
@@ -2058,13 +2048,13 @@ function AdROIHub() {
         </div>
         <div style={{display:"flex",gap:10, flexWrap:"wrap"}}>
           <button onClick={runAIAnalysis} disabled={analyzing} style={{background:analyzing?"rgba(255,214,10,0.1)":"#ffd60a",border:"none",borderRadius:12,color:analyzing?"#ffd60a":"#0a0a0f",cursor:analyzing?"default":"pointer",padding:"10px 20px",fontSize:13,fontWeight:700,fontFamily:"Inter,sans-serif",display:"flex",alignItems:"center",gap:7}}>
-            {analyzing?<><div style={{width:7,height:7,borderRadius:"50%",background:"#ffd60a",animation:"livePulse 1s infinite"}}/>Analyzing…</>:"💊 AI Analysis"}
+            {analyzing?<><div style={{width:7,height:7,borderRadius:"50%",background:"#ffd60a",animation:"livePulse 1s infinite"}}/>Analyzing…</>:" AI Analysis"}
           </button>
           <button onClick={()=>setAdding(true)} style={{background:"#0f0f1a",border:"none",borderRadius:12,color:"#fff",fontSize:13,fontWeight:600,padding:"10px 20px",cursor:"pointer",fontFamily:"Inter,sans-serif"}}>+ Add Campaign</button>
         </div>
       </div>
 
-      {/* ── TOTALS ── */}
+      {/*  TOTALS  */}
       <div style={{display:"grid",gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(5,1fr)",gap:12,marginBottom:28}}>
         {[["Total Spend","$"+totalSpend.toLocaleString(),"#ff453a"],["Total Revenue","$"+totalRevenue.toLocaleString(),"#2AABFF"],["Overall ROAS",overallROAS+"x",overallROAS>=2?"#2AABFF":overallROAS>=1?"#ff9f0a":"#ff453a"],["Total Leads",totalLeads,"#0a84ff"],["Total Conversions",totalConversions,"#bf5af2"]].map(([label,val,color])=>(
           <Card key={label} style={{padding:"18px 20px"}}>
@@ -2074,7 +2064,7 @@ function AdROIHub() {
         ))}
       </div>
 
-      {/* ── AI INSIGHT ── */}
+      {/*  AI INSIGHT  */}
       {aiInsight && (
         <Card style={{padding:"20px 24px",marginBottom:24,borderLeft:"3px solid #ffd60a",background:"rgba(255,214,10,0.04)",animation:"slideIn 0.3s ease"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
@@ -2082,18 +2072,18 @@ function AdROIHub() {
               <div style={{width:7,height:7,borderRadius:"50%",background:"#ffd60a"}}/>
               <span style={{fontSize:11,fontWeight:700,color:"#ffd60a",letterSpacing:0.8}}>SAM · AD ANALYSIS</span>
             </div>
-            <button onClick={()=>setAiInsight(null)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.4)",cursor:"pointer",fontSize:14}}>✕</button>
+            <button onClick={()=>setAiInsight(null)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.4)",cursor:"pointer",fontSize:14}}></button>
           </div>
           <div style={{fontSize:12,color:"rgba(255,255,255,0.85)",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{aiInsight}</div>
         </Card>
       )}
 
-      {/* ── ADD CAMPAIGN ── */}
+      {/*  ADD CAMPAIGN  */}
       {adding && (
         <Card style={{padding:"24px",marginBottom:24,border:"1px solid rgba(255,255,255,0.12)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
             <h3 style={{fontSize:14,fontWeight:600,color:"#f5f5f7",margin:0}}>New Campaign</h3>
-            <button onClick={()=>setAdding(false)} style={{background:"none",border:"none",fontSize:18,color:"rgba(255,255,255,0.35)",cursor:"pointer"}}>×</button>
+            <button onClick={()=>setAdding(false)} style={{background:"none",border:"none",fontSize:18,color:"rgba(255,255,255,0.35)",cursor:"pointer"}}></button>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:12,marginBottom:12}}>
             <div><label style={labelStyle}>Campaign Name</label><input style={inp} value={form.name} onChange={e=>setF("name",e.target.value)} placeholder="Drip Campaign — IG Reels"/></div>
@@ -2113,7 +2103,7 @@ function AdROIHub() {
         </Card>
       )}
 
-      {/* ── CAMPAIGNS TABLE ── */}
+      {/*  CAMPAIGNS TABLE  */}
       <Card style={{padding:"0",overflow:"hidden"}}>
         <div style={{overflowX:"auto", WebkitOverflowScrolling:"touch"}}>
         <div style={{minWidth:640}}>
@@ -2147,14 +2137,14 @@ function AdROIHub() {
       </Card>
 
       <div style={{marginTop:16,padding:"12px 16px",background:"#111010",borderRadius:10,display:"flex",gap:20,flexWrap:"wrap"}}>
-        <span style={{fontSize:10,color:"rgba(255,255,255,0.5)",fontWeight:600}}>ROAS &gt; 2x = 🟢 Healthy · ROAS 1–2x = 🟡 Break-even · ROAS &lt; 1x = 🔴 Losing money</span>
+        <span style={{fontSize:10,color:"rgba(255,255,255,0.5)",fontWeight:600}}>ROAS &gt; 2x =  Healthy · ROAS 1–2x =  Break-even · ROAS &lt; 1x =  Losing money</span>
         <span style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>CPL = Cost Per Lead · CVR = Lead → Conversion Rate</span>
       </div>
     </div>
   );
 }
 
-// ─── TEAM BROADCAST ──────────────────────────────────────────────────────────
+//  TEAM BROADCAST 
 function TeamBroadcast({ agents }) {
   const isMobile = useIsMobile();
   const [broadcasts, setBroadcasts] = useState([]);
@@ -2227,7 +2217,7 @@ function TeamBroadcast({ agents }) {
       <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:20,paddingBottom:20}}>
         {broadcasts.length === 0 && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flex:1,paddingBottom:80}}>
-            <div style={{width:48,height:48,borderRadius:14,background:"#111010",border:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,marginBottom:16}}>◷</div>
+            <div style={{width:48,height:48,borderRadius:14,background:"#111010",border:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,marginBottom:16}}></div>
             <div style={{fontSize:15,fontWeight:600,color:"rgba(255,255,255,0.35)",marginBottom:6}}>No broadcasts yet</div>
             <div style={{fontSize:12,color:"rgba(255,255,255,0.35)",marginBottom:24,textAlign:"center",maxWidth:320,lineHeight:1.6}}>Send a brief, update, or direction below. All 8 agents will respond simultaneously.</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,width:"100%",maxWidth:500}}>
@@ -2242,7 +2232,7 @@ function TeamBroadcast({ agents }) {
 
         {broadcasts.map(b => (
           <div key={b.id} style={{animation:"fadeIn 0.4s ease"}}>
-            {/* ── YOUR MESSAGE ── */}
+            {/*  YOUR MESSAGE  */}
             <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}>
               <div style={{maxWidth:"70%",background:"#0f0f1a",borderRadius:"15px 15px 3px 15px",padding:"12px 16px"}}>
                 <div style={{fontSize:13,color:"#fff",lineHeight:1.65}}>{b.message}</div>
@@ -2250,7 +2240,7 @@ function TeamBroadcast({ agents }) {
               </div>
             </div>
 
-            {/* ── AGENT RESPONSES ── */}
+            {/*  AGENT RESPONSES  */}
             {b.loading ? (
               <div style={{display:"flex",gap:8,alignItems:"center",padding:"12px 16px",background:"#111010",borderRadius:12}}>
                 {[0,0.2,0.4].map((d,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#2AABFF",animation:`livePulse 1.2s ${d}s infinite`}}/>)}
@@ -2259,7 +2249,7 @@ function TeamBroadcast({ agents }) {
             ) : (
               <div>
                 <button onClick={()=>setExpandedId(expandedId===b.id?null:b.id)} style={{background:"none",border:"none",fontSize:11,color:"rgba(255,255,255,0.5)",cursor:"pointer",fontFamily:"Inter,sans-serif",padding:"4px 0",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{transform:expandedId===b.id?"rotate(90deg)":"rotate(0deg)",display:"inline-block",transition:"transform 0.2s",fontSize:10}}>▶</span>
+                  <span style={{transform:expandedId===b.id?"rotate(90deg)":"rotate(0deg)",display:"inline-block",transition:"transform 0.2s",fontSize:10}}></span>
                   {Object.keys(b.responses).length} agent responses
                 </button>
                 {expandedId===b.id && (
@@ -2286,7 +2276,7 @@ function TeamBroadcast({ agents }) {
         <div ref={bottomRef}/>
       </div>
 
-      {/* ── INPUT ── */}
+      {/*  INPUT  */}
       {broadcasts.length > 0 && (
         <div style={{padding:"8px 0 4px",display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
           {QUICK_BRIEFS.slice(0,2).map((b,i)=>(
@@ -2309,7 +2299,7 @@ function TeamBroadcast({ agents }) {
   );
 }
 
-// ─── SKILLS PAGE ─────────────────────────────────────────────────────────────
+//  SKILLS PAGE 
 function SkillsPage({ agents }) {
   const AGENT_COLORS = { Sean:"#2AABFF", Lacey:"#ff9f0a", Ali:"#0a84ff", Sam:"#ffd60a", Artgrid:"#bf5af2", Muse:"#ff375f", Overseer:"#64d2ff", Scrappy:"#5e5ce6" };
   const [briefs, setBriefs] = useState(() => {
@@ -2353,7 +2343,7 @@ function SkillsPage({ agents }) {
         <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>Write a skill brief and deploy it to a specific agent or broadcast to all 8. Agents receive it as a capability update.</p>
       </div>
 
-      {/* ── BRIEF BUILDER ── */}
+      {/*  BRIEF BUILDER  */}
       <Card style={{ padding:"28px 32px", marginBottom:32 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:22, flexWrap:"wrap", gap:14 }}>
           <div>
@@ -2401,17 +2391,17 @@ function SkillsPage({ agents }) {
             style={{ background: (form.title.trim() && form.content.trim()) ? targetColor : "rgba(0,0,0,0.08)", border:"none", borderRadius:12, color: (form.title.trim() && form.content.trim()) ? "#fff" : "rgba(0,0,0,0.25)", padding:"12px 28px", fontSize:13, fontWeight:700, cursor:(form.title.trim()&&form.content.trim()&&!deploying)?"pointer":"default", fontFamily:"Inter,sans-serif", display:"flex", alignItems:"center", gap:8 }}>
             {deploying
               ? <><div style={{ width:7,height:7,borderRadius:"50%",background:"#fff",animation:"livePulse 1s infinite" }} />Deploying…</>
-              : `⚡ Deploy to ${form.target}`}
+              : ` Deploy to ${form.target}`}
           </button>
           {deployedId && (
             <span style={{ fontSize:12, color:"#2AABFF", fontWeight:600, animation:"fadeIn 0.3s ease" }}>
-              ✓ Brief deployed to {briefs[0]?.target}
+               Brief deployed to {briefs[0]?.target}
             </span>
           )}
         </div>
       </Card>
 
-      {/* ── DEPLOYED BRIEFS LOG ── */}
+      {/*  DEPLOYED BRIEFS LOG  */}
       {briefs.length > 0 ? (
         <div>
           <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#f5f5f7", margin:"0 0 18px", letterSpacing:-0.5 }}>Deployed Briefs</h2>
@@ -2423,7 +2413,7 @@ function SkillsPage({ agents }) {
               return (
                 <Card key={brief.id} style={{ overflow:"hidden", border: isNew ? `1px solid ${tc}40` : undefined }}>
                   <div onClick={() => setExpanded(isOpen?null:brief.id)} style={{ display:"flex", alignItems:"center", gap:14, padding:"16px 20px", cursor:"pointer" }}>
-                    <div style={{ width:36, height:36, borderRadius:10, background:`${tc}15`, border:`1px solid ${tc}25`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>⚡</div>
+                    <div style={{ width:36, height:36, borderRadius:10, background:`${tc}15`, border:`1px solid ${tc}25`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}></div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:14, fontWeight:600, color:"#f5f5f7", marginBottom:4, letterSpacing:-0.2 }}>{brief.title}</div>
                       <div style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
@@ -2434,7 +2424,7 @@ function SkillsPage({ agents }) {
                     <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
                       <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)" }}>{new Date(brief.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
                       <button onClick={e=>{e.stopPropagation();deleteBrief(brief.id);}} style={{ background:"none", border:"none", fontSize:11, color:"rgba(255,255,255,0.4)", cursor:"pointer", padding:"4px 8px", borderRadius:6 }}>Delete</button>
-                      <span style={{ fontSize:13, color:"rgba(255,255,255,0.4)", transform:isOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s", display:"inline-block" }}>▾</span>
+                      <span style={{ fontSize:13, color:"rgba(255,255,255,0.4)", transform:isOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s", display:"inline-block" }}></span>
                     </div>
                   </div>
                   {isOpen && (
@@ -2449,7 +2439,7 @@ function SkillsPage({ agents }) {
         </div>
       ) : (
         <div style={{ textAlign:"center", padding:"60px 0", opacity:0.35 }}>
-          <div style={{ fontSize:48, marginBottom:14 }}>⚡</div>
+          <div style={{ fontSize:48, marginBottom:14 }}></div>
           <div style={{ fontSize:15, fontWeight:600, color:"#f5f5f7", marginBottom:6 }}>No briefs deployed yet</div>
           <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)" }}>Build your first skill brief above and deploy it to an agent.</div>
         </div>
@@ -2483,16 +2473,16 @@ function CIDPage() {
   }, [variationView]);
 
   const MOCK_POSTS = [
-    { id:1, platform:"instagram", creator:"@drinklmnt", title:"Why I stopped drinking plain water", thumbnail:"https://picsum.photos/seed/lmnt1/400/600", views:"2.4M", engagement:"8.2%", hook:"Stop drinking plain water (here's why)", voiceHook:"\"Stop drinking plain water. Here's why this changes everything.\"", textHook:"STOP DRINKING PLAIN WATER", voiceBody:"\"Most water strips out the minerals your body actually needs. I switched to mineral-enhanced water and the difference in my energy was immediate.\"", textBody:"YOUR BODY NEEDS MORE THAN H2O", voiceCta:"\"Link in bio to try what I drink every morning.\"", textCta:"LINK IN BIO 👇", trigger:"Fear / Pattern interrupt", format:"Reel", url:"https://www.instagram.com", analysis:"Hook creates instant curiosity gap. 'Stop doing X' format works because it challenges default behavior. First 2 seconds show the product without saying it's an ad.", variation:"\"Stop drinking just water\" → VitalLyfe angle: 'You're hydrating wrong — here's what your water is missing'" },
-    { id:2, platform:"tiktok", creator:"@hydrationcoach", title:"Hydrogen water changed my sleep", thumbnail:"https://picsum.photos/seed/hydro1/400/600", views:"4.1M", engagement:"11.4%", hook:"I tried hydrogen water for 30 days", voiceHook:"\"I tried hydrogen water every single day for 30 days. Here's what happened to my sleep.\"", textHook:"30 DAYS OF HYDROGEN WATER 💧", voiceBody:"\"By day 7 my sleep score went up 12 points. By day 30 I was averaging 85 on Oura. The hydrogen reduces oxidative stress while you sleep.\"", textBody:"DAY 7: +12 SLEEP SCORE ✅", voiceCta:"\"Follow for my full 30-day breakdown dropping this week.\"", textCta:"FOLLOW FOR THE FULL RESULTS →", trigger:"Transformation / Curiosity", format:"Talking head + B-roll", url:"https://www.tiktok.com", analysis:"30-day challenge format = high completion rate. Personal transformation story builds trust. Simple before/after structure with sleep metrics makes it verifiable.", variation:"'I drank VitalLyfe water for 30 days — here's what my sleep tracker showed'" },
-    { id:3, platform:"youtube", creator:"@WellnessTech", title:"Smart water bottles are getting insane", thumbnail:"https://picsum.photos/seed/smart1/400/600", views:"890K", engagement:"5.7%", hook:"Water bottles now have AI?", voiceHook:"\"Wait — water bottles now have AI built in? Let me show you what's happening.\"", textHook:"AI WATER BOTTLES ARE HERE 🤖", voiceBody:"\"This one tracks your hydration in real time, syncs with your Apple Watch, and tells you what minerals you're missing. It's wild.\"", textBody:"REAL-TIME HYDRATION TRACKING", voiceCta:"\"I'll link everything I tested in the description below.\"", textCta:"ALL LINKS IN DESCRIPTION ⬇️", trigger:"Novelty / Tech excitement", format:"Review + Demo", url:"https://www.youtube.com", analysis:"Tech curiosity angle is huge in wellness right now. Product demo in real environments builds credibility. 'Getting insane' language signals the space is evolving fast.", variation:"'VitalLyfe's water tech just changed everything — here's how it works'" },
-    { id:4, platform:"instagram", creator:"@functionalwellness", title:"The water hack no one talks about", thumbnail:"https://picsum.photos/seed/well1/400/600", views:"1.8M", engagement:"9.1%", hook:"The water hack no one talks about", voiceHook:"\"There's a water hack that literally no one talks about and it's been hiding in plain sight.\"", textHook:"THE WATER HACK NO ONE TELLS YOU 👀", voiceBody:"\"Adding a pinch of sea salt and a squeeze of lemon to your morning water activates the electrolyte pathway before caffeine hits. Your cortisol response is completely different.\"", textBody:"SEA SALT + LEMON = ELECTROLYTE RESET", voiceCta:"\"Save this — you'll want it tomorrow morning.\"", textCta:"SAVE THIS POST 🔖", trigger:"Secret / Insider knowledge", format:"Reel + Text overlay", url:"https://www.instagram.com", analysis:"'No one talks about' creates exclusivity. Simple text overlay keeps production cost low but engagement high. Health hack format drives saves.", variation:"'The hydration secret VitalLyfe built their whole product around'" },
-    { id:5, platform:"tiktok", creator:"@startupfounder_", title:"Building a water company from scratch", thumbnail:"https://picsum.photos/seed/startup1/400/600", views:"3.2M", engagement:"13.2%", hook:"We almost shut down 3 times", voiceHook:"\"We almost shut this company down. Three times. Here's the honest truth.\"", textHook:"WE ALMOST QUIT 3 TIMES", voiceBody:"\"First time: we ran out of money in month 4. Second time: our manufacturer ghosted us. Third time: I didn't believe in myself. Here's what changed.\"", textBody:"3 TIMES WE ALMOST QUIT", voiceCta:"\"Follow us — we're documenting the whole journey raw and unfiltered.\"", textCta:"FOLLOW THE JOURNEY 🎥", trigger:"Vulnerability / Authenticity", format:"Founder story / Talking head", url:"https://www.tiktok.com", analysis:"Founder vulnerability content outperforms polished ads 3:1 on TikTok. Authentic struggle narrative builds parasocial connection. 'Almost failed' arc creates emotional investment.", variation:"'The real story behind building VitalLyfe — we almost quit'" },
-    { id:6, platform:"youtube", creator:"@drinkbetter", title:"We tested 12 smart water bottles", thumbnail:"https://picsum.photos/seed/test1/400/600", views:"1.2M", engagement:"6.3%", hook:"I wasted $800 so you don't have to", voiceHook:"\"I spent $800 testing every smart water bottle on the market so you don't have to make the same mistake.\"", textHook:"$800 WASTED SO YOU DON'T HAVE TO 💸", voiceBody:"\"11 of them were gimmicks. One actually worked — and it's not the most expensive one. I'll show you exactly what to look for and what to avoid.\"", textBody:"11 GIMMICKS. 1 WINNER.", voiceCta:"\"Subscribe — I'm testing hydrogen water systems next month.\"", textCta:"SUBSCRIBE FOR PART 2 🔔", trigger:"Value / Saves money", format:"Comparison review", url:"https://www.youtube.com", analysis:"'I wasted X so you don't have to' is one of the highest CTR hooks on YouTube. Comparison format drives search intent traffic. Position as trusted advisor, not promoter.", variation:"'We compared every hydrogen water system — here's why VitalLyfe won'" },
+    { id:1, platform:"instagram", creator:"@drinklmnt", title:"Why I stopped drinking plain water", thumbnail:"https://picsum.photos/seed/lmnt1/400/600", views:"2.4M", engagement:"8.2%", hook:"Stop drinking plain water (here's why)", voiceHook:"\"Stop drinking plain water. Here's why this changes everything.\"", textHook:"STOP DRINKING PLAIN WATER", voiceBody:"\"Most water strips out the minerals your body actually needs. I switched to mineral-enhanced water and the difference in my energy was immediate.\"", textBody:"YOUR BODY NEEDS MORE THAN H2O", voiceCta:"\"Link in bio to try what I drink every morning.\"", textCta:"LINK IN BIO ", trigger:"Fear / Pattern interrupt", format:"Reel", url:"https://www.instagram.com", analysis:"Hook creates instant curiosity gap. 'Stop doing X' format works because it challenges default behavior. First 2 seconds show the product without saying it's an ad.", variation:"\"Stop drinking just water\" → VitalLyfe angle: 'You're hydrating wrong — here's what your water is missing'" },
+    { id:2, platform:"tiktok", creator:"@hydrationcoach", title:"Hydrogen water changed my sleep", thumbnail:"https://picsum.photos/seed/hydro1/400/600", views:"4.1M", engagement:"11.4%", hook:"I tried hydrogen water for 30 days", voiceHook:"\"I tried hydrogen water every single day for 30 days. Here's what happened to my sleep.\"", textHook:"30 DAYS OF HYDROGEN WATER ", voiceBody:"\"By day 7 my sleep score went up 12 points. By day 30 I was averaging 85 on Oura. The hydrogen reduces oxidative stress while you sleep.\"", textBody:"DAY 7: +12 SLEEP SCORE ", voiceCta:"\"Follow for my full 30-day breakdown dropping this week.\"", textCta:"FOLLOW FOR THE FULL RESULTS →", trigger:"Transformation / Curiosity", format:"Talking head + B-roll", url:"https://www.tiktok.com", analysis:"30-day challenge format = high completion rate. Personal transformation story builds trust. Simple before/after structure with sleep metrics makes it verifiable.", variation:"'I drank VitalLyfe water for 30 days — here's what my sleep tracker showed'" },
+    { id:3, platform:"youtube", creator:"@WellnessTech", title:"Smart water bottles are getting insane", thumbnail:"https://picsum.photos/seed/smart1/400/600", views:"890K", engagement:"5.7%", hook:"Water bottles now have AI?", voiceHook:"\"Wait — water bottles now have AI built in? Let me show you what's happening.\"", textHook:"AI WATER BOTTLES ARE HERE ", voiceBody:"\"This one tracks your hydration in real time, syncs with your Apple Watch, and tells you what minerals you're missing. It's wild.\"", textBody:"REAL-TIME HYDRATION TRACKING", voiceCta:"\"I'll link everything I tested in the description below.\"", textCta:"ALL LINKS IN DESCRIPTION ", trigger:"Novelty / Tech excitement", format:"Review + Demo", url:"https://www.youtube.com", analysis:"Tech curiosity angle is huge in wellness right now. Product demo in real environments builds credibility. 'Getting insane' language signals the space is evolving fast.", variation:"'VitalLyfe's water tech just changed everything — here's how it works'" },
+    { id:4, platform:"instagram", creator:"@functionalwellness", title:"The water hack no one talks about", thumbnail:"https://picsum.photos/seed/well1/400/600", views:"1.8M", engagement:"9.1%", hook:"The water hack no one talks about", voiceHook:"\"There's a water hack that literally no one talks about and it's been hiding in plain sight.\"", textHook:"THE WATER HACK NO ONE TELLS YOU ", voiceBody:"\"Adding a pinch of sea salt and a squeeze of lemon to your morning water activates the electrolyte pathway before caffeine hits. Your cortisol response is completely different.\"", textBody:"SEA SALT + LEMON = ELECTROLYTE RESET", voiceCta:"\"Save this — you'll want it tomorrow morning.\"", textCta:"SAVE THIS POST ", trigger:"Secret / Insider knowledge", format:"Reel + Text overlay", url:"https://www.instagram.com", analysis:"'No one talks about' creates exclusivity. Simple text overlay keeps production cost low but engagement high. Health hack format drives saves.", variation:"'The hydration secret VitalLyfe built their whole product around'" },
+    { id:5, platform:"tiktok", creator:"@startupfounder_", title:"Building a water company from scratch", thumbnail:"https://picsum.photos/seed/startup1/400/600", views:"3.2M", engagement:"13.2%", hook:"We almost shut down 3 times", voiceHook:"\"We almost shut this company down. Three times. Here's the honest truth.\"", textHook:"WE ALMOST QUIT 3 TIMES", voiceBody:"\"First time: we ran out of money in month 4. Second time: our manufacturer ghosted us. Third time: I didn't believe in myself. Here's what changed.\"", textBody:"3 TIMES WE ALMOST QUIT", voiceCta:"\"Follow us — we're documenting the whole journey raw and unfiltered.\"", textCta:"FOLLOW THE JOURNEY ", trigger:"Vulnerability / Authenticity", format:"Founder story / Talking head", url:"https://www.tiktok.com", analysis:"Founder vulnerability content outperforms polished ads 3:1 on TikTok. Authentic struggle narrative builds parasocial connection. 'Almost failed' arc creates emotional investment.", variation:"'The real story behind building VitalLyfe — we almost quit'" },
+    { id:6, platform:"youtube", creator:"@drinkbetter", title:"We tested 12 smart water bottles", thumbnail:"https://picsum.photos/seed/test1/400/600", views:"1.2M", engagement:"6.3%", hook:"I wasted $800 so you don't have to", voiceHook:"\"I spent $800 testing every smart water bottle on the market so you don't have to make the same mistake.\"", textHook:"$800 WASTED SO YOU DON'T HAVE TO ", voiceBody:"\"11 of them were gimmicks. One actually worked — and it's not the most expensive one. I'll show you exactly what to look for and what to avoid.\"", textBody:"11 GIMMICKS. 1 WINNER.", voiceCta:"\"Subscribe — I'm testing hydrogen water systems next month.\"", textCta:"SUBSCRIBE FOR PART 2 ", trigger:"Value / Saves money", format:"Comparison review", url:"https://www.youtube.com", analysis:"'I wasted X so you don't have to' is one of the highest CTR hooks on YouTube. Comparison format drives search intent traffic. Position as trusted advisor, not promoter.", variation:"'We compared every hydrogen water system — here's why VitalLyfe won'" },
   ];
 
   const filtered = platform === "all" ? MOCK_POSTS : MOCK_POSTS.filter(p => p.platform === platform);
-  const platformIcon = { instagram:"◈", tiktok:"♪", youtube:"▷" };
+  const platformIcon = { instagram:"", tiktok:"", youtube:"" };
   const platformColor = { instagram:"#e1306c", tiktok:"#010101", youtube:"#ff0000" };
 
   return (
@@ -2510,7 +2500,7 @@ function CIDPage() {
             <div style={{ fontSize:14, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif" }}>{variationView.title}</div>
           </div>
           <div style={{ fontSize:10, background:"rgba(48,209,88,0.1)", color:"#2AABFF", borderRadius:20, padding:"5px 14px", fontWeight:700, fontFamily:"Inter, sans-serif" }}>
-            🎯 VitalLyfe Ready
+             VitalLyfe Ready
           </div>
         </div>
 
@@ -2538,16 +2528,16 @@ function CIDPage() {
             {/* Hook */}
             <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-                <span style={{ fontSize:18 }}>🎣</span>
+                <span style={{ fontSize:18 }}></span>
                 <div style={{ fontSize:12, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:0.5 }}>Hook</div>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:10 }}>
                 <div>
-                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>🎤 Voice</div>
+                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}> Voice</div>
                   <div style={{ background:"#111010", borderRadius:8, padding:"10px 14px", fontSize:13, fontWeight:600, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>"{variationView.voiceHook || variationView.variation}"</div>
                 </div>
                 <div>
-                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>📺 Text on Screen</div>
+                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}> Text on Screen</div>
                   <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 14px", fontSize:14, fontWeight:700, color:"#fff", fontFamily:"'Courier New', monospace", letterSpacing:0.5 }}>{variationView.textHook || variationView.hook?.toUpperCase()}</div>
                 </div>
               </div>
@@ -2559,16 +2549,16 @@ function CIDPage() {
             {/* Body */}
             <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-                <span style={{ fontSize:18 }}>📝</span>
+                <span style={{ fontSize:18 }}></span>
                 <div style={{ fontSize:12, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:0.5 }}>Body Copy</div>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:10 }}>
                 <div>
-                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>🎤 Voice</div>
+                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}> Voice</div>
                   <div style={{ background:"#111010", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.7, fontStyle:"italic" }}>{variationView.voiceBody || "Build on the hook by showing — not telling. Use authentic footage or founder moments. Keep it under 30 seconds."}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>📺 Text on Screen</div>
+                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}> Text on Screen</div>
                   <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 14px", fontSize:13, fontWeight:700, color:"#fff", fontFamily:"'Courier New', monospace", letterSpacing:0.5 }}>{variationView.textBody || "KEY STAT OR VISUAL CUE"}</div>
                 </div>
               </div>
@@ -2580,17 +2570,17 @@ function CIDPage() {
             {/* CTA */}
             <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:12 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-                <span style={{ fontSize:18 }}>🎯</span>
+                <span style={{ fontSize:18 }}></span>
                 <div style={{ fontSize:12, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:0.5 }}>Call to Action</div>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:10 }}>
                 <div>
-                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>🎤 Voice</div>
+                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}> Voice</div>
                   <div style={{ background:"#111010", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>{variationView.voiceCta || "\"Follow for more on how VitalLyfe is redefining what water can do. Link in bio.\""}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}>📺 Text on Screen</div>
-                  <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 14px", fontSize:13, fontWeight:700, color:"#fff", fontFamily:"'Courier New', monospace", letterSpacing:0.5 }}>{variationView.textCta || "LINK IN BIO 👇"}</div>
+                  <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}> Text on Screen</div>
+                  <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 14px", fontSize:13, fontWeight:700, color:"#fff", fontFamily:"'Courier New', monospace", letterSpacing:0.5 }}>{variationView.textCta || "LINK IN BIO "}</div>
                 </div>
               </div>
               <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
@@ -2601,7 +2591,7 @@ function CIDPage() {
 
           {/* Why it worked bullets */}
           <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"20px", marginBottom:28 }}>
-            <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>🧠 Why The Original Worked</div>
+            <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}> Why The Original Worked</div>
             {variationView.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
               <div key={i} style={{ display:"flex", gap:10, marginBottom:10, alignItems:"flex-start" }}>
                 <span style={{ fontSize:11, color:"#2AABFF", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
@@ -2625,7 +2615,7 @@ function CIDPage() {
               } catch(e) { console.error(e); }
               setBriefLoading(false);
             }} style={{ flex:1, padding:"14px", background:"#1d1d1f", color:"#fff", border:"none", borderRadius:14, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", opacity: briefLoading ? 0.6 : 1 }}>
-              {briefLoading ? "Building..." : "📋 Build Brief"}
+              {briefLoading ? "Building..." : " Build Brief"}
             </button>
             <button onClick={async () => {
               setAbLoading(true);
@@ -2640,7 +2630,7 @@ function CIDPage() {
               } catch(e) { console.error(e); }
               setAbLoading(false);
             }} style={{ flex:1, padding:"14px", background:"#111010", color:"#f5f5f7", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", opacity: abLoading ? 0.6 : 1 }}>
-              {abLoading ? "Generating..." : "🎯 A/B Variations"}
+              {abLoading ? "Generating..." : " A/B Variations"}
             </button>
           </div>
 
@@ -2666,19 +2656,19 @@ function CIDPage() {
                   ))}
                 </div>
                 <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>💡 Concept</div>
+                  <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}> Concept</div>
                   <div style={{ fontSize:13, color:"#f5f5f7", lineHeight:1.6 }}>{briefData.concept}</div>
                 </div>
-                {[["🎣 Hook", briefData.hook], ["📝 Body", briefData.body], ["🎯 CTA", briefData.cta]].map(([label, section]) => section && (
+                {[[" Hook", briefData.hook], [" Body", briefData.body], [" CTA", briefData.cta]].map(([label, section]) => section && (
                   <div key={label} style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
                     <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:10 }}>{label} <span style={{color:"rgba(255,255,255,0.35)", fontWeight:400}}>· {section.timing}</span></div>
                     <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                      <div style={{ background:"#111010", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#f5f5f7", fontStyle:"italic" }}>🎤 "{section.voice}"</div>
-                      <div style={{ background:"#1d1d1f", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}>📺 {section.screen_text}</div>
+                      <div style={{ background:"#111010", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#f5f5f7", fontStyle:"italic" }}> "{section.voice}"</div>
+                      <div style={{ background:"#1d1d1f", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}> {section.screen_text}</div>
                       {section.broll && (
                         <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:4 }}>
                           {section.broll.map((shot, i) => (
-                            <span key={i} style={{ fontSize:10, background:"#111010", borderRadius:20, padding:"3px 10px", color:"rgba(255,255,255,0.6)" }}>🎬 {shot}</span>
+                            <span key={i} style={{ fontSize:10, background:"#111010", borderRadius:20, padding:"3px 10px", color:"rgba(255,255,255,0.6)" }}> {shot}</span>
                           ))}
                         </div>
                       )}
@@ -2687,7 +2677,7 @@ function CIDPage() {
                 ))}
                 {briefData.shot_list && (
                   <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:10 }}>🎬 Shot List</div>
+                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:10 }}> Shot List</div>
                     {briefData.shot_list.map((shot, i) => (
                       <div key={i} style={{ display:"flex", gap:10, marginBottom:8, alignItems:"flex-start" }}>
                         <span style={{ fontSize:9, color:"#fff", background:"#1d1d1f", borderRadius:"50%", width:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, flexShrink:0 }}>{i+1}</span>
@@ -2698,16 +2688,16 @@ function CIDPage() {
                 )}
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
                   <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px" }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>🎵 Music</div>
+                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}> Music</div>
                     <div style={{ fontSize:12, color:"#f5f5f7", lineHeight:1.5 }}>{briefData.music}</div>
                   </div>
                   <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px" }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>✂️ Editing</div>
+                    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}> Editing</div>
                     <div style={{ fontSize:12, color:"#f5f5f7", lineHeight:1.5 }}>{briefData.editing_notes}</div>
                   </div>
                 </div>
                 <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:12, padding:"14px 16px", marginBottom:16 }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}>📈 Why This Should Perform</div>
+                  <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.2, textTransform:"uppercase", marginBottom:6 }}> Why This Should Perform</div>
                   <div style={{ fontSize:12, color:"#f5f5f7", lineHeight:1.6 }}>{briefData.predicted_rationale}</div>
                 </div>
                 <button onClick={async () => {
@@ -2737,10 +2727,10 @@ function CIDPage() {
                       },
                       body: JSON.stringify(item)
                     });
-                    alert("✅ Added to Content Tracker!");
+                    alert(" Added to Content Tracker!");
                   } catch(e) { alert("Error: " + e.message); }
                 }} style={{ width:"100%", padding:"14px", background:"rgba(48,209,88,0.1)", color:"#2AABFF", border:"2px solid rgba(48,209,88,0.3)", borderRadius:14, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
-                  ➕ Send to Content Tracker
+                   Send to Content Tracker
                 </button>
               </div>
             </div>
@@ -2748,7 +2738,7 @@ function CIDPage() {
 
           {abData && (
             <div style={{ marginTop:24 }}>
-              <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>🎯 A/B Variation Pack</div>
+              <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}> A/B Variation Pack</div>
               {abData.map((v, i) => (
                 <div key={i} style={{ background:"#111010", border:`1px solid ${i===0?"rgba(48,209,88,0.3)":"rgba(0,0,0,0.07)"}`, borderRadius:14, padding:"16px 18px", marginBottom:12 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
@@ -2761,8 +2751,8 @@ function CIDPage() {
                     <div style={{ fontSize:13, fontWeight:700, color: i===0?"#2AABFF":i===1?"#ff9f0a":"#636366" }}>{v.predicted_score}/100</div>
                   </div>
                   <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:10 }}>
-                    <div style={{ background:"#111010", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#f5f5f7", fontStyle:"italic" }}>🎤 "{v.voice_hook}"</div>
-                    <div style={{ background:"#1d1d1f", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}>📺 {v.text_hook}</div>
+                    <div style={{ background:"#111010", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#f5f5f7", fontStyle:"italic" }}> "{v.voice_hook}"</div>
+                    <div style={{ background:"#1d1d1f", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}> {v.text_hook}</div>
                   </div>
                   <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", lineHeight:1.5 }}>{v.why}</div>
                 </div>
@@ -2771,7 +2761,7 @@ function CIDPage() {
           )}
 
           <div style={{ marginTop:24, background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"16px 20px" }}>
-            <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:12, fontFamily:"Inter, sans-serif" }}>📊 Log Performance</div>
+            <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:12, fontFamily:"Inter, sans-serif" }}> Log Performance</div>
             <p style={{ fontSize:11, color:"rgba(255,255,255,0.5)", margin:"0 0 12px", fontFamily:"Inter, sans-serif" }}>After posting, log actual results to improve future predictions.</p>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:10 }}>
               {[["Views", "views", "e.g. 42K"], ["Engagement", "engagement", "e.g. 8.4%"], ["Saves", "saves", "e.g. 1.2K"]].map(([label, key, ph]) => (
@@ -2809,7 +2799,7 @@ function CIDPage() {
                 setPerfSaved(true);
               } catch(e) { console.error(e); }
             }} style={{ padding:"10px 20px", background:"#1d1d1f", color:"#fff", border:"none", borderRadius:10, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
-              {perfSaved ? "✅ Logged!" : "Log Results"}
+              {perfSaved ? " Logged!" : "Log Results"}
             </button>
           </div>
 
@@ -2827,7 +2817,7 @@ function CIDPage() {
           </button>
           <div style={{ flex:1, fontSize:13, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif" }}>{selected.creator} — {selected.title}</div>
           <div style={{ display:"flex", gap:16 }}>
-            <span style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>👁 {selected.views}</span>
+            <span style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}> {selected.views}</span>
             <span style={{ fontSize:12, color:"#2AABFF", fontWeight:700, fontFamily:"Inter, sans-serif" }}>↑ {selected.engagement}</span>
           </div>
         </div>
@@ -2841,7 +2831,7 @@ function CIDPage() {
               <a href={selected.url} target="_blank" rel="noreferrer"
                 style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none" }}>
                 <div style={{ background:"#1a1818", border:"3px solid rgba(255,255,255,0.5)", borderRadius:"50%", width:72, height:72, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(8px)" }}>
-                  <span style={{ fontSize:28, marginLeft:6, color:"#fff" }}>▶</span>
+                  <span style={{ fontSize:28, marginLeft:6, color:"#fff" }}></span>
                 </div>
               </a>
               <div style={{ position:"absolute", top:12, left:12, background:"rgba(0,0,0,0.6)", borderRadius:20, padding:"4px 10px", fontSize:10, fontWeight:700, color:"#fff", textTransform:"uppercase", letterSpacing:0.5 }}>{selected.platform}</div>
@@ -2855,7 +2845,7 @@ function CIDPage() {
           <div style={{ flex:1, overflowY:"auto", padding:"24px 32px", background:"#111010" }}>
             {/* Stats */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:20 }}>
-              {[["👁 Views", selected.views], ["📈 Engagement", selected.engagement], ["🎬 Format", selected.format]].map(([label, val]) => (
+              {[[" Views", selected.views], [" Engagement", selected.engagement], [" Format", selected.format]].map(([label, val]) => (
                 <div key={label} style={{ background:"#111010", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(255,255,255,0.07)", textAlign:"center" }}>
                   <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:"Inter, sans-serif", marginBottom:3 }}>{label}</div>
                   <div style={{ fontSize:12, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif" }}>{val}</div>
@@ -2864,20 +2854,20 @@ function CIDPage() {
             </div>
             {/* Hook Detection */}
             <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🎣 Hook Detection</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}> Hook Detection</div>
               <div style={{ marginBottom:10 }}>
-                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif" }}>🎤 Voice Hook</div>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif" }}> Voice Hook</div>
                 <div style={{ background:"#111010", borderRadius:8, padding:"10px 12px", fontSize:12, color:"#f5f5f7", fontStyle:"italic" }}>{selected.voiceHook || `"${selected.hook}"`}</div>
               </div>
               <div style={{ marginBottom:8 }}>
-                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif" }}>📺 Text on Video</div>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif" }}> Text on Video</div>
                 <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}>{selected.textHook || selected.hook.toUpperCase()}</div>
               </div>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>⚡ Trigger: <strong style={{color:"#f5f5f7"}}>{selected.trigger}</strong></div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}> Trigger: <strong style={{color:"#f5f5f7"}}>{selected.trigger}</strong></div>
             </div>
             {/* Why It Worked */}
             <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🧠 Why It Worked</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}> Why It Worked</div>
               {selected.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
                 <div key={i} style={{ display:"flex", gap:8, marginBottom:8, alignItems:"flex-start" }}>
                   <span style={{ fontSize:10, color:"#2AABFF", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
@@ -2887,7 +2877,7 @@ function CIDPage() {
             </div>
             {/* Score bars */}
             <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>📊 Engagement Score</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}> Engagement Score</div>
               {[
                 { label:"Hook Strength", score: parseInt(selected.engagement) > 10 ? 95 : parseInt(selected.engagement) > 7 ? 80 : 65 },
                 { label:"Shareability", score: parseInt(selected.engagement) > 10 ? 90 : parseInt(selected.engagement) > 7 ? 75 : 60 },
@@ -2906,7 +2896,7 @@ function CIDPage() {
             </div>
             {/* VitalLyfe Adaptation */}
             <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:12, padding:"14px 16px" }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}>🎯 VitalLyfe Adaptation</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}> VitalLyfe Adaptation</div>
               <div style={{ fontSize:12, color:"#f5f5f7", lineHeight:1.6, fontStyle:"italic", fontFamily:"Inter, sans-serif" }}>"{selected.variation}"</div>
               <div style={{ marginTop:10, display:"flex", gap:6, justifyContent:"space-between", alignItems:"center" }}>
                 <div style={{ display:"flex", gap:6 }}>
@@ -2930,14 +2920,14 @@ function CIDPage() {
       <div style={{ flex:1, overflowY:"auto", padding:"32px 32px 32px", minWidth:0 }}>
         {/* Header */}
         <div style={{ marginBottom:28 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>🕵️ Intelligence</div>
+          <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}> Intelligence</div>
           <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>Competitor Intel Dashboard</h1>
           <p style={{ fontSize:13, color:"rgba(255,255,255,0.5)", margin:"8px 0 0", fontFamily:"Inter, sans-serif" }}>What's working in your space — and why. Click any post to see the breakdown.</p>
         </div>
 
         {/* View switcher */}
         <div style={{ display:"flex", gap:8, marginBottom:24 }}>
-          {[["feed","📡 Intel Feed"],["hooklab","🎣 Hook Lab"]].map(([v,label]) => (
+          {[["feed"," Intel Feed"],["hooklab"," Hook Lab"]].map(([v,label]) => (
             <button key={v} onClick={() => setCidView(v)}
               style={{ padding:"7px 18px", borderRadius:20, border:"1px solid rgba(255,255,255,0.08)", background: cidView===v ? "#1d1d1f" : "#fff", color: cidView===v ? "#fff" : "rgba(0,0,0,0.6)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
               {label}
@@ -2957,14 +2947,14 @@ function CIDPage() {
             />
             <button onClick={() => { if(cidSearch.trim()) setCidSearchActive(true); }}
               style={{ padding:"10px 20px", borderRadius:24, background:"#1d1d1f", color:"#fff", border:"none", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap" }}>
-              🔍 Scrape
+               Scrape
             </button>
           </div>
           {cidSearchActive && (
             <div style={{ background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:10, padding:"10px 14px", marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
-              <span style={{ fontSize:14 }}>⚡</span>
+              <span style={{ fontSize:14 }}></span>
               <span style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>Searching for: <strong style={{color:"#f5f5f7"}}>"{cidSearch}"</strong> — connect Apify to pull live results</span>
-              <button onClick={() => { setCidSearchActive(false); setCidSearch(""); }} style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.4)" }}>✕</button>
+              <button onClick={() => { setCidSearchActive(false); setCidSearch(""); }} style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.4)" }}></button>
             </div>
           )}
           {/* Platform filter */}
@@ -2979,7 +2969,7 @@ function CIDPage() {
 
           {/* Mock data notice */}
           <div style={{ background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:10, padding:"10px 14px", marginBottom:24, display:"flex", alignItems:"center", gap:8 }}>
-            <span style={{ fontSize:14 }}>⚡</span>
+            <span style={{ fontSize:14 }}></span>
             <span style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>Demo mode — connect Apify API key to pull live competitor data</span>
           </div>
 
@@ -2994,7 +2984,7 @@ function CIDPage() {
                     {post.platform}
                   </div>
                   <div style={{ position:"absolute", bottom:8, right:8, background:"rgba(0,0,0,0.6)", color:"#fff", fontSize:10, fontWeight:600, padding:"3px 8px", borderRadius:20 }}>
-                    👁 {post.views}
+                     {post.views}
                   </div>
                 </div>
                 <div style={{ padding:"12px 14px" }}>
@@ -3022,13 +3012,13 @@ function CIDPage() {
               } catch(e) { console.error(e); }
               setHookLabLoading(false);
             }} style={{ background:"#1d1d1f", color:"#fff", border:"none", borderRadius:20, padding:"8px 18px", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", opacity: hookLabLoading ? 0.6 : 1 }}>
-              {hookLabLoading ? "Analyzing..." : "🔍 Run Analysis"}
+              {hookLabLoading ? "Analyzing..." : " Run Analysis"}
             </button>
           </div>
 
           {hookLabData.hooks.length === 0 && (
             <div style={{ textAlign:"center", padding:"60px 20px", color:"rgba(255,255,255,0.4)", fontFamily:"Inter, sans-serif" }}>
-              <div style={{ fontSize:32, marginBottom:12 }}>🎣</div>
+              <div style={{ fontSize:32, marginBottom:12 }}></div>
               <div style={{ fontSize:14, fontWeight:600, marginBottom:6 }}>Hook Lab is empty</div>
               <div style={{ fontSize:12 }}>Hit "Run Analysis" to scrape top 20 hooks and surface the best 3 for each category.</div>
             </div>
@@ -3037,7 +3027,7 @@ function CIDPage() {
           {["hooks","bodies","ctas"].map(type => hookLabData[type]?.length > 0 && (
             <div key={type} style={{ marginBottom:32 }}>
               <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:14, fontFamily:"Inter, sans-serif" }}>
-                {type === "hooks" ? "🎣 Top Hooks" : type === "bodies" ? "📝 Top Body Copy" : "🎯 Top CTAs"}
+                {type === "hooks" ? " Top Hooks" : type === "bodies" ? " Top Body Copy" : " Top CTAs"}
               </div>
               {hookLabData[type].slice(0,3).map((item, i) => (
                 <div key={i} style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"16px 18px", marginBottom:12, boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}>
@@ -3052,8 +3042,8 @@ function CIDPage() {
                         const textField = item.text_hook || item.text_body || item.text_cta;
                         return (voiceField || textField) ? (
                           <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:4 }}>
-                            {voiceField && <div style={{ background:"#111010", borderRadius:6, padding:"6px 10px", fontSize:11, color:"rgba(255,255,255,0.7)", fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>🎤 {voiceField}</div>}
-                            {textField && <div style={{ background:"#1d1d1f", borderRadius:6, padding:"6px 10px", fontSize:11, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}>📺 {textField}</div>}
+                            {voiceField && <div style={{ background:"#111010", borderRadius:6, padding:"6px 10px", fontSize:11, color:"rgba(255,255,255,0.7)", fontFamily:"Inter, sans-serif", fontStyle:"italic" }}> {voiceField}</div>}
+                            {textField && <div style={{ background:"#1d1d1f", borderRadius:6, padding:"6px 10px", fontSize:11, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700 }}> {textField}</div>}
                           </div>
                         ) : null;
                       })()}
@@ -3069,7 +3059,7 @@ function CIDPage() {
                     ))}
                   </div>
                   <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.15)", borderRadius:8, padding:"8px 12px" }}>
-                    <span style={{ fontSize:10, fontWeight:700, color:"#2AABFF", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:1 }}>🎯 VitalLyfe Version: </span>
+                    <span style={{ fontSize:10, fontWeight:700, color:"#2AABFF", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:1 }}> VitalLyfe Version: </span>
                     <span style={{ fontSize:11, color:"#f5f5f7", fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>{item.adaptation}</span>
                   </div>
                 </div>
@@ -3084,14 +3074,14 @@ function CIDPage() {
         <div style={{ width:420, borderLeft:"1px solid rgba(255,255,255,0.08)", background:"#111010", overflowY:"auto", flexShrink:0, display:"flex", flexDirection:"column" }}>
           <div style={{ padding:"16px 20px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", justifyContent:"space-between", alignItems:"center", background:"#111010" }}>
             <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase" }}>Intel View</div>
-            <button onClick={() => setSelected(null)} style={{ background:"none", border:"none", fontSize:18, cursor:"pointer", color:"rgba(255,255,255,0.4)", lineHeight:1 }}>✕</button>
+            <button onClick={() => setSelected(null)} style={{ background:"none", border:"none", fontSize:18, cursor:"pointer", color:"rgba(255,255,255,0.4)", lineHeight:1 }}></button>
           </div>
           <div style={{ padding:"16px 20px" }}>
             <div onClick={() => setVideoFullscreen(true)}
               style={{ borderRadius:12, overflow:"hidden", background:"#1d1d1f", aspectRatio:"9/16", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16, position:"relative", cursor:"pointer" }}>
               <img src={selected.thumbnail} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity:0.4, transition:"opacity 0.2s" }} />
               <div style={{ position:"relative", zIndex:1, background:"#1a1818", border:"2px solid rgba(255,255,255,0.4)", borderRadius:"50%", width:56, height:56, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(4px)" }}>
-                <span style={{ fontSize:20, marginLeft:4, color:"#fff" }}>▶</span>
+                <span style={{ fontSize:20, marginLeft:4, color:"#fff" }}></span>
               </div>
 
               <div style={{ position:"absolute", bottom:12, left:12, right:12, zIndex:1 }}>
@@ -3100,7 +3090,7 @@ function CIDPage() {
               </div>
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
-              {[["👁 Views", selected.views], ["📈 Engagement", selected.engagement], ["🎬 Format", selected.format]].map(([label, val]) => (
+              {[[" Views", selected.views], [" Engagement", selected.engagement], [" Format", selected.format]].map(([label, val]) => (
                 <div key={label} style={{ background:"#111010", borderRadius:10, padding:"10px 12px", border:"1px solid rgba(255,255,255,0.07)", textAlign:"center" }}>
                   <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:"Inter, sans-serif", marginBottom:3 }}>{label}</div>
                   <div style={{ fontSize:12, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif" }}>{val}</div>
@@ -3110,21 +3100,21 @@ function CIDPage() {
 
             {/* Hook */}
             <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🎣 Hook Detection</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}> Hook Detection</div>
               <div style={{ marginBottom:10 }}>
-                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif", display:"flex", alignItems:"center", gap:4 }}>🎤 Voice Hook</div>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif", display:"flex", alignItems:"center", gap:4 }}> Voice Hook</div>
                 <div style={{ background:"#111010", borderRadius:8, padding:"10px 12px", fontSize:12, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>{selected.voiceHook || `"${selected.hook}"`}</div>
               </div>
               <div style={{ marginBottom:8 }}>
-                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif", display:"flex", alignItems:"center", gap:4 }}>📺 Text on Video</div>
+                <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:5, fontFamily:"Inter, sans-serif", display:"flex", alignItems:"center", gap:4 }}> Text on Video</div>
                 <div style={{ background:"#1d1d1f", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#fff", fontFamily:"'Courier New', monospace", fontWeight:700, letterSpacing:0.5 }}>{selected.textHook || selected.hook.toUpperCase()}</div>
               </div>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>⚡ Trigger: <strong style={{color:"#f5f5f7"}}>{selected.trigger}</strong></div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}> Trigger: <strong style={{color:"#f5f5f7"}}>{selected.trigger}</strong></div>
             </div>
 
             {/* Why it worked — detailed bullets */}
             <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>🧠 Why It Worked</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}> Why It Worked</div>
               {selected.analysis.split('. ').filter(s => s.trim()).map((point, i) => (
                 <div key={i} style={{ display:"flex", gap:8, marginBottom:8, alignItems:"flex-start" }}>
                   <span style={{ fontSize:10, color:"#2AABFF", fontWeight:700, marginTop:2, flexShrink:0 }}>→</span>
@@ -3135,7 +3125,7 @@ function CIDPage() {
 
             {/* Engagement score bar */}
             <div style={{ background:"#111010", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}>📊 Engagement Score</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.1, textTransform:"uppercase", marginBottom:10, fontFamily:"Inter, sans-serif" }}> Engagement Score</div>
               {[
                 { label:"Hook Strength", score: parseInt(selected.engagement) > 10 ? 95 : parseInt(selected.engagement) > 7 ? 80 : 65 },
                 { label:"Shareability", score: parseInt(selected.engagement) > 10 ? 90 : parseInt(selected.engagement) > 7 ? 75 : 60 },
@@ -3155,7 +3145,7 @@ function CIDPage() {
 
             {/* VitalLyfe Variation */}
             <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}>🎯 VitalLyfe Adaptation</div>
+              <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}> VitalLyfe Adaptation</div>
               <div style={{ fontSize:12, color:"#f5f5f7", lineHeight:1.6, fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>"{selected.variation}"</div>
               <div style={{ marginTop:10, display:"flex", gap:6, alignItems:"center", justifyContent:"space-between" }}>
                 <div style={{ display:"flex", gap:6 }}>
@@ -3176,14 +3166,14 @@ function CIDPage() {
   );
 }
 
-    // ─── ASK FLOW ─────────────────────────────────────────────────────────────
+    //  ASK FLOW 
     function AskFlow({ content }) {
       const [open, setOpen] = useState(false);
       const [loading, setLoading] = useState(false);
       const [brief, setBrief] = useState("");
       const [question, setQuestion] = useState("");
 
-      // ── JARVIS CSS injected once ─────────────────────────────────────────────
+      //  JARVIS CSS injected once 
       useEffect(() => {
         if (document.getElementById('jarvis-css')) return;
         const s = document.createElement('style');
@@ -3290,7 +3280,7 @@ function CIDPage() {
 
       return (
         <>
-          {/* ── JARVIS FLOATING ORB ── fixed top-right ─────────────────────── */}
+          {/*  JARVIS FLOATING ORB  fixed top-right  */}
           <div className="jarvis-wrap" onClick={() => { setOpen(true); if (!brief) generateBrief(""); }}>
             <div className="jarvis-orb">
               {/* Ripple rings */}
@@ -3307,7 +3297,7 @@ function CIDPage() {
             <div className="jarvis-label">Ask Flow</div>
           </div>
 
-          {/* ── MODAL ────────────────────────────────────────────────────────── */}
+          {/*  MODAL  */}
           {open && (
             <div style={{ position:"fixed", inset:0, zIndex:10000, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.65)", backdropFilter:"blur(8px)" }} onClick={() => setOpen(false)}>
               <div onClick={e => e.stopPropagation()} style={{ background:"#0d0c0f", border:"1px solid rgba(42,171,255,0.25)", borderRadius:24, width:"100%", maxWidth:640, maxHeight:"85vh", overflowY:"auto", padding:"32px 36px", fontFamily:"Inter, sans-serif", boxShadow:"0 0 60px rgba(42,171,255,0.15), 0 32px 80px rgba(0,0,0,0.6)" }}>
@@ -3326,7 +3316,7 @@ function CIDPage() {
                       <div style={{ fontSize:9, color:"rgba(42,171,255,0.7)", fontWeight:600, letterSpacing:2, textTransform:"uppercase", marginTop:1 }}>AI Brief · Live Pipeline</div>
                     </div>
                   </div>
-                  <button onClick={() => setOpen(false)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.35)", cursor:"pointer", fontSize:20, padding:4, lineHeight:1 }}>×</button>
+                  <button onClick={() => setOpen(false)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.35)", cursor:"pointer", fontSize:20, padding:4, lineHeight:1 }}></button>
                 </div>
 
                 {/* Brief output */}
@@ -3373,7 +3363,7 @@ function CIDPage() {
                 <div style={{ display:"flex", justifyContent:"flex-end" }}>
                   <button onClick={() => generateBrief("")} disabled={loading}
                     style={{ fontSize:11, color:"rgba(42,171,255,0.55)", background:"none", border:"none", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
-                    ↺ Refresh brief
+                     Refresh brief
                   </button>
                 </div>
               </div>
@@ -3410,7 +3400,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   const setContent = setContentProp ?? setLocalContent;
   const [dbStatus, setDbStatus] = useState(DB_CONNECTED ? "connecting" : "offline");
 
-  // ── SUPABASE REALTIME SUBSCRIPTION ───────────────────────────────────────
+  //  SUPABASE REALTIME SUBSCRIPTION 
   // App-level already handles initial load. WarRoom only handles realtime sync + fallback.
   useEffect(() => {
     if (!sb) return;
@@ -3622,12 +3612,12 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
     }
   };
 
-  const sidebarW = sidebarCollapsed ? 64 : 220;
+  const sidebarW = 220;
   const igItems = content.filter(x => x.platform === "instagram");
   const ttItems = content.filter(x => x.platform === "tiktok");
   const ytItems = content.filter(x => x.platform === "youtube");
 
-  // ── PREVIEW MODE — renders ClientView inside an overlay ─────────────────
+  //  PREVIEW MODE — renders ClientView inside an overlay 
   if (previewMode) {
     return (
       <div style={{ position:"relative", minHeight:"100vh" }}>
@@ -3650,14 +3640,14 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
 
   return (
     <div style={{ display:"flex", height: isMobile ? "100dvh" : "100vh", background:"#0a0809", color:"#f5f5f7", fontFamily:"-apple-system, 'SF Pro Display', Inter, sans-serif", overflow:"hidden", flexDirection: isMobile ? "column" : "row" }}>
-      {/* ── MUSE TOAST ── */}
+      {/*  MUSE TOAST  */}
       {museToast && (
         <div style={{ position:"fixed", bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : 28, right: isMobile ? 16 : 28, zIndex:9999, animation:"slideIn 0.3s ease", maxWidth: isMobile ? "calc(100vw - 32px)" : 380 }}>
           <div style={{ background: museToast.status==="error" ? "#1a1818" : "#1a1818", border:`1px solid ${museToast.status==="error"?"rgba(255,69,58,0.3)":museToast.status==="done"?"rgba(255,55,95,0.3)":"rgba(255,55,95,0.2)"}`, borderRadius:14, padding:"14px 18px", boxShadow:"0 8px 32px rgba(0,0,0,0.12)", display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:8, height:8, borderRadius:"50%", background: museToast.status==="error"?"#ff453a":"#ff375f", flexShrink:0, animation: museToast.status==="writing"?"livePulse 1s infinite":"none" }} />
             <div>
               <div style={{ fontSize:12, fontWeight:600, color: museToast.status==="error"?"#ff453a":"#ff375f" }}>
-                {museToast.status==="writing" ? `✍️ Muse is writing ${museToast.field}…` : museToast.status==="done" ? `✓ ${museToast.field === "caption" ? "Caption" : "Script"} saved` : `❌ ${museToast.msg}`}
+                {museToast.status==="writing" ? ` Muse is writing ${museToast.field}…` : museToast.status==="done" ? ` ${museToast.field === "caption" ? "Caption" : "Script"} saved` : ` ${museToast.msg}`}
               </div>
               {museToast.status==="done" && <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:3, lineHeight:1.5, maxWidth:280, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{museToast.content?.slice(0,60)}…</div>}
             </div>
@@ -3722,7 +3712,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
 
       <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, display:"none" }} />
 
-      {/* ── MOBILE TOP BAR ── */}
+      {/*  MOBILE TOP BAR  */}
       {isMobile && (
         <div style={{ height:52, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", padding:"0 16px", gap:12, zIndex:50, flexShrink:0, paddingTop:"env(safe-area-inset-top,0)" }}>
           <div style={{ width:30, height:30, borderRadius:8, background:"#161414", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
@@ -3737,21 +3727,21 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
           </div>
           <button onClick={() => setMobileNavOpen(o => !o)}
             style={{ background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#f5f5f7", width:34, height:34, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:16 }}>
-            {mobileNavOpen ? "✕" : "☰"}
+            {mobileNavOpen ? "" : ""}
           </button>
         </div>
       )}
 
-      {/* ── MOBILE NAV DRAWER ── */}
+      {/*  MOBILE NAV DRAWER  */}
       {isMobile && mobileNavOpen && (
         <div style={{ position:"fixed", inset:0, zIndex:200 }} onClick={() => setMobileNavOpen(false)}>
           <div style={{ position:"absolute", top:52, left:0, right:0, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.08)", animation:"slideUp 0.2s ease", maxHeight:"80vh", overflowY:"auto" }}
             onClick={e => e.stopPropagation()}>
             {[
-              { section:"COMMAND", items:[{id:"dashboard",label:"Dashboard",icon:"⬡"},{id:"agents",label:"Agents",icon:"◈"}] },
-              { section:"CONTENT", items:[{id:"instagram",label:"Instagram",icon:"◎"},{id:"tiktok",label:"TikTok",icon:"◎"},{id:"youtube",label:"YouTube",icon:"◎"},{id:"tracker",label:"Content Tracker",icon:"◫"},{id:"taskboard",label:"Task Board",icon:"◫"}] },
-              { section:"BUSINESS", items:[{id:"adroihub",label:"Ad ROI Hub",icon:"◈"},{id:"broadcast",label:"Team Broadcast",icon:"◎"}] },
-              { section:"OPERATIONS", items:[{id:"artgrid",label:"ArtGrid Scout",icon:"◈"},{id:"references",label:"References",icon:"◫"},{id:"skills",label:"Skills",icon:"◫"},{id:"sops",label:"SOPs",icon:"◫"}] },
+              { section:"COMMAND", items:[{id:"dashboard",label:"Dashboard"},{id:"agents",label:"Agents"},{id:"cid",label:"CID"}] },
+              { section:"CONTENT", items:[{id:"instagram",label:"Instagram"},{id:"tiktok",label:"TikTok"},{id:"youtube",label:"YouTube"},{id:"tracker",label:"Content Tracker"},{id:"taskboard",label:"Task Board"}] },
+              { section:"BUSINESS", items:[{id:"sales",label:"Ad ROI Hub"},{id:"chat",label:"Team Broadcast"}] },
+              { section:"OPERATIONS", items:[{id:"artgrid",label:"ArtGrid Scout"},{id:"references",label:"References"},{id:"skills",label:"Skills"},{id:"sops",label:"SOPs"}] },
             ].map(({ section, items }) => (
               <div key={section}>
                 <div style={{ padding:"10px 20px 4px", fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.25)", letterSpacing:2, textTransform:"uppercase", fontFamily:"'Geist Mono',monospace" }}>{section}</div>
@@ -3764,7 +3754,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               </div>
             ))}
             <div style={{ padding:"12px 20px", borderTop:"1px solid rgba(255,255,255,0.06)", display:"flex", gap:10 }}>
-              <button onClick={() => { setPreviewMode(true); setMobileNavOpen(false); }} style={{ flex:1, fontSize:12, color:"rgba(255,255,255,0.6)", background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>👁 Client View</button>
+              <button onClick={() => { setPreviewMode(true); setMobileNavOpen(false); }} style={{ flex:1, fontSize:12, color:"rgba(255,255,255,0.6)", background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}> Client View</button>
               <button onClick={onSignOut} style={{ fontSize:12, color:"rgba(255,255,255,0.4)", background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"10px 16px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>Sign Out</button>
             </div>
             <div style={{ height:"env(safe-area-inset-bottom,16px)", minHeight:16 }} />
@@ -3772,12 +3762,12 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         </div>
       )}
 
-      {/* ── DESKTOP SIDEBAR ── */}
+      {/*  DESKTOP SIDEBAR  */}
       {!isMobile && (
-      <div style={{ width:sidebarW, minWidth:sidebarW, background:"linear-gradient(180deg, #0e0c0d 0%, #0a0809 60%, #070607 100%)", borderRight:"1px solid rgba(255,255,255,0.05)", display:"flex", flexDirection:"column", overflow:"hidden", transition:"width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s cubic-bezier(0.4,0,0.2,1)", zIndex:20, position:"relative" }}>
+      <div style={{ width:220, minWidth:220, background:"#0d0c0d", borderRight:"1px solid rgba(255,255,255,0.06)", display:"flex", flexDirection:"column", overflow:"hidden", zIndex:20, flexShrink:0 }}>
         <div style={{ padding:sidebarCollapsed?"16px 0":"16px 16px 14px", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
 
-          {/* ── COLLAPSED ── */}
+          {/*  COLLAPSED  */}
           {sidebarCollapsed && (
             <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:10 }}>
               <div style={{ width:36, height:36, borderRadius:10, background:"#161414", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -3787,7 +3777,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             </div>
           )}
 
-          {/* ── EXPANDED ── */}
+          {/*  EXPANDED  */}
           {!sidebarCollapsed && (
             <div>
               {/* Row 1: icon + wordmark + collapse toggle */}
@@ -3818,7 +3808,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     setNotifications(prev=>prev.map(n=>({...n,read:true})));
                   }}
                     style={{ position:"relative", background:"#111010", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontSize:12, lineHeight:1 }}>
-                    🔔
+                    
                     {notifications.filter(n=>!n.read).length > 0 && (
                       <span style={{ position:"absolute", top:-4, right:-4, width:14, height:14, borderRadius:"50%", background:"#ff453a", fontSize:8, fontWeight:700, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>
                         {notifications.filter(n=>!n.read).length}
@@ -3834,15 +3824,15 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                           e.preventDefault();
                         }}
                         style={{ padding:"10px 14px", borderBottom:"1px solid rgba(255,255,255,0.07)", fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", cursor:"grab", userSelect:"none", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                        <span>⠿ Client Activity</span>
-                        <span onClick={() => setNotifOpen(false)} style={{ cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.4)", fontWeight:400 }}>✕</span>
+                        <span> Client Activity</span>
+                        <span onClick={() => setNotifOpen(false)} style={{ cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.4)", fontWeight:400 }}></span>
                       </div>
                       {notifications.length === 0 && (
                         <div style={{ padding:"20px 14px", fontSize:11, color:"rgba(255,255,255,0.4)", textAlign:"center" }}>No client actions yet</div>
                       )}
                       {notifications.slice(0,10).map(n => (
                         <div key={n.id} style={{ padding:"10px 14px", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", gap:10, alignItems:"flex-start" }}>
-                          <span style={{ fontSize:14, flexShrink:0 }}>{n.type==="approved" ? "✅" : "🔄"}</span>
+                          <span style={{ fontSize:14, flexShrink:0 }}>{n.type==="approved" ? "" : ""}</span>
                           <div style={{ flex:1 }}>
                             <div style={{ fontSize:11, fontWeight:600, color:"#f5f5f7", lineHeight:1.4 }}>{n.type==="approved" ? "Approved" : "Revisions requested"}</div>
                             <div style={{ fontSize:10, color:"rgba(255,255,255,0.6)", marginTop:2 }}>{n.item?.title}</div>
@@ -3870,13 +3860,12 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         )}
         <div style={{ flex:1, overflowY:"auto", padding:"8px 0" }}>
           {NAV.map(group => (
-            <div key={group.section} style={{ padding:"8px 0 4px" }}>
-              {!sidebarCollapsed && <div style={{ padding:"0 16px 4px", fontSize:10, color:"rgba(255,255,255,0.22)", letterSpacing:0.3, fontWeight:600 }}>{group.section}</div>}
+            <div key={group.section} style={{ padding:"12px 0 0" }}>
+              {!sidebarCollapsed && <div style={{ padding:"0 16px 5px", fontSize:9, color:"rgba(255,255,255,0.18)", letterSpacing:2, fontWeight:600, textTransform:"uppercase" }}>{group.section}</div>}
               {group.items.map(item => (
-                <div key={item.id} style={{ padding:sidebarCollapsed?"0":"0 6px" }}>
+                <div key={item.id} style={{ padding:sidebarCollapsed?"0":"0 8px 1px" }}>
                   <button onClick={() => setActiveNav(item.id)} title={sidebarCollapsed?item.label:undefined}
-                    style={{ display:"flex", alignItems:"center", gap:9, width:"100%", padding:sidebarCollapsed?"9px 0":"8px 10px", justifyContent:sidebarCollapsed?"center":"flex-start", background:activeNav===item.id?"rgba(42,171,255,0.12)":"transparent", border:"none", borderRadius:9, color:activeNav===item.id?"#2AABFF":"rgba(255,255,255,0.42)", cursor:"pointer", fontSize:13, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===item.id?590:400, transition:"background 0.12s, color 0.12s", letterSpacing:-0.1 }}>
-                    <span style={{ fontSize:13, opacity:activeNav===item.id?1:0.6 }}>{item.icon}</span>
+                    style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:sidebarCollapsed?"9px 0":"7px 10px", justifyContent:sidebarCollapsed?"center":"flex-start", background:"transparent", border:"none", borderLeft: activeNav===item.id ? "2px solid #2AABFF" : "2px solid transparent", color:activeNav===item.id?"#f0eeef":"rgba(255,255,255,0.32)", cursor:"pointer", fontSize:12, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===item.id?500:400, transition:"color 0.12s, border-color 0.12s", letterSpacing:0.1 }}>
                     {!sidebarCollapsed && item.label}
                   </button>
                 </div>
@@ -3897,31 +3886,29 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
       </div>
       )} {/* end !isMobile desktop sidebar */}
 
-      {/* ── MAIN ── */}
-      <div style={{ flex:1, overflowY:"auto", padding: isMobile ? "16px 16px calc(72px + env(safe-area-inset-bottom,0px))" : "36px 40px", position:"relative", zIndex:25, background:"#0a0809", WebkitOverflowScrolling:"touch" }}>
+      {/*  MAIN  */}
+      <div style={{ flex:1, overflowY:"auto", padding: isMobile ? "24px 16px calc(72px + env(safe-area-inset-bottom,0px))" : "48px 52px", position:"relative", zIndex:25, background:"#0a0809", WebkitOverflowScrolling:"touch" }}>
 
         {/* DASHBOARD */}
         {activeNav === "dashboard" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
-            {/* ── ATMOSPHERIC HERO ── */}
-            <div style={{ background:"linear-gradient(135deg, #0a0809 0%, #0d0b0c 50%, #0a0809 100%)", borderRadius: isMobile ? 16 : 24, padding: isMobile ? "28px 20px" : "44px 48px", marginBottom: isMobile ? 16 : 24, position:"relative", overflow:"hidden" }}>
-              <div style={{ position:"absolute", top:-80, right:40, width:380, height:380, borderRadius:"50%", background:"radial-gradient(circle, rgba(42,171,255,0.12) 0%, transparent 70%)", pointerEvents:"none" }} />
-              <div style={{ position:"absolute", bottom:-60, left:-20, width:300, height:300, borderRadius:"50%", background:"radial-gradient(circle, rgba(241,113,48,0.08) 0%, transparent 70%)", pointerEvents:"none" }} />
-              <div style={{ position:"relative", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center" }}>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontWeight:600, marginBottom: isMobile ? 12 : 20, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace" }}>Cloud Scenic × VitalLyfe</div>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
-                  <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 38 : 58, fontWeight:400, fontStyle:"italic", color:"#fff", margin:0, letterSpacing:-1, lineHeight:1 }}>War Room.</h1>
-                  <AskFlow content={content} />
-                </div>
-                <p style={{ fontSize:12, color:"rgba(255,255,255,0.28)", margin: isMobile ? "10px 0 0" : "14px 0 0", fontWeight:400 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})} · {content.length} pieces</p>
-                <div style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(48,209,88,0.12)", border:"1px solid rgba(48,209,88,0.22)", borderRadius:20, padding:"7px 16px", marginTop: isMobile ? 14 : 20 }}>
-                  <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite" }} />
-                  <span style={{ fontSize:11, color:"rgba(255,255,255,0.55)", fontWeight:500 }}>{liveCount} agents active</span>
+            {/*  HERO  */}
+            <div style={{ marginBottom: isMobile ? 24 : 40, paddingBottom: isMobile ? 24 : 32, borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ fontSize:9, color:"rgba(255,255,255,0.28)", fontWeight:600, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace", marginBottom:12 }}>Cloud Scenic / VitalLyfe</div>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 36 : 52, fontWeight:400, fontStyle:"italic", color:"#f0eeef", margin:0, letterSpacing:-1, lineHeight:1 }}>War Room.</h1>
+                <AskFlow content={content} />
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:16, marginTop:16 }}>
+                <p style={{ fontSize:12, color:"rgba(255,255,255,0.25)", margin:0 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</p>
+                <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                  <div style={{ width:4, height:4, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite" }} />
+                  <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)" }}>{liveCount} agents active</span>
                 </div>
               </div>
             </div>
 
-            {/* ── METRIC GRID — 2x2 on mobile, asymmetric on desktop ── */}
+            {/*  METRIC GRID — 2x2 on mobile, asymmetric on desktop  */}
             <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1.4fr 1fr 1fr", gridTemplateRows:"auto", gap: isMobile ? 10 : 14, marginBottom: isMobile ? 24 : 44 }}>
               {isMobile ? (
                 <>
@@ -3943,53 +3930,53 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
               )}
             </div>
 
-            {/* ── QUICK ACTIONS ── */}
+            {/*  QUICK ACTIONS  */}
             <div style={{ marginBottom: isMobile ? 24 : 44 }}>
               <QuickActionsDashboard />
             </div>
 
-            {/* ── AGENT GRID ── */}
+            {/*  AGENT GRID  */}
             <div style={{ marginBottom:44 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:22 }}>
-                <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:26, fontWeight:400, fontStyle:"italic", color:"#f5f5f7", margin:0, letterSpacing:-0.5 }}>The Team</h2>
-                <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", fontWeight:400 }}>8 agents · {liveCount} active</span>
+                <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:24, fontWeight:400, fontStyle:"italic", color:"#f0eeef", margin:0, letterSpacing:-0.5 }}>The Team</h2>
+                <span style={{ fontSize:11, color:"rgba(255,255,255,0.28)", fontWeight:400 }}>{liveCount} active</span>
               </div>
               <div style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap:12 }}>
                 {agents.map(agent => <AgentCard key={agent.id} agent={agent} selected={selectedAgent?.id===agent.id} onClick={() => setSelectedAgent(selectedAgent?.id===agent.id?null:agent)} />)}
               </div>
             </div>
 
-            {/* ── SELECTED AGENT DETAIL ── */}
+            {/*  SELECTED AGENT DETAIL  */}
             {selectedAgent && (
-              <div style={{ marginBottom:44, animation:"slideIn 0.2s ease", background:`linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05))`, backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", borderRadius:20, border:`1px solid ${selectedAgent.color}30`, boxShadow:`0 4px 32px ${selectedAgent.color}15`, padding:"28px 32px" }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-                    <AgentAvatar agent={selectedAgent} size={44} />
+              <div style={{ marginBottom:44, animation:"slideIn 0.2s ease", background:"#0f0d0e", borderRadius:16, border:`1px solid rgba(255,255,255,0.07)`, padding:"24px 28px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:18 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                    <AgentAvatar agent={selectedAgent} size={40} />
                     <div>
-                      <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontWeight:700, fontStyle:"italic", color:"#f5f5f7", fontSize:22, letterSpacing:-0.5 }}>{selectedAgent.name}</div>
-                      <div style={{ fontSize:11, color:selectedAgent.color, fontWeight:500, marginTop:3 }}>{selectedAgent.role} · {selectedAgent.type}</div>
+                      <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:"italic", color:"#f0eeef", fontSize:20, letterSpacing:-0.5 }}>{selectedAgent.name}</div>
+                      <div style={{ fontSize:10, color:selectedAgent.color, fontWeight:500, marginTop:2, opacity:0.85 }}>{selectedAgent.role}</div>
                     </div>
                   </div>
-                  <button onClick={() => setSelectedAgent(null)} style={{ background:"#111010", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, borderRadius:10, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+                  <button onClick={() => setSelectedAgent(null)} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.08)", color:"rgba(255,255,255,0.35)", cursor:"pointer", fontSize:12, borderRadius:8, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center" }}>x</button>
                 </div>
-                <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                   {AGENT_TASKS[selectedAgent.name].slice(0,5).map((t,i) => (
-                    <div key={i} style={{ fontSize:11, color:"rgba(255,255,255,0.65)", padding:"6px 12px", background:"#111010", borderRadius:20, fontWeight:400 }}>{t}</div>
+                    <div key={i} style={{ fontSize:11, color:"rgba(255,255,255,0.45)", padding:"8px 0", borderBottom:"1px solid rgba(255,255,255,0.04)", lineHeight:1.4 }}>{t}</div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* ── LIVE ACTIVITY ── */}
+            {/*  LIVE ACTIVITY  */}
             <div style={{ marginBottom:44 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:18 }}>
-                <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 20 : 26, fontWeight:400, fontStyle:"italic", color:"#f5f5f7", margin:0, letterSpacing:-0.5 }}>Live Activity</h2>
-                <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite" }} />
+                <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 20 : 24, fontWeight:400, fontStyle:"italic", color:"#f0eeef", margin:0, letterSpacing:-0.5 }}>Live Activity</h2>
+                <div style={{ width:4, height:4, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2.5s ease-in-out infinite" }} />
               </div>
               <Card style={{ padding:"4px 0", maxHeight:320, overflowY:"auto" }}><ActivityFeed feed={feed} /></Card>
             </div>
 
-            {/* ── OPERATIONS BOARD ── */}
+            {/*  OPERATIONS BOARD  */}
             <div style={{ marginBottom:28 }}>
               <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 20 : 22, fontWeight:400, fontStyle:"italic", color:"#f5f5f7", margin:"0 0 18px", letterSpacing:-0.5 }}>Operations</h2>
               <OpsBoard />
@@ -4006,7 +3993,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {activeNav === "instagram" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
             <div style={{ display:"flex", alignItems: isMobile ? "flex-start" : "center", gap:14, marginBottom: isMobile ? 16 : 28, flexWrap:"wrap" }}>
-              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>📸</div>
+              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}></div>
               <div style={{ flex:1, minWidth:0 }}>
                 <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>Instagram</h1>
                 <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>@vitallyfe · {igItems.length} pieces in pipeline</div>
@@ -4021,13 +4008,13 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                 <button onClick={handleAddNew} style={{ background:"#0f0f1a", border:"none", borderRadius:10, color:"#fff", fontSize:12, fontWeight:600, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif", flexShrink:0 }}>+ Add</button>
               </div>
             </div>
-            <ContentPipelineBoard title="Reels & Graphics Pipeline" icon="🎬"
+            <ContentPipelineBoard title="Reels & Graphics Pipeline" icon=""
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
               stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#2AABFF","#8b5cf6","#64d2ff"]}
               items={igItems.filter(x => x.type==="reel" || x.type==="graphic")}
               onCardClick={setEditingItem} onMuseWrite={handleMuseWrite}
             />
-            <ContentPipelineBoard title="Carousels & Threads" icon="◻"
+            <ContentPipelineBoard title="Carousels & Threads" icon=""
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
               stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#2AABFF","#8b5cf6","#64d2ff"]}
               items={igItems.filter(x => x.type==="carousel" || x.type==="thread")}
@@ -4040,13 +4027,13 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {activeNav === "tiktok" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom: isMobile ? 16 : 28 }}>
-              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#010101,#ff0050)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>♪</div>
+              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#010101,#ff0050)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}></div>
               <div>
                 <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>TikTok</h1>
                 <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>@vitallyfe · {ttItems.length} pieces in pipeline</div>
               </div>
             </div>
-            <ContentPipelineBoard title="TikTok Pipeline" icon="🎵"
+            <ContentPipelineBoard title="TikTok Pipeline" icon=""
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
               stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#2AABFF","#8b5cf6","#64d2ff"]}
               items={ttItems}
@@ -4059,13 +4046,13 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
         {activeNav === "youtube" && (
           <div style={{ animation:"fadeIn 0.4s ease" }}>
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom: isMobile ? 16 : 28 }}>
-              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#ff0000,#cc0000)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>▷</div>
+              <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#ff0000,#cc0000)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}></div>
               <div>
                 <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>YouTube</h1>
                 <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>VitalLyfe · {ytItems.length} pieces · Long-form & Shorts</div>
               </div>
             </div>
-            <ContentPipelineBoard title="Production Pipeline" icon="🎬"
+            <ContentPipelineBoard title="Production Pipeline" icon=""
               stages={["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"]}
               stageColors={["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#2AABFF","#8b5cf6","#64d2ff"]}
               items={ytItems}
@@ -4113,7 +4100,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                   <option value="youtube">YouTube</option>
                 </select>
                 {(trackerSearch||filterStatus||filterPillar||filterPlatform) && (
-                  <button onClick={()=>{setTrackerSearch("");setFilterStatus("");setFilterPillar("");setFilterPlatform("");}} style={{ fontSize:11, color:"rgba(255,255,255,0.5)", background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>✕ Clear</button>
+                  <button onClick={()=>{setTrackerSearch("");setFilterStatus("");setFilterPillar("");setFilterPlatform("");}} style={{ fontSize:11, color:"rgba(255,255,255,0.5)", background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:9, padding:"8px 12px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}> Clear</button>
                 )}
               </div>
             </div>
@@ -4160,9 +4147,9 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", padding:"11px 14px", display:"flex", alignItems:"center" }}>{item.format}</div>
                     <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", padding:"11px 10px", display:"flex", alignItems:"center" }}>{item.publish_date || "—"}</div>
                     <div style={{ padding:"8px 12px", display:"flex", alignItems:"center", gap:5 }}>
-                      {needsCaption && <button onClick={() => handleMuseWrite(item, "caption")} style={{ fontSize:9, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}>✍️ Cap</button>}
-                      {needsScript && <button onClick={() => handleMuseWrite(item, "script")} style={{ fontSize:9, fontWeight:700, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}>✍️ Script</button>}
-                      {!needsCaption && !needsScript && <span style={{ fontSize:9, color:"#2AABFF", fontWeight:600 }}>✓</span>}
+                      {needsCaption && <button onClick={() => handleMuseWrite(item, "caption")} style={{ fontSize:9, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}> Cap</button>}
+                      {needsScript && <button onClick={() => handleMuseWrite(item, "script")} style={{ fontSize:9, fontWeight:700, color:"#bf5af2", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontFamily:"Inter,sans-serif", whiteSpace:"nowrap" }}> Script</button>}
+                      {!needsCaption && !needsScript && <span style={{ fontSize:9, color:"#2AABFF", fontWeight:600 }}></span>}
                     </div>
                   </div>
                 );
@@ -4275,15 +4262,15 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
 
       </div>
 
-      {/* ── MOBILE BOTTOM NAV ── */}
+      {/*  MOBILE BOTTOM NAV  */}
       {isMobile && (
         <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:"rgba(10,8,9,0.96)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderTop:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", paddingBottom:"env(safe-area-inset-bottom,0)", height:"calc(58px + env(safe-area-inset-bottom,0px))" }}>
           {[
-            { id:"dashboard", label:"Home", icon:"⬡" },
-            { id:"tracker", label:"Content", icon:"◫" },
-            { id:"agents", label:"Agents", icon:"◈" },
-            { id:"adroihub", label:"ROI", icon:"◎" },
-            { id:"broadcast", label:"Broadcast", icon:"◎" },
+            { id:"dashboard", label:"Home" },
+            { id:"tracker", label:"Content" },
+            { id:"agents", label:"Agents" },
+            { id:"adroihub", label:"ROI" },
+            { id:"broadcast", label:"Broadcast" },
           ].map(tab => {
             const active = activeNav === tab.id;
             return (
