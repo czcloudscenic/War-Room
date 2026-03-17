@@ -19,9 +19,9 @@
     /* Background grid */
     .war-grid-bg {
       background-image:
-        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 48px 48px;
+        linear-gradient(rgba(255,255,255,0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.055) 1px, transparent 1px);
+      background-size: 130px 130px;
     }
     ::-webkit-scrollbar-track { background: #f0f0f0; }
     ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
@@ -3578,7 +3578,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
 
       {/*  DESKTOP SIDEBAR  */}
       {!isMobile && (
-      <div style={{ width:220, minWidth:220, background:"#0d0c0d", borderRight:"1px solid rgba(255,255,255,0.06)", display:"flex", flexDirection:"column", overflow:"hidden", zIndex:20, flexShrink:0 }}>
+      <div className="war-grid-bg" style={{ width:220, minWidth:220, background:"#0a0809", borderRight:"1px solid rgba(255,255,255,0.06)", display:"flex", flexDirection:"column", overflow:"hidden", zIndex:20, flexShrink:0 }}>
         <div style={{ padding:sidebarCollapsed?"16px 0":"16px 16px 14px", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
 
           {/*  COLLAPSED  */}
