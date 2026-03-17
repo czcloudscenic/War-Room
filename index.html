@@ -3323,13 +3323,31 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
   useEffect(() => {
     const onMove = (e) => {
       if (!notifDragging.current) return;
+      e.preventDefault();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       const x = Math.max(0, Math.min(window.innerWidth - 300, clientX - notifDragOffset.current.x));
       const y = Math.max(0, Math.min(window.innerHeight - 100, clientY - notifDragOffset.current.y));
-      setNotifPos({ x, y });
+      // Move via DOM directly — zero re-renders during drag
+      if (notifDragRef.current) {
+        notifDragRef.current.style.left = x + "px";
+        notifDragRef.current.style.top = y + "px";
+        notifDragRef.current.style.transition = "none";
+      }
+      notifDragOffset.current._lastX = x;
+      notifDragOffset.current._lastY = y;
     };
-    const onUp = () => { notifDragging.current = false; };
+    const onUp = () => {
+      if (!notifDragging.current) return;
+      notifDragging.current = false;
+      // Commit final position to state so React knows where it is
+      if (notifDragOffset.current._lastX !== undefined) {
+        setNotifPos({ x: notifDragOffset.current._lastX, y: notifDragOffset.current._lastY });
+      }
+      if (notifDragRef.current) notifDragRef.current.style.transition = "";
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
     document.addEventListener("touchmove", onMove, { passive: false });
@@ -3633,11 +3651,13 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     )}
                   </button>
                   {notifOpen && (
-                    <div ref={notifDragRef} style={{ position:"fixed", left:notifPos.x, top:notifPos.y, width:300, background:"rgba(20,18,16,0.92)", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:14, boxShadow:"0 16px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)", zIndex:99999, overflow:"hidden" }}>
+                    <div ref={notifDragRef} style={{ position:"fixed", left:notifPos.x, top:notifPos.y, width:300, background:"rgba(20,18,16,0.92)", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:14, boxShadow:"0 16px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)", zIndex:99999, overflow:"hidden", willChange:"transform", touchAction:"none" }}>
                       <div
                         onMouseDown={(e) => {
                           notifDragging.current = true;
                           notifDragOffset.current = { x: e.clientX - notifPos.x, y: e.clientY - notifPos.y };
+                          document.body.style.userSelect = "none";
+                          document.body.style.cursor = "grabbing";
                           e.preventDefault();
                         }}
                         style={{ padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.1)", fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.7)", letterSpacing:2, textTransform:"uppercase", cursor:"grab", userSelect:"none", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
