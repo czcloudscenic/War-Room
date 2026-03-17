@@ -3895,16 +3895,6 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
             </div>
           ))}
         </div>
-        {!sidebarCollapsed && (
-          <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", padding:"10px 16px" }}>
-            <div style={{ fontSize:9, color:"rgba(255,255,255,0.2)", letterSpacing:1.5, fontWeight:600, marginBottom:8, textTransform:"uppercase" }}>Live Log</div>
-            {feed.slice(0,4).map((item,i) => (
-              <div key={item.id} style={{ fontSize:9, color:i===0?ACTION_COLORS[item.type]:"rgba(255,255,255,0.18)", marginBottom:4, lineHeight:1.4, animation:i===0?"slideIn 0.3s":"none", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                {item.agent} · {item.action}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
       )} {/* end !isMobile desktop sidebar */}
 
