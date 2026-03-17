@@ -12,8 +12,15 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #f5f5f7; font-family: Inter, sans-serif; }
+    body { background: #0a0809; font-family: Inter, sans-serif; }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
+    /* Background grid */
+    .war-grid-bg {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
     ::-webkit-scrollbar-track { background: #f0f0f0; }
     ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
     /* iOS safe area support */
@@ -1803,7 +1810,7 @@ function AgentChatPage({ agents, content }) {
                     <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", color: m.err ? "#ff453a" : "#2AABFF" }}>{m.loading ? "Agent Running…" : "Agent Action Result"}</span>
                     <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", marginLeft:"auto" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</span>
                   </div>
-                  {!m.loading && <div style={{ fontSize:12, color:"#1a1a2e", lineHeight:1.7, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>}
+                  {!m.loading && <div style={{ fontSize:12, color:"rgba(255,255,255,0.7)", lineHeight:1.7, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>}
                   {!m.loading && m.calendarItems && m.calendarItems.length > 0 && (
                     <CalendarSaveButton items={m.calendarItems} />
                   )}
@@ -1882,17 +1889,31 @@ function AgentChatPage({ agents, content }) {
 function QuickActionsDashboard() {
   const isMobile = useIsMobile();
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (document.getElementById('qa-css')) return;
+    const s = document.createElement('style');
+    s.id = 'qa-css';
+    s.textContent = `
+      .qa-btn:hover:not(:disabled) {
+        color: #fff !important;
+        border-color: rgba(42,171,255,0.4) !important;
+        box-shadow: 0 0 16px rgba(42,171,255,0.18), 0 0 4px rgba(42,171,255,0.12);
+      }
+      .qa-btn:active:not(:disabled) { opacity: 0.7 !important; }
+    `;
+    document.head.appendChild(s);
+  }, []);
   const [activeAction, setActiveAction] = useState(null);
   const [result, setResult] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
   const ACTIONS = [
-    { label: " Morning Briefing", action: "sean_briefing", agent: "Sean", color: "#2AABFF" },
-    { label: " Generate Captions", action: "muse_generate_calendar", agent: "Muse", color: "#ff375f" },
-    { label: " SOP Scan", action: "overseer_scan", agent: "Overseer", color: "#64d2ff" },
-    { label: " Advance Pipeline", action: "lacey_advance", agent: "Lacey", color: "#ff9f0a" },
-    { label: " Health Check", action: "sam_health", agent: "Sam", color: "#ffd60a" },
-    { label: " Trigger n8n", action: "lacey_trigger_n8n", agent: "Lacey", color: "#bf5af2", payload: { workflow: "vitallyfe-pipeline", message: "Triggered from War Room Quick Actions", triggeredBy: "War Room" } },
+    { label: "Morning Briefing", action: "sean_briefing", agent: "Sean", color: "#2AABFF" },
+    { label: "Generate Captions", action: "muse_generate_calendar", agent: "Muse", color: "#2AABFF" },
+    { label: "SOP Scan", action: "overseer_scan", agent: "Overseer", color: "#2AABFF" },
+    { label: "Advance Pipeline", action: "lacey_advance", agent: "Lacey", color: "#2AABFF" },
+    { label: "Health Check", action: "sam_health", agent: "Sam", color: "#2AABFF" },
+    { label: "Trigger n8n", action: "lacey_trigger_n8n", agent: "Lacey", color: "#2AABFF", payload: { workflow: "vitallyfe-pipeline", message: "Triggered from War Room Quick Actions", triggeredBy: "War Room" } },
   ];
 
   const run = async (action, agent, color, label, payload = {}) => {
@@ -1937,15 +1958,14 @@ function QuickActionsDashboard() {
   return (
     <div style={{ marginBottom:28 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-        <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#f5f5f7", margin:0, letterSpacing:-0.5 }}>Quick Actions</h2>
-        <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)" }}>Agent-powered operations</span>
+        <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#f0eeef", margin:0, letterSpacing:-0.5 }}>Quick Actions</h2>
       </div>
       <div className="hover-card" style={{ background:"#161414", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, overflow:"hidden", boxShadow:"0 2px 12px rgba(0,0,0,0.05)" }}>
-        <div style={{ padding: isMobile ? "12px 14px" : "16px 18px", display:"flex", gap: isMobile ? 8 : 10, flexWrap:"wrap" }}>
+        <div style={{ padding: isMobile ? "12px 14px" : "16px 20px", display:"flex", gap: isMobile ? 8 : 8, flexWrap:"wrap" }}>
           {ACTIONS.map(({ label, action, agent, color, payload }) => (
-            <button key={action} onClick={() => run(action, agent, color, label, payload || {})} disabled={busy} className="glass-btn"
-              style={{ fontSize: isMobile ? 11 : 12, fontWeight:600, color, background:`${color}0d`, border:`1px solid ${color}30`, borderRadius:10, padding: isMobile ? "8px 12px" : "9px 16px", cursor:busy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:busy?0.6:1, flex: isMobile ? "1 0 calc(50% - 4px)" : "none" }}>
-              {busy && activeAction?.action === action ? "⏳…" : label}
+            <button key={action} onClick={() => run(action, agent, color, label, payload || {})} disabled={busy} className="qa-btn"
+              style={{ fontSize: isMobile ? 11 : 11, fontWeight:500, color:"rgba(255,255,255,0.7)", background:"transparent", border:"1px solid rgba(255,255,255,0.09)", borderRadius:8, padding: isMobile ? "8px 12px" : "8px 16px", cursor:busy?"default":"pointer", fontFamily:"Inter,sans-serif", letterSpacing:0.2, opacity:busy?0.5:1, flex: isMobile ? "1 0 calc(50% - 4px)" : "none", transition:"color 0.15s, border-color 0.15s, box-shadow 0.15s" }}>
+              {busy && activeAction?.action === action ? "running…" : label}
             </button>
           ))}
         </div>
@@ -1963,7 +1983,7 @@ function QuickActionsDashboard() {
             </div>
             {result && (
               <div style={{ padding:"14px 18px", maxHeight:320, overflowY:"auto" }}>
-                <div style={{ fontSize:12, color:"#1a1a2e", lineHeight:1.7, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{result.text}</div>
+                <div style={{ fontSize:12, color:"rgba(255,255,255,0.7)", lineHeight:1.7, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{result.text}</div>
               </div>
             )}
             {!result && (
@@ -3887,7 +3907,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
       )} {/* end !isMobile desktop sidebar */}
 
       {/*  MAIN  */}
-      <div style={{ flex:1, overflowY:"auto", padding: isMobile ? "24px 16px calc(72px + env(safe-area-inset-bottom,0px))" : "48px 52px", position:"relative", zIndex:25, background:"#0a0809", WebkitOverflowScrolling:"touch" }}>
+      <div className="war-grid-bg" style={{ flex:1, overflowY:"auto", padding: isMobile ? "24px 16px calc(72px + env(safe-area-inset-bottom,0px))" : "48px 52px", position:"relative", zIndex:25, background:"#0a0809", WebkitOverflowScrolling:"touch" }}>
 
         {/* DASHBOARD */}
         {activeNav === "dashboard" && (
