@@ -3624,7 +3624,7 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     setNotifOpen(o=>!o);
                     setNotifications(prev=>prev.map(n=>({...n,read:true})));
                   }}
-                    style={{ position:"relative", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontSize:12, lineHeight:1 }}>
+                    style={{ position:"relative", background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.18)", borderRadius:8, padding:"5px 10px", cursor:"pointer", fontSize:13, lineHeight:1, color:"rgba(255,255,255,0.85)" }}>
                     
                     {notifications.filter(n=>!n.read).length > 0 && (
                       <span style={{ position:"absolute", top:-4, right:-4, width:14, height:14, borderRadius:"50%", background:"#ff453a", fontSize:8, fontWeight:700, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -3633,28 +3633,28 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
                     )}
                   </button>
                   {notifOpen && (
-                    <div ref={notifDragRef} style={{ position:"fixed", left:notifPos.x, top:notifPos.y, width:300, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.12)", zIndex:9999, overflow:"hidden" }}>
+                    <div ref={notifDragRef} style={{ position:"fixed", left:notifPos.x, top:notifPos.y, width:300, background:"rgba(20,18,16,0.92)", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:14, boxShadow:"0 16px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)", zIndex:99999, overflow:"hidden" }}>
                       <div
                         onMouseDown={(e) => {
                           notifDragging.current = true;
                           notifDragOffset.current = { x: e.clientX - notifPos.x, y: e.clientY - notifPos.y };
                           e.preventDefault();
                         }}
-                        style={{ padding:"10px 14px", borderBottom:"1px solid rgba(255,255,255,0.07)", fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase", cursor:"grab", userSelect:"none", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                        <span> Client Activity</span>
-                        <span onClick={() => setNotifOpen(false)} style={{ cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.4)", fontWeight:400 }}></span>
+                        style={{ padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.1)", fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.7)", letterSpacing:2, textTransform:"uppercase", cursor:"grab", userSelect:"none", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                        <span>Client Activity</span>
+                        <span onClick={() => setNotifOpen(false)} style={{ cursor:"pointer", fontSize:16, color:"rgba(255,255,255,0.5)", fontWeight:300, lineHeight:1 }}>×</span>
                       </div>
                       {notifications.length === 0 && (
-                        <div style={{ padding:"20px 14px", fontSize:11, color:"rgba(255,255,255,0.4)", textAlign:"center" }}>No client actions yet</div>
+                        <div style={{ padding:"24px 16px", fontSize:11, color:"rgba(255,255,255,0.5)", textAlign:"center" }}>No client actions yet</div>
                       )}
                       {notifications.slice(0,10).map(n => (
-                        <div key={n.id} style={{ padding:"10px 14px", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", gap:10, alignItems:"flex-start" }}>
-                          <span style={{ fontSize:14, flexShrink:0 }}>{n.type==="approved" ? "" : ""}</span>
+                        <div key={n.id} style={{ padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", gap:12, alignItems:"flex-start" }}>
+                          <div style={{ width:6, height:6, borderRadius:"50%", background: n.type==="approved" ? "#2AABFF" : "#ff453a", marginTop:4, flexShrink:0 }} />
                           <div style={{ flex:1 }}>
-                            <div style={{ fontSize:11, fontWeight:600, color:"#f5f5f7", lineHeight:1.4 }}>{n.type==="approved" ? "Approved" : "Revisions requested"}</div>
-                            <div style={{ fontSize:10, color:"rgba(255,255,255,0.6)", marginTop:2 }}>{n.item?.title}</div>
-                            {n.item?.client_note && <div style={{ fontSize:9, color:"#ff453a", marginTop:3, fontStyle:"italic" }}>"{n.item.client_note}"</div>}
-                            <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)", marginTop:3 }}>{new Date(n.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+                            <div style={{ fontSize:11, fontWeight:600, color:"rgba(255,255,255,0.9)", lineHeight:1.4 }}>{n.type==="approved" ? "Approved" : "Revisions requested"}</div>
+                            <div style={{ fontSize:10, color:"rgba(255,255,255,0.65)", marginTop:2 }}>{n.item?.title}</div>
+                            {n.item?.client_note && <div style={{ fontSize:9, color:"rgba(255,100,80,0.9)", marginTop:3, fontStyle:"italic" }}>"{n.item.client_note}"</div>}
+                            <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)", marginTop:4 }}>{new Date(n.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
                           </div>
                         </div>
                       ))}
