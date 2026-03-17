@@ -3226,11 +3226,6 @@ function WarRoom({ onSignOut, userEmail, content: contentProp, setContent: setCo
     if (!aiEnabledRef.current) throw new Error("AI_DISABLED");
     return fetch(url, opts);
   };
-  const toggleAI = () => {
-    const next = !aiEnabled;
-    setAiEnabled(next);
-    try { localStorage.setItem("warroom_ai_enabled", String(next)); } catch {}
-  };
   const notifDragRef = React.useRef(null);
   const notifDragging = React.useRef(false);
   const notifDragOffset = React.useRef({ x: 0, y: 0 });
