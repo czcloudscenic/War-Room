@@ -1,9 +1,9 @@
-# War Room Handoff Brief — March 12, 2026
+# Vantus Handoff Brief — March 12, 2026
 
 ## Project
-Cloud Scenic × VitalLyfe "War Room" — content operations dashboard
+Cloud Scenic × VitalLyfe "Vantus" — content operations dashboard
 Live at: https://majestic-cassata-aa16e9.netlify.app
-GitHub: https://github.com/czcloudscenic/War-Room.git (auto-deploys on push to main)
+GitHub: https://github.com/czcloudscenic/Vantus.git (auto-deploys on push to main)
 
 ## Stack
 - Single file React 18 (CDN + Babel) — index.html (~2500 lines)
@@ -42,11 +42,11 @@ GitHub: https://github.com/czcloudscenic/War-Room.git (auto-deploys on push to m
 3. N8N_WEBHOOK_URL env var set in Netlify (production URL)
 
 ## n8n Status — ✅ COMPLETE AND LIVE
-The War Room side is fully wired. The n8n workflow is PARTIALLY built.
+The Vantus side is fully wired. The n8n workflow is PARTIALLY built.
 
 ### What exists in n8n — PUBLISHED & ACTIVE
-- Workflow: "VitalLyfe War Room — Content Sync" (ID: 3WXHHEiMz9rMnBEn)
-- 4 nodes: War Room Webhook → Format Content Item → Insert to Supabase → Respond OK
+- Workflow: "VitalLyfe Vantus — Content Sync" (ID: 3WXHHEiMz9rMnBEn)
+- 4 nodes: Vantus Webhook → Format Content Item → Insert to Supabase → Respond OK
 - Supabase secret key is configured in both HTTP Request header fields
 - Production webhook is live and accepting POST requests
 
@@ -54,7 +54,7 @@ The War Room side is fully wired. The n8n workflow is PARTIALLY built.
 External source POSTs to:
   https://cloudscenic.app.n8n.cloud/webhook/11138e92-248c-4562-be17-5e07b9da928c
 with payload: { title, platform, status, pillar, format, description }
-→ n8n formats → INSERTs into Supabase content_items → War Room updates instantly
+→ n8n formats → INSERTs into Supabase content_items → Vantus updates instantly
 
 ### n8n Access Notes
 - Christian is a MEMBER (not owner) on cloudscenic n8n plan — no REST API key access
@@ -66,16 +66,16 @@ with payload: { title, platform, status, pillar, format, description }
 - /Users/chrisz/.openclaw/workspace/warroom/index.html (main app)
 - /Users/chrisz/.openclaw/workspace/warroom/netlify/functions/agent-action.js
 - /Users/chrisz/.openclaw/workspace/warroom/netlify/functions/chat.js
-- /Users/chrisz/.openclaw/workspace/warroom/n8n/warroom-trigger-workflow.json
+- /Users/chrisz/.openclaw/workspace/warroom/n8n/vantus-trigger-workflow.json
 
 ## Strategic Context
 - Client: VitalLyfe (Natalia = approver, Jon = JC, Danny = Cloud Scenic ops)
 - Tierra Bomba campaign running at $100/day
 - Influencer seeding active (~27-30 confirmed, boxes arriving March 13)
-- Influencer tracker lives externally (SharePoint) — NOT in War Room
+- Influencer tracker lives externally (SharePoint) — NOT in Vantus
 - No Slack access from assistant — user preference
 
 ## What's NOT Built Yet
 - External tracker trigger (SharePoint/Airtable → n8n) — depends on what tool client uses
-- War Room → n8n → Slack notification workflow
+- Vantus → n8n → Slack notification workflow
 - n8n workflows for agents beyond lacey_trigger_n8n

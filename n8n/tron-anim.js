@@ -1,4 +1,4 @@
-      // ── TRON Legacy sphere — War Room blue ──────────────────────────────
+      // ── TRON Legacy sphere — Vantus blue ──────────────────────────────
       useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;

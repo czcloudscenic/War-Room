@@ -1,5 +1,5 @@
 // Master Control — Anthropic proxy
-// Receives agent chat messages from the War Room frontend
+// Receives agent chat messages from the Vantus frontend
 // and forwards them to Anthropic securely server-side.
 
 exports.handler = async (event) => {

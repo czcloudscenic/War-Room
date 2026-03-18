@@ -301,7 +301,7 @@
                 <span style={{ fontSize:20, fontWeight:800, color:"#2AABFF", letterSpacing:-0.5 }}>W</span>
               </div>
               <div style={{ fontSize:10, color:"rgba(255,255,255,0.40)", letterSpacing:3, textTransform:"uppercase", fontWeight:600, marginBottom:8 }}>Cloud Scenic</div>
-              <h1 style={{ fontSize:26, fontWeight:500, color:"#fff", margin:"0 0 6px", letterSpacing:-0.6 }}>War Room</h1>
+              <h1 style={{ fontSize:26, fontWeight:500, color:"#fff", margin:"0 0 6px", letterSpacing:-0.6 }}>Vantus</h1>
               <p style={{ fontSize:12, color:"rgba(255,255,255,0.38)", margin:0 }}>VitalLyfe Content Operations</p>
             </div>
 
@@ -329,7 +329,7 @@
             )}
 
             <button onClick={handleLogin} disabled={loading} className="lg-btn">
-              {loading ? "Signing in…" : "Enter War Room →"}
+              {loading ? "Signing in…" : "Enter Vantus →"}
             </button>
 
             {/* Footer status */}

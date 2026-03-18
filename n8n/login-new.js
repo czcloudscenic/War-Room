@@ -142,7 +142,7 @@
                     <div style={{ width:32, height:32, borderRadius:8, background:"rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center" }}>
                       <span style={{ color:"#fff", fontSize:13, fontWeight:800, letterSpacing:-0.5 }}>VL</span>
                     </div>
-                    <span style={{ color:"#fff", fontSize:18, fontWeight:600, letterSpacing:-0.5 }}>War Room</span>
+                    <span style={{ color:"#fff", fontSize:18, fontWeight:600, letterSpacing:-0.5 }}>Vantus</span>
                   </div>
                   <button className="lg lg-pill lg-btn" style={{ padding:"6px 16px", fontSize:12, color:"rgba(255,255,255,0.8)" }}>
                     Menu ≡
@@ -200,7 +200,7 @@
                   <div style={{ marginBottom:32 }}>
                     <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", letterSpacing:2, textTransform:"uppercase", fontWeight:600, marginBottom:8 }}>Cloud Scenic</div>
                     <h2 style={{ fontSize:32, fontWeight:500, color:"#fff", margin:"0 0 6px", letterSpacing:-0.8 }}>Sign in</h2>
-                    <p style={{ fontSize:12, color:"rgba(255,255,255,0.4)", margin:0 }}>VitalLyfe War Room</p>
+                    <p style={{ fontSize:12, color:"rgba(255,255,255,0.4)", margin:0 }}>VitalLyfe Vantus</p>
                   </div>
 
                   <label style={{ fontSize:10, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.4)", display:"block", marginBottom:6 }}>Email</label>
@@ -223,7 +223,7 @@
 
                   <button onClick={handleLogin} disabled={loading} className="lg-strong lg-btn lg-pill"
                     style={{ width:"100%", padding:"14px", fontSize:13, fontWeight:600, color:loading?"rgba(255,255,255,0.4)":"#fff", letterSpacing:0.3, marginTop:8 }}>
-                    {loading ? "Signing in…" : "Enter War Room →"}
+                    {loading ? "Signing in…" : "Enter Vantus →"}
                   </button>
                 </div>
 
@@ -246,7 +246,7 @@
                     <span style={{ fontSize:22, fontWeight:800, color:"#fff" }}>W</span>
                   </div>
                   <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", letterSpacing:2, textTransform:"uppercase", marginBottom:6 }}>Cloud Scenic</div>
-                  <h2 style={{ fontSize:24, fontWeight:500, color:"#fff", margin:"0 0 4px", letterSpacing:-0.5 }}>War Room</h2>
+                  <h2 style={{ fontSize:24, fontWeight:500, color:"#fff", margin:"0 0 4px", letterSpacing:-0.5 }}>Vantus</h2>
                   <p style={{ fontSize:11, color:"rgba(255,255,255,0.4)", margin:0 }}>VitalLyfe Content Operations</p>
                 </div>
                 <label style={{ fontSize:10, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.4)", display:"block", marginBottom:6 }}>Email</label>
@@ -260,7 +260,7 @@
                 {error && <div style={{ fontSize:11, color:"rgba(255,100,100,0.9)", marginBottom:12, padding:"8px 12px", background:"rgba(255,60,60,0.08)", borderRadius:8 }}>{error}</div>}
                 <button onClick={handleLogin} disabled={loading} className="lg-strong lg-btn lg-pill"
                   style={{ width:"100%", padding:"14px", fontSize:13, fontWeight:600, color:loading?"rgba(255,255,255,0.4)":"#fff", marginTop:8 }}>
-                  {loading ? "Signing in…" : "Enter War Room →"}
+                  {loading ? "Signing in…" : "Enter Vantus →"}
                 </button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-// artgrid-scout.js — VitalLyfe War Room
+// artgrid-scout.js — VitalLyfe Vantus
 // Logs into Artgrid.io as you, runs search queries, screenshots results for review.
 // Usage:
 //   node scout.js                         → default VitalLyfe queries
@@ -53,7 +53,7 @@ async function scout() {
   const outDir  = path.join(__dirname, "screenshots", date);
   fs.mkdirSync(outDir, { recursive: true });
 
-  console.log(`\n🕵️  Artgrid Scout — VitalLyfe War Room`);
+  console.log(`\n🕵️  Artgrid Scout — VitalLyfe Vantus`);
   console.log(`📅  ${date}`);
   console.log(`🔍  ${queries.length} queries`);
   console.log(`📁  ${outDir}\n`);

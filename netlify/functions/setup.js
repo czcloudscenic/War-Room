@@ -3,11 +3,11 @@
 // DELETE THIS FILE after running once!
 //
 // Usage: POST https://majestic-cassata-aa16e9.netlify.app/api/setup
-//        with body: { "key": "warroom-setup-2026" }
+//        with body: { "key": "vantus-setup-2026" }
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
-const SETUP_KEY    = "warroom-setup-2026"; // one-time auth token
+const SETUP_KEY    = "vantus-setup-2026"; // one-time auth token
 const SETUP_PASSWORD = "Cloudai25%";
 
 const ADMIN_EMAILS = [

@@ -293,7 +293,7 @@
                 <span style={{ fontSize:18, fontWeight:800, color:"#2AABFF" }}>W</span>
               </div>
               <div style={{ fontSize:9, color:"rgba(255,255,255,0.38)", letterSpacing:3, textTransform:"uppercase", fontWeight:600, marginBottom:7 }}>Cloud Scenic</div>
-              <h1 style={{ fontSize:24, fontWeight:500, color:"#fff", margin:"0 0 5px", letterSpacing:-0.5 }}>War Room</h1>
+              <h1 style={{ fontSize:24, fontWeight:500, color:"#fff", margin:"0 0 5px", letterSpacing:-0.5 }}>Vantus</h1>
               <p style={{ fontSize:11, color:"rgba(255,255,255,0.35)", margin:0 }}>VitalLyfe Content Operations</p>
             </div>
 
@@ -320,7 +320,7 @@
             )}
 
             <button onClick={handleLogin} disabled={loading} className="lg-btn">
-              {loading ? "Signing in…" : "Enter War Room →"}
+              {loading ? "Signing in…" : "Enter Vantus →"}
             </button>
 
             <div style={{ marginTop:22, display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>

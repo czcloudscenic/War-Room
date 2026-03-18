@@ -69,7 +69,7 @@ exports.handler = async (event) => {
       </table>
       ${clientNoteHtml}
       <div style="margin-top:28px;padding-top:20px;border-top:1px solid rgba(0,0,0,0.07);font-size:11px;color:rgba(0,0,0,0.35);">
-        VitalLyfe War Room · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}
+        VitalLyfe Vantus · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}
       </div>
     </div>
   </div>
@@ -84,7 +84,7 @@ exports.handler = async (event) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "VitalLyfe War Room <notifications@cloudscenic.com>",
+          from: "VitalLyfe Vantus <notifications@cloudscenic.com>",
           to: ADMIN_EMAILS,
           subject,
           html,
@@ -123,7 +123,7 @@ exports.handler = async (event) => {
         }] : []),
         {
           type: "context",
-          elements: [{ type: "mrkdwn", text: `VitalLyfe War Room · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}` }]
+          elements: [{ type: "mrkdwn", text: `VitalLyfe Vantus · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}` }]
         }
       ]
     };

@@ -1,4 +1,4 @@
-// agent-action.js — VitalLyfe War Room Agent Action Engine
+// agent-action.js — VitalLyfe Vantus Agent Action Engine
 // Handles autonomous agent actions: read/write Supabase, AI generation
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
@@ -88,7 +88,7 @@ async function ai(system, user, maxTokens = 1200) {
 async function muse_write_content(payload) {
   const { itemId, itemTitle, pillar, format, description, fieldToUpdate = "caption" } = payload;
 
-  const systemPrompt = `You are Muse, Content Ideation Agent for the VitalLyfe War Room by Cloud Scenic. 
+  const systemPrompt = `You are Muse, Content Ideation Agent for the VitalLyfe Vantus by Cloud Scenic. 
 Write ${fieldToUpdate === "script" ? "video scripts" : "captions"} for the VitalLyfe brand.
 Brand voice: cinematic, calm, purposeful. Key phrases: abundance, access, built for beyond.
 AVOID: revolutionary, game-changing, exclamation points.
@@ -136,7 +136,7 @@ async function overseer_scan() {
 
   const summary = items.map(i => `ID:${i.id} | "${i.title}" | Status:${i.status} | Pillar:${i.pillar} | Format:${i.format} | Caption:${i.caption ? "YES" : "NO"} | Script:${i.script ? "YES" : "NO"}`).join("\n");
 
-  const systemPrompt = `You are Overseer, SOP Guardian for the VitalLyfe War Room. 
+  const systemPrompt = `You are Overseer, SOP Guardian for VitalLyfe Vantus. 
 Enforce this 7-step SOP:
 ${SOP_STEPS.join("\n")}
 
@@ -188,7 +188,7 @@ async function sean_briefing() {
   const scheduled = items.filter(i => i.status === "Scheduled");
   const inCreation = items.filter(i => ["Ready For Copy Creation", "Ready For Content Creation"].includes(i.status));
 
-  const systemPrompt = `You are Sean, Commander Agent for the VitalLyfe War Room by Cloud Scenic. 
+  const systemPrompt = `You are Sean, Commander Agent for the VitalLyfe Vantus by Cloud Scenic. 
 You orchestrate all 7 agents and own the content pipeline. 
 Personality: decisive, calm, short punchy sentences. Military precision. Lead with what matters most.`;
 
@@ -275,7 +275,7 @@ async function sam_health() {
     && !i.script && i.format === "Reel"
   );
 
-  const systemPrompt = `You are Sam, Monitor Agent for the VitalLyfe War Room. You watch system health, pipeline metrics, and flag anomalies. Methodical, data-driven, brief.`;
+  const systemPrompt = `You are Sam, Monitor Agent for VitalLyfe Vantus. You watch system health, pipeline metrics, and flag anomalies. Methodical, data-driven, brief.`;
 
   const userPrompt = `Generate a pipeline health report:
 
@@ -376,7 +376,7 @@ async function scrappy_research(payload) {
   allResults.sort((a, b) => (b.score || 0) - (a.score || 0));
   const topResults = allResults.slice(0, 25);
 
-  const systemPrompt = `You are Scrappy, VitalLyfe's Trend Scout agent for Cloud Scenic's War Room.
+  const systemPrompt = `You are Scrappy, VitalLyfe's Trend Scout agent for Cloud Scenic's Vantus.
 You scour the internet for content trends, viral topics, and fresh angles — then report back with gems for Muse to work with.
 
 VitalLyfe context:
@@ -600,7 +600,7 @@ async function muse_generate_calendar() {
   const pillars = ["Abundance", "Access", "Innovation", "Tierra Bomba", "Startup Diaries", "Product Launch", "Meet the Makers"];
   const existing = items.map(i => i.title).join(", ");
 
-  const systemPrompt = `You are Muse, Content Ideation Agent for VitalLyfe War Room by Cloud Scenic.
+  const systemPrompt = `You are Muse, Content Ideation Agent for VitalLyfe Vantus by Cloud Scenic.
 Generate content calendar ideas. Brand voice: cinematic, calm, purposeful.
 Content pillars: ${pillars.join(", ")}.
 Platforms: Instagram (Reels, Graphics, Carousels), TikTok (Reels), YouTube (Shorts, Long-form), X/Threads.
@@ -688,7 +688,7 @@ async function lacey_trigger_n8n(payload) {
     workflow = "general",
     data = {},
     message = "",
-    triggeredBy = "War Room",
+    triggeredBy = "Vantus",
   } = payload;
 
   if (!N8N_WEBHOOK_URL) throw new Error("N8N_WEBHOOK_URL not configured");

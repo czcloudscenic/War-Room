@@ -1,7 +1,7 @@
 {
   "name": "artgrid-scout",
   "version": "1.0.0",
-  "description": "Automated Artgrid footage scout for VitalLyfe War Room",
+  "description": "Automated Artgrid footage scout for VitalLyfe Vantus",
   "scripts": {
     "scout": "node scout.js"
   },
