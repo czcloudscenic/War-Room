@@ -3,7 +3,7 @@
 export const NAV = [
   { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"agents", label:"Agents" }, { id:"cid", label:"Competitor Intel" }]},
   { section:"CONTENT", items:[{ id:"instagram", label:"Instagram" }, { id:"tiktok", label:"TikTok" }, { id:"youtube", label:"YouTube" }, { id:"tracker", label:"Content Tracker" }, { id:"taskboard", label:"Task Board" }]},
-  { section:"APPS", items:[{ id:"apps", label:"Apps" }]},
+  { section:"APPS", items:[{ id:"apps", label:"Apps" }, { id:"settings", label:"Settings" }]},
 ];
 
 export const STATUS_COLOR = {

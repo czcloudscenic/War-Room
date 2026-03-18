@@ -33,6 +33,7 @@ import EditContentModal from './ui/pipeline/EditContentModal.jsx';
 import CIDPage from './apps/competitor-intel/CIDPage.jsx';
 import LoginScreen from './ui/layout/LoginScreen.jsx';
 import ClientView from './ui/client/ClientView.jsx';
+import SettingsPage from './ui/settings/SettingsPage.jsx';
 
 //  ROOT APP WRAPPER 
 function App() {
@@ -1127,6 +1128,7 @@ return (
 
     {/* APPS */}
     {activeNav === "apps" && <AppsPage apps={apps} toggleApp={toggleApp} />}
+    {activeNav === "settings" && <SettingsPage />}
     {activeNav === "scrappy" && <AppPlaceholder label="Scraping Ops" desc="Live trend scraping from TikTok, IG, Reddit — powered by Scrappy." icon="◉" />}
     {activeNav === "analytics" && <AppPlaceholder label="Analytics" desc="Pipeline heatmaps, performance breakdowns, and content velocity." icon="◐" />}
     {activeNav === "costs" && <AppPlaceholder label="Cost Governance" desc="API spend tracking, agent budget controls, and cost optimization." icon="$" />}
