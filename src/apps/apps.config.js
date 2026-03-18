@@ -16,7 +16,12 @@ export const APPS_STORAGE_KEY = 'vantus_apps';
 export const loadApps = () => {
   try {
     const saved = JSON.parse(localStorage.getItem(APPS_STORAGE_KEY));
-    return saved && saved.length ? saved : DEFAULT_APPS;
+    if (!saved || !saved.length) return DEFAULT_APPS;
+    // Merge saved enabled state with defaults (picks up new fields like section)
+    return DEFAULT_APPS.map(def => {
+      const s = saved.find(a => a.id === def.id);
+      return { ...def, enabled: s ? s.enabled : def.enabled };
+    });
   } catch { return DEFAULT_APPS; }
 };
 

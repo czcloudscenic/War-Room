@@ -12,7 +12,7 @@ import { OPS_INIT } from './data/seed.ops.js';
 import { getMemory, setMemory, buildSystemPrompt, updateAgentMemory } from './core/memory.js';
 import { AGENT_KEYWORDS, ROUTE_PROMPTS } from './core/agentRegistry.js';
 import { routeTask } from './core/routeTask.js';
-import { DEFAULT_APPS } from './apps/apps.config.js';
+import { DEFAULT_APPS, loadApps } from './apps/apps.config.js';
 
 // ── Extracted UI components (Phase 3) ──
 import AgentAvatar from './ui/shared/AgentAvatar.jsx';
@@ -252,14 +252,9 @@ function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setCon
   const [aiEnabled, setAiEnabled] = useState(() => {
 try { return localStorage.getItem("vantus_ai_enabled") !== "false"; } catch { return true; }
   });
-  const [apps, setApps] = useState(() => {
-try {
-  const saved = JSON.parse(localStorage.getItem('vantus_apps'));
-  return saved && saved.length ? saved : DEFAULT_APPS;
-} catch { return DEFAULT_APPS; }
-  });
+  const [apps, setApps] = useState(() => loadApps());
   useEffect(() => {
-localStorage.setItem('vantus_apps', JSON.stringify(apps));
+    localStorage.setItem('vantus_apps', JSON.stringify(apps));
   }, [apps]);
   const toggleApp = (id) => {
 setApps(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
