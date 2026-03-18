@@ -542,10 +542,116 @@ const NAV = [
   { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"agents", label:"Agents" }, { id:"cid", label:"CID" }]},
   { section:"CONTENT", items:[{ id:"instagram", label:"Instagram" }, { id:"tiktok", label:"TikTok" }, { id:"youtube", label:"YouTube" }, { id:"tracker", label:"Content Tracker" }, { id:"taskboard", label:"Task Board" }]},
   { section:"BUSINESS", items:[{ id:"sales", label:"Ad ROI Hub" }, { id:"chat", label:"Team Broadcast" }]},
-  { section:"OPERATIONS", items:[{ id:"artgrid", label:"ArtGrid Scout" }, { id:"references", label:"References" }, { id:"skills", label:"Skills" }, { id:"sops", label:"SOPs" }]},
+  { section:"OPERATIONS", items:[{ id:"artgrid", label:"ArtGrid Scout" }, { id:"references", label:"References" }, { id:"skills", label:"Skills" }, { id:"sops", label:"SOPs" }, { id:"apps", label:"Apps" }]},
 ];
 
-//  STATUS COLORS 
+const DEFAULT_APPS = [
+  { id: "artgrid",    label: "ArtGrid Scout",    desc: "AI footage briefs + Artgrid.io search queries",       enabled: true  },
+  { id: "cid",        label: "Competitor Intel",  desc: "Hook analysis, video breakdowns, A/B variations",    enabled: true  },
+  { id: "scrappy",    label: "Scraping Ops",      desc: "Live trend scraping from TikTok, IG, Reddit",        enabled: false },
+  { id: "analytics",  label: "Analytics",         desc: "Pipeline heatmaps and performance breakdowns",       enabled: false },
+  { id: "costs",      label: "Cost Governance",   desc: "API spend tracking and agent budget controls",       enabled: false },
+  { id: "automation", label: "Automation Center", desc: "Scheduled agent workflows and n8n triggers",         enabled: false },
+];
+
+// ── AGENT MEMORY ──
+const getMemory = (agentName) => {
+  try {
+    return JSON.parse(localStorage.getItem(`vantus_mem_${agentName}`) || '{}');
+  } catch { return {}; }
+};
+
+const setMemory = (agentName, updates) => {
+  const current = getMemory(agentName);
+  const merged = { ...current, ...updates, updatedAt: new Date().toISOString() };
+  localStorage.setItem(`vantus_mem_${agentName}`, JSON.stringify(merged));
+};
+
+const buildSystemPrompt = (agentName, basePrompt) => {
+  const mem = getMemory(agentName);
+  if (!Object.keys(mem).length) return basePrompt;
+  const memStr = Object.entries(mem)
+    .filter(([k]) => k !== 'updatedAt')
+    .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+    .join('\n');
+  return `${basePrompt}\n\nYour memory from past sessions:\n${memStr}`;
+};
+
+const updateAgentMemory = (agentName, userInput, agentResponse) => {
+  const mem = getMemory(agentName);
+  setMemory(agentName, {
+    ...mem,
+    lastTask: userInput.slice(0, 120),
+    lastResponse: agentResponse.slice(0, 200),
+    taskCount: (mem.taskCount || 0) + 1,
+  });
+};
+
+// ── TASK ROUTING ──
+const ROUTE_PROMPTS = {
+  Sean: "You are Sean, Commander Agent for the VitalLyfe Vantus by Cloud Scenic. Orchestrate all 7 agents, own the content pipeline. Personality: decisive, calm, short punchy sentences.",
+  Muse: "You are Muse, Content Ideation Agent for the VitalLyfe Vantus by Cloud Scenic. Write hooks, captions, scripts. Brand voice: cinematic, calm, purposeful.",
+  Scrappy: "You are Scrappy, Trend Scout for the VitalLyfe Vantus. Scour internet for content trends, viral hooks. Sharp, fast, specific signals.",
+  Overseer: "You are Overseer, SOP Guardian for the VitalLyfe Vantus. Enforce 7-step SOP. Rigorous but never alarmist.",
+  Artgrid: "You are Artgrid, Footage Scout for the VitalLyfe Vantus. Source B-roll from Artgrid.io. Cinematic, precise.",
+  Lacey: "You are Lacey, Runner Agent for the VitalLyfe Vantus. Execute workflows, deliverables, SOPs.",
+  Sam: "You are Sam, Monitor Agent for the VitalLyfe Vantus. System health, API spend, security, metrics.",
+  Ali: "You are Ali, Developer Agent for the VitalLyfe Vantus. Technical infrastructure, API integrations.",
+};
+
+const AGENT_KEYWORDS = {
+  Sean:     ['plan','orchestrate','brief','coordinate','morning','strategy','overview','briefing','pipeline status'],
+  Muse:     ['caption','hook','copy','script','write','content','idea','calendar','creative'],
+  Scrappy:  ['trend','trending','research','scan','viral','tiktok','reddit','competitor'],
+  Overseer: ['sop','compliance','review','approve','check','gate','audit'],
+  Artgrid:  ['footage','scout','artgrid','clip','video','b-roll','visual'],
+  Lacey:    ['workflow','automate','n8n','pipeline','advance','execute','run'],
+  Sam:      ['health','spend','cost','metric','monitor','report','analytics'],
+  Ali:      ['build','code','fix','debug','integrate','api','deploy'],
+};
+
+async function routeTask(input) {
+  const lower = input.toLowerCase();
+  const scores = Object.entries(AGENT_KEYWORDS).map(([agent, keywords]) => ({
+    agent,
+    score: keywords.filter(k => lower.includes(k)).length,
+  }));
+  const selected = scores
+    .filter(s => s.score > 0 || s.agent === 'Sean')
+    .sort((a, b) => b.score - a.score)
+    .map(s => s.agent);
+
+  const log = [];
+  const results = {};
+
+  for (const agentName of selected) {
+    log.push({ agent: agentName, status: 'running', ts: Date.now() });
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 400,
+          system: buildSystemPrompt(agentName, ROUTE_PROMPTS[agentName]),
+          messages: [{ role: 'user', content: input }],
+        }),
+      });
+      const d = await res.json();
+      const text = d.content?.find(b => b.type === 'text')?.text || '';
+      results[agentName] = text;
+      updateAgentMemory(agentName, input, text);
+      log[log.length - 1].status = 'done';
+    } catch (e) {
+      results[agentName] = 'Error: ' + e.message;
+      log[log.length - 1].status = 'error';
+    }
+  }
+
+  return { agents: selected, log, results };
+}
+
+//  STATUS COLORS
 const STATUS_COLOR = {
   "Ready For Copy Creation":    "#f59e0b",
   "Need Copy Approval":         "#3b82f6",
@@ -1658,13 +1764,14 @@ function AgentChatPage({ agents, content }) {
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1000,
-          system: PROMPTS[sel.name] + ctx,
+          system: buildSystemPrompt(sel.name, PROMPTS[sel.name]) + ctx,
           messages: thread.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
         }),
       });
       const d = await res.json();
       const blk = d.content && d.content.find(x => x.type === "text");
       setHists(h => ({ ...h, [sel.id]: [...thread, { role: "assistant", content: blk ? blk.text : "No response.", ts: Date.now() }] }));
+      updateAgentMemory(sel.name, text, blk ? blk.text : '');
     } catch(e) {
       setHists(h => ({ ...h, [sel.id]: [...thread, { role: "assistant", content: "Connection error. Try again.", ts: Date.now(), err: true }] }));
     }
@@ -2012,7 +2119,98 @@ function QuickActionsDashboard({ aiEnabled = true }) {
   );
 }
 
-//  AD ROI HUB 
+function CommandInput({ aiEnabled }) {
+  const isMobile = useIsMobile();
+  const [input, setInput] = useState('');
+  const [running, setRunning] = useState(false);
+  const [missionLog, setMissionLog] = useState([]);
+  const inputRef = useRef(null);
+
+  const AGENT_COLORS = {};
+  AGENTS_BASE.forEach(a => { AGENT_COLORS[a.name] = a.color; });
+
+  const run = async () => {
+    if (!input.trim() || running || !aiEnabled) return;
+    setRunning(true);
+    setMissionLog([]);
+    const task = input.trim();
+    setInput('');
+
+    const { agents, results } = await routeTask(task);
+
+    for (const agent of agents) {
+      setMissionLog(prev => [...prev, {
+        agent,
+        status: 'done',
+        result: results[agent],
+      }]);
+      await new Promise(r => setTimeout(r, 80));
+    }
+    setRunning(false);
+  };
+
+  const QUICK_CHIPS = [
+    { label: 'Morning Briefing', input: 'Give me a morning briefing on the pipeline' },
+    { label: 'Generate Captions', input: 'Generate captions for the pipeline' },
+    { label: 'SOP Scan', input: 'Run a full SOP compliance scan' },
+    { label: 'Advance Pipeline', input: 'Advance all ready pipeline items' },
+    { label: 'Health Check', input: 'Run a full system health check' },
+    { label: 'Scout Footage', input: 'Scout footage for all video items' },
+  ];
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:22, fontWeight:400, fontStyle:"italic", color:"#f0eeef", margin:"0 0 14px", letterSpacing:-0.5 }}>
+        What do you need today?
+      </h2>
+      <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && run()}
+          placeholder="Tell Vantus what to do…"
+          disabled={running}
+          style={{ flex:1, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"11px 16px", color:"#f5f5f7", fontSize:13, outline:"none", fontFamily:"Inter,sans-serif" }}
+        />
+        <button onClick={run} disabled={!input.trim() || running || !aiEnabled}
+          style={{ background: input.trim() && !running ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, color: input.trim() && !running ? "#fff" : "rgba(255,255,255,0.25)", cursor: input.trim() && !running ? "pointer" : "default", padding:"11px 20px", fontSize:13, fontFamily:"Inter,sans-serif", fontWeight:500 }}>
+          {running ? '\u2026' : 'Run \u2192'}
+        </button>
+      </div>
+      <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:16 }}>
+        {QUICK_CHIPS.map(chip => (
+          <button key={chip.label} onClick={() => { setInput(chip.input); inputRef.current?.focus(); }}
+            disabled={running}
+            style={{ fontSize:11, fontWeight:500, color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, padding:"4px 12px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>
+            {chip.label}
+          </button>
+        ))}
+      </div>
+      {(running || missionLog.length > 0) && (
+        <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 18px", animation:"fadeIn 0.3s ease" }}>
+          <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>
+            {running ? 'Mission Running\u2026' : 'Mission Complete'}
+          </div>
+          {missionLog.map((entry, i) => (
+            <div key={i} style={{ marginBottom:10, animation:"slideIn 0.2s ease" }}>
+              <div style={{ fontSize:10, fontWeight:700, color: AGENT_COLORS[entry.agent] || '#2AABFF', marginBottom:3 }}>{entry.agent}</div>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,0.65)", lineHeight:1.6, whiteSpace:"pre-wrap" }}>{entry.result}</div>
+            </div>
+          ))}
+          {running && (
+            <div style={{ display:"flex", gap:5, alignItems:"center", marginTop:4 }}>
+              <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 1s infinite" }} />
+              <span style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>Agents working\u2026</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+//  AD ROI HUB
 function AdROIHub() {
   const isMobile = useIsMobile();
   const [campaigns, setCampaigns] = useState([
@@ -3197,6 +3395,43 @@ function CIDPage() {
   );
 }
 
+function AppsPage({ apps, toggleApp }) {
+  const isMobile = useIsMobile();
+  return (
+    <div style={{ animation:"fadeIn 0.4s ease" }}>
+      <div style={{ marginBottom:32 }}>
+        <div style={{ fontSize:9, color:"rgba(255,255,255,0.55)", fontWeight:600, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace", marginBottom:8 }}>Operations</div>
+        <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:28, fontWeight:400, fontStyle:"italic", color:"#ffffff", margin:0, letterSpacing:-0.5 }}>Apps</h2>
+        <p style={{ fontSize:12, color:"rgba(255,255,255,0.45)", marginTop:6 }}>Toggle optional modules. Base pages are always visible.</p>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:12 }}>
+        {apps.map(app => (
+          <div key={app.id} style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, padding:"18px 20px", display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:16 }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:14, fontWeight:500, color:"#fff", marginBottom:4 }}>{app.label}</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", lineHeight:1.5 }}>{app.desc}</div>
+              <div style={{ marginTop:8 }}>
+                <span style={{ fontSize:9, fontWeight:700, fontFamily:"'Geist Mono', monospace", letterSpacing:1, color: app.enabled ? "#2AABFF" : "rgba(255,255,255,0.3)" }}>
+                  {app.enabled ? "ACTIVE" : "INACTIVE"}
+                </span>
+              </div>
+            </div>
+            <button onClick={() => toggleApp(app.id)} style={{
+              width:36, height:20, borderRadius:10, border:"none", cursor:"pointer", position:"relative", flexShrink:0, marginTop:2,
+              background: app.enabled ? "#2AABFF" : "rgba(255,255,255,0.12)", transition:"background 0.2s"
+            }}>
+              <div style={{
+                width:16, height:16, borderRadius:8, background:"#fff", position:"absolute", top:2,
+                left: app.enabled ? 18 : 2, transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.3)"
+              }} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setContentProp }) {
   const isMobile = useIsMobile();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -3217,6 +3452,22 @@ function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setCon
   const [aiEnabled, setAiEnabled] = useState(() => {
     try { return localStorage.getItem("vantus_ai_enabled") !== "false"; } catch { return true; }
   });
+  const [apps, setApps] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('vantus_apps'));
+      return saved && saved.length ? saved : DEFAULT_APPS;
+    } catch { return DEFAULT_APPS; }
+  });
+  useEffect(() => {
+    localStorage.setItem('vantus_apps', JSON.stringify(apps));
+  }, [apps]);
+  const toggleApp = (id) => {
+    setApps(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
+  };
+  const isAppEnabled = (id) => {
+    const app = apps.find(a => a.id === id);
+    return !app || app.enabled;
+  };
   const toggleAI = () => {
     const next = !aiEnabled;
     setAiEnabled(next);
@@ -3246,6 +3497,16 @@ function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setCon
   //  SUPABASE REALTIME SUBSCRIPTION 
   // App-level already handles initial load. Vantus only handles realtime sync + fallback.
   useEffect(() => {
+    // Pre-seed Muse memory
+    if (!getMemory('Muse').brand) {
+      setMemory('Muse', {
+        brand: 'VitalLyfe',
+        niche: 'hydration wellness water autonomy',
+        tone: 'cinematic calm purposeful never corporate',
+        campaigns: ['Drip Campaign', 'Meet the Makers', 'Product Launch'],
+        pillars: ['Abundance', 'Access', 'Innovation', 'Tierra Bomba', 'Startup Diaries'],
+      });
+    }
     if (!sb) return;
 
     // If no content was passed in from App (standalone mode or content not yet loaded), load it ourselves
@@ -3605,11 +3866,11 @@ function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setCon
               { section:"COMMAND", items:[{id:"dashboard",label:"Dashboard"},{id:"agents",label:"Agents"},{id:"cid",label:"CID"}] },
               { section:"CONTENT", items:[{id:"instagram",label:"Instagram"},{id:"tiktok",label:"TikTok"},{id:"youtube",label:"YouTube"},{id:"tracker",label:"Content Tracker"},{id:"taskboard",label:"Task Board"}] },
               { section:"BUSINESS", items:[{id:"sales",label:"Ad ROI Hub"},{id:"chat",label:"Team Broadcast"}] },
-              { section:"OPERATIONS", items:[{id:"artgrid",label:"ArtGrid Scout"},{id:"references",label:"References"},{id:"skills",label:"Skills"},{id:"sops",label:"SOPs"}] },
+              { section:"OPERATIONS", items:[{id:"artgrid",label:"ArtGrid Scout"},{id:"references",label:"References"},{id:"skills",label:"Skills"},{id:"sops",label:"SOPs"},{id:"apps",label:"Apps"}] },
             ].map(({ section, items }) => (
               <div key={section}>
                 <div style={{ padding:"10px 20px 4px", fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.25)", letterSpacing:2, textTransform:"uppercase", fontFamily:"'Geist Mono',monospace" }}>{section}</div>
-                {items.map(item => (
+                {items.filter(item => section !== "OPERATIONS" || isAppEnabled(item.id)).map(item => (
                   <button key={item.id} onClick={() => { setActiveNav(item.id); setMobileNavOpen(false); }}
                     style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"13px 20px", background: activeNav===item.id ? "rgba(42,171,255,0.08)" : "none", border:"none", borderLeft: activeNav===item.id ? "2px solid #2AABFF" : "2px solid transparent", color: activeNav===item.id ? "#2AABFF" : "rgba(255,255,255,0.65)", fontSize:13, fontWeight: activeNav===item.id ? 600 : 400, cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>
                     {item.label}
@@ -3749,7 +4010,7 @@ function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setCon
           {NAV.map(group => (
             <div key={group.section} style={{ padding:"12px 0 0" }}>
               {!sidebarCollapsed && <div style={{ padding:"0 16px 5px", fontSize:9, color:"rgba(255,255,255,0.4)", letterSpacing:2, fontWeight:600, textTransform:"uppercase" }}>{group.section}</div>}
-              {group.items.map(item => (
+              {group.items.filter(item => group.section !== "OPERATIONS" || isAppEnabled(item.id)).map(item => (
                 <div key={item.id} style={{ padding:sidebarCollapsed?"0":"0 8px 1px" }}>
                   <button onClick={() => setActiveNav(item.id)} title={sidebarCollapsed?item.label:undefined}
                     style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:sidebarCollapsed?"9px 0":"7px 10px", justifyContent:sidebarCollapsed?"center":"flex-start", background:"transparent", border:"none", borderLeft: activeNav===item.id ? "2px solid #2AABFF" : "2px solid transparent", color:activeNav===item.id?"#ffffff":"rgba(255,255,255,0.6)", cursor:"pointer", fontSize:12, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===item.id?500:400, transition:"color 0.12s, border-color 0.12s", letterSpacing:0.1 }}>
@@ -3809,7 +4070,7 @@ function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setCon
 
             {/*  QUICK ACTIONS  */}
             <div style={{ marginBottom: isMobile ? 24 : 44 }}>
-              <QuickActionsDashboard aiEnabled={aiEnabled} />
+              <CommandInput aiEnabled={aiEnabled} />
             </div>
 
             {/*  AGENT GRID  */}
@@ -4058,6 +4319,9 @@ function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setCon
 
         {/* SKILLS */}
         {activeNav === "skills" && <SkillsPage agents={agents} />}
+
+        {/* APPS */}
+        {activeNav === "apps" && <AppsPage apps={apps} toggleApp={toggleApp} />}
 
         {/* SOPs */}
         {activeNav === "sops" && (
