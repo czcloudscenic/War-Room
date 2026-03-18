@@ -3,8 +3,7 @@
 export const NAV = [
   { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"agents", label:"Agents" }]},
   { section:"CONTENT", items:[{ id:"instagram", label:"Instagram" }, { id:"tiktok", label:"TikTok" }, { id:"youtube", label:"YouTube" }, { id:"tracker", label:"Content Tracker" }, { id:"taskboard", label:"Task Board" }]},
-  { section:"BUSINESS", items:[{ id:"sales", label:"Ad ROI Hub" }, { id:"chat", label:"Team Broadcast" }]},
-  { section:"OPERATIONS", items:[{ id:"references", label:"References" }, { id:"skills", label:"Skills" }, { id:"sops", label:"SOPs" }, { id:"apps", label:"Apps" }]},
+  { section:"APPS", items:[{ id:"apps", label:"Apps" }]},
 ];
 
 export const STATUS_COLOR = {

@@ -6,7 +6,7 @@ export default function AppsPage({ apps, toggleApp }) {
   return (
 <div style={{ animation:"fadeIn 0.4s ease" }}>
   <div style={{ marginBottom:32 }}>
-    <div style={{ fontSize:9, color:"rgba(255,255,255,0.55)", fontWeight:600, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace", marginBottom:8 }}>Operations</div>
+    <div style={{ fontSize:9, color:"rgba(255,255,255,0.55)", fontWeight:600, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace", marginBottom:8 }}>System</div>
     <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:28, fontWeight:400, fontStyle:"italic", color:"#ffffff", margin:0, letterSpacing:-0.5 }}>Apps</h2>
     <p style={{ fontSize:12, color:"rgba(255,255,255,0.45)", marginTop:6 }}>Toggle optional modules. Base pages are always visible.</p>
   </div>
