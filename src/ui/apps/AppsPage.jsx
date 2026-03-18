@@ -16,11 +16,10 @@ export default function AppsPage({ apps, toggleApp }) {
         <div style={{ flex:1 }}>
           <div style={{ fontSize:14, fontWeight:500, color:"#fff", marginBottom:4 }}>{app.label}</div>
           <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", lineHeight:1.5 }}>{app.desc}</div>
-          <div style={{ marginTop:8, display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ marginTop:8 }}>
             <span style={{ fontSize:9, fontWeight:700, fontFamily:"'Geist Mono', monospace", letterSpacing:1, color: app.enabled ? "#2AABFF" : "rgba(255,255,255,0.3)" }}>
               {app.enabled ? "ACTIVE" : "INACTIVE"}
             </span>
-            {app.section && <span style={{ fontSize:8, fontFamily:"'Geist Mono', monospace", letterSpacing:1, color:"rgba(255,255,255,0.22)" }}>→ {app.section}</span>}
           </div>
         </div>
         <button onClick={() => toggleApp(app.id)} style={{
