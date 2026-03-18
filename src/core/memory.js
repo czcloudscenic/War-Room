@@ -13,14 +13,33 @@ export const setMemory = (agentName, updates) => {
   localStorage.setItem(`vantus_mem_${agentName}`, JSON.stringify(merged));
 };
 
+export const getActiveICPs = () => {
+  try {
+    const icps = JSON.parse(localStorage.getItem('vantus_icps') || '[]');
+    return icps.filter(p => p.active);
+  } catch { return []; }
+};
+
+export const buildICPContext = () => {
+  const active = getActiveICPs();
+  if (!active.length) return '';
+  return '\n\nActive Ideal Customer Profiles:\n' + active.map(p =>
+    `- ${p.name}: ${p.demographics}. Values: ${p.psychographics}. Pain points: ${p.painPoints}. Platforms: ${(p.platforms||[]).join(', ')}. Content prefs: ${p.contentPrefs}. Triggers: ${p.triggers}.`
+  ).join('\n');
+};
+
 export const buildSystemPrompt = (agentName, basePrompt) => {
   const mem = getMemory(agentName);
-  if (!Object.keys(mem).length) return basePrompt;
-  const memStr = Object.entries(mem)
-    .filter(([k]) => k !== 'updatedAt')
-    .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
-    .join('\n');
-  return `${basePrompt}\n\nYour memory from past sessions:\n${memStr}`;
+  let prompt = basePrompt;
+  if (Object.keys(mem).length) {
+    const memStr = Object.entries(mem)
+      .filter(([k]) => k !== 'updatedAt')
+      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+      .join('\n');
+    prompt += `\n\nYour memory from past sessions:\n${memStr}`;
+  }
+  prompt += buildICPContext();
+  return prompt;
 };
 
 export const updateAgentMemory = (agentName, userInput, agentResponse) => {

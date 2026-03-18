@@ -31,6 +31,7 @@ import ArtgridScoutPage from './apps/artgrid/ArtgridScoutPage.jsx';
 import AgentChatPage from './ui/agents/AgentChatPage.jsx';
 import EditContentModal from './ui/pipeline/EditContentModal.jsx';
 import CIDPage from './apps/competitor-intel/CIDPage.jsx';
+import ICPPage from './ui/command/ICPPage.jsx';
 import LoginScreen from './ui/layout/LoginScreen.jsx';
 import ClientView from './ui/client/ClientView.jsx';
 import SettingsPage from './ui/settings/SettingsPage.jsx';
@@ -1118,6 +1119,7 @@ return (
     )}
 
     {activeNav === "cid" && React.createElement(CIDPage, null)}
+    {activeNav === "icp" && <ICPPage />}
     {(activeNav === "sales" || activeNav === "adroihub") && <AdROIHub />}
     {(activeNav === "chat" || activeNav === "broadcast") && <TeamBroadcast agents={agents} />}
     {activeNav === "artgrid" && <ArtgridScoutPage content={content} />}
