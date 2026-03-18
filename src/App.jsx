@@ -5,7 +5,7 @@ import './styles/globals.css';
 // ── Extracted modules ──
 import { sb, DB_CONNECTED } from './services/supabaseClient.js';
 import { getIsMobile, useIsMobile, useInterval } from './utils/hooks.js';
-import { NAV, STATUS_COLOR, STAGE_SHORT, STATUSES, FORMATS, PILLARS_LIST, PLATFORMS_LIST, CAMPAIGNS } from './utils/constants.js';
+import { NAV, buildNav, STATUS_COLOR, STAGE_SHORT, STATUSES, FORMATS, PILLARS_LIST, PLATFORMS_LIST, CAMPAIGNS } from './utils/constants.js';
 import { INITIAL_CONTENT, VITAL_LYFE_SOP } from './data/seed.content.js';
 import { AGENTS_BASE, AGENT_TASKS, ACTION_COLORS, ACTIVITY_POOL } from './data/seed.agents.js';
 import { OPS_INIT } from './data/seed.ops.js';
@@ -263,10 +263,6 @@ localStorage.setItem('vantus_apps', JSON.stringify(apps));
   }, [apps]);
   const toggleApp = (id) => {
 setApps(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
-  };
-  const isAppEnabled = (id) => {
-const app = apps.find(a => a.id === id);
-return !app || app.enabled;
   };
   const toggleAI = () => {
 const next = !aiEnabled;
@@ -662,15 +658,10 @@ return (
     <div style={{ position:"fixed", inset:0, zIndex:200 }} onClick={() => setMobileNavOpen(false)}>
       <div style={{ position:"absolute", top:52, left:0, right:0, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.08)", animation:"slideUp 0.2s ease", maxHeight:"80vh", overflowY:"auto" }}
         onClick={e => e.stopPropagation()}>
-        {[
-          { section:"COMMAND", items:[{id:"dashboard",label:"Dashboard"},{id:"agents",label:"Agents"},{id:"cid",label:"CID"}] },
-          { section:"CONTENT", items:[{id:"instagram",label:"Instagram"},{id:"tiktok",label:"TikTok"},{id:"youtube",label:"YouTube"},{id:"tracker",label:"Content Tracker"},{id:"taskboard",label:"Task Board"}] },
-          { section:"BUSINESS", items:[{id:"sales",label:"Ad ROI Hub"},{id:"chat",label:"Team Broadcast"}] },
-          { section:"OPERATIONS", items:[{id:"artgrid",label:"ArtGrid Scout"},{id:"references",label:"References"},{id:"skills",label:"Skills"},{id:"sops",label:"SOPs"},{id:"apps",label:"Apps"}] },
-        ].map(({ section, items }) => (
+        {buildNav(apps).map(({ section, items }) => (
           <div key={section}>
             <div style={{ padding:"10px 20px 4px", fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.25)", letterSpacing:2, textTransform:"uppercase", fontFamily:"'Geist Mono',monospace" }}>{section}</div>
-            {items.filter(item => section !== "OPERATIONS" || isAppEnabled(item.id)).map(item => (
+            {items.map(item => (
               <button key={item.id} onClick={() => { setActiveNav(item.id); setMobileNavOpen(false); }}
                 style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"13px 20px", background: activeNav===item.id ? "rgba(42,171,255,0.08)" : "none", border:"none", borderLeft: activeNav===item.id ? "2px solid #2AABFF" : "2px solid transparent", color: activeNav===item.id ? "#2AABFF" : "rgba(255,255,255,0.65)", fontSize:13, fontWeight: activeNav===item.id ? 600 : 400, cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>
                 {item.label}
@@ -807,10 +798,10 @@ return (
       </div>
     )}
     <div style={{ flex:1, overflowY:"auto", padding:"8px 0" }}>
-      {NAV.map(group => (
+      {buildNav(apps).map(group => (
         <div key={group.section} style={{ padding:"12px 0 0" }}>
           {!sidebarCollapsed && <div style={{ padding:"0 16px 5px", fontSize:9, color:"rgba(255,255,255,0.4)", letterSpacing:2, fontWeight:600, textTransform:"uppercase" }}>{group.section}</div>}
-          {group.items.filter(item => group.section !== "OPERATIONS" || isAppEnabled(item.id)).map(item => (
+          {group.items.map(item => (
             <div key={item.id} style={{ padding:sidebarCollapsed?"0":"0 8px 1px" }}>
               <button onClick={() => setActiveNav(item.id)} title={sidebarCollapsed?item.label:undefined}
                 style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:sidebarCollapsed?"9px 0":"7px 10px", justifyContent:sidebarCollapsed?"center":"flex-start", background:"transparent", border:"none", borderLeft: activeNav===item.id ? "2px solid #2AABFF" : "2px solid transparent", color:activeNav===item.id?"#ffffff":"rgba(255,255,255,0.6)", cursor:"pointer", fontSize:12, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===item.id?500:400, transition:"color 0.12s, border-color 0.12s", letterSpacing:0.1 }}>

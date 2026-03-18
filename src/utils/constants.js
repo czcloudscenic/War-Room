@@ -1,11 +1,25 @@
 // ── Constants ──
 
+// Base NAV — always-visible pages only. App-controlled items are injected dynamically.
 export const NAV = [
-  { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"agents", label:"Agents" }, { id:"cid", label:"CID" }]},
+  { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"agents", label:"Agents" }]},
   { section:"CONTENT", items:[{ id:"instagram", label:"Instagram" }, { id:"tiktok", label:"TikTok" }, { id:"youtube", label:"YouTube" }, { id:"tracker", label:"Content Tracker" }, { id:"taskboard", label:"Task Board" }]},
   { section:"BUSINESS", items:[{ id:"sales", label:"Ad ROI Hub" }, { id:"chat", label:"Team Broadcast" }]},
-  { section:"OPERATIONS", items:[{ id:"artgrid", label:"ArtGrid Scout" }, { id:"references", label:"References" }, { id:"skills", label:"Skills" }, { id:"sops", label:"SOPs" }, { id:"apps", label:"Apps" }]},
+  { section:"OPERATIONS", items:[{ id:"references", label:"References" }, { id:"skills", label:"Skills" }, { id:"sops", label:"SOPs" }, { id:"apps", label:"Apps" }]},
 ];
+
+// Build nav with enabled apps injected into their sections
+export function buildNav(apps) {
+  return NAV.map(group => {
+    const appItems = (apps || [])
+      .filter(a => a.enabled && a.section === group.section)
+      .map(a => ({ id: a.id, label: a.label, isApp: true }));
+    return {
+      ...group,
+      items: [...group.items, ...appItems],
+    };
+  });
+}
 
 export const STATUS_COLOR = {
   "Ready For Copy Creation":    "#f59e0b",
