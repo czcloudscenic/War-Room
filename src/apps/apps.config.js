@@ -3,7 +3,6 @@
 // Base pages (Dashboard, Agents, Pipelines, etc.) are always visible.
 
 export const DEFAULT_APPS = [
-  { id: "cid",        label: "Competitor Intel",   desc: "Hook analysis, video breakdowns, A/B variations",    enabled: true  },
   { id: "artgrid",    label: "ArtGrid Scout",      desc: "AI footage briefs + Artgrid.io search queries",      enabled: true  },
   { id: "sales",      label: "Ad ROI Hub",          desc: "Campaign spend tracking, ROAS, and ROI analysis",    enabled: true  },
   { id: "chat",       label: "Team Broadcast",      desc: "Send briefs and updates to all 8 agents at once",    enabled: true  },
