@@ -13,19 +13,39 @@ export const setMemory = (agentName, updates) => {
   localStorage.setItem(`vantus_mem_${agentName}`, JSON.stringify(merged));
 };
 
-export const getActiveICPs = () => {
-  try {
-    const icps = JSON.parse(localStorage.getItem('vantus_icps') || '[]');
-    return icps.filter(p => p.active);
-  } catch { return []; }
-};
-
 export const buildICPContext = () => {
-  const active = getActiveICPs();
-  if (!active.length) return '';
-  return '\n\nActive Ideal Customer Profiles:\n' + active.map(p =>
-    `- ${p.name}: ${p.demographics}. Values: ${p.psychographics}. Pain points: ${p.painPoints}. Platforms: ${(p.platforms||[]).join(', ')}. Content prefs: ${p.contentPrefs}. Triggers: ${p.triggers}.`
-  ).join('\n');
+  try {
+    const clients = JSON.parse(localStorage.getItem('vantus_icps') || '[]');
+    const active = clients.filter(c => c.active);
+    if (!active.length) return '';
+    return '\n\nActive Client ICP Profiles:\n' + active.map(c => {
+      const s = c.sections || {};
+      const parts = [`Client: ${c.name}`];
+      if (s.demographics) {
+        const d = s.demographics;
+        if (d.businessType) parts.push(`Business: ${d.businessType}`);
+        if (d.revenueRange) parts.push(`Revenue: ${d.revenueRange}`);
+        if (d.onlinePresence) parts.push(`Online presence: ${d.onlinePresence}`);
+        if (d.visualAspirations) parts.push(`Visual aspirations: ${d.visualAspirations}`);
+      }
+      if (s.goals) {
+        const g = s.goals;
+        if (g.successVision) parts.push(`Success vision: ${g.successVision}`);
+        if (g.emotionalResponse) parts.push(`Desired feeling: ${g.emotionalResponse}`);
+        if (g.visibilityLevel) parts.push(`Visibility goal: ${g.visibilityLevel}`);
+      }
+      if (s.painPoints) {
+        const p = s.painPoints;
+        if (p.whatsNotWorking) parts.push(`Pain: ${p.whatsNotWorking}`);
+        if (p.biggestFrustration) parts.push(`Frustration: ${p.biggestFrustration}`);
+      }
+      if (s.beliefs) {
+        const b = s.beliefs;
+        if (b.contentNotConverting) parts.push(`Belief: ${b.contentNotConverting}`);
+      }
+      return parts.join('. ');
+    }).join('\n');
+  } catch { return ''; }
 };
 
 export const buildSystemPrompt = (agentName, basePrompt) => {

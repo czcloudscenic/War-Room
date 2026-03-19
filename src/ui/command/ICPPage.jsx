@@ -1,294 +1,334 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const STORAGE_KEY = 'vantus_icps';
 
-const PLATFORM_OPTIONS = ['IG', 'TT', 'YT', 'X', 'TH', 'LI', 'RD'];
-
-const DEFAULT_ICPS = [
+const SECTIONS_CONFIG = [
   {
-    id: 'icp_1',
-    name: 'Wellness Seekers',
-    demographics: 'Millennials & Gen-Z, 22-38, urban/suburban, mid-to-high income',
-    psychographics: 'Health-conscious, sustainability-focused, clean living, intentional consumption',
-    painPoints: 'Overwhelmed by greenwashing, distrust of corporate wellness brands, want transparency',
-    platforms: ['IG', 'TT'],
-    contentPrefs: 'Short-form, raw/authentic, educational, aspirational wellness lifestyle',
-    triggers: 'Social proof from micro-influencers, ingredient transparency, founder story',
-    active: true,
+    key: 'demographics',
+    number: '01',
+    title: 'Demographics & Identity',
+    purpose: 'Identify budget level, internal structure, and creative maturity. Helps qualify who\u2019s ready for a retainer vs. who just needs a one-off.',
+    fields: [
+      { key: 'businessType', label: 'What type of business are you? (restaurant, hospitality brand, tech startup, etc.)' },
+      { key: 'revenueRange', label: 'What\u2019s your average monthly revenue range?' },
+      { key: 'marketingHandler', label: 'Who handles your marketing/creative right now \u2014 owner, internal team, or freelancer?' },
+      { key: 'postingFrequency', label: 'How often are you currently posting new photo/video content?' },
+      { key: 'onlinePresence', label: 'How do you describe your brand\u2019s online presence when you talk to customers?' },
+      { key: 'visualAspirations', label: 'What brands do you look up to or want to emulate visually?' },
+    ],
   },
   {
-    id: 'icp_2',
-    name: 'Impact & Innovation',
-    demographics: 'Startup founders, impact investors, 28-50, tech hubs, high income',
-    psychographics: 'Tech-forward thinkers, mission-driven, values-aligned investing, systems thinkers',
-    painPoints: 'Noise in the impact space, hard to find authentic mission-driven brands, due diligence fatigue',
-    platforms: ['LI', 'X', 'YT'],
-    contentPrefs: 'Long-form thought leadership, cinematic brand stories, data-driven content',
-    triggers: 'Traction metrics, founder authenticity, community momentum, press/media coverage',
-    active: true,
+    key: 'goals',
+    number: '02',
+    title: 'Goals & Dreams',
+    purpose: 'Pull out emotional drivers \u2014 what they want the brand to represent. Use this to position your creative system as the bridge to that vision.',
+    fields: [
+      { key: 'successVision', label: 'What does success look like for your brand in the next 12 months?' },
+      { key: 'motivation', label: 'What motivated you to start this brand or business in the first place?' },
+      { key: 'idealBrandLook', label: 'If everything worked out perfectly, how would your brand look online?' },
+      { key: 'emotionalResponse', label: 'What do you want people to feel when they see your content?' },
+      { key: 'visibilityLevel', label: 'What\u2019s the \u201cnext level\u201d of visibility you\u2019re chasing \u2014 local domination, multi-location expansion, national attention?' },
+    ],
   },
   {
-    id: 'icp_3',
-    name: 'Adventure Lifestyle',
-    demographics: 'Outdoor/travel enthusiasts, 24-42, global, mid income',
-    psychographics: 'Experience-driven, off-grid curious, Tierra Bomba narrative, freedom-seekers',
-    painPoints: 'Craving real adventure content (not tourist traps), want brands that match their lifestyle',
-    platforms: ['TT', 'YT', 'IG'],
-    contentPrefs: 'Cinematic travel, raw behind-the-scenes, short-form storytelling, vlog-style',
-    triggers: 'FOMO from real experiences, community belonging, aspirational but accessible lifestyle',
-    active: true,
+    key: 'painPoints',
+    number: '03',
+    title: 'Current Situation & Pain Points',
+    purpose: 'Expose the gap between their current inconsistency and your Consistency Engine. Use these answers to show why they need a system, not random shoots.',
+    fields: [
+      { key: 'whatsNotWorking', label: 'What\u2019s not working with your current content or marketing right now?' },
+      { key: 'pastExperience', label: 'What have you tried in the past (freelancers, agencies, internal team)? What didn\u2019t work?' },
+      { key: 'postingConsistency', label: 'Are you posting consistently or only when you have time or new products?' },
+      { key: 'contentPlan', label: 'Do you have a clear content plan or are you winging it month to month?' },
+      { key: 'biggestFrustration', label: 'What\u2019s your biggest frustration with agencies or creators you\u2019ve worked with before?' },
+      { key: 'holdingBack', label: 'What\u2019s holding your brand back from showing up online the way you envision it?' },
+    ],
+  },
+  {
+    key: 'beliefs',
+    number: '04',
+    title: 'Beliefs & Objections',
+    purpose: 'Uncover fears and limiting beliefs around creative spending. Reframe objections in your VSL and sales calls.',
+    fields: [
+      { key: 'contentNotConverting', label: 'What do you currently believe is the main reason your content isn\u2019t converting or driving customers?' },
+      { key: 'retainerReaction', label: 'When you hear \u201ccreative agency\u201d or \u201cmonthly retainer,\u201d what\u2019s your first reaction?' },
+      { key: 'hesitations', label: 'What\u2019s made you hesitant to invest in consistent creative before?' },
+      { key: 'burnedBefore', label: 'Have you ever been burned by an agency or freelancer? What happened?' },
+      { key: 'trustRequirements', label: 'What would need to be true for you to feel confident hiring a creative team long-term?' },
+      { key: 'decisionInfluencers', label: 'Who influences your marketing decisions \u2014 owner, partner, investor, or manager?' },
+    ],
   },
 ];
 
-const loadICPs = () => {
+const EXAMPLE_USES = [
+  'Build lead qualification forms \u2014 Typeform questions map directly to these',
+  'Write VSL talking points \u2014 each section gives a story beat',
+  'Guide sales calls \u2014 every question helps identify if they\u2019re fit',
+  'Inject into agent prompts \u2014 all 8 agents understand the audience',
+];
+
+const DEFAULT_CLIENTS = [
+  {
+    id: 'client_vitallyfe',
+    name: 'VitalLyfe',
+    active: true,
+    sections: {
+      demographics: {
+        businessType: '',
+        revenueRange: '',
+        marketingHandler: '',
+        postingFrequency: '',
+        onlinePresence: '',
+        visualAspirations: '',
+      },
+      goals: {
+        successVision: '',
+        motivation: '',
+        idealBrandLook: '',
+        emotionalResponse: '',
+        visibilityLevel: '',
+      },
+      painPoints: {
+        whatsNotWorking: '',
+        pastExperience: '',
+        postingConsistency: '',
+        contentPlan: '',
+        biggestFrustration: '',
+        holdingBack: '',
+      },
+      beliefs: {
+        contentNotConverting: '',
+        retainerReaction: '',
+        hesitations: '',
+        burnedBefore: '',
+        trustRequirements: '',
+        decisionInfluencers: '',
+      },
+    },
+  },
+];
+
+const loadClients = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.length && parsed[0].sections) return parsed;
+    }
   } catch {}
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ICPS));
-  return DEFAULT_ICPS;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CLIENTS));
+  return DEFAULT_CLIENTS;
 };
 
-const saveICPs = (icps) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(icps));
+const saveClients = (clients) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
 };
 
-const sLabel = {
+const makeEmptyClient = (name) => ({
+  id: 'client_' + Date.now(),
+  name: name || '',
+  active: false,
+  sections: {
+    demographics: { businessType: '', revenueRange: '', marketingHandler: '', postingFrequency: '', onlinePresence: '', visualAspirations: '' },
+    goals: { successVision: '', motivation: '', idealBrandLook: '', emotionalResponse: '', visibilityLevel: '' },
+    painPoints: { whatsNotWorking: '', pastExperience: '', postingConsistency: '', contentPlan: '', biggestFrustration: '', holdingBack: '' },
+    beliefs: { contentNotConverting: '', retainerReaction: '', hesitations: '', burnedBefore: '', trustRequirements: '', decisionInfluencers: '' },
+  },
+});
+
+// ── Styles ──
+
+const sCard = {
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 14,
+  marginBottom: 14,
+  overflow: 'hidden',
+};
+
+const sSectionHeader = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '14px 18px',
+  cursor: 'pointer',
+  userSelect: 'none',
+};
+
+const sSectionNumber = {
   fontFamily: "'Geist Mono', monospace",
-  fontSize: 9,
-  textTransform: 'uppercase',
-  letterSpacing: 2,
-  color: 'rgba(255,255,255,0.35)',
-  marginBottom: 5,
-  fontWeight: 600,
+  fontSize: 11,
+  color: '#2AABFF',
+  fontWeight: 700,
+  marginRight: 10,
 };
 
-const sValue = {
+const sSectionTitle = {
+  fontSize: 15,
+  fontWeight: 600,
+  color: '#fff',
+};
+
+const sPurpose = {
+  background: 'rgba(42,171,255,0.06)',
+  borderLeft: '2px solid rgba(42,171,255,0.3)',
+  padding: '10px 14px',
+  fontSize: 11,
+  color: 'rgba(255,255,255,0.5)',
+  fontStyle: 'italic',
+  margin: '0 18px 14px',
+  borderRadius: '0 6px 6px 0',
+  lineHeight: 1.5,
+};
+
+const sQuestionLabel = {
   fontSize: 12,
   color: 'rgba(255,255,255,0.65)',
-  lineHeight: 1.55,
+  marginBottom: 4,
+  lineHeight: 1.4,
 };
 
-const sInput = {
+const sTextarea = {
   width: '100%',
   background: 'rgba(255,255,255,0.06)',
   border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 8,
-  padding: '8px 10px',
+  padding: '9px 13px',
+  color: '#f0eeef',
   fontSize: 12,
-  color: '#fff',
-  outline: 'none',
   fontFamily: 'Inter, sans-serif',
+  minHeight: 44,
   resize: 'vertical',
+  outline: 'none',
+  boxSizing: 'border-box',
+  lineHeight: 1.5,
 };
 
-const emptyICP = () => ({
-  id: 'icp_' + Date.now(),
-  name: '',
-  demographics: '',
-  psychographics: '',
-  painPoints: '',
-  platforms: [],
-  contentPrefs: '',
-  triggers: '',
-  active: true,
-});
+const sExampleCard = {
+  background: 'rgba(255,159,10,0.06)',
+  border: '1px solid rgba(255,159,10,0.15)',
+  borderRadius: 14,
+  padding: '18px 20px',
+  marginTop: 24,
+};
 
-export default function ICPPage() {
-  const [icps, setICPs] = useState(() => loadICPs());
-  const [editingId, setEditingId] = useState(null);
-  const [draft, setDraft] = useState(null);
+// ── Arrow component ──
 
-  useEffect(() => { saveICPs(icps); }, [icps]);
+function CollapseArrow({ open }) {
+  return (
+    <svg
+      width="12" height="12"
+      viewBox="0 0 12 12"
+      style={{
+        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+        transition: 'transform 0.2s ease',
+        flexShrink: 0,
+      }}
+    >
+      <path d="M2 4.5L6 8.5L10 4.5" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
-  const toggleActive = (id) => {
-    setICPs(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
-  };
+// ── Section Card ──
 
-  const startEdit = (icp) => {
-    setEditingId(icp.id);
-    setDraft({ ...icp });
-  };
+function SectionCard({ config, sectionData, onFieldChange }) {
+  const [open, setOpen] = useState(true);
 
-  const cancelEdit = () => {
-    // If it was a new unsaved ICP with empty name, remove it
-    if (draft && !draft.name.trim()) {
-      setICPs(prev => prev.filter(p => p.id !== editingId));
-    }
-    setEditingId(null);
-    setDraft(null);
-  };
+  return (
+    <div style={sCard}>
+      <div style={sSectionHeader} onClick={() => setOpen(o => !o)}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={sSectionNumber}>{config.number}</span>
+          <span style={sSectionTitle}>{config.title}</span>
+        </div>
+        <CollapseArrow open={open} />
+      </div>
 
-  const saveEdit = () => {
-    if (!draft.name.trim()) return;
-    setICPs(prev => prev.map(p => p.id === draft.id ? { ...draft } : p));
-    setEditingId(null);
-    setDraft(null);
-  };
-
-  const deleteICP = (id) => {
-    setICPs(prev => prev.filter(p => p.id !== id));
-    if (editingId === id) { setEditingId(null); setDraft(null); }
-  };
-
-  const addICP = () => {
-    const n = emptyICP();
-    setICPs(prev => [...prev, n]);
-    setEditingId(n.id);
-    setDraft({ ...n });
-  };
-
-  const togglePlatform = (plat) => {
-    setDraft(prev => ({
-      ...prev,
-      platforms: prev.platforms.includes(plat)
-        ? prev.platforms.filter(p => p !== plat)
-        : [...prev.platforms, plat],
-    }));
-  };
-
-  const renderCard = (icp) => {
-    const isEditing = editingId === icp.id;
-    const data = isEditing ? draft : icp;
-
-    return (
-      <div key={icp.id} style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 14,
-        borderLeft: icp.active
-          ? '3px solid #2AABFF'
-          : '3px solid rgba(255,255,255,0.12)',
-        padding: 20,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 14,
-      }}>
-        {/* Header row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {isEditing ? (
-            <input
-              value={draft.name}
-              onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
-              placeholder="Segment name..."
-              style={{ ...sInput, fontSize: 15, fontWeight: 700, fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', borderRadius: 0, padding: '4px 0', flex: 1 }}
-            />
-          ) : (
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic' }}>
-              {icp.name}
-            </div>
-          )}
-          {/* Toggle */}
-          <div
-            onClick={() => toggleActive(icp.id)}
-            style={{
-              width: 36, height: 20, borderRadius: 10, cursor: 'pointer', position: 'relative',
-              background: icp.active ? '#2AABFF' : 'rgba(255,255,255,0.12)',
-              transition: 'background 0.2s',
-              flexShrink: 0, marginLeft: 12,
-            }}
-          >
-            <div style={{
-              width: 16, height: 16, borderRadius: 8, background: '#fff',
-              position: 'absolute', top: 2,
-              left: icp.active ? 18 : 2,
-              transition: 'left 0.2s',
-            }} />
+      {open && (
+        <div>
+          <div style={sPurpose}>{config.purpose}</div>
+          <div style={{ padding: '0 18px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {config.fields.map(f => (
+              <div key={f.key}>
+                <div style={sQuestionLabel}>{f.label}</div>
+                <textarea
+                  style={sTextarea}
+                  value={sectionData[f.key] || ''}
+                  onChange={e => onFieldChange(config.key, f.key, e.target.value)}
+                  rows={1}
+                />
+              </div>
+            ))}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
 
-        {/* Fields */}
-        {isEditing ? (
-          <>
-            <Field label="Demographics">
-              <textarea rows={2} value={draft.demographics} onChange={e => setDraft(d => ({ ...d, demographics: e.target.value }))} style={sInput} placeholder="Age range, location, income..." />
-            </Field>
-            <Field label="Psychographics">
-              <textarea rows={2} value={draft.psychographics} onChange={e => setDraft(d => ({ ...d, psychographics: e.target.value }))} style={sInput} placeholder="Values, lifestyle, motivations..." />
-            </Field>
-            <Field label="Pain Points">
-              <textarea rows={2} value={draft.painPoints} onChange={e => setDraft(d => ({ ...d, painPoints: e.target.value }))} style={sInput} placeholder="What problems they face..." />
-            </Field>
-            <Field label="Platforms">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {PLATFORM_OPTIONS.map(p => {
-                  const on = draft.platforms.includes(p);
-                  return (
-                    <div key={p} onClick={() => togglePlatform(p)} style={{
-                      padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                      fontFamily: "'Geist Mono', monospace",
-                      background: on ? 'rgba(42,171,255,0.12)' : 'rgba(255,255,255,0.06)',
-                      border: `1px solid ${on ? 'rgba(42,171,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                      color: on ? '#2AABFF' : 'rgba(255,255,255,0.4)',
-                      transition: 'all 0.15s',
-                    }}>{p}</div>
-                  );
-                })}
-              </div>
-            </Field>
-            <Field label="Content Preferences">
-              <textarea rows={2} value={draft.contentPrefs} onChange={e => setDraft(d => ({ ...d, contentPrefs: e.target.value }))} style={sInput} placeholder="Short-form, educational, cinematic..." />
-            </Field>
-            <Field label="Purchase Triggers">
-              <textarea rows={2} value={draft.triggers} onChange={e => setDraft(d => ({ ...d, triggers: e.target.value }))} style={sInput} placeholder="What makes them act..." />
-            </Field>
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button onClick={cancelEdit} style={{
-                background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
-                padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif',
-              }}>Cancel</button>
-              <button onClick={saveEdit} style={{
-                background: '#2AABFF', border: 'none', borderRadius: 8,
-                padding: '6px 14px', fontSize: 11, color: '#fff', cursor: 'pointer', fontWeight: 600,
-                fontFamily: 'Inter, sans-serif', opacity: draft.name.trim() ? 1 : 0.4,
-              }}>Save</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <Field label="Demographics"><span style={sValue}>{icp.demographics}</span></Field>
-            <Field label="Psychographics"><span style={sValue}>{icp.psychographics}</span></Field>
-            <Field label="Pain Points"><span style={sValue}>{icp.painPoints}</span></Field>
-            <Field label="Platforms">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {(icp.platforms || []).map(p => (
-                  <span key={p} style={{
-                    padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 600,
-                    fontFamily: "'Geist Mono', monospace",
-                    background: 'rgba(42,171,255,0.12)',
-                    border: '1px solid rgba(42,171,255,0.3)',
-                    color: '#2AABFF',
-                  }}>{p}</span>
-                ))}
-              </div>
-            </Field>
-            <Field label="Content Preferences"><span style={sValue}>{icp.contentPrefs}</span></Field>
-            <Field label="Purchase Triggers"><span style={sValue}>{icp.triggers}</span></Field>
-            {/* Action row */}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 2 }}>
-              <button onClick={() => startEdit(icp)} style={{
-                background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8,
-                padding: '5px 12px', fontSize: 10, color: 'rgba(255,255,255,0.45)', cursor: 'pointer',
-                fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase', letterSpacing: 1,
-              }}>Edit</button>
-              <button onClick={() => deleteICP(icp.id)} style={{
-                background: 'none', border: '1px solid rgba(255,59,48,0.2)', borderRadius: 8,
-                padding: '5px 12px', fontSize: 10, color: 'rgba(255,59,48,0.6)', cursor: 'pointer',
-                fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase', letterSpacing: 1,
-              }}>Delete</button>
-            </div>
-          </>
-        )}
-      </div>
-    );
+// ── Main Component ──
+
+export default function ICPPage() {
+  const [clients, setClients] = useState(() => loadClients());
+  const [activeClientId, setActiveClientId] = useState(() => {
+    const loaded = loadClients();
+    return loaded.length ? loaded[0].id : null;
+  });
+  const [addingClient, setAddingClient] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+
+  const activeClient = clients.find(c => c.id === activeClientId) || clients[0] || null;
+
+  // Persist on change
+  useEffect(() => { saveClients(clients); }, [clients]);
+
+  const handleFieldChange = useCallback((sectionKey, fieldKey, value) => {
+    setClients(prev => prev.map(c => {
+      if (c.id !== activeClientId) return c;
+      return {
+        ...c,
+        sections: {
+          ...c.sections,
+          [sectionKey]: {
+            ...c.sections[sectionKey],
+            [fieldKey]: value,
+          },
+        },
+      };
+    }));
+  }, [activeClientId]);
+
+  const toggleClientActive = useCallback(() => {
+    setClients(prev => prev.map(c =>
+      c.id === activeClientId ? { ...c, active: !c.active } : c
+    ));
+  }, [activeClientId]);
+
+  const addClient = () => {
+    const name = newClientName.trim();
+    if (!name) return;
+    const nc = makeEmptyClient(name);
+    setClients(prev => [...prev, nc]);
+    setActiveClientId(nc.id);
+    setNewClientName('');
+    setAddingClient(false);
+  };
+
+  const deleteClient = (id) => {
+    setClients(prev => {
+      const next = prev.filter(c => c.id !== id);
+      if (activeClientId === id && next.length) {
+        setActiveClientId(next[0].id);
+      }
+      return next;
+    });
   };
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      {/* Header */}
-      <div style={{ marginBottom: 28 }}>
+      {/* ── Header ── */}
+      <div style={{ marginBottom: 24 }}>
         <div style={{
           fontFamily: "'Geist Mono', monospace", fontSize: 9, textTransform: 'uppercase',
           letterSpacing: 3, color: 'rgba(255,255,255,0.55)', marginBottom: 8, fontWeight: 600,
@@ -298,38 +338,159 @@ export default function ICPPage() {
           color: '#fff', margin: 0, fontWeight: 400,
         }}>Ideal Customer</h1>
         <p style={{
-          fontSize: 12, color: 'rgba(255,255,255,0.45)', margin: '6px 0 0',
-        }}>Define who you're creating for. Agents use this to write smarter content.</p>
+          fontSize: 12, color: 'rgba(255,255,255,0.45)', margin: '6px 0 0', lineHeight: 1.5,
+        }}>Deep client discovery framework. Define who you serve across 4 dimensions so every agent writes smarter, every sales call converts harder.</p>
       </div>
 
-      {/* Add button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button onClick={addICP} style={{
-          width: 34, height: 34, borderRadius: 10,
-          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-          color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.15s',
-        }}>+</button>
-      </div>
-
-      {/* Card grid */}
+      {/* ── Client Selector ── */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
-        gap: 16,
+        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20,
+        flexWrap: 'wrap',
       }}>
-        {icps.map(renderCard)}
-      </div>
-    </div>
-  );
-}
+        {clients.map(c => (
+          <div
+            key={c.id}
+            onClick={() => setActiveClientId(c.id)}
+            style={{
+              padding: '7px 16px',
+              borderRadius: 10,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              background: c.id === activeClientId ? 'rgba(42,171,255,0.12)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${c.id === activeClientId ? 'rgba(42,171,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
+              color: c.id === activeClientId ? '#2AABFF' : 'rgba(255,255,255,0.55)',
+              transition: 'all 0.15s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            {c.active && (
+              <span style={{
+                width: 6, height: 6, borderRadius: 3,
+                background: '#34C759', flexShrink: 0,
+              }} />
+            )}
+            {c.name}
+            {clients.length > 1 && c.id === activeClientId && (
+              <span
+                onClick={e => { e.stopPropagation(); deleteClient(c.id); }}
+                style={{
+                  marginLeft: 4, fontSize: 10, color: 'rgba(255,59,48,0.6)',
+                  cursor: 'pointer', lineHeight: 1,
+                }}
+              >&times;</span>
+            )}
+          </div>
+        ))}
 
-function Field({ label, children }) {
-  return (
-    <div>
-      <div style={sLabel}>{label}</div>
-      {children}
+        {addingClient ? (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input
+              autoFocus
+              value={newClientName}
+              onChange={e => setNewClientName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addClient(); if (e.key === 'Escape') { setAddingClient(false); setNewClientName(''); } }}
+              placeholder="Client name..."
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 8,
+                padding: '6px 10px',
+                fontSize: 12,
+                color: '#fff',
+                outline: 'none',
+                fontFamily: 'Inter, sans-serif',
+                width: 140,
+              }}
+            />
+            <button onClick={addClient} style={{
+              background: '#2AABFF', border: 'none', borderRadius: 8,
+              padding: '6px 10px', fontSize: 10, color: '#fff', cursor: 'pointer', fontWeight: 600,
+            }}>Add</button>
+            <button onClick={() => { setAddingClient(false); setNewClientName(''); }} style={{
+              background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
+              padding: '6px 8px', fontSize: 10, color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
+            }}>&times;</button>
+          </div>
+        ) : (
+          <div
+            onClick={() => setAddingClient(true)}
+            style={{
+              width: 32, height: 32, borderRadius: 10,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 16,
+              transition: 'all 0.15s',
+            }}
+          >+</div>
+        )}
+      </div>
+
+      {/* ── Active Toggle ── */}
+      {activeClient && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20,
+          padding: '10px 16px',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 10,
+        }}>
+          <div
+            onClick={toggleClientActive}
+            style={{
+              width: 36, height: 20, borderRadius: 10, cursor: 'pointer', position: 'relative',
+              background: activeClient.active ? '#2AABFF' : 'rgba(255,255,255,0.12)',
+              transition: 'background 0.2s',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{
+              width: 16, height: 16, borderRadius: 8, background: '#fff',
+              position: 'absolute', top: 2,
+              left: activeClient.active ? 18 : 2,
+              transition: 'left 0.2s',
+            }} />
+          </div>
+          <span style={{ fontSize: 12, color: activeClient.active ? '#fff' : 'rgba(255,255,255,0.4)' }}>
+            {activeClient.active
+              ? `${activeClient.name} ICP is active \u2014 injected into all agent prompts`
+              : `${activeClient.name} ICP is paused \u2014 agents won\u2019t see this profile`
+            }
+          </span>
+        </div>
+      )}
+
+      {/* ── 4 Section Cards ── */}
+      {activeClient && SECTIONS_CONFIG.map(config => (
+        <SectionCard
+          key={config.key}
+          config={config}
+          sectionData={activeClient.sections[config.key] || {}}
+          onFieldChange={handleFieldChange}
+        />
+      ))}
+
+      {/* ── Example Use Footer ── */}
+      <div style={sExampleCard}>
+        <div style={{
+          fontFamily: "'Geist Mono', monospace", fontSize: 9, textTransform: 'uppercase',
+          letterSpacing: 2, color: 'rgba(255,159,10,0.7)', fontWeight: 600, marginBottom: 10,
+        }}>EXAMPLE USE</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {EXAMPLE_USES.map((use, i) => (
+            <div key={i} style={{
+              fontSize: 12, color: 'rgba(255,255,255,0.55)', fontStyle: 'italic', lineHeight: 1.5,
+              paddingLeft: 12,
+              borderLeft: '2px solid rgba(255,159,10,0.2)',
+            }}>
+              {use}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
