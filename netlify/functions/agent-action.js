@@ -72,7 +72,7 @@ async function ai(system, user, maxTokens = 1200) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-3-5-haiku-20241022",
+      model: "claude-3-haiku-20240307",
       max_tokens: maxTokens,
       system,
       messages: [{ role: "user", content: user }],
@@ -850,7 +850,7 @@ Base your analysis on real patterns that perform well in wellness, hydration, wa
   const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-3-5-haiku-20241022", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model: "claude-3-haiku-20240307", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
   });
   const aiData = await aiRes.json();
   const raw = aiData.content?.[0]?.text || "{}";
@@ -949,7 +949,7 @@ Return ONLY valid JSON (no markdown):
   const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-3-5-haiku-20241022", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model: "claude-3-haiku-20240307", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
   });
   const aiData = await aiRes.json();
   const raw = aiData.content?.[0]?.text || "{}";
@@ -1010,7 +1010,7 @@ Return ONLY valid JSON:
   const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-3-5-haiku-20241022", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model: "claude-3-haiku-20240307", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
   });
   const aiData = await aiRes.json();
   const raw = aiData.content?.[0]?.text || "{}";
