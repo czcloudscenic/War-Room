@@ -78,7 +78,7 @@ Include 6-8 search queries. Keep every query under 4 words — short beats speci
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({
-      model:"claude-3-5-sonnet-20241022",
+      model:"claude-3-5-haiku-20241022",
       max_tokens:1400,
       system:systemPrompt,
       messages:[{ role:"user", content:`Scout footage for this content piece:\n\nTitle: ${item.title}\nPlatform: ${(item.platforms||[]).join(", ") || item.platform}\nContent Pillar: ${item.pillar}\nFormat: ${item.format}\nCampaign: ${item.campaign}\nDescription: ${item.description}\nScript:\n${item.script || "— No script yet —"}\nDirector Notes: ${item.notes || "—"}` }],
