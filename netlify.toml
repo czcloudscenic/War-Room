@@ -23,6 +23,27 @@
   to = "/.netlify/functions/notify"
   status = 200
 
+[[redirects]]
+  from = "/api/apify-scrape"
+  to = "/.netlify/functions/apify-scrape"
+  status = 200
+
+[[redirects]]
+  from = "/api/cid-scrape"
+  to = "/.netlify/functions/cid-scrape"
+  status = 200
+
+[[redirects]]
+  from = "/api/unsplash"
+  to = "/.netlify/functions/unsplash"
+  status = 200
+
+[functions]
+  external_node_modules = ["node-fetch"]
+
+[functions."apify-scrape"]
+  timeout = 26
+
 [[headers]]
   for = "/*"
   [headers.values]

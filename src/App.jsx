@@ -28,6 +28,8 @@ import SkillsPage from './apps/skills/SkillsPage.jsx';
 import AdROIHub from './apps/ad-roi/AdROIHub.jsx';
 import TeamBroadcast from './ui/agents/TeamBroadcast.jsx';
 import ArtgridScoutPage from './apps/artgrid/ArtgridScoutPage.jsx';
+import ShotRefScout from './apps/shot-ref/ShotRefScout.jsx';
+import HeroGeneratorPage from './apps/hero-gen/HeroGeneratorPage.jsx';
 import AgentChatPage from './ui/agents/AgentChatPage.jsx';
 import EditContentModal from './ui/pipeline/EditContentModal.jsx';
 import CIDPage from './apps/competitor-intel/CIDPage.jsx';
@@ -1123,6 +1125,8 @@ return (
     {(activeNav === "sales" || activeNav === "adroihub") && <AdROIHub />}
     {(activeNav === "chat" || activeNav === "broadcast") && <TeamBroadcast agents={agents} />}
     {activeNav === "artgrid" && <ArtgridScoutPage content={content} />}
+    {activeNav === "shotref" && <ShotRefScout />}
+    {activeNav === "herogen" && <HeroGeneratorPage />}
     {activeNav === "references" && <ReferencesPage />}
 
     {/* SKILLS */}

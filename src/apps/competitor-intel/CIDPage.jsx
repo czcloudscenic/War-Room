@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 
 export default function CIDPage() {
   const [platform, setPlatform] = React.useState("all");
@@ -16,6 +17,112 @@ export default function CIDPage() {
   const [abLoading, setAbLoading] = React.useState(false);
   const [perfLog, setPerfLog] = React.useState({ views:"", engagement:"", saves:"", notes:"" });
   const [perfSaved, setPerfSaved] = React.useState(false);
+  const [scrapedPosts, setScrapedPosts] = React.useState([]);
+  const [scrapeLoading, setScrapeLoading] = React.useState(false);
+  const [scrapeError, setScrapeError] = React.useState(null);
+
+  const enrichWithVariations = async (posts) => {
+    if (!posts?.length) return posts;
+    try {
+      const postSummaries = posts.slice(0, 15).map((p, i) =>
+        `${i+1}. [${p.platform}] @${p.creator}: "${p.hook}" (${p.views} views, ${p.engagement} eng)`
+      ).join("\n");
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          system: `You are a content strategist for VitalLyfe — a wellness/hydration technology brand by Cloud Scenic. VitalLyfe makes portable water purification units. The brand voice is: calm, capable, authentic, cinematic. NOT corporate, NOT salesy. Think founder-led content, lifestyle integration, and real human stories.
+
+Given competitor posts that are performing well, generate a VitalLyfe adaptation for each one. Return ONLY a JSON array:
+[{"index":1,"variation":"The VitalLyfe hook/script adaptation","analysis":"Why the original works and how VitalLyfe should adapt it","trigger":"The psychological trigger (curiosity, fear, transformation, etc.)"}]
+
+Be specific to VitalLyfe's product and brand. Make hooks that could actually go viral.`,
+          messages: [{ role: "user", content: `Generate VitalLyfe variations for these top-performing competitor posts:\n\n${postSummaries}` }],
+        }),
+      });
+      const data = await res.json();
+      const text = data.content?.find(b => b.type === "text")?.text || "[]";
+      const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const variations = JSON.parse(cleaned);
+
+      return posts.map((p, i) => {
+        const v = variations.find(v => v.index === i + 1);
+        if (v) {
+          return { ...p, variation: v.variation, analysis: v.analysis || p.analysis, trigger: v.trigger || p.trigger };
+        }
+        return p;
+      });
+    } catch (e) {
+      console.log("Variation enrichment failed:", e.message);
+      return posts; // Return posts without variations if AI fails
+    }
+  };
+
+  const runScrape = async () => {
+    if (!cidSearch.trim()) return;
+    const plat = platform === "all" ? "tiktok" : platform;
+    setScrapeLoading(true);
+    setScrapeError(null);
+    setCidSearchActive(true);
+    try {
+      // Step 1: Start the scrape
+      const startRes = await fetch("/api/apify-scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: cidSearch.trim(), platform: plat, limit: 30 }),
+      });
+      const startData = await startRes.json();
+      if (startData.error) throw new Error(startData.error);
+
+      // If results came back immediately (fast actors like TikTok)
+      if (startData.status === "done" && startData.results?.length > 0) {
+        const enriched = await enrichWithVariations(startData.results);
+        setScrapedPosts(prev => [...enriched, ...prev]);
+        setScrapeLoading(false);
+        return;
+      }
+
+      // Step 2: Poll for results
+      if (startData.runId) {
+        let attempts = 0;
+        const maxAttempts = 20; // 20 x 3s = 60s max
+        while (attempts < maxAttempts) {
+          await new Promise(r => setTimeout(r, 3000));
+          attempts++;
+          const pollRes = await fetch("/api/apify-scrape", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ runId: startData.runId, platform: plat, limit: 30 }),
+          });
+          const pollData = await pollRes.json();
+
+          if (pollData.status === "done") {
+            if (pollData.results?.length > 0) {
+              const enriched = await enrichWithVariations(pollData.results);
+              setScrapedPosts(prev => [...enriched, ...prev]);
+            } else {
+              setScrapeError("Scrape finished but no results. Try different keywords.");
+            }
+            setScrapeLoading(false);
+            return;
+          }
+          if (pollData.status === "failed" || pollData.status === "error") {
+            throw new Error(pollData.error || "Scrape failed");
+          }
+          // Still running — keep polling
+        }
+        setScrapeError("Scrape timed out. Try a simpler search or different platform.");
+      } else {
+        setScrapeError("No results found. Try different keywords.");
+      }
+    } catch (e) {
+      setScrapeError("Scrape failed: " + e.message);
+    }
+    setScrapeLoading(false);
+  };
 
   React.useEffect(() => {
 setBriefData(null);
@@ -33,16 +140,17 @@ setPerfSaved(false);
 { id:6, platform:"youtube", creator:"@drinkbetter", title:"We tested 12 smart water bottles", thumbnail:"https://picsum.photos/seed/test1/400/600", views:"1.2M", engagement:"6.3%", hook:"I wasted $800 so you don't have to", voiceHook:"\"I spent $800 testing every smart water bottle on the market so you don't have to make the same mistake.\"", textHook:"$800 WASTED SO YOU DON'T HAVE TO ", voiceBody:"\"11 of them were gimmicks. One actually worked — and it's not the most expensive one. I'll show you exactly what to look for and what to avoid.\"", textBody:"11 GIMMICKS. 1 WINNER.", voiceCta:"\"Subscribe — I'm testing hydrogen water systems next month.\"", textCta:"SUBSCRIBE FOR PART 2 ", trigger:"Value / Saves money", format:"Comparison review", url:"https://www.youtube.com", analysis:"'I wasted X so you don't have to' is one of the highest CTR hooks on YouTube. Comparison format drives search intent traffic. Position as trusted advisor, not promoter.", variation:"'We compared every hydrogen water system — here's why VitalLyfe won'" },
   ];
 
-  const filtered = platform === "all" ? MOCK_POSTS : MOCK_POSTS.filter(p => p.platform === platform);
-  const platformIcon = { instagram:"", tiktok:"", youtube:"" };
-  const platformColor = { instagram:"#e1306c", tiktok:"#010101", youtube:"#ff0000" };
+  const allPosts = [...scrapedPosts, ...MOCK_POSTS];
+  const filtered = platform === "all" ? allPosts : allPosts.filter(p => p.platform === platform);
+  const platformIcon = { instagram:"", tiktok:"", youtube:"", linkedin:"", reddit:"" };
+  const platformColor = { instagram:"#e1306c", tiktok:"#69C9D0", youtube:"#ff0000", linkedin:"#0A66C2", reddit:"#FF4500" };
 
   return (
 <>
 {variationView && (
-  <div style={{ position:"fixed", inset:0, background:"rgba(255,255,255,0.05)", zIndex:10000, overflowY:"auto", display:"flex", flexDirection:"column" }}>
+  <div style={{ position:"fixed", inset:0, background:"#0a0a0f", zIndex:10000, overflowY:"auto", display:"flex", flexDirection:"column" }}>
     {/* Header bar */}
-    <div style={{ padding:"16px 32px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", gap:16, background:"rgba(255,255,255,0.05)", position:"sticky", top:0, zIndex:1 }}>
+    <div style={{ padding:"16px 32px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", gap:16, background:"#0f0d0e", position:"sticky", top:0, zIndex:1 }}>
       <button onClick={() => setVariationView(null)}
         style={{ background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, padding:"6px 14px", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", color:"rgba(255,255,255,0.6)", display:"flex", alignItems:"center", gap:6 }}>
         ← Back
@@ -321,7 +429,7 @@ setPerfSaved(false);
               <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginBottom:4, fontFamily:"Inter, sans-serif" }}>{label}</div>
               <input value={perfLog[key]} onChange={e => setPerfLog(p=>({...p,[key]:e.target.value}))}
                 placeholder={ph}
-                style={{ width:"100%", padding:"8px 10px", borderRadius:8, border:"1px solid rgba(255,255,255,0.08)", fontSize:12, fontFamily:"Inter, sans-serif", boxSizing:"border-box", outline:"none" }} />
+                style={{ width:"100%", padding:"8px 10px", borderRadius:8, border:"1px solid rgba(255,255,255,0.08)", fontSize:12, fontFamily:"Inter, sans-serif", boxSizing:"border-box", outline:"none", background:"rgba(255,255,255,0.05)", color:"#f5f5f7" }} />
             </div>
           ))}
         </div>
@@ -360,7 +468,7 @@ setPerfSaved(false);
 )}
 
 {videoFullscreen && selected && ReactDOM.createPortal(
-  <div style={{ position:"fixed", inset:0, background:"rgba(255,255,255,0.05)", zIndex:99999, display:"flex", flexDirection:"column" }}>
+  <div style={{ position:"fixed", inset:0, background:"#0a0a0f", zIndex:99999, display:"flex", flexDirection:"column" }}>
     {/* Header */}
     <div style={{ padding:"14px 24px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", gap:16, background:"#0f0d0e", flexShrink:0 }}>
       <button onClick={() => { setVideoFullscreen(false); setSelected(null); }}
@@ -394,7 +502,7 @@ setPerfSaved(false);
         </div>
       </div>
       {/* RIGHT — analysis */}
-      <div style={{ flex:1, overflowY:"auto", padding:"24px 32px", background:"rgba(255,255,255,0.05)" }}>
+      <div style={{ flex:1, overflowY:"auto", padding:"24px 32px", background:"#0f0d0e" }}>
         {/* Stats */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:20 }}>
           {[[" Views", selected.views], [" Engagement", selected.engagement], [" Format", selected.format]].map(([label, val]) => (
@@ -481,7 +589,7 @@ setPerfSaved(false);
     <div style={{ display:"flex", gap:8, marginBottom:24 }}>
       {[["feed"," Intel Feed"],["hooklab"," Hook Lab"]].map(([v,label]) => (
         <button key={v} onClick={() => setCidView(v)}
-          style={{ padding:"7px 18px", borderRadius:20, border:"1px solid rgba(255,255,255,0.08)", background: cidView===v ? "#1d1d1f" : "#fff", color: cidView===v ? "#fff" : "rgba(0,0,0,0.6)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
+          style={{ padding:"7px 18px", borderRadius:20, border:"1px solid rgba(255,255,255,0.08)", background: cidView===v ? "#1d1d1f" : "rgba(255,255,255,0.05)", color: cidView===v ? "#fff" : "rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
           {label}
         </button>
       ))}
@@ -493,45 +601,63 @@ setPerfSaved(false);
         <input
           value={cidSearch}
           onChange={e => setCidSearch(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && cidSearch.trim() && setCidSearchActive(true)}
+          onKeyDown={e => e.key === "Enter" && runScrape()}
           placeholder='Search & scrape content... e.g. "hydrogen water TikTok" or "founder story wellness"'
           style={{ flex:1, padding:"10px 16px", borderRadius:24, border:"1px solid rgba(255,255,255,0.12)", fontSize:12, fontFamily:"Inter, sans-serif", outline:"none", background:"rgba(255,255,255,0.05)", color:"#f5f5f7" }}
         />
-        <button onClick={() => { if(cidSearch.trim()) setCidSearchActive(true); }}
-          style={{ padding:"10px 20px", borderRadius:24, background:"#1d1d1f", color:"#fff", border:"none", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap" }}>
-           Scrape
+        <button onClick={runScrape} disabled={scrapeLoading}
+          style={{ padding:"10px 20px", borderRadius:24, background: scrapeLoading ? "rgba(42,171,255,0.15)" : "#1d1d1f", color: scrapeLoading ? "#2AABFF" : "#fff", border:"none", fontSize:12, fontWeight:600, cursor: scrapeLoading ? "default" : "pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap", opacity: scrapeLoading ? 0.8 : 1 }}>
+          {scrapeLoading ? "Scraping..." : "Scrape"}
         </button>
       </div>
-      {cidSearchActive && (
-        <div style={{ background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:10, padding:"10px 14px", marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
-          <span style={{ fontSize:14 }}></span>
-          <span style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>Searching for: <strong style={{color:"#f5f5f7"}}>"{cidSearch}"</strong> — connect Apify to pull live results</span>
-          <button onClick={() => { setCidSearchActive(false); setCidSearch(""); }} style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.4)" }}></button>
+      {scrapeLoading && (
+        <div style={{ background:"rgba(42,171,255,0.06)", border:"1px solid rgba(42,171,255,0.15)", borderRadius:10, padding:"10px 14px", marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ width:7, height:7, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 1s infinite" }} />
+          <span style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>Scraping <strong style={{color:"#f5f5f7"}}>"{cidSearch}"</strong> via Apify — this can take 15-30 seconds...</span>
+        </div>
+      )}
+      {scrapeError && (
+        <div style={{ background:"rgba(255,69,58,0.06)", border:"1px solid rgba(255,69,58,0.15)", borderRadius:10, padding:"10px 14px", marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:11, color:"#ff453a", fontFamily:"Inter, sans-serif" }}>{scrapeError}</span>
+          <button onClick={() => setScrapeError(null)} style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.4)" }}>x</button>
+        </div>
+      )}
+      {cidSearchActive && !scrapeLoading && scrapedPosts.length > 0 && (
+        <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.15)", borderRadius:10, padding:"10px 14px", marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:11, color:"#10b981", fontFamily:"Inter, sans-serif" }}>{scrapedPosts.length} posts scraped for "{cidSearch}"</span>
+          <button onClick={() => { setCidSearchActive(false); setCidSearch(""); }} style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", fontSize:14, color:"rgba(255,255,255,0.4)" }}>x</button>
         </div>
       )}
       {/* Platform filter */}
       <div style={{ display:"flex", gap:8, marginBottom:24 }}>
-        {["all","instagram","tiktok","youtube"].map(p => (
+        {["all","instagram","tiktok","youtube","linkedin","reddit"].map(p => (
           <button key={p} onClick={() => setPlatform(p)}
-            style={{ padding:"7px 16px", borderRadius:20, border:"1px solid rgba(255,255,255,0.08)", background: platform===p ? "#1d1d1f" : "#fff", color: platform===p ? "#fff" : "rgba(0,0,0,0.6)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", textTransform:"capitalize", letterSpacing:0.3 }}>
+            style={{ padding:"7px 16px", borderRadius:20, border:"1px solid rgba(255,255,255,0.08)", background: platform===p ? "#1d1d1f" : "rgba(255,255,255,0.05)", color: platform===p ? "#fff" : "rgba(255,255,255,0.5)", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", textTransform:"capitalize", letterSpacing:0.3 }}>
             {p === "all" ? "All Platforms" : `${platformIcon[p]} ${p.charAt(0).toUpperCase()+p.slice(1)}`}
           </button>
         ))}
       </div>
 
-      {/* Mock data notice */}
-      <div style={{ background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:10, padding:"10px 14px", marginBottom:24, display:"flex", alignItems:"center", gap:8 }}>
-        <span style={{ fontSize:14 }}></span>
-        <span style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif" }}>Demo mode — connect Apify API key to pull live competitor data</span>
-      </div>
+      {scrapedPosts.length === 0 && (
+        <div style={{ background:"rgba(42,171,255,0.06)", border:"1px solid rgba(42,171,255,0.12)", borderRadius:10, padding:"10px 14px", marginBottom:24, display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>Apify connected — search above to scrape live posts from IG, TikTok, and YouTube</span>
+        </div>
+      )}
 
       {/* Content grid */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:16 }}>
         {filtered.map(post => (
           <div key={post.id} onClick={() => { setSelected(post); setVideoFullscreen(true); }}
             style={{ borderRadius:16, overflow:"hidden", border:"1px solid rgba(255,255,255,0.07)", cursor:"pointer", background:"rgba(255,255,255,0.05)", boxShadow: selected?.id===post.id ? "0 0 0 2px #1d1d1f" : "0 2px 8px rgba(0,0,0,0.06)", transition:"all 0.15s" }}>
-            <div style={{ position:"relative", paddingBottom:"125%", background:"rgba(255,255,255,0.05)" }}>
-              <img src={post.thumbnail} alt={post.title} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />
+            <div style={{ position:"relative", paddingBottom:"125%", background: post.thumbnail ? "rgba(255,255,255,0.05)" : `linear-gradient(135deg, ${platformColor[post.platform] || '#1d1d1f'}22, ${platformColor[post.platform] || '#1d1d1f'}44)` }}>
+              {post.thumbnail ? (
+                <img src={post.thumbnail} alt={post.title} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />
+              ) : (
+                <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", justifyContent:"center", padding:"16px", background:`linear-gradient(135deg, ${platformColor[post.platform] || '#333'}15, ${platformColor[post.platform] || '#333'}30)` }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:"#f5f5f7", lineHeight:1.4, fontFamily:"Inter,sans-serif", marginBottom:8 }}>{post.title?.slice(0,60)}{post.title?.length > 60 ? "..." : ""}</div>
+                  <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", fontFamily:"Inter,sans-serif" }}>{post.creator}</div>
+                </div>
+              )}
               <div style={{ position:"absolute", top:8, left:8, background: platformColor[post.platform], color:"#fff", fontSize:9, fontWeight:700, padding:"3px 8px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.5 }}>
                 {post.platform}
               </div>
@@ -623,8 +749,8 @@ setPerfSaved(false);
 
   {/* Side panel */}
   {selected && (
-    <div style={{ width:420, borderLeft:"1px solid rgba(255,255,255,0.08)", background:"rgba(255,255,255,0.05)", overflowY:"auto", flexShrink:0, display:"flex", flexDirection:"column" }}>
-      <div style={{ padding:"16px 20px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", justifyContent:"space-between", alignItems:"center", background:"rgba(255,255,255,0.05)" }}>
+    <div style={{ width:420, borderLeft:"1px solid rgba(255,255,255,0.08)", background:"#0f0d0e", overflowY:"auto", flexShrink:0, display:"flex", flexDirection:"column" }}>
+      <div style={{ padding:"16px 20px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", justifyContent:"space-between", alignItems:"center", background:"#141214" }}>
         <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.5)", letterSpacing:1.2, textTransform:"uppercase" }}>Intel View</div>
         <button onClick={() => setSelected(null)} style={{ background:"none", border:"none", fontSize:18, cursor:"pointer", color:"rgba(255,255,255,0.4)", lineHeight:1 }}></button>
       </div>

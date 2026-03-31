@@ -56,7 +56,9 @@ VitalLyfe visual identity:
 - Emotion: quiet ambition, calm confidence, real human moments — not perfomative
 - AVOID: people pointing at whiteboards, fake stock photo smiles, overly corporate setups, cheesy motion graphics, green screen
 
-Artgrid.io search tip: specific descriptive phrases work best. "slow motion water droplet hitting calm surface sunrise" > "water inspiration". Include lighting, environment, motion speed, and subject.
+Artgrid.io search tip: SHORT queries (2-4 words MAX) return results. Long phrases return nothing.
+GOOD: "slow motion water", "sunrise landscape", "woman walking nature", "water droplet macro"
+BAD: "slow motion water droplet hitting calm surface at sunrise" — too long, zero results
 
 Return ONLY a JSON object (no markdown, no backticks):
 {
@@ -64,13 +66,13 @@ Return ONLY a JSON object (no markdown, no backticks):
   "pacing": "Fast cuts (under 2s) | Medium (2-4s) | Slow/cinematic (4s+)",
   "clipTypes": ["hero shot description", "b-roll 1", "b-roll 2", "cutaway", "transition"],
   "searches": [
-{ "query": "exact artgrid.io search phrase", "use": "specific role in edit timeline", "priority": "HIGH|MED|LOW" }
+{ "query": "2-4 word artgrid search term", "use": "specific role in edit timeline", "priority": "HIGH|MED|LOW" }
   ],
   "avoidKeywords": ["search term to avoid"],
   "totalClipsNeeded": 7,
   "notes": "additional editor direction"
 }
-Include 6-8 search queries. Hyper-specific beats generic every time.`;
+Include 6-8 search queries. Keep every query under 4 words — short beats specific on Artgrid.`;
 
   const res = await fetch("/api/chat", {
     method:"POST",

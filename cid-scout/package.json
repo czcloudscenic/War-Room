@@ -1,0 +1,16 @@
+{
+  "name": "cid-scout",
+  "version": "1.0.0",
+  "description": "Playwright-based competitor intel scraper for VitalLyfe Vantus",
+  "main": "cid-scout.js",
+  "scripts": {
+    "scout": "node cid-scout.js",
+    "login:instagram": "node cid-scout.js --login instagram",
+    "login:tiktok": "node cid-scout.js --login tiktok",
+    "login:reddit": "node cid-scout.js --login reddit"
+  },
+  "dependencies": {
+    "playwright": "^1.52.0",
+    "@supabase/supabase-js": "^2.99.2"
+  }
+}

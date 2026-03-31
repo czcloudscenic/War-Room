@@ -563,10 +563,12 @@ async function artgrid_scout(payload) {
 
   // Lean prompt — just keywords, no essays
   const systemPrompt = `You are Artgrid, footage scout for VitalLyfe (wellness/hydration brand). 
-For each video item, return 5 specific Artgrid.io search phrases that will find the best matching cinematic footage.
+For each video item, return 5 Artgrid.io search keywords that will find the best matching cinematic footage.
 VitalLyfe aesthetic: cinematic, calm, water in motion, warm naturals, real human moments. No corporate, no fake smiles.
-Artgrid search tip: descriptive scene phrases work best. "slow motion water droplet golden hour" beats "water inspiration".
-Return ONLY a JSON array: [{ "itemId": "vl-X", "title": "...", "keywords": ["phrase 1", "phrase 2", "phrase 3", "phrase 4", "phrase 5"] }]`;
+CRITICAL — Artgrid search only works with SHORT queries (2-4 words max). Long phrases return zero results.
+GOOD: "slow motion water", "sunrise landscape", "woman walking nature", "water droplet macro"
+BAD: "slow motion water droplet hitting calm surface golden hour" — too long, returns nothing.
+Return ONLY a JSON array: [{ "itemId": "vl-X", "title": "...", "keywords": ["2-4 word term", "2-4 word term", "2-4 word term", "2-4 word term", "2-4 word term"] }]`;
 
   const itemList = items.map(i =>
     `ID: ${i.id} | "${i.title}" | Pillar: ${i.pillar} | Format: ${i.format}${i.description ? ` | ${i.description}` : ""}`

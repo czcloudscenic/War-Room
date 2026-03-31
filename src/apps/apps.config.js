@@ -4,6 +4,8 @@
 
 export const DEFAULT_APPS = [
   { id: "artgrid",    label: "ArtGrid Scout",      desc: "AI footage briefs + Artgrid.io search queries",      enabled: true  },
+  { id: "shotref",    label: "Shot Reference",     desc: "Scene 3 Overland — pull reference photos per shot",  enabled: true  },
+  { id: "herogen",    label: "Hero Generator",     desc: "Gemini AI image gen — generate reference visuals per shot", enabled: true  },
   { id: "sales",      label: "Ad ROI Hub",          desc: "Campaign spend tracking, ROAS, and ROI analysis",    enabled: true  },
   { id: "chat",       label: "Team Broadcast",      desc: "Send briefs and updates to all 8 agents at once",    enabled: true  },
   { id: "references", label: "References",          desc: "Store hooks, captions, CTAs, and brand voice docs",  enabled: true  },
