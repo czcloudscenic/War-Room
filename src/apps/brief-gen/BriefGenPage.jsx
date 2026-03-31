@@ -1,6 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useIsMobile } from '../../utils/hooks.js';
 import Card from '../../ui/shared/Card.jsx';
+
+async function extractPdfText(file) {
+  const pdfjsLib = await import('pdfjs-dist');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url
+  ).href;
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(item => item.str).join(' ') + '\n';
+  }
+  return text.trim();
+}
 
 export default function BriefGenPage({ onContentAdded }) {
   const isMobile = useIsMobile();
@@ -9,8 +26,35 @@ export default function BriefGenPage({ onContentAdded }) {
   const [reels, setReels]         = useState(8);
   const [stories, setStories]     = useState(4);
   const [loading, setLoading]     = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfName, setPdfName]     = useState(null);
+  const [dragOver, setDragOver]   = useState(false);
   const [result, setResult]       = useState(null);
   const [error, setError]         = useState(null);
+  const fileInputRef              = useRef(null);
+
+  const handlePdf = useCallback(async (file) => {
+    if (!file || file.type !== 'application/pdf') {
+      setError('Please drop a PDF file.'); return;
+    }
+    setPdfLoading(true); setError(null); setPdfName(file.name);
+    try {
+      const text = await extractPdfText(file);
+      if (!text || text.length < 20) throw new Error('Could not extract text from PDF — try a text-based PDF (not a scanned image).');
+      setBrief(text);
+    } catch (e) {
+      setError(e.message); setPdfName(null);
+    }
+    setPdfLoading(false);
+  }, []);
+
+  const onDrop = useCallback((e) => {
+    e.preventDefault(); setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    handlePdf(file);
+  }, [handlePdf]);
+
+  const onFileChange = (e) => { handlePdf(e.target.files[0]); };
 
   const run = async () => {
     if (!brief.trim() || brief.trim().length < 10) {
@@ -77,13 +121,54 @@ export default function BriefGenPage({ onContentAdded }) {
 
       {/* Brief input */}
       <Card style={{ padding: '22px 24px', marginBottom: 16 }}>
+        {/* PDF Drop Zone */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={S.label}>Drop Brief PDF (or type below)</label>
+          <div
+            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              border: `1.5px dashed ${dragOver ? '#2AABFF' : 'rgba(255,255,255,0.15)'}`,
+              borderRadius: 12,
+              padding: '20px 24px',
+              textAlign: 'center',
+              cursor: 'pointer',
+              background: dragOver ? 'rgba(42,171,255,0.06)' : 'rgba(255,255,255,0.02)',
+              transition: 'all 0.2s',
+            }}
+          >
+            <input ref={fileInputRef} type="file" accept="application/pdf" style={{ display: 'none' }} onChange={onFileChange} />
+            {pdfLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#2AABFF', animation: 'livePulse 1s infinite' }} />
+                <span style={{ fontSize: 12, color: '#2AABFF' }}>Extracting text from PDF…</span>
+              </div>
+            ) : pdfName ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16 }}>📄</span>
+                <span style={{ fontSize: 12, color: '#30d158', fontWeight: 600 }}>{pdfName}</span>
+                <button onClick={e => { e.stopPropagation(); setPdfName(null); setBrief(''); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 13, padding: '0 4px' }}>✕</button>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: 24, marginBottom: 6 }}>📎</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 3 }}>Drop your brief PDF here</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>or click to browse — text-based PDFs only</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Manual text brief */}
         <div style={{ marginBottom: 18 }}>
-          <label style={S.label}>Creative Brief</label>
+          <label style={S.label}>Or type / paste brief here</label>
           <textarea
             value={brief}
             onChange={e => setBrief(e.target.value)}
             placeholder={`Example:\n\nWe need footage of water in nature — oceans, rivers, creeks, waterfalls. No people. Locations: Pacific coast, mountain streams, camping/van life settings. Mood: calm, cinematic, abundance. Slow motion preferred for hero shots. This is for a drip campaign launching April 2026.`}
-            style={{ ...S.input, minHeight: 180, resize: 'vertical', lineHeight: 1.6 }}
+            style={{ ...S.input, minHeight: 160, resize: 'vertical', lineHeight: 1.6 }}
             onFocus={e => e.target.style.borderColor = 'rgba(42,171,255,0.5)'}
             onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
           />
