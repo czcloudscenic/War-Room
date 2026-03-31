@@ -683,6 +683,91 @@ async function muse_save_calendar(payload) {
   };
 }
 
+// ─── MUSE FROM BRIEF ─────────────────────────────────────────────────────────
+
+async function muse_from_brief(payload) {
+  const { brief, reels = 8, stories = 4, campaign = "Drip Campaign" } = payload;
+  if (!brief || brief.trim().length < 10) {
+    return { success: false, agent: "Muse", action: "muse_from_brief", message: "❌ Brief is too short — add more detail" };
+  }
+
+  const systemPrompt = `You are Muse, Content Ideation Agent for VitalLyfe by Cloud Scenic.
+You read creative briefs and generate specific, production-ready content ideas.
+Brand: VitalLyfe — wellness/hydration technology. Cinematic, calm, purposeful.
+AVOID: people, faces, corporate setups, fake smiles, text overlays, logos.
+FORMAT RULES:
+- Reels: vertical video, 15-60s, Instagram/TikTok
+- Stories: vertical, 15s max, Instagram Stories
+
+Return ONLY a valid JSON array (no markdown, no backticks, no explanation):
+[
+  {
+    "title": "short cinematic title",
+    "pillar": "Access|Abundance|Innovation|Tierra Bomba|Startup Diaries|Product Launch|Meet the Makers",
+    "format": "Reel|Stories",
+    "platforms": ["IG"],
+    "platform": "instagram",
+    "type": "reel|story",
+    "campaign": "${campaign}",
+    "status": "Ready For Copy Creation",
+    "stage": "Ready For Copy Creation",
+    "description": "one sentence visual description — what we see on screen",
+    "caption": "",
+    "script": "",
+    "notes": "director notes — location, lighting, shot type",
+    "cta": "Join us (Link in bio)",
+    "seoKeywords": "",
+    "hashtags": "#VitalLyfe",
+    "startWeek": 1,
+    "duration": 1
+  }
+]`;
+
+  const userPrompt = `Creative brief from the team:\n\n${brief}\n\nGenerate exactly ${reels} Reels and ${stories} Stories based on this brief. Total: ${reels + stories} items.`;
+
+  const rawResult = await ai(systemPrompt, userPrompt, 3200);
+
+  let items = [];
+  try {
+    const jsonMatch = rawResult.match(/\[[\s\S]*\]/);
+    items = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+  } catch(e) { items = []; }
+
+  if (items.length === 0) {
+    return { success: false, agent: "Muse", action: "muse_from_brief", message: "❌ Muse couldn't parse the brief — try rephrasing it" };
+  }
+
+  // Save directly to Supabase
+  const toInsert = items.map((item, idx) => ({
+    ...item,
+    id: `vl-brief-${Date.now()}-${idx}`,
+  }));
+
+  const res = await fetch(`${REST}/content_items`, {
+    method: "POST",
+    headers: { ...SB_HEADERS(), Prefer: "return=minimal" },
+    body: JSON.stringify(toInsert),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Supabase insert failed: ${res.status} ${errText}`);
+  }
+
+  const reelItems = items.filter(i => i.format === "Reel");
+  const storyItems = items.filter(i => i.format === "Stories");
+
+  return {
+    success: true,
+    agent: "Muse",
+    action: "muse_from_brief",
+    items,
+    savedCount: toInsert.length,
+    message: `✍️ Muse generated ${reelItems.length} Reels + ${storyItems.length} Stories from your brief — saved to tracker`,
+    preview: items.map(i => `• [${i.format}] "${i.title}" — ${i.description}`).join("\n"),
+  };
+}
+
 // ─── N8N WEBHOOK TRIGGER ──────────────────────────────────────────────────────
 
 async function lacey_trigger_n8n(payload) {
@@ -968,6 +1053,7 @@ exports.handler = async (event) => {
       case "sean_briefing":          result = await sean_briefing(); break;
       case "lacey_advance":          result = await lacey_advance(); break;
       case "sam_health":             result = await sam_health(); break;
+      case "muse_from_brief":        result = await muse_from_brief(payload); break;
       case "muse_generate_calendar": result = await muse_generate_calendar(); break;
       case "muse_save_calendar":     result = await muse_save_calendar(payload); break;
       case "artgrid_scout":          result = await artgrid_scout(payload); break;

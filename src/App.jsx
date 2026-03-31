@@ -34,6 +34,7 @@ import AgentChatPage from './ui/agents/AgentChatPage.jsx';
 import EditContentModal from './ui/pipeline/EditContentModal.jsx';
 import CIDPage from './apps/competitor-intel/CIDPage.jsx';
 import ICPPage from './ui/command/ICPPage.jsx';
+import BriefGenPage from './apps/brief-gen/BriefGenPage.jsx';
 import LoginScreen from './ui/layout/LoginScreen.jsx';
 import ClientView from './ui/client/ClientView.jsx';
 import SettingsPage from './ui/settings/SettingsPage.jsx';
@@ -1125,6 +1126,7 @@ return (
     {(activeNav === "sales" || activeNav === "adroihub") && <AdROIHub />}
     {(activeNav === "chat" || activeNav === "broadcast") && <TeamBroadcast agents={agents} />}
     {activeNav === "artgrid" && <ArtgridScoutPage content={content} />}
+    {activeNav === "briefgen" && <BriefGenPage onContentAdded={(items) => setContent(prev => [...prev, ...items])} />}
     {activeNav === "shotref" && <ShotRefScout />}
     {activeNav === "herogen" && <HeroGeneratorPage />}
     {activeNav === "references" && <ReferencesPage />}
