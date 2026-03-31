@@ -686,8 +686,10 @@ async function muse_save_calendar(payload) {
 // ─── MUSE FROM BRIEF ─────────────────────────────────────────────────────────
 
 async function muse_from_brief(payload) {
-  const { brief, reels = 8, stories = 4, campaign = "Drip Campaign" } = payload;
-  if (!brief || brief.trim().length < 10) {
+  const { reels = 8, stories = 4, campaign = "Drip Campaign" } = payload;
+  // Trim brief to 3000 chars — PDFs can dump a lot of noise
+  const brief = (payload.brief || "").trim().slice(0, 3000);
+  if (!brief || brief.length < 10) {
     return { success: false, agent: "Muse", action: "muse_from_brief", message: "❌ Brief is too short — add more detail" };
   }
 

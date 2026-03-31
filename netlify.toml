@@ -41,6 +41,9 @@
 [functions]
   external_node_modules = ["node-fetch"]
 
+[functions."agent-action"]
+  timeout = 26
+
 [functions."apify-scrape"]
   timeout = 26
 
