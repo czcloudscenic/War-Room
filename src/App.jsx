@@ -508,6 +508,27 @@ if (sb) {
   };
 
   const [museToast, setMuseToast] = useState(null);
+  const [igIdeasLoading, setIgIdeasLoading] = useState(false);
+  const handleIgIdeas = async () => {
+    setIgIdeasLoading(true);
+    setMuseToast({ id: "ig-ideas", field: "ideas", status: "writing" });
+    try {
+      const res = await safeAgentFetch("/api/agent-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "muse_ig_ideas", payload: { campaign: "Drip Campaign" } }),
+      });
+      const d = await res.json();
+      if (d.error || !d.success) throw new Error(d.error || d.message || "Unknown error");
+      setMuseToast({ id: "ig-ideas", field: "ideas", status: "done", content: `${d.count} ideas added to Content Tracker` });
+      setTimeout(() => setMuseToast(null), 5000);
+    } catch(e) {
+      setMuseToast({ id: "ig-ideas", field: "ideas", status: "error", msg: e.message });
+      setTimeout(() => setMuseToast(null), 5000);
+    } finally {
+      setIgIdeasLoading(false);
+    }
+  };
   const handleMuseWrite = async (item, field) => {
 setMuseToast({ id: item.id, field, status: "writing" });
 try {
@@ -956,6 +977,9 @@ return (
               if (!n) return null;
               return <span key={s} style={{ fontSize:9, color:"rgba(255,255,255,0.5)", background:"rgba(255,255,255,0.07)", padding:"3px 8px", borderRadius:20, fontWeight:600 }}>{s} · {n}</span>;
             })}
+            <button onClick={handleIgIdeas} disabled={igIdeasLoading} style={{ background: igIdeasLoading ? "rgba(255,55,95,0.15)" : "rgba(255,55,95,0.12)", border:"1px solid rgba(255,55,95,0.3)", borderRadius:10, color:"#ff375f", fontSize:12, fontWeight:600, padding:"7px 14px", cursor: igIdeasLoading ? "not-allowed" : "pointer", fontFamily:"Inter, sans-serif", flexShrink:0, display:"flex", alignItems:"center", gap:6 }}>
+                {igIdeasLoading ? <><span style={{ width:8, height:8, borderRadius:"50%", background:"#ff375f", display:"inline-block", animation:"livePulse 1s infinite" }} /> Generating…</> : "✍️ 5 IG Ideas"}
+              </button>
             <button onClick={handleAddNew} style={{ background:"#0f0f1a", border:"none", borderRadius:10, color:"#fff", fontSize:12, fontWeight:600, padding:"7px 14px", cursor:"pointer", fontFamily:"Inter, sans-serif", flexShrink:0 }}>+ Add</button>
           </div>
         </div>

@@ -23,6 +23,7 @@ const SLACK_AGENT_LABELS = {
   artgrid_scout:          "🎨 *Artgrid* — Scout Report",
   scrappy_research:       "📡 *Scrappy* — Trend Research",
   scrappy_muse_collab:    "📡 *Scrappy* × *Muse* — Collab",
+  muse_ig_ideas:          "✍️ *Muse* — 5 Instagram Ideas",
 };
 
 const SB_HEADERS = () => ({
@@ -1025,6 +1026,83 @@ Return ONLY valid JSON:
 
 // ─── MAIN HANDLER ─────────────────────────────────────────────────────────────
 
+async function muse_ig_ideas(payload = {}) {
+  const { campaign = "Drip Campaign" } = payload;
+  const pillars = ["Abundance", "Access", "Innovation", "Tierra Bomba", "Startup Diaries", "Product Launch", "Meet the Makers"];
+  const existing = await sbGet("content_items", "?platform=eq.instagram&order=id.desc&limit=20");
+  const existingTitles = existing.map(i => i.title).join(", ");
+
+  const systemPrompt = `You are Muse, Content Ideation Agent for VitalLyfe Vantus by Cloud Scenic.
+Generate exactly 5 Instagram content ideas. Brand voice: cinematic, calm, purposeful.
+Content pillars: ${pillars.join(", ")}.
+Instagram formats: Reel, Carousel, Graphics (IMG).
+AVOID: revolutionary, game-changing, exclamation points, generic corporate content.
+
+Return a JSON array of exactly 5 items only (no markdown, no backticks):
+[
+  {
+    "title": "cinematic content title",
+    "pillar": "one of the 7 pillars",
+    "format": "Reel|Carousel|Graphics (IMG)",
+    "platform": "instagram",
+    "type": "reel|carousel|graphic",
+    "campaign": "${campaign}",
+    "status": "Ready For Copy Creation",
+    "stage": "Ready For Copy Creation",
+    "description": "one sentence visual description",
+    "caption": "",
+    "script": "",
+    "cta": "Join us (Link in bio)",
+    "seoKeywords": "",
+    "hashtags": "#VitalLyfe",
+    "platforms": ["IG"],
+    "startWeek": 1,
+    "duration": 1,
+    "notes": ""
+  }
+]
+Return ONLY the JSON array. Vary the 5 ideas across different pillars and formats.`;
+
+  const rawResult = await ai(systemPrompt, `Existing IG content (don't repeat): ${existingTitles}\n\nGenerate 5 fresh Instagram ideas now.`, 1800);
+
+  let ideas = [];
+  try {
+    const jsonMatch = rawResult.match(/\[[\s\S]*\]/);
+    ideas = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+  } catch(e) { ideas = []; }
+
+  if (ideas.length === 0) {
+    return { success: false, agent: "Muse", action: "muse_ig_ideas", message: "❌ Muse couldn't generate ideas — try again" };
+  }
+
+  // Save to Supabase
+  const toInsert = ideas.map((item, idx) => ({
+    ...item,
+    id: `vl-ig-${Date.now()}-${idx}`,
+  }));
+
+  const res = await fetch(`${REST}/content_items`, {
+    method: "POST",
+    headers: { ...SB_HEADERS(), Prefer: "return=minimal" },
+    body: JSON.stringify(toInsert),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Supabase insert failed: ${res.status} ${errText}`);
+  }
+
+  return {
+    success: true,
+    agent: "Muse",
+    action: "muse_ig_ideas",
+    ideas,
+    count: ideas.length,
+    message: `✍️ ${ideas.length} Instagram ideas generated and added to Content Tracker`,
+    preview: ideas.map(i => `• [${i.pillar}] "${i.title}" — ${i.format}`).join("\n"),
+  };
+}
+
 exports.handler = async (event) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
@@ -1065,6 +1143,7 @@ exports.handler = async (event) => {
       case "lacey_trigger_n8n":      result = await lacey_trigger_n8n(payload); break;
       case "cid_build_brief":        result = await cid_build_brief(payload); break;
       case "cid_ab_variations":      result = await cid_ab_variations(payload); break;
+      case "muse_ig_ideas":          result = await muse_ig_ideas(payload); break;
       default:
         return {
           statusCode: 400,
