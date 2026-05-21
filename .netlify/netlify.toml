@@ -1,15 +1,15 @@
-functionsDirectory = "/Users/chrisz/.openclaw/workspace/warroom/netlify/functions"
+functionsDirectory = "/Users/chrisz/Desktop/Software builds/Vantus/netlify/functions"
 functionsDirectoryOrigin = "config-v1"
 headersOrigin = "config"
 redirectsOrigin = "config"
 plugins = []
 
 [build]
-publish = "/Users/chrisz/.openclaw/workspace/warroom/dist"
+publish = "/Users/chrisz/Desktop/Software builds/Vantus/dist"
 publishOrigin = "config"
 commandOrigin = "config"
 command = "npm run build"
-functions = "/Users/chrisz/.openclaw/workspace/warroom/netlify/functions"
+functions = "/Users/chrisz/Desktop/Software builds/Vantus/netlify/functions"
 
 [build.environment]
 
@@ -26,6 +26,9 @@ functions = "/Users/chrisz/.openclaw/workspace/warroom/netlify/functions"
 [build.services]
 
 [functions]
+
+[functions.agent-action]
+timeout = 26.0
 
 [functions.apify-scrape]
 timeout = 26.0
@@ -91,6 +94,18 @@ force = false
 [[redirects]]
 from = "/api/apify-scrape"
 to = "/.netlify/functions/apify-scrape"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/api/cid-scrape"
+to = "/.netlify/functions/cid-scrape"
 status = 200.0
 force = false
 

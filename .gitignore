@@ -5,3 +5,4 @@ cid-scout/.env
 .env
 .env.local
 .env.*.local
+.netlify/
