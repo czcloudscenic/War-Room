@@ -30,6 +30,7 @@ import TeamBroadcast from './ui/agents/TeamBroadcast.jsx';
 import ArtgridScoutPage from './apps/artgrid/ArtgridScoutPage.jsx';
 import ShotRefScout from './apps/shot-ref/ShotRefScout.jsx';
 import HeroGeneratorPage from './apps/hero-gen/HeroGeneratorPage.jsx';
+import HiggsfieldStudio from './apps/higgsfield/HiggsfieldStudio.jsx';
 import AgentChatPage from './ui/agents/AgentChatPage.jsx';
 import EditContentModal from './ui/pipeline/EditContentModal.jsx';
 import CIDPage from './apps/competitor-intel/CIDPage.jsx';
@@ -38,6 +39,11 @@ import BriefGenPage from './apps/brief-gen/BriefGenPage.jsx';
 import LoginScreen from './ui/layout/LoginScreen.jsx';
 import ClientView from './ui/client/ClientView.jsx';
 import SettingsPage from './ui/settings/SettingsPage.jsx';
+import TypingTask from './ui/shared/TypingTask.jsx';
+import PlaceholderPage from './ui/shared/PlaceholderPage.jsx';
+import OpsBoard from './ui/dashboard/OpsBoard.jsx';
+import ActivityFeed from './ui/dashboard/ActivityFeed.jsx';
+import ContentPipelineBoard from './ui/pipeline/ContentPipelineBoard.jsx';
 
 //  ROOT APP WRAPPER 
 function App() {
@@ -78,8 +84,8 @@ function App() {
     </div>
   );
   if (!session) return <LoginScreen onLogin={handleLogin} />;
-  if (role === "client") return <ClientView user={session.user} content={content} setContent={setContent} onSignOut={handleSignOut} />;
-  return <Vantus onSignOut={handleSignOut} userEmail={session.user?.email} content={content} setContent={setContent} />;
+  if (role === "client") return <ClientView user={session?.user || { email: 'local@cloudscenic.co' }} content={content} setContent={setContent} onSignOut={handleSignOut} />;
+  return <Vantus onSignOut={handleSignOut} userEmail={session?.user?.email || 'local@cloudscenic.co'} content={content} setContent={setContent} />;
 }
 // 
 
@@ -92,151 +98,6 @@ document.head.appendChild(fontLink);
 
 
 
-
-function TypingTask({ text, color }) {
-  const [displayed, setDisplayed] = useState("");
-  const [idx, setIdx] = useState(0);
-  useEffect(() => { setDisplayed(""); setIdx(0); }, [text]);
-  useEffect(() => {
-if (idx >= text.length) return;
-const id = setTimeout(() => { setDisplayed(text.slice(0, idx+1)); setIdx(i => i+1); }, 16 + Math.random()*12);
-return () => clearTimeout(id);
-  }, [idx, text]);
-  return <span style={{ color, fontSize:11, letterSpacing:0.1 }}>{displayed}{idx < text.length ? <span style={{ animation:"blink 0.7s step-end infinite", color }}>|</span> : null}</span>;
-}
-function OpsBoard() {
-  const isMobile = useIsMobile();
-  const [ops, setOps] = useState(OPS_INIT);
-  const [newTask, setNewTask] = useState("");
-  useInterval(() => {
-setOps(prev => {
-  if (prev.backlog.length===0) return prev;
-  const task = prev.backlog[0];
-  return { ...prev, backlog:prev.backlog.slice(1), inProgress:[...prev.inProgress,{ ...task, id:task.id+"_m" }] };
-});
-  }, 20000);
-  useInterval(() => {
-setOps(prev => {
-  if (prev.inProgress.length===0) return prev;
-  const task = prev.inProgress[0];
-  return { ...prev, inProgress:prev.inProgress.slice(1), completed:[{ ...task, id:task.id+"_d" },...prev.completed].slice(0,8) };
-});
-  }, 28000);
-  const addTask = () => {
-if (!newTask.trim()) return;
-setOps(prev => ({ ...prev, backlog:[...prev.backlog,{ id:Date.now().toString(), title:newTask, agent:"Unassigned" }] }));
-setNewTask("");
-  };
-  const cols = [{ key:"backlog", label:"Backlog", color:"rgba(255,255,255,0.5)" }, { key:"inProgress", label:"In Progress", color:"#ff9f0a" }, { key:"completed", label:"Completed", color:"#2AABFF" }];
-  return (
-<div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", gap:12 }}>
-  {cols.map(col => (
-    <div key={col.key} style={{ flex:1 }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-        <span style={{ fontSize:12, fontWeight:500, color:"rgba(255,255,255,0.6)" }}>{col.label}</span>
-        <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", background:"rgba(255,255,255,0.07)", padding:"2px 8px", borderRadius:20, fontWeight:500 }}>{ops[col.key].length}</span>
-      </div>
-      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-        {ops[col.key].map((task,i) => (
-          <Card key={task.id} style={{ padding:"12px 14px", borderLeft:"3px solid rgba(255,255,255,0.08)", borderRadius:12, animation:i===0&&col.key==="inProgress"?"slideIn 0.3s ease":"none" }}>
-            <div style={{ fontSize:12, color:"#ffffff", fontWeight:500, marginBottom:4, lineHeight:1.4 }}>{task.title}</div>
-            <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)" }}>{task.agent}</div>
-            {col.key==="inProgress" && <div style={{ marginTop:10, height:2, background:"rgba(255,255,255,0.05)", borderRadius:2 }}><div style={{ height:"100%", width:"55%", background:"rgba(255,255,255,0.2)", borderRadius:2, animation:"progressBar 28s linear forwards" }} /></div>}
-          </Card>
-        ))}
-        {col.key==="backlog" && (
-          <div style={{ display:"flex", gap:6 }}>
-            <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key==="Enter" && addTask()} placeholder="Add task..." style={{ flex:1, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"8px 12px", color:"#ffffff", fontSize:11, outline:"none", fontFamily:"Inter, sans-serif" }} />
-            <button onClick={addTask} style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, color:"rgba(255,255,255,0.6)", cursor:"pointer", padding:"8px 14px", fontSize:14, fontWeight:400 }}>+</button>
-          </div>
-        )}
-      </div>
-    </div>
-  ))}
-</div>
-  );
-}
-function ActivityFeed({ feed }) {
-  return (
-<div style={{ height:"auto", overflowY:"auto", display:"flex", flexDirection:"column", gap:3 }}>
-  {feed.map((item,i) => (
-    <div key={item.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 12px", background:i===0?`${ACTION_COLORS[item.type]}0a`:"transparent", borderRadius:8, borderLeft:i===0?`2px solid ${ACTION_COLORS[item.type]}`:"2px solid transparent", animation:i===0?"slideIn 0.3s ease":"none", transition:"all 0.3s" }}>
-      <span style={{ fontSize:9, color:"rgba(255,255,255,0.55)", whiteSpace:"nowrap" }}>{item.time}</span>
-      <span style={{ fontSize:10, color:ACTION_COLORS[item.type], fontWeight:700, whiteSpace:"nowrap" }}>{item.agent}</span>
-      <span style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>{item.action}</span>
-    </div>
-  ))}
-</div>
-  );
-}
-
-//  CONTENT PIPELINE BOARD (clickable cards) 
-function ContentPipelineBoard({ title, icon, stages, stageColors, items, onCardClick, onMuseWrite }) {
-  return (
-<div style={{ marginBottom:32 }}>
-  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
-    <span style={{ fontSize:18 }}>{icon}</span>
-    <span style={{ fontSize:16, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.5 }}>{title}</span>
-    <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)", background:"rgba(255,255,255,0.05)", padding:"2px 9px", borderRadius:20, fontWeight:600 }}>{items.length} pieces</span>
-    <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginLeft:"auto" }}>← scroll →</span>
-  </div>
-  <div style={{ display:"flex", gap:10, overflowX:"auto", paddingBottom:8 }}>
-    {stages.map((stage,si) => {
-      const c = stageColors[si];
-      const stageItems = items.filter(x => x.stage === stage);
-      return (
-        <div key={stage} style={{ minWidth:160, maxWidth:160 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-            <span style={{ fontSize:9, fontWeight:700, color:c, letterSpacing:0.3, textTransform:"uppercase", lineHeight:1.3 }}>{STAGE_SHORT[stage] || stage}</span>
-            <span style={{ fontSize:10, color:c, background:`${c}18`, padding:"1px 7px", borderRadius:20, fontWeight:700 }}>{stageItems.length}</span>
-          </div>
-          <div style={{ minHeight:120, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.05)", borderRadius:12, padding:8 }}>
-            {stageItems.map((item) => (
-              <div key={item.id} className="hover-card" style={{ padding:"10px 12px", marginBottom:7, borderRadius:10, borderLeft:`2px solid ${c}`, background:"rgba(255,255,255,0.05)", backdropFilter:"blur(12px)", boxShadow:"0 1px 6px rgba(0,0,0,0.4)" }}>
-                <div onClick={() => onCardClick(item)} style={{ cursor:"pointer" }}>
-                  <div style={{ fontSize:11, color:"#ffffff", fontWeight:600, lineHeight:1.35, marginBottom:5 }}>{item.title}</div>
-                  <div style={{ fontSize:9, color:"rgba(255,255,255,0.35)", marginBottom:5, lineHeight:1.4 }}>{item.campaign}</div>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:6 }}>
-                    <span style={{ fontSize:8, color:"rgba(255,255,255,0.5)", background:"rgba(255,255,255,0.07)", padding:"2px 5px", borderRadius:4, fontWeight:700 }}>{item.pillar}</span>
-                    {item.platforms.slice(0,2).map(p => <span key={p} style={{ fontSize:8, color:"rgba(255,255,255,0.35)", background:"rgba(255,255,255,0.05)", padding:"2px 5px", borderRadius:4 }}>{p}</span>)}
-                  </div>
-                </div>
-                {onMuseWrite && (
-                  <div style={{ display:"flex", gap:4 }}>
-                    {(!item.caption || item.caption.length < 10) && (
-                      <button onClick={() => onMuseWrite(item, "caption")} style={{ fontSize:8, fontWeight:700, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:5, padding:"2px 7px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}> Caption</button>
-                    )}
-                    {item.format === "Reel" && (!item.script || item.script.length < 10) && (
-                      <button onClick={() => onMuseWrite(item, "script")} style={{ fontSize:8, fontWeight:700, color:"#2AABFF", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:5, padding:"2px 7px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}> Script</button>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-            {stageItems.length===0 && <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", textAlign:"center", padding:"24px 0" }}>empty</div>}
-          </div>
-        </div>
-      );
-    })}
-  </div>
-</div>
-  );
-}
-
-function PlaceholderPage({ icon, title, badge, desc }) {
-  return (
-<div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"70vh" }}>
-  <div style={{ textAlign:"center" }}>
-    <div style={{ fontSize:56, marginBottom:20, opacity:0.15 }}>{icon}</div>
-    <div style={{ display:"inline-flex", alignItems:"center", gap:10, marginBottom:12 }}>
-      <h2 style={{ fontSize:28, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-0.5 }}>{title}</h2>
-      {badge && <span style={{ fontSize:10, color:"#ff9f0a", background:"rgba(255,159,10,0.15)", padding:"3px 10px", borderRadius:20, fontWeight:600 }}>{badge}</span>}
-    </div>
-    <p style={{ fontSize:13, color:"rgba(255,255,255,0.5)", maxWidth:360, margin:"0 auto", lineHeight:1.6 }}>{desc}</p>
-  </div>
-</div>
-  );
-}
 
 function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setContentProp }) {
   const isMobile = useIsMobile();
@@ -1153,6 +1014,7 @@ return (
     {activeNav === "briefgen" && <BriefGenPage onContentAdded={(items) => setContent(prev => [...prev, ...items])} />}
     {activeNav === "shotref" && <ShotRefScout />}
     {activeNav === "herogen" && <HeroGeneratorPage />}
+    {activeNav === "higgsfield" && <HiggsfieldStudio />}
     {activeNav === "references" && <ReferencesPage />}
 
     {/* SKILLS */}

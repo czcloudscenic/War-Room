@@ -14,11 +14,6 @@
   status = 200
 
 [[redirects]]
-  from = "/api/setup"
-  to = "/.netlify/functions/setup"
-  status = 200
-
-[[redirects]]
   from = "/api/notify"
   to = "/.netlify/functions/notify"
   status = 200
@@ -36,6 +31,11 @@
 [[redirects]]
   from = "/api/unsplash"
   to = "/.netlify/functions/unsplash"
+  status = 200
+
+[[redirects]]
+  from = "/api/higgsfield"
+  to = "/.netlify/functions/higgsfield"
   status = 200
 
 [functions]
