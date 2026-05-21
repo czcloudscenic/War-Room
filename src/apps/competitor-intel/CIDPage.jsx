@@ -56,7 +56,7 @@ Be specific to VitalLyfe's product and brand. Make hooks that could actually go 
         return p;
       });
     } catch (e) {
-      console.log("Variation enrichment failed:", e.message);
+      console.warn("Variation enrichment failed:", e.message);
       return posts; // Return posts without variations if AI fails
     }
   };
