@@ -30,7 +30,6 @@ import TeamBroadcast from './ui/agents/TeamBroadcast.jsx';
 import ArtgridScoutPage from './apps/artgrid/ArtgridScoutPage.jsx';
 import ShotRefScout from './apps/shot-ref/ShotRefScout.jsx';
 import HeroGeneratorPage from './apps/hero-gen/HeroGeneratorPage.jsx';
-import HiggsfieldStudio from './apps/higgsfield/HiggsfieldStudio.jsx';
 import AgentChatPage from './ui/agents/AgentChatPage.jsx';
 import EditContentModal from './ui/pipeline/EditContentModal.jsx';
 import CIDPage from './apps/competitor-intel/CIDPage.jsx';
@@ -1014,7 +1013,6 @@ return (
     {activeNav === "briefgen" && <BriefGenPage onContentAdded={(items) => setContent(prev => [...prev, ...items])} />}
     {activeNav === "shotref" && <ShotRefScout />}
     {activeNav === "herogen" && <HeroGeneratorPage />}
-    {activeNav === "higgsfield" && <HiggsfieldStudio />}
     {activeNav === "references" && <ReferencesPage />}
 
     {/* SKILLS */}
