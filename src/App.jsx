@@ -44,37 +44,48 @@ import OpsBoard from './ui/dashboard/OpsBoard.jsx';
 import ActivityFeed from './ui/dashboard/ActivityFeed.jsx';
 import ContentPipelineBoard from './ui/pipeline/ContentPipelineBoard.jsx';
 
-//  ROOT APP WRAPPER 
+//  ROOT APP WRAPPER
+const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
+const ALLOWED_DOMAIN = "cloudscenic.com";
+
 function App() {
   const [session, setSession] = useState(null);
   const [role, setRole]       = useState(null);
   const [checking, setChecking] = useState(true);
   const [content, setContent] = useState([]);
 
+  // Shared session-setup logic for both initial load + auth state changes
+  const setupSession = async (s) => {
+    // Domain guard: only @cloudscenic.com accounts allowed
+    const email = s?.user?.email || "";
+    if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
+      await sb.auth.signOut();
+      setSession(null); setRole(null);
+      alert(`Access restricted to @${ALLOWED_DOMAIN} accounts.`);
+      return;
+    }
+    const { data: profile } = await sb.from("profiles").select("role").eq("id", s.user.id).single();
+    const detectedRole = profile?.role || (ADMIN_EMAILS.includes(email) ? "admin" : "client");
+    const { data: items } = await sb.from("content_items").select("*").order("id");
+    if (items) setContent(items.map(r => ({ ...r, platforms: r.platforms || [] })));
+    setSession(s); setRole(detectedRole);
+  };
+
   useEffect(() => {
-    // Check existing session on load
+    // Check existing session on load (handles OAuth redirect-back too — supabase-js
+    // reads the auth fragment from the URL automatically before getSession resolves)
     sb.auth.getSession().then(async ({ data: { session: s } }) => {
-      if (s) {
-        const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
-        const { data: profile } = await sb.from("profiles").select("role").eq("id", s.user.id).single();
-        const detectedRole = profile?.role || (ADMIN_EMAILS.includes(s.user.email) ? "admin" : "client");
-        const { data: items } = await sb.from("content_items").select("*").order("id");
-        if (items) setContent(items.map(r => ({ ...r, platforms: r.platforms || [] })));
-        setSession(s); setRole(detectedRole);
-      }
+      if (s) await setupSession(s);
       setChecking(false);
     });
-    sb.auth.onAuthStateChange((_e, s) => { if (!s) { setSession(null); setRole(null); } });
+    // Handle subsequent sign-in / sign-out events (e.g. multi-tab sync)
+    const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, s) => {
+      if (event === "SIGNED_IN" && s) await setupSession(s);
+      if (event === "SIGNED_OUT") { setSession(null); setRole(null); }
+    });
+    return () => subscription?.unsubscribe();
   }, []);
 
-  const handleLogin = async (user, r) => {
-    // Load content on fresh login
-    if (sb) {
-      const { data: items } = await sb.from("content_items").select("*").order("id");
-      if (items && items.length > 0) setContent(items.map(row => ({ ...row, platforms: row.platforms || [] })));
-    }
-    setSession({ user }); setRole(r);
-  };
   const handleSignOut = async () => { await sb.auth.signOut(); setSession(null); setRole(null); };
 
   if (checking) return (
@@ -82,9 +93,9 @@ function App() {
       <div style={{ width:6, height:6, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 1.5s ease-in-out infinite" }} />
     </div>
   );
-  if (!session) return <LoginScreen onLogin={handleLogin} />;
-  if (role === "client") return <ClientView user={session?.user || { email: 'local@cloudscenic.co' }} content={content} setContent={setContent} onSignOut={handleSignOut} />;
-  return <Vantus onSignOut={handleSignOut} userEmail={session?.user?.email || 'local@cloudscenic.co'} content={content} setContent={setContent} />;
+  if (!session) return <LoginScreen />;
+  if (role === "client") return <ClientView user={session.user} content={content} setContent={setContent} onSignOut={handleSignOut} />;
+  return <Vantus onSignOut={handleSignOut} userEmail={session.user.email} content={content} setContent={setContent} />;
 }
 // 
 

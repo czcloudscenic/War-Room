@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '../../utils/hooks.js';
 import { sb } from '../../services/supabaseClient.js';
 
-export default function LoginScreen({ onLogin }) {
+export default function LoginScreen() {
   const isMobile = useIsMobile();
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [error, setError]     = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (document.getElementById('lg-css')) return;
@@ -43,76 +41,50 @@ export default function LoginScreen({ onLogin }) {
         mask-composite: exclude;
         pointer-events: none;
       }
-      .lg-input {
+      .lg-google-btn {
         width: 100%;
-        background: rgba(255,255,255,0.07);
-        border: none;
-        border-bottom: 1px solid rgba(255,255,255,0.18);
-        border-radius: 10px 10px 0 0;
-        padding: 13px 16px;
+        padding: 14px 16px;
         font-size: 14px;
-        color: #fff;
-        outline: none;
-        font-family: Inter, sans-serif;
-        margin-bottom: 14px;
-        box-sizing: border-box;
-        transition: background 0.2s, border-color 0.2s;
-      }
-      .lg-input:focus {
-        background: rgba(255,255,255,0.11);
-        border-bottom-color: rgba(42,171,255,0.7);
-      }
-      .lg-input::placeholder { color: rgba(255,255,255,0.28); }
-      .lg-btn {
-        width: 100%;
-        padding: 14px;
-        font-size: 13px;
         font-weight: 600;
-        color: #fff;
-        letter-spacing: 0.4px;
+        color: #1f1f1f;
+        letter-spacing: 0.2px;
         border: none;
         border-radius: 12px;
         cursor: pointer;
         font-family: Inter, sans-serif;
-        background: rgba(42,171,255,0.22);
-        backdrop-filter: blur(10px);
-        box-shadow: inset 0 1px 1px rgba(255,255,255,0.20), 0 0 24px rgba(42,171,255,0.12);
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.15s, background 0.2s;
+        background: #ffffff;
+        box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), 0 6px 24px rgba(0,0,0,0.28);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        transition: transform 0.15s, background 0.2s, box-shadow 0.2s;
       }
-      .lg-btn::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        padding: 0.8px;
-        border-radius: 12px;
-        background: linear-gradient(160deg,
-          rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 30%,
-          transparent 50%, transparent 70%,
-          rgba(255,255,255,0.15) 85%, rgba(255,255,255,0.55) 100%
-        );
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
+      .lg-google-btn:hover:not(:disabled) {
+        transform: scale(1.02);
+        background: #f5f5f7;
+        box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), 0 10px 28px rgba(0,0,0,0.35);
       }
-      .lg-btn:hover:not(:disabled) { transform:scale(1.02); background:rgba(42,171,255,0.32); }
-      .lg-btn:active:not(:disabled) { transform:scale(0.98); }
-      .lg-btn:disabled { opacity:0.45; cursor:not-allowed; }
+      .lg-google-btn:active:not(:disabled) { transform: scale(0.98); }
+      .lg-google-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      .lg-google-icon { width: 18px; height: 18px; flex-shrink: 0; }
     `;
     document.head.appendChild(s);
   }, []);
 
-  const handleLogin = async () => {
-    if (!email || !password) { setError("Email and password required."); return; }
+  const handleGoogleSignIn = async () => {
     setLoading(true); setError("");
-    const { data, error: err } = await sb.auth.signInWithPassword({ email, password });
-    if (err) { setError(err.message); setLoading(false); return; }
-    const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
-    const { data: profile } = await sb.from("profiles").select("role").eq("id", data.user.id).single();
-    const role = profile?.role || (ADMIN_EMAILS.includes(data.user.email) ? "admin" : "client");
-    onLogin(data.user, role);
-    setLoading(false);
+    const { error: err } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: { hd: 'cloudscenic.com' },
+      },
+    });
+    if (err) {
+      setError(err.message);
+      setLoading(false);
+    }
   };
 
   return (
@@ -143,27 +115,29 @@ export default function LoginScreen({ onLogin }) {
           <p style={{ fontSize:11, color:"rgba(255,255,255,0.35)", margin:0 }}>VitalLyfe Content Operations</p>
         </div>
 
-        <div>
-          <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.8, textTransform:"uppercase", color:"rgba(255,255,255,0.40)", display:"block", marginBottom:6 }}>Email</label>
-          <input className="lg-input" type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="you@cloudscenic.com" />
-        </div>
-
-        <div style={{ marginBottom:20 }}>
-          <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.8, textTransform:"uppercase", color:"rgba(255,255,255,0.40)", display:"block", marginBottom:6 }}>Password</label>
-          <input className="lg-input" type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="••••••••" />
-        </div>
+        <button onClick={handleGoogleSignIn} disabled={loading} className="lg-google-btn">
+          <svg className="lg-google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          {loading ? "Redirecting to Google…" : "Continue with Google"}
+        </button>
 
         {error && (
-          <div style={{ fontSize:11, color:"rgba(255,110,100,0.95)", marginBottom:14, padding:"9px 13px", background:"rgba(255,50,50,0.08)", borderRadius:8, border:"1px solid rgba(255,60,60,0.15)" }}>
+          <div style={{ fontSize:11, color:"rgba(255,110,100,0.95)", marginTop:14, padding:"9px 13px", background:"rgba(255,50,50,0.08)", borderRadius:8, border:"1px solid rgba(255,60,60,0.15)" }}>
             {error}
           </div>
         )}
 
-        <button onClick={handleLogin} disabled={loading} className="lg-btn">
-          {loading ? "Signing in…" : "Enter Vantus →"}
-        </button>
+        <div style={{ marginTop:22, textAlign:"center" }}>
+          <p style={{ fontSize:10, color:"rgba(255,255,255,0.28)", margin:0, lineHeight:1.6 }}>
+            Sign in with your @cloudscenic.com Google account
+          </p>
+        </div>
 
-        <div style={{ marginTop:22, display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
+        <div style={{ marginTop:18, display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
           <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2s infinite" }} />
           <span style={{ fontSize:10, color:"rgba(255,255,255,0.22)" }}>Live operations</span>
         </div>
