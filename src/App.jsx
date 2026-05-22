@@ -56,31 +56,55 @@ function App() {
 
   // Shared session-setup logic for both initial load + auth state changes
   const setupSession = async (s) => {
+    const email = (s?.user?.email || "").toLowerCase();
+    console.log("[auth] setupSession start", { email, userId: s?.user?.id });
+
     // Domain guard: only @cloudscenic.com accounts allowed
-    const email = s?.user?.email || "";
     if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
+      console.warn("[auth] domain guard rejected", email);
       await sb.auth.signOut();
       setSession(null); setRole(null);
       alert(`Access restricted to @${ALLOWED_DOMAIN} accounts.`);
       return;
     }
-    const { data: profile } = await sb.from("profiles").select("role").eq("id", s.user.id).single();
-    const detectedRole = profile?.role || (ADMIN_EMAILS.includes(email) ? "admin" : "client");
-    const { data: items } = await sb.from("content_items").select("*").order("id");
-    if (items) setContent(items.map(r => ({ ...r, platforms: r.platforms || [] })));
+
+    let detectedRole = ADMIN_EMAILS.includes(email) ? "admin" : "client";
+    try {
+      const { data: profile, error: profErr } = await sb
+        .from("profiles").select("role").eq("id", s.user.id).maybeSingle();
+      if (profErr) console.warn("[auth] profile query error", profErr);
+      if (profile?.role) detectedRole = profile.role;
+    } catch (e) { console.warn("[auth] profile query threw", e); }
+
+    try {
+      const { data: items, error: itemsErr } = await sb
+        .from("content_items").select("*").order("id");
+      if (itemsErr) console.warn("[auth] content_items error", itemsErr);
+      if (items) setContent(items.map(r => ({ ...r, platforms: r.platforms || [] })));
+    } catch (e) { console.warn("[auth] content_items threw", e); }
+
+    console.log("[auth] setupSession ok", { email, role: detectedRole });
     setSession(s); setRole(detectedRole);
   };
 
   useEffect(() => {
-    // Check existing session on load (handles OAuth redirect-back too — supabase-js
-    // reads the auth fragment from the URL automatically before getSession resolves)
+    // Initial session check (handles OAuth redirect-back: supabase-js reads
+    // the auth fragment from the URL before getSession resolves)
     sb.auth.getSession().then(async ({ data: { session: s } }) => {
-      if (s) await setupSession(s);
+      console.log("[auth] getSession initial", { hasSession: !!s, email: s?.user?.email });
+      if (s) {
+        try { await setupSession(s); }
+        catch (e) { console.error("[auth] setupSession failed (initial)", e); }
+      }
       setChecking(false);
     });
-    // Handle subsequent sign-in / sign-out events (e.g. multi-tab sync)
+    // Handle subsequent auth events (SIGNED_IN, SIGNED_OUT, INITIAL_SESSION, TOKEN_REFRESHED)
     const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, s) => {
-      if (event === "SIGNED_IN" && s) await setupSession(s);
+      console.log("[auth] onAuthStateChange", event, { hasSession: !!s, email: s?.user?.email });
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && s) {
+        try { await setupSession(s); }
+        catch (e) { console.error("[auth] setupSession failed (event)", e); }
+      }
       if (event === "SIGNED_OUT") { setSession(null); setRole(null); }
     });
     return () => subscription?.unsubscribe();
