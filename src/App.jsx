@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
+import { createPortal } from 'react-dom';
 import './styles/globals.css';
 
 // ── Extracted modules ──
@@ -704,7 +705,7 @@ return (
                   </span>
                 )}
               </button>
-              {notifOpen && ReactDOM.createPortal(
+              {notifOpen && createPortal(
                 <div ref={notifDragRef} style={{ position:"fixed", left:notifPos.x, top:notifPos.y, width:300, background:"rgba(20,18,16,0.95)", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:14, boxShadow:"0 24px 64px rgba(0,0,0,0.7), 0 4px 12px rgba(0,0,0,0.4)", zIndex:2147483647, overflow:"hidden", willChange:"transform", touchAction:"none" }}>
                   <div
                     onMouseDown={(e) => {
