@@ -231,21 +231,15 @@ const channel = sb.channel("content_changes")
         setContent(prev => prev.map(x =>
           x.id === payload.new.id ? { ...payload.new, platforms: payload.new.platforms || [] } : x
         ));
-        // Detect client actions and fire notification
+        // Detect client actions and fire notification.
+        // /api/notify now INSERTs into the notifications table (Move 3); the
+        // notifications realtime subscription below delivers it back to local state.
+        // Optimistic in-memory push removed — DB is the source of truth.
         const newStatus = payload.new?.status;
         const oldStatus = payload.old?.status;
         const clientStatuses = ["Approved", "Needs Revisions"];
         if (clientStatuses.includes(newStatus) && newStatus !== oldStatus) {
           const type = newStatus === "Approved" ? "approved" : "revision_requested";
-          const notif = {
-            id: Date.now(),
-            type,
-            item: payload.new,
-            ts: Date.now(),
-            read: false,
-          };
-          setNotifications(prev => [notif, ...prev].slice(0, 30));
-          // Fire n8n webhook via /api/notify
           fetch("/api/notify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -263,6 +257,59 @@ const channel = sb.channel("content_changes")
   ).subscribe();
 return () => sb.removeChannel(channel);
   }, []);
+
+  // ── NOTIFICATIONS (Move 3 — DB-backed) ──
+  // Fetch last 30 on mount, subscribe to realtime INSERTs.
+  // Replaces the in-memory setNotifications array that lost state on refresh.
+  useEffect(() => {
+    if (!sb) return;
+    let cancelled = false;
+    const mapRow = (row) => ({
+      id: row.id,
+      ts: new Date(row.ts).getTime(),
+      type: row.type,
+      item: row.payload?.item || null,
+      message: row.payload?.message || "",
+      read: row.read,
+    });
+    (async () => {
+      const { data, error } = await sb
+        .from("notifications")
+        .select("id, ts, type, payload, read")
+        .order("ts", { ascending: false })
+        .limit(30);
+      if (cancelled) return;
+      if (error) { console.warn("[notifications] fetch error", error); return; }
+      setNotifications((data || []).map(mapRow));
+    })();
+    const ch = sb.channel("notifications_changes")
+      .on("postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications" },
+        (payload) => {
+          setNotifications(prev => [mapRow(payload.new), ...prev].slice(0, 30));
+        }
+      )
+      .on("postgres_changes",
+        { event: "UPDATE", schema: "public", table: "notifications" },
+        (payload) => {
+          setNotifications(prev => prev.map(n => n.id === payload.new.id ? mapRow(payload.new) : n));
+        }
+      )
+      .subscribe();
+    return () => { cancelled = true; sb.removeChannel(ch); };
+  }, []);
+
+  // Mark all currently-unread notifications as read in the DB.
+  // Used by the bell-click handler.
+  const markAllNotificationsRead = useCallback(async () => {
+    if (!sb) return;
+    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    if (unreadIds.length === 0) return;
+    const { error } = await sb.from("notifications").update({ read: true }).in("id", unreadIds);
+    if (error) console.warn("[notifications] mark-read error", error);
+    // Realtime UPDATE event will refresh local state; no optimistic flip needed.
+  }, [notifications]);
+
   const [editingItem, setEditingItem] = useState(null);
   const [isNewItem, setIsNewItem] = useState(false);
 
@@ -644,9 +691,9 @@ return (
                 if (!notifOpen) {
                   const rect = e.currentTarget.getBoundingClientRect();
                   setNotifPos({ x: Math.max(0, Math.min(window.innerWidth - 310, rect.left - 270)), y: rect.bottom + 6 });
+                  markAllNotificationsRead();  // persist to DB; realtime UPDATE refreshes state
                 }
                 setNotifOpen(o=>!o);
-                setNotifications(prev=>prev.map(n=>({...n,read:true})));
               }}
                 style={{ position:"relative", background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.18)", borderRadius:8, padding:"6px 8px", cursor:"pointer", lineHeight:1, color:"rgba(255,255,255,0.85)", display:"flex", alignItems:"center", justifyContent:"center" }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>

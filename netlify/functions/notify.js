@@ -1,5 +1,5 @@
 // notify.js — fires when client approves or requests revisions
-// Sends email via Resend API + optional n8n webhook fallback
+// Sends email via Resend API + Slack + n8n + PERSISTS to notifications table
 
 const ADMIN_EMAILS = [
   "cz@cloudscenic.com",
@@ -7,10 +7,43 @@ const ADMIN_EMAILS = [
   "ss@cloudscenic.com",
 ];
 
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
+
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Content-Type": "application/json",
 };
+
+// Persist the notification to Supabase. Unique constraint on (type, content_item_id)
+// dedupes when multiple admin clients fire /api/notify simultaneously.
+async function insertNotification({ type, item, message }) {
+  if (!SERVICE_KEY) return { ok: false, error: "SUPABASE_SERVICE_KEY not set" };
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+      method: "POST",
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=ignore-duplicates",  // first writer wins; duplicates silent
+      },
+      body: JSON.stringify({
+        type,
+        content_item_id: item?.id ? String(item.id) : null,
+        recipient_email: null,                   // null = broadcast to all admins
+        payload: { item, message },
+      }),
+    });
+    if (!res.ok && res.status !== 409) {
+      const txt = await res.text();
+      return { ok: false, error: `${res.status}: ${txt.slice(0, 200)}` };
+    }
+    return { ok: true, deduped: res.status === 409 };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers: cors, body: "" };
@@ -41,6 +74,11 @@ exports.handler = async (event) => {
   };
 
   const results = [];
+
+  // ── PERSIST TO NOTIFICATIONS TABLE ──────────────────────────────────────────
+  // Fire-and-forget; logged in results but doesn't gate the other side-effects.
+  const dbResult = await insertNotification({ type, item, message: payload.message });
+  results.push({ channel: "supabase", ...dbResult });
 
   // ── EMAIL VIA RESEND ────────────────────────────────────────────────────────
   const RESEND_KEY = process.env.RESEND_API_KEY;
