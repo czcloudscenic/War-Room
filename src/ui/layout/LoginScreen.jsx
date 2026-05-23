@@ -2,10 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '../../utils/hooks.js';
 import { sb } from '../../services/supabaseClient.js';
 
+// Parse error info from URL params (both ?error= query and #error= hash)
+function parseUrlError() {
+  const out = {};
+  try {
+    const q = new URLSearchParams(window.location.search);
+    const h = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    for (const k of ["error", "error_code", "error_description", "message"]) {
+      const v = q.get(k) || h.get(k);
+      if (v) out[k] = decodeURIComponent(v.replace(/\+/g, " "));
+    }
+  } catch {}
+  return out;
+}
+
 export default function LoginScreen() {
   const isMobile = useIsMobile();
   const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
+  const [urlError, setUrlError] = useState(parseUrlError());
 
   useEffect(() => {
     if (document.getElementById('lg-css')) return;
@@ -125,9 +140,13 @@ export default function LoginScreen() {
           {loading ? "Redirecting to Google…" : "Continue with Google"}
         </button>
 
-        {error && (
-          <div style={{ fontSize:11, color:"rgba(255,110,100,0.95)", marginTop:14, padding:"9px 13px", background:"rgba(255,50,50,0.08)", borderRadius:8, border:"1px solid rgba(255,60,60,0.15)" }}>
-            {error}
+        {(error || Object.keys(urlError).length > 0) && (
+          <div style={{ fontSize:11, color:"rgba(255,180,170,0.95)", marginTop:14, padding:"12px 14px", background:"rgba(255,50,50,0.10)", borderRadius:8, border:"1px solid rgba(255,60,60,0.18)", whiteSpace:"pre-wrap", wordBreak:"break-word", fontFamily:"Geist Mono, monospace", lineHeight:1.5 }}>
+            {error && <div>{error}</div>}
+            {urlError.error_description && <div><b>{urlError.error_description}</b></div>}
+            {urlError.error_code && <div>code: {urlError.error_code}</div>}
+            {urlError.error && !urlError.error_description && <div>error: {urlError.error}</div>}
+            {urlError.message && <div>{urlError.message}</div>}
           </div>
         )}
 
