@@ -2,7 +2,7 @@
 
 export const NAV = [
   { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"taskboard", label:"Task Board" }, { id:"agents", label:"Agents" }, { id:"cid", label:"Competitor Intel" }, { id:"icp", label:"Ideal Customer" }]},
-  { section:"CONTENT", items:[{ id:"content", label:"Content" }, { id:"tracker", label:"Content Tracker" }, { id:"briefgen", label:"Brief → Content" }]},
+  { section:"CONTENT", items:[{ id:"content", label:"Pipeline" }, { id:"tracker", label:"Production" }, { id:"briefgen", label:"Brief → Content" }]},
   { section:"APPS", items:[{ id:"apps", label:"Apps" }, { id:"settings", label:"Settings" }]},
 ];
 
