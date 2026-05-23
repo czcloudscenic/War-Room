@@ -3,6 +3,7 @@
 // Base pages (Dashboard, Agents, Pipelines, etc.) are always visible.
 
 export const DEFAULT_APPS = [
+  { id: "briefgen",   label: "Brief → Content",    desc: "Drop a PDF brief, Muse generates Reels + Stories into the tracker", enabled: true  },
   { id: "artgrid",    label: "ArtGrid Scout",      desc: "AI footage briefs + Artgrid.io search queries",      enabled: true  },
   { id: "shotref",    label: "Shot Reference",     desc: "Scene 3 Overland — pull reference photos per shot",  enabled: true  },
   { id: "herogen",    label: "Hero Generator",     desc: "Gemini AI image gen — generate reference visuals per shot", enabled: true  },
