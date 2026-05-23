@@ -689,9 +689,9 @@ return (
             <div style={{ position:"relative" }}>
               <button onClick={(e) => {
                 if (!notifOpen) {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setNotifPos({ x: Math.max(0, Math.min(window.innerWidth - 310, rect.left - 270)), y: rect.bottom + 6 });
-                  markAllNotificationsRead();  // persist to DB; realtime UPDATE refreshes state
+                  // Render panel in a guaranteed-visible spot: top-right of viewport
+                  setNotifPos({ x: window.innerWidth - 320, y: 70 });
+                  markAllNotificationsRead();
                 }
                 setNotifOpen(o=>!o);
               }}
