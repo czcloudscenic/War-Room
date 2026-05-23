@@ -117,9 +117,14 @@ function App() {
       <div style={{ width:6, height:6, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 1.5s ease-in-out infinite" }} />
     </div>
   );
-  if (!session) return <LoginScreen />;
-  if (role === "client") return <ClientView user={session.user} content={content} setContent={setContent} onSignOut={handleSignOut} />;
-  return <Vantus onSignOut={handleSignOut} userEmail={session.user.email} content={content} setContent={setContent} />;
+  // AUTH BYPASS (temporary — Google OAuth debug pending).
+  // No login page; anyone reaching the URL is treated as the admin fallback user.
+  // Re-enable auth by uncommenting the line below.
+  // if (!session) return <LoginScreen />;
+  const effectiveUser = session?.user || { email: 'admin@cloudscenic.com' };
+  const effectiveRole = role || 'admin';
+  if (effectiveRole === "client") return <ClientView user={effectiveUser} content={content} setContent={setContent} onSignOut={handleSignOut} />;
+  return <Vantus onSignOut={handleSignOut} userEmail={effectiveUser.email} content={content} setContent={setContent} />;
 }
 // 
 
