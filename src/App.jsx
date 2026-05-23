@@ -865,7 +865,6 @@ return (
     {activeNav === "instagram" && (
       <div style={{ animation:"fadeIn 0.4s ease" }}>
         <div style={{ display:"flex", alignItems: isMobile ? "flex-start" : "center", gap:14, marginBottom: isMobile ? 16 : 28, flexWrap:"wrap" }}>
-          <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}></div>
           <div style={{ flex:1, minWidth:0 }}>
             <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>Instagram</h1>
             <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>@vitallyfe · {igItems.length} pieces in pipeline</div>
@@ -902,7 +901,6 @@ return (
     {activeNav === "tiktok" && (
       <div style={{ animation:"fadeIn 0.4s ease" }}>
         <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom: isMobile ? 16 : 28 }}>
-          <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#010101,#ff0050)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}></div>
           <div>
             <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>TikTok</h1>
             <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>@vitallyfe · {ttItems.length} pieces in pipeline</div>
@@ -921,7 +919,6 @@ return (
     {activeNav === "youtube" && (
       <div style={{ animation:"fadeIn 0.4s ease" }}>
         <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom: isMobile ? 16 : 28 }}>
-          <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#ff0000,#cc0000)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}></div>
           <div>
             <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 30, fontWeight:700, color:"#f5f5f7", margin:0, letterSpacing:-1 }}>YouTube</h1>
             <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:2 }}>VitalLyfe · {ytItems.length} pieces · Long-form & Shorts</div>

@@ -348,8 +348,8 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
             )}
             <div style={{ maxWidth:"76%" }}>
               <div style={{ background:m.role === "user" ? "#0f0f1a" : m.err ? "rgba(255,69,58,0.07)" : "#1a1818", border:m.role === "user" ? "none" : "1px solid " + (m.err ? "rgba(255,69,58,0.18)" : "rgba(255,255,255,0.07)"), borderRadius:m.role === "user" ? "15px 15px 3px 15px" : "3px 15px 15px 15px", padding:"10px 13px" }}>
-                <div style={{ fontSize:13, color:m.role === "user" ? "#fff" : m.err ? "#ff453a" : "#1a1a2e", lineHeight:1.65, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>
-                <div style={{ fontSize:9, color:m.role === "user" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.22)", marginTop:4, textAlign:m.role === "user" ? "right" : "left" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</div>
+                <div style={{ fontSize:13, color:m.role === "user" ? "#fff" : m.err ? "#ff453a" : "#f5f5f7", lineHeight:1.65, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>
+                <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginTop:4, textAlign:m.role === "user" ? "right" : "left" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</div>
               </div>
               {looksLikeCaption && (
                 <div style={{ marginTop:6, display:"flex", gap:6 }}>
