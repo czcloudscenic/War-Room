@@ -690,8 +690,12 @@ return (
             <div style={{ position:"relative" }}>
               <button onClick={(e) => {
                 if (!notifOpen) {
-                  // Render panel in a guaranteed-visible spot: top-right of viewport
-                  setNotifPos({ x: window.innerWidth - 320, y: 70 });
+                  // Spawn panel directly below the bell, left-aligned with it
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setNotifPos({
+                    x: Math.max(8, Math.min(window.innerWidth - 308, rect.left)),
+                    y: rect.bottom + 6,
+                  });
                   markAllNotificationsRead();
                 }
                 setNotifOpen(o=>!o);
