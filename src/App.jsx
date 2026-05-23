@@ -7,7 +7,7 @@ import { sb, DB_CONNECTED } from './services/supabaseClient.js';
 import { getIsMobile, useIsMobile, useInterval } from './utils/hooks.js';
 import { NAV, STATUS_COLOR, STAGE_SHORT, STATUSES, FORMATS, PILLARS_LIST, PLATFORMS_LIST, CAMPAIGNS } from './utils/constants.js';
 import { INITIAL_CONTENT, VITAL_LYFE_SOP } from './data/seed.content.js';
-import { AGENTS_BASE, AGENT_TASKS, ACTION_COLORS, ACTIVITY_POOL } from './data/seed.agents.js';
+import { AGENTS_BASE, AGENT_TASKS, ACTION_COLORS } from './data/seed.agents.js';
 import { OPS_INIT } from './data/seed.ops.js';
 import { getMemory, setMemory, buildSystemPrompt, updateAgentMemory } from './core/memory.js';
 import { AGENT_KEYWORDS, ROUTE_PROMPTS } from './core/agentRegistry.js';
@@ -144,7 +144,7 @@ function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setCon
   const [activeNav, setActiveNav] = useState("dashboard");
   const [activePlatform, setActivePlatform] = useState("instagram");
   const [selectedAgent, setSelectedAgent] = useState(null);
-  const [feed, setFeed] = useState([]);
+  // feed state removed — ActivityFeed self-manages from agent_events table
   const [agents] = useState(AGENTS_BASE);
   const [liveCount, setLiveCount] = useState(6);
   const [previewMode, setPreviewMode] = useState(false);
@@ -265,7 +265,6 @@ return () => sb.removeChannel(channel);
   }, []);
   const [editingItem, setEditingItem] = useState(null);
   const [isNewItem, setIsNewItem] = useState(false);
-  const feedIdRef = useRef(0);
 
   const getNewItemTemplate = () => ({
 id: `vl-${Date.now()}`,
@@ -299,13 +298,8 @@ setIsNewItem(true);
 const d = new Date();
 return `${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}:${d.getSeconds().toString().padStart(2,"0")}`;
   };
-  const pushFeed = useCallback(() => {
-const item = ACTIVITY_POOL[Math.floor(Math.random()*ACTIVITY_POOL.length)];
-setFeed(prev => [{ ...item, time:now(), id:feedIdRef.current++ }, ...prev].slice(0,60));
-  }, []);
-
-  useEffect(() => { if (aiEnabled) { for (let i=0; i<10; i++) setTimeout(pushFeed, i*150); } }, [aiEnabled]);
-  useInterval(pushFeed, aiEnabled ? 2200 : null);
+  // ACTIVITY_POOL theater removed — ActivityFeed now self-fetches real agent_events
+  // from Supabase + subscribes to realtime inserts. See src/ui/dashboard/ActivityFeed.jsx.
 
   // Draggable notification panel
   useEffect(() => {
@@ -846,7 +840,7 @@ return (
               : <span style={{ fontSize:9, color:"rgba(255,80,80,0.7)", fontFamily:"'Geist Mono',monospace", letterSpacing:1.5, fontWeight:700, textTransform:"uppercase" }}>Paused</span>
             }
           </div>
-          <Card style={{ padding:"4px 0", maxHeight:320, overflowY:"auto" }}><ActivityFeed feed={feed} /></Card>
+          <Card style={{ padding:"4px 0", maxHeight:320, overflowY:"auto" }}><ActivityFeed /></Card>
         </div>
 
         {/*  OPERATIONS BOARD  */}

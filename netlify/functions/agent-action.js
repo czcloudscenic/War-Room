@@ -33,6 +33,52 @@ const SB_HEADERS = () => ({
   Prefer: "return=representation",
 });
 
+// ── agent_events logging ──
+// Every handler invocation writes one row so we have real history of what
+// agents actually did (replaces fake ACTIVITY_POOL theater).
+const AGENT_PREFIX_MAP = {
+  muse: "Muse", sean: "Sean", lacey: "Lacey", sam: "Sam",
+  overseer: "Overseer", artgrid: "Artgrid", scrappy: "Scrappy",
+  cid: "Scrappy",  // CID actions are Scrappy's domain
+};
+function deriveAgentName(actionKey) {
+  const prefix = (actionKey || "").split("_")[0];
+  return AGENT_PREFIX_MAP[prefix] || "Unknown";
+}
+function deriveContentItemId(payload, result) {
+  return (
+    payload?.id ||
+    payload?.itemId ||
+    payload?.contentItemId ||
+    result?.id ||
+    result?.item?.id ||
+    null
+  );
+}
+function deriveSummary(result, action) {
+  if (!result) return `${action} returned no result`;
+  const s = result.message || result.summary || result.briefing || result.report || result.trends || `${action} completed`;
+  return String(s).slice(0, 500);
+}
+async function logAgentEvent({ agent_name, action_key, payload, result_status, result_summary, content_item_id }) {
+  try {
+    await fetch(`${REST}/agent_events`, {
+      method: "POST",
+      headers: SB_HEADERS(),
+      body: JSON.stringify({
+        agent_name,
+        action_key,
+        content_item_id,
+        payload,
+        result_status,
+        result_summary,
+      }),
+    });
+  } catch (e) {
+    console.warn("[agent_events] log failed:", e.message);
+  }
+}
+
 const REST = `${SUPABASE_URL}/rest/v1`;
 
 async function sbGet(table, params = "") {
@@ -1123,9 +1169,10 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers: cors, body: JSON.stringify({ error: "ANTHROPIC_API_KEY not set" }) };
   }
 
-  try {
-    const { action, payload = {} } = JSON.parse(event.body || "{}");
+  const { action, payload = {} } = JSON.parse(event.body || "{}");
+  const agent_name = deriveAgentName(action);
 
+  try {
     let result;
     switch (action) {
       case "muse_write_content":     result = await muse_write_content(payload); break;
@@ -1145,12 +1192,30 @@ exports.handler = async (event) => {
       case "cid_ab_variations":      result = await cid_ab_variations(payload); break;
       case "muse_ig_ideas":          result = await muse_ig_ideas(payload); break;
       default:
+        await logAgentEvent({
+          agent_name: "Unknown",
+          action_key: action,
+          payload,
+          result_status: "skipped",
+          result_summary: `Unknown action: ${action}`,
+          content_item_id: null,
+        });
         return {
           statusCode: 400,
           headers: cors,
           body: JSON.stringify({ error: `Unknown action: ${action}` }),
         };
     }
+
+    // Log successful event
+    await logAgentEvent({
+      agent_name,
+      action_key: action,
+      payload,
+      result_status: "success",
+      result_summary: deriveSummary(result, action),
+      content_item_id: deriveContentItemId(payload, result),
+    });
 
     // Post to Slack
     const slackLabel = SLACK_AGENT_LABELS[action];
@@ -1166,6 +1231,14 @@ exports.handler = async (event) => {
     };
   } catch (err) {
     console.error("agent-action error:", err);
+    await logAgentEvent({
+      agent_name,
+      action_key: action,
+      payload,
+      result_status: "error",
+      result_summary: String(err.message).slice(0, 500),
+      content_item_id: deriveContentItemId(payload, null),
+    });
     return {
       statusCode: 500,
       headers: { ...cors, "Content-Type": "application/json" },
