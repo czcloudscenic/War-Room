@@ -53,17 +53,19 @@ function agentToType(name) {
   return "default";
 }
 
-export default function ActivityFeed() {
+export default function ActivityFeed({ clientId }) {
   const [feed, setFeed] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
-    // Initial fetch — last 60 events
+    if (!clientId) { setFeed([]); return; }
+    // Initial fetch — last 60 events FOR THIS CLIENT
     (async () => {
       try {
         const { data, error } = await sb
           .from("agent_events")
-          .select("id, ts, agent_name, action_key, result_status, result_summary")
+          .select("id, ts, agent_name, action_key, result_status, result_summary, client_id")
+          .eq("client_id", clientId)
           .order("ts", { ascending: false })
           .limit(60);
         if (cancelled) return;
@@ -72,17 +74,17 @@ export default function ActivityFeed() {
       } catch (e) { console.warn("[ActivityFeed] initial fetch threw", e); }
     })();
 
-    // Realtime: prepend new rows as they arrive
-    const channel = sb.channel("agent_events_changes")
+    // Realtime: only prepend events for the current client
+    const channel = sb.channel(`agent_events_${clientId}`)
       .on("postgres_changes",
-        { event: "INSERT", schema: "public", table: "agent_events" },
+        { event: "INSERT", schema: "public", table: "agent_events", filter: `client_id=eq.${clientId}` },
         (payload) => {
           setFeed(prev => [rowToFeed(payload.new), ...prev].slice(0, 60));
         }
       ).subscribe();
 
     return () => { cancelled = true; sb.removeChannel(channel); };
-  }, []);
+  }, [clientId]);
 
   if (feed.length === 0) {
     return (

@@ -17,7 +17,7 @@ const cors = {
 
 // Persist the notification to Supabase. Unique constraint on (type, content_item_id)
 // dedupes when multiple admin clients fire /api/notify simultaneously.
-async function insertNotification({ type, item, message }) {
+async function insertNotification({ type, item, message, client_id }) {
   if (!SERVICE_KEY) return { ok: false, error: "SUPABASE_SERVICE_KEY not set" };
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
@@ -31,6 +31,7 @@ async function insertNotification({ type, item, message }) {
       body: JSON.stringify({
         type,
         content_item_id: item?.id ? String(item.id) : null,
+        client_id: client_id || item?.client_id || null,
         recipient_email: null,                   // null = broadcast to all admins
         payload: { item, message },
       }),
@@ -52,7 +53,7 @@ exports.handler = async (event) => {
   let body;
   try { body = JSON.parse(event.body); } catch { return { statusCode: 400, headers: cors, body: "Bad JSON" }; }
 
-  const { type, item } = body;
+  const { type, item, client_id } = body;
   if (!type || !item) return { statusCode: 400, headers: cors, body: "Missing type or item" };
 
   const isApproved = type === "approved";
@@ -77,7 +78,7 @@ exports.handler = async (event) => {
 
   // ── PERSIST TO NOTIFICATIONS TABLE ──────────────────────────────────────────
   // Fire-and-forget; logged in results but doesn't gate the other side-effects.
-  const dbResult = await insertNotification({ type, item, message: payload.message });
+  const dbResult = await insertNotification({ type, item, message: payload.message, client_id });
   results.push({ channel: "supabase", ...dbResult });
 
   // ── EMAIL VIA RESEND ────────────────────────────────────────────────────────

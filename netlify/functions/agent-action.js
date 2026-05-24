@@ -60,7 +60,7 @@ function deriveSummary(result, action) {
   const s = result.message || result.summary || result.briefing || result.report || result.trends || `${action} completed`;
   return String(s).slice(0, 500);
 }
-async function logAgentEvent({ agent_name, action_key, payload, result_status, result_summary, content_item_id }) {
+async function logAgentEvent({ agent_name, action_key, payload, result_status, result_summary, content_item_id, client_id }) {
   try {
     await fetch(`${REST}/agent_events`, {
       method: "POST",
@@ -69,6 +69,7 @@ async function logAgentEvent({ agent_name, action_key, payload, result_status, r
         agent_name,
         action_key,
         content_item_id,
+        client_id,
         payload,
         result_status,
         result_summary,
@@ -1172,7 +1173,7 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers: cors, body: JSON.stringify({ error: "ANTHROPIC_API_KEY not set" }) };
   }
 
-  const { action, payload = {} } = JSON.parse(event.body || "{}");
+  const { action, payload = {}, client_id = null } = JSON.parse(event.body || "{}");
   const agent_name = deriveAgentName(action);
 
   try {
@@ -1202,6 +1203,7 @@ exports.handler = async (event) => {
           result_status: "skipped",
           result_summary: `Unknown action: ${action}`,
           content_item_id: null,
+          client_id,
         });
         return {
           statusCode: 400,
@@ -1218,6 +1220,7 @@ exports.handler = async (event) => {
       result_status: "success",
       result_summary: deriveSummary(result, action),
       content_item_id: deriveContentItemId(payload, result),
+      client_id,
     });
 
     // Post to Slack
@@ -1241,6 +1244,7 @@ exports.handler = async (event) => {
       result_status: "error",
       result_summary: String(err.message).slice(0, 500),
       content_item_id: deriveContentItemId(payload, null),
+      client_id,
     });
     return {
       statusCode: 500,

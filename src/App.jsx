@@ -44,6 +44,7 @@ import PlaceholderPage from './ui/shared/PlaceholderPage.jsx';
 import OpsBoard from './ui/dashboard/OpsBoard.jsx';
 import ActivityFeed from './ui/dashboard/ActivityFeed.jsx';
 import ContentPipelineBoard from './ui/pipeline/ContentPipelineBoard.jsx';
+import AddClientModal from './ui/clients/AddClientModal.jsx';
 
 //  ROOT APP WRAPPER
 const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
@@ -144,6 +145,17 @@ function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setCon
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeNav, setActiveNav] = useState("dashboard");
   const [activePlatform, setActivePlatform] = useState("instagram");
+
+  // ── Multi-tenant: client roster + currently-active client ──
+  const [clients, setClients] = useState([]);
+  const [currentClient, setCurrentClient] = useState(null);  // {id, slug, name, brand_color, ...}
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [addClientOpen, setAddClientOpen] = useState(false);
+  const switchClient = useCallback((c) => {
+    setCurrentClient(c);
+    try { localStorage.setItem("vantus_current_client_id", c.id); } catch {}
+    setClientPickerOpen(false);
+  }, []);
   const [selectedAgent, setSelectedAgent] = useState(null);
   // feed state removed — ActivityFeed self-manages from agent_events table
   const [agents] = useState(AGENTS_BASE);
@@ -244,7 +256,7 @@ const channel = sb.channel("content_changes")
           fetch("/api/notify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type, item: payload.new }),
+            body: JSON.stringify({ type, item: payload.new, client_id: payload.new?.client_id }),
           }).catch(() => {});
         }
       }
@@ -259,11 +271,43 @@ const channel = sb.channel("content_changes")
 return () => sb.removeChannel(channel);
   }, []);
 
-  // ── NOTIFICATIONS (Move 3 — DB-backed) ──
-  // Fetch last 30 on mount, subscribe to realtime INSERTs.
-  // Replaces the in-memory setNotifications array that lost state on refresh.
+  // ── CLIENTS (multi-tenant) ──
+  // Fetch the client roster on mount, set currentClient from localStorage
+  // (or default to the first active client). Subscribe to realtime so
+  // newly-added clients appear without refresh.
   useEffect(() => {
     if (!sb) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await sb
+        .from("clients")
+        .select("id, slug, name, brand_voice_md, brand_color, logo_url, primary_email, slack_channel_id, n8n_webhook_url, status")
+        .eq("status", "active")
+        .order("name");
+      if (cancelled || error) { if (error) console.warn("[clients] fetch error", error); return; }
+      const list = data || [];
+      setClients(list);
+      // Pick currentClient: saved id → first active → null
+      let savedId = null;
+      try { savedId = localStorage.getItem("vantus_current_client_id"); } catch {}
+      const saved = savedId ? list.find(c => c.id === savedId) : null;
+      setCurrentClient(saved || list[0] || null);
+    })();
+    const ch = sb.channel("clients_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "clients" }, (payload) => {
+        if (payload.eventType === "INSERT") setClients(prev => [...prev, payload.new]);
+        if (payload.eventType === "UPDATE") setClients(prev => prev.map(c => c.id === payload.new.id ? payload.new : c));
+        if (payload.eventType === "DELETE") setClients(prev => prev.filter(c => c.id !== payload.old.id));
+      }).subscribe();
+    return () => { cancelled = true; sb.removeChannel(ch); };
+  }, []);
+
+  // ── NOTIFICATIONS (Move 3 — DB-backed, multi-tenant scoped) ──
+  // Fetch last 30 on mount + realtime, scoped to currentClient.
+  useEffect(() => {
+    if (!sb) return;
+    const clientId = currentClient?.id;
+    if (!clientId) { setNotifications([]); return; }
     let cancelled = false;
     const mapRow = (row) => ({
       id: row.id,
@@ -276,29 +320,30 @@ return () => sb.removeChannel(channel);
     (async () => {
       const { data, error } = await sb
         .from("notifications")
-        .select("id, ts, type, payload, read")
+        .select("id, ts, type, payload, read, client_id")
+        .eq("client_id", clientId)
         .order("ts", { ascending: false })
         .limit(30);
       if (cancelled) return;
       if (error) { console.warn("[notifications] fetch error", error); return; }
       setNotifications((data || []).map(mapRow));
     })();
-    const ch = sb.channel("notifications_changes")
+    const ch = sb.channel(`notifications_${clientId}`)
       .on("postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications" },
+        { event: "INSERT", schema: "public", table: "notifications", filter: `client_id=eq.${clientId}` },
         (payload) => {
           setNotifications(prev => [mapRow(payload.new), ...prev].slice(0, 30));
         }
       )
       .on("postgres_changes",
-        { event: "UPDATE", schema: "public", table: "notifications" },
+        { event: "UPDATE", schema: "public", table: "notifications", filter: `client_id=eq.${clientId}` },
         (payload) => {
           setNotifications(prev => prev.map(n => n.id === payload.new.id ? mapRow(payload.new) : n));
         }
       )
       .subscribe();
     return () => { cancelled = true; sb.removeChannel(ch); };
-  }, []);
+  }, [currentClient?.id]);
 
   // Mark all currently-unread notifications as read in the DB.
   // Used by the bell-click handler.
@@ -398,7 +443,9 @@ const typeMap = { "Reel": "reel", "Graphics (IMG)": "graphic", "Carousel": "caro
 const primaryPlatform = updated.platforms && updated.platforms.length > 0
   ? (platformMap[updated.platforms[0]] || "instagram") : (updated.platform || "instagram");
 const itemType = typeMap[updated.format] || updated.type || "reel";
+// Multi-tenant: tag new items with currentClient. Existing items keep their own client_id.
 const item = { ...updated, stage: updated.status, platform: primaryPlatform, type: itemType };
+if (isNewItem && currentClient?.id) item.client_id = currentClient.id;
 
 if (isNewItem) {
   setContent(prev => [...prev, item]);
@@ -429,6 +476,7 @@ const copy = {
   publish_date: "",
   client_note: "",
   files: [],
+  client_id: item.client_id || currentClient?.id,  // multi-tenant: preserve or default
 };
 setContent(prev => [...prev, copy]);
 setEditingItem(null);
@@ -459,7 +507,7 @@ if (sb) {
       const res = await safeAgentFetch("/api/agent-action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "muse_ig_ideas", payload: { campaign: "Drip Campaign" } }),
+        body: JSON.stringify({ action: "muse_ig_ideas", payload: { campaign: "Drip Campaign" }, client_id: currentClient?.id }),
       });
       const d = await res.json();
       if (d.error || !d.success) throw new Error(d.error || d.message || "Unknown error");
@@ -481,6 +529,7 @@ try {
     body: JSON.stringify({
       action: "muse_write_content",
       payload: { itemId: item.id, itemTitle: item.title, pillar: item.pillar, format: item.format, description: item.description, fieldToUpdate: field },
+      client_id: item.client_id || currentClient?.id,
     }),
   });
   const d = await res.json();
@@ -496,9 +545,14 @@ try {
   };
 
   const sidebarW = 220;
-  const igItems = content.filter(x => x.platform === "instagram");
-  const ttItems = content.filter(x => x.platform === "tiktok");
-  const ytItems = content.filter(x => x.platform === "youtube");
+  // Multi-tenant scope: filter content to currentClient. When currentClient is
+  // null (during initial load), show nothing (don't leak other clients' data).
+  const clientContent = currentClient
+    ? content.filter(x => x.client_id === currentClient.id)
+    : [];
+  const igItems = clientContent.filter(x => x.platform === "instagram");
+  const ttItems = clientContent.filter(x => x.platform === "tiktok");
+  const ytItems = clientContent.filter(x => x.platform === "youtube");
 
   //  PREVIEW MODE — renders ClientView inside an overlay 
   if (previewMode) {
@@ -674,11 +728,16 @@ return (
             <div style={{ width:36, height:36, borderRadius:10, background:"#161414", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
               <img src="data:image/png;base64,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" style={{ width:18, height:18, objectFit:"contain" }} />
             </div>
-            <div style={{ flex:1, minWidth:0 }}>
+            <div
+              onClick={() => setClientPickerOpen(o => !o)}
+              title="Switch client"
+              style={{ flex:1, minWidth:0, cursor:"pointer" }}
+            >
               <div style={{ fontSize:14, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.4, lineHeight:1.2 }}>Vantus</div>
               <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:3 }}>
-                <div style={{ width:5, height:5, borderRadius:"50%", background: dbStatus==="live"?"#2AABFF":dbStatus==="error"?"#ff453a":"#F17130", flexShrink:0 }} />
-                <span style={{ fontSize:9, color:"rgba(255,255,255,0.5)", fontWeight:500, fontFamily:"'Geist Mono', monospace", letterSpacing:1.5, textTransform:"uppercase" }}>VitalLyfe</span>
+                <div style={{ width:5, height:5, borderRadius:"50%", background: currentClient?.brand_color || (dbStatus==="live"?"#2AABFF":dbStatus==="error"?"#ff453a":"#F17130"), flexShrink:0 }} />
+                <span style={{ flex:1, fontSize:9, color:"rgba(255,255,255,0.5)", fontWeight:500, fontFamily:"'Geist Mono', monospace", letterSpacing:1.5, textTransform:"uppercase", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{currentClient?.name || "..."}</span>
+                <span style={{ fontSize:9, color:"rgba(255,255,255,0.35)", marginLeft:2 }}>▾</span>
               </div>
             </div>
             <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.35)", cursor:"pointer", fontSize:16, padding:"2px 4px", lineHeight:1, flexShrink:0 }}>‹</button>
@@ -740,6 +799,18 @@ return (
                 </div>,
                 document.body
               )}
+              {/* ADD CLIENT MODAL */}
+              {addClientOpen && createPortal(
+                <AddClientModal
+                  onClose={() => setAddClientOpen(false)}
+                  onCreated={(c) => {
+                    setClients(prev => [...prev, c]);
+                    switchClient(c);
+                    setAddClientOpen(false);
+                  }}
+                />,
+                document.body
+              )}
             </div>
             {onSignOut && (
               <button onClick={onSignOut} style={{ fontSize:10, color:"rgba(255,255,255,0.4)", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500 }}>Out</button>
@@ -774,7 +845,42 @@ return (
         </button>
       </div>
     )}
-    <div style={{ flex:1, overflowY:"auto", padding:"8px 0" }}>
+    <div style={{ flex:1, overflowY:"auto", padding:"8px 0", position:"relative" }}>
+      {/* CLIENT PICKER DRAWER — overlays the nav when the client header is clicked */}
+      {clientPickerOpen && !sidebarCollapsed && (
+        <div style={{ position:"absolute", inset:0, background:"#0a0a0f", zIndex:5, display:"flex", flexDirection:"column" }}>
+          <div style={{ padding:"12px 16px 6px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <span style={{ fontSize:9, color:"rgba(255,255,255,0.45)", letterSpacing:2, fontWeight:600, textTransform:"uppercase" }}>Switch Client</span>
+            <button onClick={() => setClientPickerOpen(false)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, padding:"0 4px" }}>×</button>
+          </div>
+          <button
+            onClick={() => { setAddClientOpen(true); setClientPickerOpen(false); }}
+            style={{ display:"flex", alignItems:"center", gap:10, margin:"4px 8px 6px", padding:"10px 12px", background:"rgba(42,171,255,0.08)", border:"1px dashed rgba(42,171,255,0.3)", borderRadius:10, color:"#2AABFF", cursor:"pointer", fontFamily:"Inter, sans-serif", fontSize:12, fontWeight:500 }}
+          >
+            <span style={{ fontSize:16, lineHeight:1 }}>+</span> Add new client
+          </button>
+          <div style={{ flex:1, overflowY:"auto" }}>
+            {clients.length === 0 && (
+              <div style={{ padding:"24px 16px", fontSize:11, color:"rgba(255,255,255,0.4)", textAlign:"center" }}>No clients yet. Click "Add new client" above.</div>
+            )}
+            {clients.map(c => {
+              const isActive = currentClient?.id === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => switchClient(c)}
+                  style={{ display:"flex", alignItems:"center", gap:10, width:"calc(100% - 16px)", margin:"0 8px 2px", padding:"10px 12px", background: isActive ? "rgba(255,255,255,0.06)" : "transparent", border:"1px solid " + (isActive ? "rgba(255,255,255,0.12)" : "transparent"), borderRadius:10, cursor:"pointer", textAlign:"left", fontFamily:"Inter, sans-serif" }}
+                >
+                  <div style={{ width:7, height:7, borderRadius:"50%", background:c.brand_color || "#888", flexShrink:0 }} />
+                  <span style={{ flex:1, fontSize:13, fontWeight:isActive?600:400, color:isActive?"#f5f5f7":"rgba(255,255,255,0.7)" }}>{c.name}</span>
+                  {isActive && <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", fontFamily:"'Geist Mono', monospace" }}>ACTIVE</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {NAV.map(group => (
         <div key={group.section} style={{ padding:"12px 0 0" }}>
           {!sidebarCollapsed && <div style={{ padding:"0 16px 5px", fontSize:9, color:"rgba(255,255,255,0.4)", letterSpacing:2, fontWeight:600, textTransform:"uppercase" }}>{group.section}</div>}
@@ -810,7 +916,7 @@ return (
       <div style={{ animation:"fadeIn 0.4s ease" }}>
         {/*  HERO  */}
         <div style={{ marginBottom: isMobile ? 24 : 40, paddingBottom: isMobile ? 24 : 32, borderBottom:"1px solid rgba(255,255,255,0.1)" }}>
-          <div style={{ fontSize:9, color:"rgba(255,255,255,0.55)", fontWeight:600, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace", marginBottom:12 }}>Cloud Scenic / VitalLyfe</div>
+          <div style={{ fontSize:9, color:"rgba(255,255,255,0.55)", fontWeight:600, letterSpacing:3, textTransform:"uppercase", fontFamily:"'Geist Mono', monospace", marginBottom:12 }}>Cloud Scenic / {currentClient?.name || "Loading…"}</div>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
             <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 36 : 52, fontWeight:400, fontStyle:"italic", color:"#ffffff", margin:0, letterSpacing:-1, lineHeight:1 }}>Vantus.</h1>
 
@@ -824,24 +930,37 @@ return (
           </div>
         </div>
 
+        {/*  EMPTY-STATE BANNER — appears for freshly-created clients with no content yet  */}
+        {currentClient && clientContent.length === 0 && (
+          <div style={{ marginBottom: isMobile ? 20 : 32, padding: isMobile ? "20px 22px" : "26px 30px", background: "rgba(42,171,255,0.05)", border: "1px solid rgba(42,171,255,0.18)", borderRadius: 14 }}>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:2, color:"rgba(42,171,255,0.7)", textTransform:"uppercase", marginBottom:8 }}>Empty Dashboard</div>
+            <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 26, fontStyle:"italic", color:"#f5f5f7", fontWeight:400, marginBottom:8, letterSpacing:-0.5 }}>
+              No content yet for {currentClient.name}.
+            </div>
+            <div style={{ fontSize:13, color:"rgba(255,255,255,0.55)", lineHeight:1.55, maxWidth:520 }}>
+              Add your first content piece in <strong style={{ color:"#f5f5f7", fontWeight:500 }}>Pipeline</strong> or <strong style={{ color:"#f5f5f7", fontWeight:500 }}>Production</strong>, or drop a brief in <strong style={{ color:"#f5f5f7", fontWeight:500 }}>Apps → Brief → Content</strong> to have Muse generate ideas automatically.
+            </div>
+          </div>
+        )}
+
         {/*  METRIC GRID — 2x2 on mobile, asymmetric on desktop  */}
         <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1.4fr 1fr 1fr", gridTemplateRows:"auto", gap: isMobile ? 10 : 14, marginBottom: isMobile ? 24 : 44 }}>
           {isMobile ? (
             <>
-              <MetricCard label="Content Pieces" value={content.length} delta={0} color="#2AABFF" />
-              <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
-              <MetricCard label="Need Attention" value={content.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
-              <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#2AABFF" />
+              <MetricCard label="Content Pieces" value={clientContent.length} delta={0} color="#2AABFF" />
+              <MetricCard label="Approved" value={clientContent.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
+              <MetricCard label="Need Attention" value={clientContent.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
+              <MetricCard label="Scheduled" value={clientContent.filter(x=>x.status==="Scheduled").length} delta={0} color="#2AABFF" />
             </>
           ) : (
             <>
               <div style={{ gridRow:"1 / span 2" }}>
-                <MetricCard label="Content Pieces" value={content.length} delta={0} color="#2AABFF" large />
+                <MetricCard label="Content Pieces" value={clientContent.length} delta={0} color="#2AABFF" large />
               </div>
-              <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
-              <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#2AABFF" />
-              <MetricCard label="Need Attention" value={content.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
-              <MetricCard label="In Production" value={content.filter(x=>["Ready For Content Creation","Ready For Copy Creation"].includes(x.status)).length} delta={0} color="#ff375f" />
+              <MetricCard label="Approved" value={clientContent.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
+              <MetricCard label="Scheduled" value={clientContent.filter(x=>x.status==="Scheduled").length} delta={0} color="#2AABFF" />
+              <MetricCard label="Need Attention" value={clientContent.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
+              <MetricCard label="In Production" value={clientContent.filter(x=>["Ready For Content Creation","Ready For Copy Creation"].includes(x.status)).length} delta={0} color="#ff375f" />
             </>
           )}
         </div>
@@ -892,7 +1011,7 @@ return (
               : <span style={{ fontSize:9, color:"rgba(255,80,80,0.7)", fontFamily:"'Geist Mono',monospace", letterSpacing:1.5, fontWeight:700, textTransform:"uppercase" }}>Paused</span>
             }
           </div>
-          <Card style={{ padding:"4px 0", maxHeight:320, overflowY:"auto" }}><ActivityFeed /></Card>
+          <Card style={{ padding:"4px 0", maxHeight:320, overflowY:"auto" }}><ActivityFeed clientId={currentClient?.id} /></Card>
         </div>
 
         {/*  OPERATIONS BOARD  */}
@@ -1001,7 +1120,7 @@ return (
 
     {/* CONTENT TRACKER */}
     {activeNav === "tracker" && (() => {
-      const filtered = content.filter(item => {
+      const filtered = clientContent.filter(item => {
         if (filterStatus && item.status !== filterStatus) return false;
         if (filterPillar && item.pillar !== filterPillar) return false;
         if (filterPlatform && item.platform !== filterPlatform) return false;
@@ -1014,7 +1133,7 @@ return (
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20, gap:12, flexWrap:"wrap" }}>
           <div>
             <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 24 : 32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>Production</h1>
-            <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>{filtered.length} of {content.length} pieces · Tap any row to edit</p>
+            <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>{filtered.length} of {clientContent.length} pieces · Tap any row to edit</p>
           </div>
           <button onClick={handleAddNew} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap" }}>+ Add Content</button>
         </div>
@@ -1043,9 +1162,9 @@ return (
           </div>
         </div>
         <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3,1fr)", gap: isMobile ? 10 : 14, marginBottom:24 }}>
-          <MetricCard label="Total Pieces" value={content.length} delta={0} color="#2AABFF" />
-          <MetricCard label="Approved" value={content.filter(x=>x.status==="Approved").length} delta={0} color="#2AABFF" />
-          {!isMobile && <MetricCard label="Scheduled" value={content.filter(x=>x.status==="Scheduled").length} delta={0} color="#0a84ff" />}
+          <MetricCard label="Total Pieces" value={clientContent.length} delta={0} color="#2AABFF" />
+          <MetricCard label="Approved" value={clientContent.filter(x=>x.status==="Approved").length} delta={0} color="#2AABFF" />
+          {!isMobile && <MetricCard label="Scheduled" value={clientContent.filter(x=>x.status==="Scheduled").length} delta={0} color="#0a84ff" />}
         </div>
         {/* Table — horizontal scroll on mobile */}
         <Card style={{ padding:"0", overflow:"hidden" }}>
