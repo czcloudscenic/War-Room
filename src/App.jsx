@@ -151,6 +151,7 @@ function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setCon
   const [currentClient, setCurrentClient] = useState(null);  // {id, slug, name, brand_color, ...}
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [addClientOpen, setAddClientOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState(null);  // null = not editing
   const switchClient = useCallback((c) => {
     setCurrentClient(c);
     try { localStorage.setItem("vantus_current_client_id", c.id); } catch {}
@@ -811,6 +812,29 @@ return (
                 />,
                 document.body
               )}
+              {/* EDIT CLIENT MODAL */}
+              {editingClient && createPortal(
+                <AddClientModal
+                  editingClient={editingClient}
+                  onClose={() => setEditingClient(null)}
+                  onUpdated={(c) => {
+                    // If archived, drop from active list; otherwise update in place
+                    if (c.status === "archived") {
+                      setClients(prev => prev.filter(x => x.id !== c.id));
+                      if (currentClient?.id === c.id) {
+                        const remaining = clients.filter(x => x.id !== c.id);
+                        setCurrentClient(remaining[0] || null);
+                        try { remaining[0] ? localStorage.setItem("vantus_current_client_id", remaining[0].id) : localStorage.removeItem("vantus_current_client_id"); } catch {}
+                      }
+                    } else {
+                      setClients(prev => prev.map(x => x.id === c.id ? c : x));
+                      if (currentClient?.id === c.id) setCurrentClient(c);
+                    }
+                    setEditingClient(null);
+                  }}
+                />,
+                document.body
+              )}
             </div>
             {onSignOut && (
               <button onClick={onSignOut} style={{ fontSize:10, color:"rgba(255,255,255,0.4)", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"5px 8px", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500 }}>Out</button>
@@ -866,21 +890,29 @@ return (
             {clients.map(c => {
               const isActive = currentClient?.id === c.id;
               return (
-                <button
-                  key={c.id}
-                  onClick={() => switchClient(c)}
-                  style={{ display:"flex", alignItems:"center", gap:11, width:"calc(100% - 16px)", margin:"0 8px 4px", padding:"9px 12px", background: isActive ? "rgba(255,255,255,0.06)" : "transparent", border:"1px solid " + (isActive ? "rgba(255,255,255,0.12)" : "transparent"), borderRadius:10, cursor:"pointer", textAlign:"left", fontFamily:"Inter, sans-serif" }}
-                >
-                  <div style={{ width:28, height:28, borderRadius:7, background: c.logo_url ? "transparent" : (c.brand_color || "#222"), display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", flexShrink:0 }}>
-                    {c.logo_url ? (
-                      <img src={c.logo_url} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
-                    ) : (
-                      <span style={{ fontSize:11, fontWeight:700, color:"#fff", letterSpacing:0.3 }}>{(c.name || "?").slice(0,1).toUpperCase()}</span>
-                    )}
-                  </div>
-                  <span style={{ flex:1, fontSize:13, fontWeight:isActive?600:400, color:isActive?"#f5f5f7":"rgba(255,255,255,0.75)" }}>{c.name}</span>
-                  {isActive && <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", fontFamily:"'Geist Mono', monospace" }}>ACTIVE</span>}
-                </button>
+                <div key={c.id} style={{ display:"flex", alignItems:"stretch", gap:0, margin:"0 8px 4px" }}>
+                  <button
+                    onClick={() => switchClient(c)}
+                    style={{ flex:1, display:"flex", alignItems:"center", gap:11, padding:"9px 10px", background: isActive ? "rgba(255,255,255,0.06)" : "transparent", border:"1px solid " + (isActive ? "rgba(255,255,255,0.12)" : "transparent"), borderRadius:"10px 0 0 10px", borderRight:"none", cursor:"pointer", textAlign:"left", fontFamily:"Inter, sans-serif" }}
+                  >
+                    <div style={{ width:28, height:28, borderRadius:7, background: c.logo_url ? "transparent" : (c.brand_color || "#222"), display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", flexShrink:0 }}>
+                      {c.logo_url ? (
+                        <img src={c.logo_url} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+                      ) : (
+                        <span style={{ fontSize:11, fontWeight:700, color:"#fff", letterSpacing:0.3 }}>{(c.name || "?").slice(0,1).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <span style={{ flex:1, fontSize:13, fontWeight:isActive?600:400, color:isActive?"#f5f5f7":"rgba(255,255,255,0.75)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.name}</span>
+                    {isActive && <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", fontFamily:"'Geist Mono', monospace" }}>ACTIVE</span>}
+                  </button>
+                  <button
+                    onClick={() => { setEditingClient(c); setClientPickerOpen(false); }}
+                    title={`Edit ${c.name}`}
+                    style={{ width:32, background: isActive ? "rgba(255,255,255,0.06)" : "transparent", border:"1px solid " + (isActive ? "rgba(255,255,255,0.12)" : "transparent"), borderLeft:"none", borderRadius:"0 10px 10px 0", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", padding:0 }}
+                  >
+                    ✎
+                  </button>
+                </div>
               );
             })}
           </div>
