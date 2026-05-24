@@ -1446,7 +1446,7 @@ return (
     <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:"rgba(10,8,9,0.96)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderTop:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", paddingBottom:"env(safe-area-inset-bottom,0)", height:"calc(58px + env(safe-area-inset-bottom,0px))" }}>
       {[
         { id:"dashboard", label:"Home" },
-        { id:"tracker", label:"Production" },
+        { id:"content", label:"Pipeline" },
         { id:"agents", label:"Agents" },
         { id:"adroihub", label:"ROI" },
         { id:"taskboard", label:"Tasks" },
