@@ -19,12 +19,43 @@ export default function AddClientModal({ onClose, onCreated }) {
   const [slackChannel, setSlackChannel] = useState("");
   const [n8nWebhook, setN8nWebhook] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const handleNameChange = (v) => {
     setName(v);
     if (!slugTouched) setSlug(slugify(v));
+  };
+
+  const handleFilePick = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith("image/")) { setError("Logo must be an image."); return; }
+    if (f.size > 2 * 1024 * 1024) { setError("Logo must be under 2MB."); return; }
+    setError("");
+    setLogoFile(f);
+    setLogoPreview(URL.createObjectURL(f));
+  };
+
+  const uploadLogoIfNeeded = async () => {
+    if (!logoFile) return logoUrl.trim() || null;
+    setUploading(true);
+    try {
+      const ext = logoFile.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${slug || "client"}-${Date.now()}.${ext}`;
+      const { error: upErr } = await sb.storage.from("client-logos").upload(path, logoFile, {
+        upsert: true,
+        contentType: logoFile.type,
+      });
+      if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+      const { data: pub } = sb.storage.from("client-logos").getPublicUrl(path);
+      return pub?.publicUrl || null;
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleCreate = async (e) => {
@@ -34,6 +65,7 @@ export default function AddClientModal({ onClose, onCreated }) {
     if (!slug.trim()) { setError("Slug is required."); return; }
     setSaving(true);
     try {
+      const finalLogoUrl = await uploadLogoIfNeeded();
       const { data, error: insErr } = await sb
         .from("clients")
         .insert({
@@ -44,7 +76,7 @@ export default function AddClientModal({ onClose, onCreated }) {
           primary_email: primaryEmail.trim() || null,
           slack_channel_id: slackChannel.trim() || null,
           n8n_webhook_url: n8nWebhook.trim() || null,
-          logo_url: logoUrl.trim() || null,
+          logo_url: finalLogoUrl,
           status: "active",
         })
         .select()
@@ -93,6 +125,27 @@ export default function AddClientModal({ onClose, onCreated }) {
         </div>
 
         <div style={{ marginBottom:14 }}>
+          <label style={labelStyle}>Logo</label>
+          <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+            <div style={{ width:64, height:64, borderRadius:12, background:"rgba(255,255,255,0.04)", border:"1px dashed rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, overflow:"hidden" }}>
+              {logoPreview || logoUrl ? (
+                <img src={logoPreview || logoUrl} style={{ width:"100%", height:"100%", objectFit:"contain" }} alt="Logo preview" />
+              ) : (
+                <span style={{ fontSize:9, color:"rgba(255,255,255,0.3)", letterSpacing:1, textTransform:"uppercase" }}>Preview</span>
+              )}
+            </div>
+            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:6 }}>
+              <label style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"8px 12px", background:"rgba(42,171,255,0.08)", border:"1px solid rgba(42,171,255,0.25)", borderRadius:8, cursor:"pointer", fontSize:12, color:"#2AABFF", fontWeight:500, width:"fit-content" }}>
+                <input type="file" accept="image/*" onChange={handleFilePick} style={{ display:"none" }} />
+                {logoFile ? `📎 ${logoFile.name.slice(0, 30)}` : "Upload image"}
+              </label>
+              <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="or paste URL…" style={{ ...inputStyle, padding:"7px 10px", fontSize:11 }} disabled={!!logoFile} />
+            </div>
+          </div>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:6 }}>PNG or JPG · under 2MB · square works best</div>
+        </div>
+
+        <div style={{ marginBottom:14 }}>
           <label style={labelStyle}>Brand Voice (Markdown)</label>
           <textarea
             value={brandVoice}
@@ -127,10 +180,7 @@ export default function AddClientModal({ onClose, onCreated }) {
 
             <label style={labelStyle}>n8n Webhook URL</label>
             <input value={n8nWebhook} onChange={e => setN8nWebhook(e.target.value)} placeholder="https://...n8n.cloud/webhook/..." style={inputStyle} />
-            <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:4, marginBottom:12 }}>Per-client automation webhook.</div>
-
-            <label style={labelStyle}>Logo URL</label>
-            <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://..." style={inputStyle} />
+            <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:4 }}>Per-client automation webhook.</div>
           </div>
         </details>
 
@@ -143,7 +193,7 @@ export default function AddClientModal({ onClose, onCreated }) {
         <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
           <button type="button" onClick={onClose} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.12)", borderRadius:10, color:"rgba(255,255,255,0.65)", fontSize:12, fontWeight:500, padding:"9px 16px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Cancel</button>
           <button type="submit" disabled={saving} style={{ background:"rgba(42,171,255,0.18)", border:"1px solid rgba(42,171,255,0.4)", borderRadius:10, color:"#2AABFF", fontSize:12, fontWeight:600, padding:"9px 18px", cursor: saving?"not-allowed":"pointer", fontFamily:"Inter, sans-serif", opacity: saving?0.55:1 }}>
-            {saving ? "Creating…" : "Create Client"}
+            {uploading ? "Uploading logo…" : saving ? "Creating…" : "Create Client"}
           </button>
         </div>
       </form>

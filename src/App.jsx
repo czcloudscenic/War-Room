@@ -544,7 +544,7 @@ try {
 }
   };
 
-  const sidebarW = 220;
+  const sidebarW = 260;
   // Multi-tenant scope: filter content to currentClient. When currentClient is
   // null (during initial load), show nothing (don't leak other clients' data).
   const clientContent = currentClient
@@ -869,10 +869,16 @@ return (
                 <button
                   key={c.id}
                   onClick={() => switchClient(c)}
-                  style={{ display:"flex", alignItems:"center", gap:10, width:"calc(100% - 16px)", margin:"0 8px 2px", padding:"10px 12px", background: isActive ? "rgba(255,255,255,0.06)" : "transparent", border:"1px solid " + (isActive ? "rgba(255,255,255,0.12)" : "transparent"), borderRadius:10, cursor:"pointer", textAlign:"left", fontFamily:"Inter, sans-serif" }}
+                  style={{ display:"flex", alignItems:"center", gap:11, width:"calc(100% - 16px)", margin:"0 8px 4px", padding:"9px 12px", background: isActive ? "rgba(255,255,255,0.06)" : "transparent", border:"1px solid " + (isActive ? "rgba(255,255,255,0.12)" : "transparent"), borderRadius:10, cursor:"pointer", textAlign:"left", fontFamily:"Inter, sans-serif" }}
                 >
-                  <div style={{ width:7, height:7, borderRadius:"50%", background:c.brand_color || "#888", flexShrink:0 }} />
-                  <span style={{ flex:1, fontSize:13, fontWeight:isActive?600:400, color:isActive?"#f5f5f7":"rgba(255,255,255,0.7)" }}>{c.name}</span>
+                  <div style={{ width:28, height:28, borderRadius:7, background: c.logo_url ? "transparent" : (c.brand_color || "#222"), display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", flexShrink:0 }}>
+                    {c.logo_url ? (
+                      <img src={c.logo_url} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+                    ) : (
+                      <span style={{ fontSize:11, fontWeight:700, color:"#fff", letterSpacing:0.3 }}>{(c.name || "?").slice(0,1).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <span style={{ flex:1, fontSize:13, fontWeight:isActive?600:400, color:isActive?"#f5f5f7":"rgba(255,255,255,0.75)" }}>{c.name}</span>
                   {isActive && <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", fontFamily:"'Geist Mono', monospace" }}>ACTIVE</span>}
                 </button>
               );
