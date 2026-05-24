@@ -1432,7 +1432,7 @@ return (
         { id:"tracker", label:"Content" },
         { id:"agents", label:"Agents" },
         { id:"adroihub", label:"ROI" },
-        { id:"broadcast", label:"Broadcast" },
+        { id:"taskboard", label:"Tasks" },
       ].map(tab => {
         const active = activeNav === tab.id;
         return (
