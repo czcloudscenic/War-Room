@@ -895,9 +895,9 @@ return (
                     onClick={() => switchClient(c)}
                     style={{ flex:1, display:"flex", alignItems:"center", gap:11, padding:"9px 10px", background: isActive ? "rgba(255,255,255,0.06)" : "transparent", border:"1px solid " + (isActive ? "rgba(255,255,255,0.12)" : "transparent"), borderRadius:"10px 0 0 10px", borderRight:"none", cursor:"pointer", textAlign:"left", fontFamily:"Inter, sans-serif" }}
                   >
-                    <div style={{ width:28, height:28, borderRadius:7, background: c.logo_url ? "transparent" : (c.brand_color || "#222"), display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", flexShrink:0 }}>
+                    <div style={{ width:28, height:28, borderRadius:7, background: c.logo_url ? "rgba(255,255,255,0.05)" : (c.brand_color || "#222"), display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", flexShrink:0, padding: c.logo_url ? 2 : 0, boxSizing:"border-box" }}>
                       {c.logo_url ? (
-                        <img src={c.logo_url} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+                        <img src={c.logo_url} alt={c.name} style={{ maxWidth:"100%", maxHeight:"100%", width:"auto", height:"auto", objectFit:"contain", display:"block" }} />
                       ) : (
                         <span style={{ fontSize:11, fontWeight:700, color:"#fff", letterSpacing:0.3 }}>{(c.name || "?").slice(0,1).toUpperCase()}</span>
                       )}
