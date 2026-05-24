@@ -655,21 +655,76 @@ return (
 
   {/*  MOBILE TOP BAR  */}
   {isMobile && (
-    <div style={{ height:52, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", padding:"0 16px", gap:12, zIndex:50, flexShrink:0, paddingTop:"env(safe-area-inset-top,0)" }}>
-      <div style={{ width:34, height:34, flexShrink:0 }}>
+    <div style={{ height:52, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", padding:"0 12px", gap:10, zIndex:50, flexShrink:0, paddingTop:"env(safe-area-inset-top,0)" }}>
+      {/* Vantus app logo */}
+      <div style={{ width:32, height:32, flexShrink:0 }}>
         <img src="/vantus-logo.png" style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }} />
       </div>
-      <div style={{ flex:1 }}>
-        <div style={{ fontSize:13, fontWeight:700, color:"#f5f5f7", letterSpacing:-0.3 }}>Vantus</div>
-        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-          <div style={{ width:4, height:4, borderRadius:"50%", background: dbStatus==="live"?"#2AABFF":"#ff453a" }} />
-          <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", fontWeight:500, letterSpacing:1.5, textTransform:"uppercase", fontFamily:"'Geist Mono',monospace" }}>VitalLyfe</span>
+      {/* Client switcher: tap to open client picker drawer */}
+      <button
+        onClick={() => setClientPickerOpen(o => !o)}
+        style={{ flex:1, display:"flex", alignItems:"center", gap:8, padding:"4px 8px", background:"transparent", border:"none", cursor:"pointer", minWidth:0, textAlign:"left", fontFamily:"Inter, sans-serif" }}
+      >
+        <div style={{ width:24, height:24, borderRadius:6, background: currentClient?.logo_url ? "rgba(255,255,255,0.05)" : (currentClient?.brand_color || "#222"), display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", flexShrink:0, padding: currentClient?.logo_url ? 2 : 0, boxSizing:"border-box" }}>
+          {currentClient?.logo_url ? (
+            <img src={currentClient.logo_url} alt={currentClient.name} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", display:"block" }} />
+          ) : (
+            <span style={{ fontSize:10, fontWeight:700, color:"#fff" }}>{(currentClient?.name || "?").slice(0,1).toUpperCase()}</span>
+          )}
         </div>
-      </div>
-      <button onClick={() => setMobileNavOpen(o => !o)}
-        style={{ background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#f5f5f7", width:34, height:34, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:16 }}>
-        {mobileNavOpen ? "" : ""}
+        <div style={{ flex:1, minWidth:0, overflow:"hidden" }}>
+          <div style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.2, lineHeight:1.1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{currentClient?.name || "Vantus"}</div>
+          <div style={{ fontSize:8, color:"rgba(255,255,255,0.35)", fontFamily:"'Geist Mono',monospace", letterSpacing:1.2, textTransform:"uppercase", marginTop:1 }}>Tap to switch ▾</div>
+        </div>
       </button>
+      <button onClick={() => setMobileNavOpen(o => !o)}
+        style={{ background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#f5f5f7", width:34, height:34, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:18, flexShrink:0 }}>
+        {mobileNavOpen ? "×" : "≡"}
+      </button>
+    </div>
+  )}
+
+  {/* MOBILE CLIENT PICKER SHEET — slides up from below the top bar */}
+  {isMobile && clientPickerOpen && (
+    <div style={{ position:"fixed", inset:0, top:52, zIndex:180 }} onClick={() => setClientPickerOpen(false)}>
+      <div style={{ position:"absolute", top:0, left:0, right:0, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.08)", animation:"slideUp 0.2s ease", maxHeight:"70vh", overflowY:"auto", paddingBottom:12 }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ padding:"12px 16px 6px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <span style={{ fontSize:9, color:"rgba(255,255,255,0.45)", letterSpacing:2, fontWeight:600, textTransform:"uppercase" }}>Switch Client</span>
+          <button onClick={() => setClientPickerOpen(false)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:16, padding:"0 4px" }}>×</button>
+        </div>
+        <button onClick={() => { setAddClientOpen(true); setClientPickerOpen(false); }}
+          style={{ display:"flex", alignItems:"center", gap:10, margin:"4px 12px 8px", padding:"12px 14px", background:"rgba(42,171,255,0.08)", border:"1px dashed rgba(42,171,255,0.3)", borderRadius:10, color:"#2AABFF", cursor:"pointer", fontFamily:"Inter, sans-serif", fontSize:13, fontWeight:500, width:"calc(100% - 24px)" }}>
+          <span style={{ fontSize:18, lineHeight:1 }}>+</span> Add new client
+        </button>
+        {clients.length === 0 && (
+          <div style={{ padding:"24px 16px", fontSize:12, color:"rgba(255,255,255,0.4)", textAlign:"center" }}>No clients yet.</div>
+        )}
+        {clients.map(c => {
+          const isActive = currentClient?.id === c.id;
+          return (
+            <div key={c.id} style={{ display:"flex", alignItems:"stretch", margin:"0 12px 4px" }}>
+              <button onClick={() => switchClient(c)}
+                style={{ flex:1, display:"flex", alignItems:"center", gap:12, padding:"12px 12px", background: isActive ? "rgba(255,255,255,0.06)" : "transparent", border:"1px solid " + (isActive ? "rgba(255,255,255,0.12)" : "transparent"), borderRadius:"10px 0 0 10px", borderRight:"none", cursor:"pointer", textAlign:"left", fontFamily:"Inter, sans-serif" }}>
+                <div style={{ width:30, height:30, borderRadius:7, background: c.logo_url ? "rgba(255,255,255,0.05)" : (c.brand_color || "#222"), display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", flexShrink:0, padding: c.logo_url ? 2 : 0, boxSizing:"border-box" }}>
+                  {c.logo_url ? (
+                    <img src={c.logo_url} alt={c.name} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", display:"block" }} />
+                  ) : (
+                    <span style={{ fontSize:12, fontWeight:700, color:"#fff" }}>{(c.name || "?").slice(0,1).toUpperCase()}</span>
+                  )}
+                </div>
+                <span style={{ flex:1, fontSize:14, fontWeight:isActive?600:400, color:isActive?"#f5f5f7":"rgba(255,255,255,0.75)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.name}</span>
+                {isActive && <span style={{ fontSize:9, color:"rgba(255,255,255,0.4)", fontFamily:"'Geist Mono', monospace" }}>ACTIVE</span>}
+              </button>
+              <button onClick={() => { setEditingClient(c); setClientPickerOpen(false); }}
+                title={`Edit ${c.name}`}
+                style={{ width:42, background: isActive ? "rgba(255,255,255,0.06)" : "transparent", border:"1px solid " + (isActive ? "rgba(255,255,255,0.12)" : "transparent"), borderLeft:"none", borderRadius:"0 10px 10px 0", color:"rgba(255,255,255,0.45)", cursor:"pointer", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", padding:0 }}>
+                ✎
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   )}
 
@@ -708,7 +763,7 @@ return (
 
   {/*  DESKTOP SIDEBAR  */}
   {!isMobile && (
-  <div className="vantus-grid-bg" style={{ width:220, minWidth:220, background:"transparent", borderRight:"1px solid rgba(255,255,255,0.05)", display:"flex", flexDirection:"column", overflow:"hidden", zIndex:20, flexShrink:0 }}>
+  <div className="vantus-grid-bg" style={{ width: sidebarCollapsed ? 68 : sidebarW, minWidth: sidebarCollapsed ? 68 : sidebarW, background:"transparent", borderRight:"1px solid rgba(255,255,255,0.05)", display:"flex", flexDirection:"column", overflow:"hidden", zIndex:20, flexShrink:0, transition:"width 0.18s ease" }}>
     <div style={{ padding:sidebarCollapsed?"16px 0":"16px 16px 14px", borderBottom:"1px solid rgba(255,255,255,0.1)" }}>
 
       {/*  COLLAPSED  */}
