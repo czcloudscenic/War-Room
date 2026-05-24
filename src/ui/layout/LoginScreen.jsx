@@ -122,8 +122,8 @@ export default function LoginScreen() {
       <div className="lg-box" style={{ position:"relative", zIndex:10, width: isMobile ? "calc(100vw - 36px)" : 370, padding: isMobile ? "36px 24px 40px" : "48px 44px" }}>
 
         <div style={{ marginBottom:32, textAlign:"center" }}>
-          <div style={{ width:52, height:52, borderRadius:13, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.12)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 18px", padding:8 }}>
-            <img src="/vantus-logo.png" style={{ width:"100%", height:"100%", objectFit:"contain" }} />
+          <div style={{ width:64, height:64, margin:"0 auto 18px" }}>
+            <img src="/vantus-logo.png" style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }} />
           </div>
           <div style={{ fontSize:9, color:"rgba(255,255,255,0.38)", letterSpacing:3, textTransform:"uppercase", fontWeight:600, marginBottom:7 }}>Cloud Scenic</div>
           <h1 style={{ fontSize:24, fontWeight:500, color:"#fff", margin:"0 0 5px", letterSpacing:-0.5 }}>Vantus</h1>

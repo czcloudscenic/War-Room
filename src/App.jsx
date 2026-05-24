@@ -655,8 +655,8 @@ return (
   {/*  MOBILE TOP BAR  */}
   {isMobile && (
     <div style={{ height:52, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", padding:"0 16px", gap:12, zIndex:50, flexShrink:0, paddingTop:"env(safe-area-inset-top,0)" }}>
-      <div style={{ width:30, height:30, borderRadius:8, background:"#161414", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-        <img src="/vantus-logo.png" style={{ width:"100%", height:"100%", objectFit:"contain", padding:3 }} />
+      <div style={{ width:34, height:34, flexShrink:0 }}>
+        <img src="/vantus-logo.png" style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }} />
       </div>
       <div style={{ flex:1 }}>
         <div style={{ fontSize:13, fontWeight:700, color:"#f5f5f7", letterSpacing:-0.3 }}>Vantus</div>
@@ -713,8 +713,8 @@ return (
       {/*  COLLAPSED  */}
       {sidebarCollapsed && (
         <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:10 }}>
-          <div style={{ width:36, height:36, borderRadius:10, background:"#161414", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <img src="/vantus-logo.png" style={{ width:18, height:18, objectFit:"contain" }} />
+          <div style={{ width:40, height:40 }}>
+            <img src="/vantus-logo.png" style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }} />
           </div>
           <button onClick={() => setSidebarCollapsed(c => !c)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:14, padding:2, lineHeight:1 }}>›</button>
         </div>
@@ -725,8 +725,8 @@ return (
         <div>
           {/* Row 1: icon + wordmark + collapse toggle */}
           <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-            <div style={{ width:36, height:36, borderRadius:10, background:"#161414", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-              <img src="/vantus-logo.png" style={{ width:18, height:18, objectFit:"contain" }} />
+            <div style={{ width:40, height:40, flexShrink:0 }}>
+              <img src="/vantus-logo.png" style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }} />
             </div>
             <div
               onClick={() => setClientPickerOpen(o => !o)}
