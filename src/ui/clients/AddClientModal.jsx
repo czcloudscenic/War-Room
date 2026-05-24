@@ -124,7 +124,8 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
   };
 
   const labelStyle = { fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.45)", display:"block", marginBottom:6 };
-  const inputStyle = { width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"9px 12px", fontSize:13, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif", boxSizing:"border-box" };
+  // fontSize 16 prevents iOS Safari from auto-zooming the viewport on input focus
+  const inputStyle = { width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"9px 12px", fontSize:16, color:"#f5f5f7", outline:"none", fontFamily:"Inter, sans-serif", boxSizing:"border-box" };
 
   return (
     <div

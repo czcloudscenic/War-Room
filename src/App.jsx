@@ -677,6 +677,23 @@ return (
           <div style={{ fontSize:8, color:"rgba(255,255,255,0.35)", fontFamily:"'Geist Mono',monospace", letterSpacing:1.2, textTransform:"uppercase", marginTop:1 }}>Tap to switch ▾</div>
         </div>
       </button>
+      {/* Mobile notification bell */}
+      <button
+        onClick={() => {
+          if (!notifOpen) {
+            setNotifPos({ x: 12, y: 60 });
+            markAllNotificationsRead();
+          }
+          setNotifOpen(o => !o);
+        }}
+        style={{ position:"relative", background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"rgba(255,255,255,0.85)", width:34, height:34, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        {notifications.filter(n=>!n.read).length > 0 && (
+          <span style={{ position:"absolute", top:-4, right:-4, width:14, height:14, borderRadius:"50%", background:"#ff453a", fontSize:8, fontWeight:700, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            {notifications.filter(n=>!n.read).length}
+          </span>
+        )}
+      </button>
       <button onClick={() => setMobileNavOpen(o => !o)}
         style={{ background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#f5f5f7", width:34, height:34, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:18, flexShrink:0 }}>
         {mobileNavOpen ? "×" : "≡"}
