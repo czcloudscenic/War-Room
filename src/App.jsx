@@ -1437,11 +1437,9 @@ return (
         const active = activeNav === tab.id;
         return (
           <button key={tab.id} onClick={() => setActiveNav(tab.id)}
-            style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, background:"none", border:"none", cursor:"pointer", padding:"8px 0", height:58 }}>
-            <div style={{ width:20, height:20, borderRadius:6, background: active ? "rgba(42,171,255,0.15)" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}>
-              <span style={{ fontSize:13, color: active ? "#2AABFF" : "rgba(255,255,255,0.35)" }}>{tab.icon}</span>
-            </div>
-            <span style={{ fontSize:9, fontWeight: active ? 700 : 400, color: active ? "#2AABFF" : "rgba(255,255,255,0.3)", letterSpacing:0.3, fontFamily:"Inter,sans-serif" }}>{tab.label}</span>
+            style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:4, background:"none", border:"none", cursor:"pointer", padding:"8px 0", height:58, position:"relative" }}>
+            {active && <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:24, height:2, background:"#2AABFF", borderRadius:"0 0 2px 2px" }} />}
+            <span style={{ fontSize:11, fontWeight: active ? 600 : 500, color: active ? "#2AABFF" : "rgba(255,255,255,0.55)", letterSpacing:0.2, fontFamily:"Inter,sans-serif" }}>{tab.label}</span>
           </button>
         );
       })}
