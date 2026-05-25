@@ -1,0 +1,1093 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vantus Architecture Map</title>
+<style>
+  :root{
+    --bg:#0F0F0F;--panel:#161616;--panel-2:#1c1c1c;--border:#2a2a2a;
+    --text:#e8e8e8;--muted:#8a8a8a;
+    --client:#4ea1ff;--route:#7bd389;--service:#c792ea;--db:#ffb86b;--external:#ff6b9d;
+    --critical:#ff3860;--accent:#f5b942;--accent-2:#ff7a45;--dead:#5a5a5a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Display',Inter,sans-serif;overflow:hidden;height:100vh}
+  body{display:flex;flex-direction:column}
+  header{padding:14px 22px;border-bottom:1px solid var(--border);background:var(--panel);display:flex;align-items:center;gap:18px;flex-shrink:0}
+  h1{margin:0;font-size:16px;font-weight:600;letter-spacing:-.2px}
+  .subtitle{font-size:11px;color:var(--muted);margin-left:6px}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;flex:1;margin-left:18px}
+  .chip{font-size:11px;padding:6px 12px;border:1px solid var(--border);border-radius:14px;color:var(--muted);background:var(--panel-2);cursor:pointer;font-family:inherit;letter-spacing:.2px;transition:all .12s}
+  .chip:hover{color:var(--text);border-color:#444}
+  .chip.active{color:var(--bg);background:var(--accent);border-color:var(--accent);font-weight:600}
+  .chip.warn.active{background:var(--critical);border-color:var(--critical);color:#fff}
+  main{flex:1;display:flex;overflow:hidden;min-height:0}
+  .canvas{flex:1;background:var(--bg);position:relative;overflow:hidden}
+  .canvas svg{display:block;width:100%;height:100%;cursor:grab}
+  .canvas svg.dragging{cursor:grabbing}
+  .controls{position:absolute;bottom:18px;left:18px;display:flex;gap:6px;z-index:10}
+  .ctl{width:32px;height:32px;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;font-family:inherit}
+  .ctl:hover{background:var(--panel-2);border-color:#444}
+  .ctl.wide{width:auto;padding:0 12px;font-size:11px}
+  aside{width:360px;border-left:1px solid var(--border);background:var(--panel);overflow-y:auto;padding:22px 24px;flex-shrink:0}
+  aside h2{margin:0 0 4px;font-size:14px;font-weight:600;letter-spacing:-.1px}
+  aside .pill{display:inline-block;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;padding:3px 8px;border-radius:10px;background:var(--panel-2);color:var(--muted);font-weight:600;font-family:'SF Mono',Menlo,monospace}
+  aside .path{font-family:'SF Mono',Menlo,monospace;font-size:11px;color:#79c0ff;background:var(--panel-2);padding:6px 8px;border-radius:6px;margin:12px 0 14px;word-break:break-all;border:1px solid var(--border)}
+  aside p{margin:0 0 10px;line-height:1.55;font-size:13px;color:var(--text)}
+  aside p.muted{color:var(--muted);font-size:12px}
+  aside h3{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;font-weight:700;font-family:'SF Mono',Menlo,monospace}
+  aside ul{margin:0 0 4px;padding-left:18px;font-size:12px;line-height:1.6;color:var(--text)}
+  aside ul li{margin-bottom:3px}
+  aside ul.edges li{font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--muted);list-style:none;margin-left:-18px;padding:4px 0;border-bottom:1px dashed var(--border)}
+  aside ul.edges li span.arrow{color:var(--accent);margin:0 5px}
+  aside .bug{padding:8px 10px;background:rgba(255,56,96,.08);border-left:2px solid var(--critical);border-radius:0 6px 6px 0;margin-bottom:6px;font-size:12px;line-height:1.5}
+  aside .bug .sev{display:inline-block;font-size:8px;font-weight:700;letter-spacing:1.5px;padding:2px 6px;border-radius:4px;margin-right:6px;text-transform:uppercase}
+  aside .bug .sev.high{background:var(--critical);color:#fff}
+  aside .bug .sev.med{background:var(--accent-2);color:#fff}
+  aside .bug .sev.low{background:var(--accent);color:#000}
+  aside .fix{padding:8px 10px;background:rgba(123,211,137,.06);border-left:2px solid var(--route);border-radius:0 6px 6px 0;margin-bottom:6px;font-size:12px;line-height:1.5}
+  aside .fix .num{display:inline-block;font-size:9px;font-weight:700;color:var(--route);margin-right:6px;font-family:'SF Mono',Menlo,monospace}
+  aside .finding{padding:10px 12px;background:rgba(245,185,66,.05);border-left:2px solid var(--accent);border-radius:0 6px 6px 0;margin-bottom:8px;font-size:12px;line-height:1.55}
+  .legend{position:absolute;bottom:18px;right:18px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:10px;color:var(--muted);z-index:10}
+  .legend .row{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+  .legend .row:last-child{margin-bottom:0}
+  .legend .dot{width:8px;height:8px;border-radius:50%}
+  .legend .line{width:18px;height:2px}
+  /* SVG node styling */
+  .node{cursor:pointer;transition:opacity .15s}
+  .node rect{transition:stroke-width .12s}
+  .node .label{font-size:12px;font-weight:600;fill:var(--text);font-family:-apple-system,Inter,sans-serif;pointer-events:none}
+  .node .sub{font-size:10px;fill:var(--muted);font-family:'SF Mono',Menlo,monospace;pointer-events:none}
+  .node:hover rect{stroke-width:2.4}
+  .node.selected rect{stroke-width:3}
+  .node.dim{opacity:.18}
+  .edge{transition:opacity .15s}
+  .edge.dim{opacity:.1}
+  .edge text{font-size:9px;fill:var(--muted);font-family:'SF Mono',Menlo,monospace;pointer-events:none}
+  .cluster-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;fill:var(--muted);font-family:'SF Mono',Menlo,monospace;pointer-events:none}
+  .cluster-count{font-size:9px;fill:var(--muted);font-family:'SF Mono',Menlo,monospace;pointer-events:none}
+  .badge-fix{fill:var(--route)}
+  .badge-bug{fill:var(--critical)}
+  .badge-text{font-size:9px;font-weight:700;fill:#000;font-family:'SF Mono',Menlo,monospace;pointer-events:none;text-anchor:middle}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Vantus</h1>
+  <span class="subtitle">architecture map · 2026-05-25</span>
+  <div class="filters" id="filters"></div>
+</header>
+
+<main>
+  <div class="canvas" id="canvas">
+    <svg id="svg" viewBox="0 0 1480 1100" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <marker id="ah-critical" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#ff3860"/>
+        </marker>
+        <marker id="ah-api" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#ff7a45"/>
+        </marker>
+        <marker id="ah-db" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#ffb86b"/>
+        </marker>
+        <marker id="ah-mount" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#4ea1ff"/>
+        </marker>
+        <marker id="ah-normal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#5a5a5a"/>
+        </marker>
+      </defs>
+      <g id="world"></g>
+    </svg>
+    <div class="controls">
+      <button class="ctl" id="zoom-fit" title="Fit">⛶</button>
+      <button class="ctl" id="zoom-out" title="Zoom out">−</button>
+      <button class="ctl" id="zoom-in" title="Zoom in">+</button>
+      <button class="ctl wide" id="zoom-reset">Reset</button>
+    </div>
+    <div class="legend">
+      <div class="row"><span class="dot" style="background:var(--client)"></span> Client UI</div>
+      <div class="row"><span class="dot" style="background:var(--route)"></span> API Routes</div>
+      <div class="row"><span class="dot" style="background:var(--service)"></span> Services</div>
+      <div class="row"><span class="dot" style="background:var(--db)"></span> Data</div>
+      <div class="row"><span class="dot" style="background:var(--external)"></span> External APIs</div>
+      <div class="row"><span class="line" style="background:var(--critical)"></span> Critical path</div>
+      <div class="row"><span class="line" style="background:var(--db)"></span> DB read/write</div>
+      <div class="row"><span class="line" style="background:var(--accent-2)"></span> External API</div>
+    </div>
+  </div>
+
+  <aside id="sidebar">
+    <div id="sidebar-default">
+      <h2>Notable findings</h2>
+      <p class="muted">Click any node to inspect it. Filter chips above narrow the view.</p>
+      <h3>Surprises from this map</h3>
+      <div class="finding">
+        <b>All 8 files in <code style="font-family:'SF Mono',Menlo,monospace">src/agents/</code> are DEAD CODE.</b>
+        Zero importers. The real agent personas live inline in <code style="font-family:'SF Mono',Menlo,monospace">core/agentRegistry.js</code> + <code style="font-family:'SF Mono',Menlo,monospace">core/memory.js</code> + hardcoded prompts inside <code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code>. The folder was created during a Phase 2 refactor (per docs/REFACTOR_PLAN.md) but never wired up.
+      </div>
+      <div class="finding">
+        <b><code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code> is 1,255 lines</b> — a single file holding 16 action handlers, the Anthropic wrapper, Supabase REST helpers, Slack notifier, AND the new agent_events logger. Splitting it is documented in REFACTOR_PLAN.md but never executed. Editing one action means scrolling past a wall of unrelated code.
+      </div>
+      <div class="finding">
+        <b>Authentication is currently BYPASSED in App.jsx</b> (line 116-117). Anyone with the URL becomes the admin fallback user. Google OAuth provider is configured in Supabase but the code-exchange step fails — debugging postponed. See KNOWN_BUGS on the App node.
+      </div>
+      <div class="finding">
+        <b>Brain Move 1 (Cortex wiring) is half-done.</b> The <code style="font-family:'SF Mono',Menlo,monospace">clients.brand_voice_md</code> column exists and the AddClient modal lets you write it, but <code style="font-family:'SF Mono',Menlo,monospace">agent-action.js</code> ignores it — all agent prompts still use hardcoded VitalLyfe voice. Same for <code style="font-family:'SF Mono',Menlo,monospace">slack_channel_id</code> and <code style="font-family:'SF Mono',Menlo,monospace">n8n_webhook_url</code> per-client routing.
+      </div>
+      <div class="finding">
+        <b>Functions are unauthenticated.</b> Only <code style="font-family:'SF Mono',Menlo,monospace">/api/cid-scrape</code> requires a bearer token. The other 5 deployed functions (chat, agent-action, notify, apify-scrape, unsplash) accept anonymous POSTs and use server-side service keys / Anthropic budget. Anyone on the internet can hit them.
+      </div>
+      <div class="finding">
+        <b>Main JS bundle is 777 KB</b> (gzip 199 KB). The bulk is <code style="font-family:'SF Mono',Menlo,monospace">pdfjs-dist</code> (405 KB on disk) which is only used by Brief→Content. Dynamic-importing it would cut the bundle in half for everyone who never opens that page.
+      </div>
+      <h3>Map stats</h3>
+      <p class="muted" id="map-stats"></p>
+    </div>
+    <div id="sidebar-node" style="display:none"></div>
+  </aside>
+</main>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────────
+   CLUSTERS — 5 columns, left to right
+   ───────────────────────────────────────────────────────────────────── */
+const clusters = [
+  { id:'client',   label:'Client UI',     x:20,   y:60,  w:280, h:1020 },
+  { id:'routes',   label:'API Routes',    x:320,  y:60,  w:240, h:1020 },
+  { id:'services', label:'Core Services', x:580,  y:60,  w:240, h:1020 },
+  { id:'data',     label:'Data Layer',    x:840,  y:60,  w:240, h:1020 },
+  { id:'external', label:'External APIs', x:1100, y:60,  w:240, h:1020 },
+];
+
+/* ─────────────────────────────────────────────────────────────────────
+   NODES
+   ───────────────────────────────────────────────────────────────────── */
+const N = (id, cluster, label, sub, x, y, w, h, color, opts = {}) =>
+  ({ id, cluster, label, sub, x, y, w, h, color, ...opts });
+
+const nodes = [
+  // ═══════ CLIENT UI ═══════
+  N('main', 'client', 'main.jsx', 'mount', 40, 110, 240, 50, 'client', {
+    role: 'React 19 createRoot mount point; renders <App />.',
+    plain: 'The very first line of code that runs when you open the site. It connects the React app to the page.',
+    path: 'src/main.jsx',
+    notes: ['1-line file (the entire app starts here)', 'Imports App from App.jsx'],
+    tag: ['overview','all'],
+    critical: true,
+  }),
+  N('app', 'client', 'App.jsx', 'root + state + auth gate', 40, 180, 240, 90, 'client', {
+    role: 'Root React tree: auth bypass, currentClient state, content/notifications/clients fetch + realtime subs, layout shell, every nav route handler.',
+    plain: 'The big brain of the frontend. It checks if you are logged in, picks the active client, loads all the data, and decides which page to show based on the sidebar item you clicked.',
+    path: 'src/App.jsx (1,471 lines)',
+    notes: [
+      'L116-117: AUTH BYPASS — `if(!session)` commented; admin fallback user',
+      'L143-159: 8 useState lots + currentClient/clientPickerOpen/editingClient',
+      'L196-271: Vantus useEffect — content fetch + content_changes realtime',
+      'L278-312: clients useEffect — fetch + realtime; sets currentClient',
+      'L315-359: notifications useEffect — scoped fetch + INSERT/UPDATE realtime',
+      'L1025-1380: giant route switch (one ternary per nav id)',
+    ],
+    tag: ['overview','auth','multi-tenant','content','agents','notifications','all'],
+    critical: true,
+  }),
+  N('login', 'client', 'LoginScreen.jsx', 'Google OAuth button', 40, 295, 240, 50, 'client', {
+    role: '"Continue with Google" button calling sb.auth.signInWithOAuth + URL-error display.',
+    plain: 'The login page. Currently never shown because auth is bypassed in App.jsx.',
+    path: 'src/ui/layout/LoginScreen.jsx',
+    notes: ['Renders sb.auth.signInWithOAuth with hd:cloudscenic.com hint','Currently dormant (auth bypass)','Parses URL ?error= params for surfaced auth failures'],
+    tag: ['auth','all'],
+  }),
+  N('addclient', 'client', 'AddClientModal.jsx', 'create + edit + archive', 40, 360, 240, 65, 'client', {
+    role: 'Multi-purpose modal for client onboarding/edit/archive; handles logo upload to Supabase Storage.',
+    plain: 'The form you fill out to add a new client (or edit one). Lets you upload their logo, set their brand voice, etc.',
+    path: 'src/ui/clients/AddClientModal.jsx',
+    notes: [
+      'Toggles edit vs create via editingClient prop',
+      'Uploads to client-logos bucket via sb.storage.from(...)',
+      'fontSize:16 on inputs to dodge iOS auto-zoom',
+      'Archive action: status=archived (soft delete)',
+    ],
+    tag: ['multi-tenant','all'],
+  }),
+  N('agentchat', 'client', 'AgentChatPage.jsx', 'chat UI for 7 agents', 40, 440, 240, 65, 'client', {
+    role: 'Per-agent chat panel: prompt builder, message thread, quick-action buttons, agent-action invoker.',
+    plain: 'The page where you click on an agent (Sean, Muse, etc.) and chat with them. Calls Claude through /api/agent-action when you press a quick-action button.',
+    path: 'src/ui/agents/AgentChatPage.jsx',
+    notes: ['Holds the actual agent persona prompts inline (~lines 35-130)','Calls /api/agent-action for quick actions','Stores chat history in localStorage'],
+    tag: ['agents','all'],
+    critical: true,
+  }),
+  N('activityfeed', 'client', 'ActivityFeed.jsx', 'live agent_events feed', 40, 520, 240, 55, 'client', {
+    role: 'Self-fetches last 60 agent_events for currentClient + subscribes to INSERT realtime.',
+    plain: 'The "Live Activity" panel on the Dashboard. Shows real agent events as they happen, not fake theater.',
+    path: 'src/ui/dashboard/ActivityFeed.jsx',
+    notes: ['Filter: client_id=eq.${clientId}','Pre-Move-2 this used a fake 2.2s loop pulling random items','humanizeAction maps action_key → readable verb'],
+    tag: ['agents','multi-tenant','all'],
+    critical: true,
+  }),
+  N('opsboard', 'client', 'OpsBoard.jsx', 'Task Board kanban', 40, 590, 240, 50, 'client', {
+    role: 'In-memory kanban (Backlog/InProgress/Completed) with edit + delete + auto-advance intervals.',
+    plain: 'The Task Board where you add and track tasks. Currently just lives in memory — refresh and tasks reset.',
+    path: 'src/ui/dashboard/OpsBoard.jsx',
+    notes: ['No DB backing — pure local state','useInterval auto-advances backlog → inProgress every 20s','Click title to edit, × to delete'],
+    tag: ['all'],
+  }),
+  N('pipelineboard', 'client', 'ContentPipelineBoard.jsx', 'kanban for content_items', 40, 655, 240, 50, 'client', {
+    role: 'Stage-column kanban view rendering content_items by status.',
+    plain: 'The horizontal kanban view where each content piece lives in a column based on its status (Approved, In Production, etc.).',
+    path: 'src/ui/pipeline/ContentPipelineBoard.jsx',
+    notes: ['Pure presentational — fed items+stages props','Used by Pipeline page for each platform tab'],
+    tag: ['content','all'],
+  }),
+  N('editmodal', 'client', 'EditContentModal.jsx', 'edit a content piece', 40, 720, 240, 50, 'client', {
+    role: 'Drawer modal to edit a content_items row (title, status, caption, script, files, client_note).',
+    plain: 'The form that opens when you click a content card. Lets you edit the piece end-to-end.',
+    path: 'src/ui/pipeline/EditContentModal.jsx',
+    notes: ['Bottom-sheet style on mobile','Drag-and-drop file upload via Supabase Storage'],
+    tag: ['content','all'],
+  }),
+  N('clientview', 'client', 'ClientView.jsx', 'client-facing portal', 40, 785, 240, 50, 'client', {
+    role: 'Read/approve view shown to clients (role=client) when they log in.',
+    plain: 'The simpler version of the dashboard that clients (the agency\'s customers) see when they log in.',
+    path: 'src/ui/client/ClientView.jsx',
+    notes: ['Triggered via Preview Mode button','Posts client_note + Approved/Needs Revisions back to content_items'],
+    tag: ['content','all'],
+  }),
+  N('cidpage', 'client', 'CIDPage.jsx', 'Competitor Intel', 40, 850, 240, 50, 'client', {
+    role: 'Competitor Intel dashboard: search query → scrape via /api/cid-scrape + /api/apify-scrape → cid_posts.',
+    plain: 'The Competitor Intel page where you type a creator name and Vantus scrapes their recent posts to study what works.',
+    path: 'src/apps/competitor-intel/CIDPage.jsx',
+    notes: ['Calls /api/agent-action for cid_build_brief + cid_ab_variations','Reads/writes cid_posts table','Mock data fallback if scraper fails'],
+    tag: ['cid','all'],
+  }),
+  N('briefgen', 'client', 'BriefGenPage.jsx', 'PDF brief → generated content', 40, 915, 240, 50, 'client', {
+    role: 'Drag-PDF zone → pdfjs extract text → /api/agent-action muse_from_brief → batch INSERT content_items.',
+    plain: 'Drop a PDF brief and Muse reads it, generates Reels + Stories, and adds them to the tracker automatically.',
+    path: 'src/apps/brief-gen/BriefGenPage.jsx',
+    notes: ['Uses pdfjs-dist (the 405KB bundle bloat)','Action: muse_from_brief'],
+    tag: ['content','agents','all'],
+  }),
+  N('higgsfield-ui', 'client', 'HiggsfieldStudio.jsx', 'WIP · untracked', 40, 980, 240, 50, 'dead', {
+    role: 'Higgsfield AI image/video gen UI — WIP, file not in git.',
+    plain: 'Half-built page for generating images/videos via Higgsfield. Exists on disk but never committed.',
+    path: 'src/apps/higgsfield/HiggsfieldStudio.jsx (UNTRACKED)',
+    notes: ['Import was previously in App.jsx, broke CI builds when reverted','Currently no nav entry in deployed code','Live /api/higgsfield → 404'],
+    tag: ['all'],
+  }),
+  N('addclient2', 'client', 'AppsPage / Settings / others', '(8 minor pages, see legend)', 40, 1045, 240, 30, 'client', {
+    role: 'AppsPage, SettingsPage, ICPPage, TeamBroadcast, ReferencesPage, SkillsPage, AdROIHub, ArtgridScoutPage, HeroGeneratorPage, ShotRefScout, QuickActionsDashboard, AgentCard, AgentAvatar, MetricCard, Card.',
+    plain: 'The grab-bag of smaller pages and shared visual components — pages users tap into but that don\'t hold critical logic.',
+    path: 'src/ui/* and src/apps/*',
+    notes: ['Collapsed for visual clarity','See full inventory in docs/ARCHITECTURE.md'],
+    tag: ['all'],
+  }),
+
+  // ═══════ API ROUTES ═══════
+  N('agent-action', 'routes', '/api/agent-action', 'agent-action.js', 340, 180, 200, 75, 'route', {
+    role: '16-action switch over POST {action,payload,client_id}; routes to muse_/sean_/lacey_/sam_/overseer_/artgrid_/scrappy_/cid_ handlers, logs to agent_events, posts to Slack.',
+    plain: 'The single endpoint every agent action goes through. The user clicks a button, Vantus POSTs {action: "muse_write_content"} here, and this file figures out what to do, calls Claude, writes the result to the database, and tells Slack.',
+    path: 'netlify/functions/agent-action.js (1,255 lines — monolith)',
+    notes: [
+      'L122: model = claude-haiku-4-5-20251001 (upgraded from deprecated haiku-3)',
+      'L1106-1252: exports.handler with switch + try/catch/finally for logging',
+      'L63-80: logAgentEvent wrapper for agent_events table',
+      'L14-27: SLACK_AGENT_LABELS for per-action post formatting',
+      'Holds 16 different handler functions inline — splitting deferred',
+    ],
+    tag: ['overview','agents','content','cid','all'],
+    critical: true,
+  }),
+  N('chat', 'routes', '/api/chat', 'Anthropic proxy', 340, 270, 200, 50, 'route', {
+    role: 'Thin proxy: parses request body, forwards to Anthropic Messages API server-side.',
+    plain: 'A pass-through that keeps the Anthropic API key on the server. The frontend never sees the key.',
+    path: 'netlify/functions/chat.js (60 lines)',
+    notes: ['No model hardcoded — passes through whatever the client sent','Used by AgentChatPage free-form chats','CORS: *  (unauthenticated)'],
+    tag: ['agents','all'],
+  }),
+  N('notify', 'routes', '/api/notify', 'client-action notifier', 340, 335, 200, 65, 'route', {
+    role: 'Fires when client UPDATEs content_items status to Approved/Needs Revisions: persists to notifications + email (Resend) + Slack + n8n.',
+    plain: 'When a client approves or rejects a piece, this endpoint sends the email, posts to Slack, and saves the notification to the database so it survives a page refresh.',
+    path: 'netlify/functions/notify.js',
+    notes: [
+      'L17-44: insertNotification helper for notifications table (Move 3)',
+      'Prefer:resolution=ignore-duplicates → unique index dedupes multi-tab POSTs',
+      'Per-client routing TODO: still uses global SLACK_WEBHOOK_URL, not client.slack_channel_id',
+    ],
+    tag: ['notifications','content','all'],
+  }),
+  N('cid-scrape', 'routes', '/api/cid-scrape', 'authed scraper', 340, 415, 200, 50, 'route', {
+    role: 'Only auth-gated function: requires Bearer token; scrapes IG/TikTok/Reddit posts → cid_posts.',
+    plain: 'Goes out to Instagram, TikTok, and Reddit and pulls down posts for competitor research. The only endpoint that requires a password.',
+    path: 'netlify/functions/cid-scrape.js',
+    notes: ['Bearer token check via CID_BEARER_TOKEN env var','Writes to cid_posts table'],
+    tag: ['cid','all'],
+  }),
+  N('apify-scrape', 'routes', '/api/apify-scrape', 'Apify integration', 340, 480, 200, 50, 'route', {
+    role: 'Calls Apify actors for scraping (alternate path to cid-scrape).',
+    plain: 'Another scraping option that uses Apify (a scraping service) instead of direct API calls.',
+    path: 'netlify/functions/apify-scrape.js',
+    notes: ['Called only from CIDPage','Uses APIFY_API_KEY env var'],
+    tag: ['cid','all'],
+  }),
+  N('unsplash', 'routes', '/api/unsplash', 'image search', 340, 545, 200, 50, 'route', {
+    role: 'Proxy to Unsplash search API for stock image references.',
+    plain: 'Lets you search Unsplash for reference photos. Called from the Shot Reference page.',
+    path: 'netlify/functions/unsplash.js',
+    notes: ['Only called from ShotRefScout','GET-only (returns 405 on POST)'],
+    tag: ['all'],
+  }),
+  N('higgsfield-fn', 'routes', '/api/higgsfield', 'NOT DEPLOYED', 340, 610, 200, 50, 'dead', {
+    role: 'Higgsfield AI proxy — file exists locally but is untracked (never deployed).',
+    plain: 'The other half of the Higgsfield WIP. The file exists but isn\'t in git, so the live site returns 404 for this endpoint.',
+    path: 'netlify/functions/higgsfield.js (UNTRACKED)',
+    notes: ['Live /api/higgsfield → 404','Reads HIGGSFIELD_ACCESS_TOKEN env var'],
+    tag: ['all'],
+  }),
+
+  // ═══════ CORE SERVICES ═══════
+  N('supabaseClient', 'services', 'supabaseClient.js', 'sb singleton', 600, 110, 200, 55, 'service', {
+    role: 'Reads VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY from env, exports sb (createClient). Throws on missing env.',
+    plain: 'The connection to Supabase that every database query uses on the frontend.',
+    path: 'src/services/supabaseClient.js (15 lines)',
+    notes: ['THROWS at module-load if env vars missing — would crash the whole app','15 lines, no fancy config'],
+    tag: ['overview','all'],
+    critical: true,
+  }),
+  N('memory', 'services', 'memory.js', 'agent memory store', 600, 180, 200, 60, 'service', {
+    role: 'localStorage-backed per-agent memory + buildSystemPrompt composer + updateAgentMemory hook.',
+    plain: 'Where each agent\'s "memory" is stored in the browser. Builds the prompt sent to Claude by stuffing in agent identity + accumulated context.',
+    path: 'src/core/memory.js (86 lines)',
+    notes: [
+      'L75-81: Muse pre-seed (brand:VitalLyfe, tone:...) — hardcoded, blocks Move 1',
+      'localStorage key per agent — wipes on browser clear',
+      'updateAgentMemory: appends last user msg + AI response',
+    ],
+    tag: ['agents','all'],
+  }),
+  N('routeTask', 'services', 'routeTask.js', 'keyword → agent routing', 600, 255, 200, 50, 'service', {
+    role: 'Dispatches command-input text to a specific agent via keyword match against AGENT_KEYWORDS.',
+    plain: 'When you type a command in the command bar, this picks which agent should handle it based on keywords.',
+    path: 'src/core/routeTask.js (51 lines)',
+    notes: ['Called from CommandInput','Uses AGENT_KEYWORDS from agentRegistry'],
+    tag: ['agents','all'],
+  }),
+  N('agentRegistry', 'services', 'agentRegistry.js', 'agent prompts + keywords', 600, 320, 200, 55, 'service', {
+    role: 'AGENT_KEYWORDS + ROUTE_PROMPTS — the actual agent persona seeds used in chat.',
+    plain: 'A list of all the agents with their personality descriptions and the keywords that trigger each one.',
+    path: 'src/core/agentRegistry.js (36 lines)',
+    notes: ['THIS is where agent prompts actually live (NOT src/agents/*.agent.js)','Imported by App.jsx + routeTask + AgentChatPage'],
+    tag: ['agents','all'],
+  }),
+  N('constants', 'services', 'constants.js', 'NAV + status colors', 600, 390, 200, 50, 'service', {
+    role: 'Sidebar NAV array, STATUS_COLOR map, FORMATS/PILLARS/PLATFORMS dropdown options.',
+    plain: 'The list of sidebar items, status color codes, and dropdown options. The single source of truth for what nav items exist.',
+    path: 'src/utils/constants.js (37 lines)',
+    notes: ['Dirty in working tree (Higgsfield CREATIVE entry uncommitted)','Has dynamic feel but is static data'],
+    tag: ['overview','all'],
+  }),
+  N('apps-config', 'services', 'apps.config.js', 'toggleable Apps registry', 600, 455, 200, 55, 'service', {
+    role: 'DEFAULT_APPS list + localStorage persistence (loadApps/saveApps/isAppEnabled).',
+    plain: 'The list of optional modules (ArtGrid, Brief→Content, References, etc.) that can be toggled on/off from the Apps page.',
+    path: 'src/apps/apps.config.js (43 lines)',
+    notes: ['Toggle state persisted to localStorage','Dirty: Higgsfield entry present locally not in git'],
+    tag: ['all'],
+  }),
+  N('hooks', 'services', 'hooks.js', 'useIsMobile + useInterval', 600, 525, 200, 50, 'service', {
+    role: 'Two shared hooks: useIsMobile (window.innerWidth<768 + resize listener), useInterval (setInterval ref-stable wrapper).',
+    plain: 'Two small reusable React tools. useIsMobile tells components whether to render the mobile or desktop layout.',
+    path: 'src/utils/hooks.js (32 lines)',
+    notes: ['Mobile breakpoint: <768px','Used in nearly every page'],
+    tag: ['all'],
+  }),
+  N('seed-content', 'services', 'seed.content.js', 'static fallback content', 600, 590, 200, 50, 'service', {
+    role: 'INITIAL_CONTENT + VITAL_LYFE_SOP — VitalLyfe-specific seed used as fallback when content_items table is empty.',
+    plain: 'A hardcoded list of VitalLyfe content pieces. Used as backup data if the database is empty.',
+    path: 'src/data/seed.content.js (53 lines)',
+    notes: ['Tightly coupled to VitalLyfe — needs replacement for multi-tenant','Not scoped by client_id'],
+    tag: ['content','all'],
+  }),
+  N('seed-agents', 'services', 'seed.agents.js', 'agent identity + colors', 600, 655, 200, 55, 'service', {
+    role: 'AGENTS_BASE (8 agents) + AGENT_TASKS + ACTION_COLORS. Drives sidebar agent grid + activity feed colors.',
+    plain: 'The list of all 8 agents with their colors and basic info. Visual metadata, not prompt logic.',
+    path: 'src/data/seed.agents.js (46 lines)',
+    notes: ['Agent prompts NOT here — those live in agentRegistry.js + agent-action.js','ACTIVITY_POOL export was removed in Move 2 (fake theater is gone)'],
+    tag: ['agents','all'],
+  }),
+  N('seed-ops', 'services', 'seed.ops.js', 'OpsBoard initial tasks', 600, 725, 200, 50, 'service', {
+    role: 'OPS_INIT — backlog/inProgress/completed seed for the Task Board.',
+    plain: 'The starter list of tasks shown when you first open Task Board.',
+    path: 'src/data/seed.ops.js (18 lines)',
+    notes: ['Pure static data','OpsBoard never persists changes — refresh resets'],
+    tag: ['all'],
+  }),
+  N('dead-agents', 'services', 'src/agents/ (8 files)', 'DEAD — zero callers', 600, 790, 200, 75, 'dead', {
+    role: 'sean/lacey/muse/overseer/sam/artgrid/scrappy/ali.agent.js — each 12 lines, never imported by anything.',
+    plain: 'An entire folder of agent files (one per agent) that NOTHING imports. Created in a refactor that never finished. Pure dead code.',
+    path: 'src/agents/*.agent.js (8 files, 96 lines total)',
+    notes: [
+      'grep -rn "from.*agents/" src/  →  zero hits',
+      'Phase 2.3 of docs/REFACTOR_PLAN.md was meant to extract agents here',
+      'Real persona prompts live in agentRegistry.js + agent-action.js inline',
+      'Safe to delete the entire src/agents/ directory',
+    ],
+    tag: ['overview','agents','all'],
+  }),
+
+  // ═══════ DATA LAYER ═══════
+  N('clients-tbl', 'data', 'clients table', 'multi-tenant root', 860, 110, 200, 65, 'db', {
+    role: 'id, slug, name, brand_voice_md, brand_color, logo_url, primary_email, slack_channel_id, n8n_webhook_url, status, archived_at.',
+    plain: 'The list of all clients in the system. Every other data table points back to a row here via client_id.',
+    path: 'supabase/migrations/20260523_clients_multitenant.sql',
+    notes: ['RLS: admins read/write (+ temp anon while auth bypassed)','Public realtime via supabase_realtime publication','Seeded with VitalLyfe automatically'],
+    tag: ['multi-tenant','all'],
+    critical: true,
+  }),
+  N('content-tbl', 'data', 'content_items table', 'pipeline rows', 860, 185, 200, 65, 'db', {
+    role: 'Content pieces (Reels, Posts, Stories, etc.) scoped by client_id. Stages: Ready For Copy Creation → Scheduled.',
+    plain: 'Every piece of content — captions, scripts, status, platform, etc. The main data table the dashboard shows.',
+    path: 'NO MIGRATION FILE (schema lives only in live Supabase)',
+    notes: ['Schema NOT in version control — drift risk','client_id added in 20260523 multitenant migration','Realtime subscriptions in App.jsx + ClientView'],
+    tag: ['content','all'],
+    critical: true,
+  }),
+  N('events-tbl', 'data', 'agent_events table', 'brain Move 2', 860, 260, 200, 60, 'db', {
+    role: 'One row per agent action invocation. agent_name, action_key, content_item_id, payload, result_status, result_summary, client_id.',
+    plain: 'A real history of everything every agent has done. Powers the live Dashboard feed and answers "what did Sean do today" honestly.',
+    path: 'supabase/migrations/20260523_agent_events.sql',
+    notes: ['Indexes: ts desc, agent_name, action_key, (client_id, ts desc)','Written exclusively via SERVICE_KEY from agent-action.js'],
+    tag: ['agents','multi-tenant','all'],
+    critical: true,
+  }),
+  N('notifs-tbl', 'data', 'notifications table', 'brain Move 3', 860, 335, 200, 60, 'db', {
+    role: 'Durable client-action notifications. UNIQUE(type, content_item_id) dedupes multi-tab fires.',
+    plain: 'Bell-icon notifications that survive a page refresh. When a client approves or rejects content, a row is written here.',
+    path: 'supabase/migrations/20260523_notifications.sql',
+    notes: ['Realtime INSERT+UPDATE subscriptions in App.jsx','recipient_email nullable → null = broadcast'],
+    tag: ['notifications','multi-tenant','all'],
+  }),
+  N('profiles-tbl', 'data', 'profiles table', 'role per user', 860, 410, 200, 55, 'db', {
+    role: 'role (admin|client), email — FK to auth.users.id. Drives ClientView vs Vantus routing in App.jsx.',
+    plain: 'Tells the app which users are admins and which are clients (so admins see the full dashboard, clients see the simpler approval view).',
+    path: 'supabase/migrations/002_profiles.sql',
+    notes: ['Currently bypassed (auth off)','Admin email allowlist baked in App.jsx ADMIN_EMAILS'],
+    tag: ['auth','all'],
+  }),
+  N('cid-posts-tbl', 'data', 'cid_posts table', 'competitor intel scrapes', 860, 480, 200, 60, 'db', {
+    role: 'Scraped competitor posts: platform, post_url, creator, engagement, hook, trigger_type, variation, analysis.',
+    plain: 'Where scraped competitor posts get stored after the CID page hits the scrape endpoints.',
+    path: 'supabase/migrations/003_cid_posts.sql',
+    notes: ['Currently returns 404 on anon REST count probe — table may exist with stricter RLS','RLS: anon SELECT allowed; service-role full access'],
+    tag: ['cid','all'],
+  }),
+  N('logos-bucket', 'data', 'client-logos bucket', 'Supabase Storage', 860, 555, 200, 55, 'db', {
+    role: 'Public storage bucket for client logo uploads from AddClientModal.',
+    plain: 'A folder in Supabase Storage where client logo files live. Public-read so logos render in the picker.',
+    path: 'supabase/migrations/20260524_client_logos_bucket.sql',
+    notes: ['public:true','Anon upload allowed (TODO: restrict when auth restored)'],
+    tag: ['multi-tenant','all'],
+  }),
+
+  // ═══════ EXTERNAL APIS ═══════
+  N('anthropic', 'external', 'Anthropic API', 'claude-haiku-4-5', 1120, 110, 200, 65, 'external', {
+    role: 'POST https://api.anthropic.com/v1/messages — model claude-haiku-4-5-20251001.',
+    plain: 'Claude AI. Every time Muse writes a caption or Sean does a briefing, it goes through here.',
+    path: 'External · api.anthropic.com',
+    notes: [
+      'Model upgrade: haiku-20240307 → 5-haiku-20241022 (rejected) → haiku-4-5-20251001 (works)',
+      'Called from agent-action.js (4 sites) + chat.js',
+      'Key: ANTHROPIC_API_KEY Netlify env',
+    ],
+    tag: ['overview','agents','content','all'],
+    critical: true,
+  }),
+  N('supabase-ext', 'external', 'Supabase', 'DB + Auth + Storage + Realtime', 1120, 185, 200, 70, 'external', {
+    role: 'wjcstqqihtebkpyuacop.supabase.co — Postgres + Auth + Realtime channels + Storage bucket.',
+    plain: 'Database, file storage, real-time pub/sub, and authentication — all in one external service.',
+    path: 'External · wjcstqqihtebkpyuacop.supabase.co',
+    notes: ['Frontend: anon key (VITE_SUPABASE_ANON_KEY)','Server: service key (bypasses RLS) from agent-action/notify','Realtime via wss://...supabase.co/realtime/v1'],
+    tag: ['overview','content','agents','notifications','multi-tenant','auth','all'],
+    critical: true,
+  }),
+  N('resend', 'external', 'Resend', 'transactional email', 1120, 265, 200, 50, 'external', {
+    role: 'api.resend.com/emails — sends approval/revision notification emails to ADMIN_EMAILS.',
+    plain: 'The email-sending service. When a client approves or rejects content, this sends the email to the team.',
+    path: 'External · api.resend.com',
+    notes: ['Called only from notify.js','Key: RESEND_API_KEY','Falls through silently if key missing'],
+    tag: ['notifications','all'],
+  }),
+  N('slack', 'external', 'Slack', 'incoming webhook', 1120, 330, 200, 55, 'external', {
+    role: 'SLACK_WEBHOOK_URL → posts to #vitallyfe-war-room as "VitalLyfe War Room" bot.',
+    plain: 'Slack notifications go here. Used by agent-action.js for every action + notify.js for client events.',
+    path: 'External · hooks.slack.com',
+    notes: ['Currently global — does NOT use client.slack_channel_id yet','Posts from agent-action AND notify','postToSlack wrapper in both files'],
+    tag: ['agents','notifications','all'],
+  }),
+  N('n8n', 'external', 'n8n cloud', 'automation webhook', 1120, 400, 200, 55, 'external', {
+    role: 'cloudscenic.app.n8n.cloud webhook — "VitalLyfe Vantus — Content Sync" workflow.',
+    plain: 'External automation tool. Vantus can trigger n8n workflows (e.g., to sync content from another tool).',
+    path: 'External · cloudscenic.app.n8n.cloud',
+    notes: ['Triggered by lacey_trigger_n8n action + notify.js','N8N_WEBHOOK_URL env var','Per-client URL TODO (client.n8n_webhook_url)'],
+    tag: ['agents','notifications','all'],
+  }),
+  N('tavily', 'external', 'Tavily', 'web search API', 1120, 470, 200, 50, 'external', {
+    role: 'api.tavily.com/search — used by Scrappy actions for trend research.',
+    plain: 'A search API that pulls fresh web data. Used by the Scrappy agent for trend research.',
+    path: 'External · api.tavily.com',
+    notes: ['Called from scrappy_research + scrappy_muse_collab handlers','TAVILY_API_KEY env var'],
+    tag: ['agents','all'],
+  }),
+  N('google-oauth', 'external', 'Google OAuth', 'Workspace SSO (broken)', 1120, 535, 200, 55, 'external', {
+    role: 'accounts.google.com OAuth — Internal-audience client for @cloudscenic.com Workspace.',
+    plain: 'Google "sign in with Google" — set up but currently broken (the code-exchange step fails).',
+    path: 'External · accounts.google.com',
+    notes: ['Configured in Supabase Auth Providers + Google Cloud Console','Last error: "Unable to exchange external code" — likely client-secret mismatch','Bypassed in App.jsx currently'],
+    tag: ['auth','all'],
+  }),
+  N('apify', 'external', 'Apify', 'scraping actors', 1120, 605, 200, 50, 'external', {
+    role: 'apify.com — actor-based scraping for TikTok/IG/Reddit posts.',
+    plain: 'A scraping service used as one option for pulling competitor posts.',
+    path: 'External · api.apify.com',
+    notes: ['Called from apify-scrape function','APIFY_API_KEY env var'],
+    tag: ['cid','all'],
+  }),
+  N('netlify-ext', 'external', 'Netlify', 'hosting + Functions', 1120, 670, 200, 60, 'external', {
+    role: 'Hosts static frontend at usevantus.com + runs serverless functions at /api/* via netlify.toml redirects.',
+    plain: 'Where the whole site lives. Serves the React app and runs the backend functions.',
+    path: 'External · netlify.app',
+    notes: ['Site ID: 6d97835e-1874-43d7-9465-f93afd68c6fb','Auto-deploy on push to main','SSL via Let\'s Encrypt'],
+    tag: ['overview','all'],
+  }),
+];
+
+/* ─────────────────────────────────────────────────────────────────────
+   EDGES
+   ───────────────────────────────────────────────────────────────────── */
+const edges = [
+  // ── CRITICAL PATH (the agent-action spine) ──
+  { from:'main',         to:'app',            kind:'critical', label:'render', tag:['overview','all'] },
+  { from:'app',          to:'agent-action',   kind:'critical', label:'POST /api/agent-action', tag:['overview','agents','content','all'] },
+  { from:'agentchat',    to:'agent-action',   kind:'critical', label:'POST · quick action', tag:['agents','all'] },
+  { from:'agent-action', to:'anthropic',      kind:'critical', label:'messages → claude-haiku-4-5', tag:['overview','agents','all'] },
+  { from:'agent-action', to:'content-tbl',    kind:'critical', label:'PATCH · save result', tag:['overview','content','all'] },
+  { from:'agent-action', to:'events-tbl',     kind:'critical', label:'INSERT · log event', tag:['overview','agents','all'] },
+  { from:'events-tbl',   to:'activityfeed',   kind:'critical', label:'realtime INSERT', tag:['overview','agents','all'] },
+  { from:'content-tbl',  to:'app',            kind:'critical', label:'realtime UPDATE', tag:['overview','content','all'] },
+
+  // ── Multi-tenant client switching ──
+  { from:'app',          to:'clients-tbl',    kind:'db', label:'fetch + realtime', tag:['multi-tenant','all'] },
+  { from:'addclient',    to:'clients-tbl',    kind:'db', label:'INSERT / UPDATE', tag:['multi-tenant','all'] },
+  { from:'addclient',    to:'logos-bucket',   kind:'db', label:'upload', tag:['multi-tenant','all'] },
+  { from:'logos-bucket', to:'supabase-ext',   kind:'normal', label:'(in)', tag:['multi-tenant','all'] },
+
+  // ── Notifications path ──
+  { from:'clientview',   to:'content-tbl',    kind:'db', label:'UPDATE status', tag:['notifications','content','all'] },
+  { from:'app',          to:'notify',         kind:'normal', label:'POST · on status change', tag:['notifications','all'] },
+  { from:'notify',       to:'notifs-tbl',     kind:'db', label:'INSERT', tag:['notifications','all'] },
+  { from:'notify',       to:'resend',         kind:'api', label:'email', tag:['notifications','all'] },
+  { from:'notify',       to:'slack',          kind:'api', label:'webhook', tag:['notifications','all'] },
+  { from:'notify',       to:'n8n',            kind:'api', label:'webhook (fallback)', tag:['notifications','all'] },
+  { from:'notifs-tbl',   to:'app',            kind:'db', label:'realtime sub', tag:['notifications','all'] },
+
+  // ── Login (currently bypassed but wired) ──
+  { from:'app',          to:'login',          kind:'mount', label:'if(!session) render', tag:['auth','all'] },
+  { from:'login',        to:'google-oauth',   kind:'api', label:'signInWithOAuth', tag:['auth','all'] },
+  { from:'app',          to:'profiles-tbl',   kind:'db', label:'role lookup', tag:['auth','all'] },
+
+  // ── Chat passthrough ──
+  { from:'agentchat',    to:'chat',           kind:'normal', label:'POST · free chat', tag:['agents','all'] },
+  { from:'chat',         to:'anthropic',      kind:'api', label:'forward', tag:['agents','all'] },
+
+  // ── Content pipeline / Production ──
+  { from:'app',          to:'pipelineboard',  kind:'mount', label:'render kanban', tag:['content','all'] },
+  { from:'app',          to:'editmodal',      kind:'mount', label:'on card click', tag:['content','all'] },
+  { from:'editmodal',    to:'content-tbl',    kind:'db', label:'INSERT / UPDATE', tag:['content','all'] },
+  { from:'briefgen',     to:'agent-action',   kind:'normal', label:'muse_from_brief', tag:['content','agents','all'] },
+
+  // ── CID scrape ──
+  { from:'cidpage',      to:'cid-scrape',     kind:'normal', label:'POST · scrape', tag:['cid','all'] },
+  { from:'cidpage',      to:'apify-scrape',   kind:'normal', label:'POST · scrape', tag:['cid','all'] },
+  { from:'cidpage',      to:'agent-action',   kind:'normal', label:'cid_build_brief / ab_variations', tag:['cid','all'] },
+  { from:'cid-scrape',   to:'cid-posts-tbl',  kind:'db', label:'INSERT', tag:['cid','all'] },
+  { from:'apify-scrape', to:'apify',          kind:'api', label:'run actor', tag:['cid','all'] },
+  { from:'apify-scrape', to:'cid-posts-tbl',  kind:'db', label:'INSERT', tag:['cid','all'] },
+
+  // ── Agent layer wiring ──
+  { from:'agentchat',    to:'memory',         kind:'normal', label:'getMemory / setMemory', tag:['agents','all'] },
+  { from:'app',          to:'memory',         kind:'normal', label:'Muse pre-seed', tag:['agents','all'] },
+  { from:'app',          to:'agentRegistry',  kind:'normal', label:'AGENT_KEYWORDS', tag:['agents','all'] },
+  { from:'routeTask',    to:'agentRegistry',  kind:'normal', label:'route lookup', tag:['agents','all'] },
+  { from:'memory',       to:'agentRegistry',  kind:'normal', label:'prompt compose', tag:['agents','all'] },
+
+  // ── Service deps ──
+  { from:'app',          to:'supabaseClient', kind:'normal', label:'sb', tag:['overview','all'] },
+  { from:'app',          to:'constants',      kind:'normal', label:'NAV + colors', tag:['overview','all'] },
+  { from:'app',          to:'apps-config',    kind:'normal', label:'apps registry', tag:['all'] },
+  { from:'app',          to:'hooks',          kind:'normal', label:'useIsMobile', tag:['all'] },
+  { from:'app',          to:'seed-content',   kind:'normal', label:'fallback', tag:['content','all'] },
+  { from:'app',          to:'seed-agents',    kind:'normal', label:'AGENTS_BASE', tag:['agents','all'] },
+  { from:'opsboard',     to:'seed-ops',       kind:'normal', label:'OPS_INIT', tag:['all'] },
+  { from:'supabaseClient', to:'supabase-ext', kind:'api', label:'wss / https', tag:['overview','all'] },
+
+  // ── Agent-action external sinks ──
+  { from:'agent-action', to:'slack',          kind:'api', label:'webhook (per action)', tag:['agents','notifications','all'] },
+  { from:'agent-action', to:'tavily',         kind:'api', label:'search (Scrappy)', tag:['agents','all'] },
+  { from:'agent-action', to:'n8n',            kind:'api', label:'lacey_trigger_n8n', tag:['agents','all'] },
+
+  // ── Mounts (netlify owns the routes) ──
+  { from:'netlify-ext',  to:'agent-action',   kind:'mount', label:'/api/agent-action', tag:['overview','all'] },
+  { from:'netlify-ext',  to:'chat',           kind:'mount', label:'/api/chat', tag:['all'] },
+  { from:'netlify-ext',  to:'notify',         kind:'mount', label:'/api/notify', tag:['all'] },
+  { from:'netlify-ext',  to:'cid-scrape',     kind:'mount', label:'/api/cid-scrape', tag:['all'] },
+  { from:'netlify-ext',  to:'apify-scrape',   kind:'mount', label:'/api/apify-scrape', tag:['all'] },
+  { from:'netlify-ext',  to:'unsplash',       kind:'mount', label:'/api/unsplash', tag:['all'] },
+
+  // ── Higgsfield WIP (dotted lines via 'normal' but flagged) ──
+  { from:'higgsfield-ui', to:'higgsfield-fn', kind:'normal', label:'POST (404 in prod)', tag:['all'] },
+
+  // ── Dead code (no incoming edges → visually orphaned in the agents column) ──
+  // intentionally left without edges to surface deadness visually
+];
+
+/* ─────────────────────────────────────────────────────────────────────
+   FIXES + KNOWN_BUGS
+   ───────────────────────────────────────────────────────────────────── */
+const FIXES = {
+  'app': [
+    { n: 1, t: 'Re-enable Google OAuth: pull Supabase auth-logs → identify exchange failure → fix client_secret mismatch → uncomment L117' },
+    { n: 2, t: 'Split into smaller components: App.jsx is 1,471 lines (root + 16 route handlers + 3 useEffects). Phase 3.x of REFACTOR_PLAN.md.' },
+  ],
+  'agent-action': [
+    { n: 3, t: 'Move 1 (Cortex wiring): replace hardcoded "VitalLyfe brand voice" prompts with per-client lookup of clients.brand_voice_md.' },
+    { n: 4, t: 'Split 16 action handlers into per-handler files; keep this as router only.' },
+    { n: 5, t: 'Add caller auth (bearer token check) to match the cid-scrape pattern.' },
+  ],
+  'notify': [
+    { n: 6, t: 'Wire per-client Slack: read clients.slack_channel_id instead of global SLACK_WEBHOOK_URL.' },
+    { n: 7, t: 'Wire per-client n8n routing similarly.' },
+    { n: 5, t: 'Add caller auth.' },
+  ],
+  'chat':         [{ n: 5, t: 'Add caller auth — currently anyone can burn the Anthropic budget.' }],
+  'apify-scrape': [{ n: 5, t: 'Add caller auth.' }],
+  'unsplash':     [{ n: 5, t: 'Add caller auth.' }],
+  'memory': [
+    { n: 3, t: 'Move 1: remove hardcoded VitalLyfe pre-seed at L75-81; pull from clients.brand_voice_md.' },
+  ],
+  'dead-agents': [
+    { n: 8, t: 'DELETE the entire src/agents/ folder — 8 unused files. Or complete the Phase 2 refactor and actually wire them up.' },
+  ],
+  'higgsfield-ui':  [{ n: 9, t: 'Commit OR delete: HiggsfieldStudio.jsx + higgsfield.js must ship together (broke CI last time when split).' }],
+  'higgsfield-fn':  [{ n: 9, t: 'Commit OR delete.' }],
+  'content-tbl': [
+    { n: 10, t: 'Write a real migration file for content_items — schema currently lives only in live Supabase (drift risk).' },
+  ],
+  'briefgen':     [{ n: 11, t: 'Dynamic-import pdfjs-dist (only load when page opens) — saves 405KB on initial bundle for non-users.' }],
+  'opsboard':     [{ n: 12, t: 'Back tasks with a DB table (currently in-memory only — refresh wipes state).' }],
+  'profiles-tbl': [{ n: 13, t: 'Add per-user client assignments table once Phase B multi-tenant lands.' }],
+  'seed-content': [{ n: 14, t: 'Decouple from VitalLyfe — make per-client seedable or remove (data now lives in DB).' }],
+};
+
+const KNOWN_BUGS = {
+  'app': [
+    { sev:'high', ref:'L116-117', t:'AUTH BYPASS — anonymous visitors get admin access. Intentional + documented but a real risk if anyone discovers the URL.' },
+    { sev:'med',  ref:'L1471',    t:'1,471-line component. Cognitive load + harder to test in isolation.' },
+  ],
+  'agent-action': [
+    { sev:'med',  ref:'L1255',          t:'Monolith: 1,255 lines, 16 action handlers + Anthropic + Supabase + Slack helpers all in one file.' },
+    { sev:'med',  ref:'L138-144',       t:'Brand voice ("VitalLyfe", "cinematic, calm, purposeful") hardcoded in muse_write_content system prompt — wrong for any non-VitalLyfe client.' },
+    { sev:'high', t:'No caller authentication — anyone on internet can POST and burn Anthropic budget OR write to Supabase via SERVICE_KEY.' },
+  ],
+  'chat': [
+    { sev:'high', t:'No caller auth + no rate limit. Anonymous burn of Anthropic key.' },
+  ],
+  'notify': [
+    { sev:'med',  t:'Global SLACK_WEBHOOK_URL ignored per-client channel column. All notifications go to #vitallyfe-war-room regardless of which client triggered.' },
+    { sev:'high', t:'No caller auth — anyone can spam notifications + trigger emails to ADMIN_EMAILS.' },
+  ],
+  'cid-posts-tbl': [
+    { sev:'low',  t:'REST count probe returns 404 — table may exist but with stricter RLS than other tables. Verify in Supabase dashboard.' },
+  ],
+  'memory': [
+    { sev:'med',  ref:'L75-81', t:'Hardcoded Muse pre-seed (brand:VitalLyfe, tone:cinematic calm purposeful…) blocks multi-tenancy from working correctly.' },
+  ],
+  'briefgen': [
+    { sev:'low',  t:'pdfjs-dist (405KB) loaded eagerly even when this page is never opened. Bundle bloat for ~95% of users.' },
+  ],
+  'opsboard': [
+    { sev:'med',  t:'Tasks stored in in-memory state only. Refresh resets the board. Multi-user can\'t share a task list.' },
+  ],
+  'content-tbl': [
+    { sev:'med',  t:'No migration file in supabase/migrations/. Schema lives only in live Supabase — version drift risk between local dev expectations and production.' },
+  ],
+  'dead-agents': [
+    { sev:'low',  t:'src/agents/*.agent.js — 8 files, 96 lines, zero importers. Discovered by grep -rn "from.*agents/" src/.' },
+  ],
+  'higgsfield-ui': [
+    { sev:'low',  t:'File untracked since session 2 — broke CI when commit/uncommit got out of sync. Either ship or delete.' },
+  ],
+  'higgsfield-fn': [
+    { sev:'low',  t:'/api/higgsfield → 404 in production (function not deployed). UI references would fail.' },
+  ],
+  'google-oauth': [
+    { sev:'med',  t:'OAuth exchange fails with "Unable to exchange external code" — likely client_secret mismatch between Supabase and Google. Auth flow can\'t complete.' },
+  ],
+  'logos-bucket': [
+    { sev:'low',  t:'Anon upload + update + delete policies on storage.objects — TODO restrict to admins once auth is restored.' },
+  ],
+  'events-tbl': [
+    { sev:'low',  t:'Temp "anon read while auth bypassed" RLS policy — must drop when OAuth comes back.' },
+  ],
+  'notifs-tbl': [
+    { sev:'low',  t:'Same temp anon policies as agent_events (TODO drop with auth restore).' },
+  ],
+  'clients-tbl': [
+    { sev:'low',  t:'Same temp anon read/write policies.' },
+  ],
+};
+
+/* ─────────────────────────────────────────────────────────────────────
+   FILTER CHIPS
+   ───────────────────────────────────────────────────────────────────── */
+const FILTERS = [
+  { id:'overview',     label:'Overview (critical path)',   warn:false, default:true },
+  { id:'multi-tenant', label:'Multi-tenancy',              warn:false },
+  { id:'agents',       label:'Agents',                     warn:false },
+  { id:'content',      label:'Content pipeline',           warn:false },
+  { id:'notifications',label:'Notifications',              warn:false },
+  { id:'auth',         label:'Auth',                       warn:false },
+  { id:'cid',          label:'Competitor intel',           warn:false },
+  { id:'all',          label:'All wires',                  warn:false },
+  { id:'bugs',         label:'Roadmap & bugs only',        warn:true  },
+];
+
+/* ─────────────────────────────────────────────────────────────────────
+   RENDER
+   ───────────────────────────────────────────────────────────────────── */
+const COLORS = {
+  client:'#4ea1ff', route:'#7bd389', service:'#c792ea', db:'#ffb86b',
+  external:'#ff6b9d', critical:'#ff3860', dead:'#5a5a5a',
+};
+const NODE_COLOR = { client:'#4ea1ff', route:'#7bd389', service:'#c792ea', db:'#ffb86b', external:'#ff6b9d', dead:'#5a5a5a' };
+const EDGE_COLOR = { critical:'#ff3860', api:'#ff7a45', db:'#ffb86b', mount:'#4ea1ff', normal:'#5a5a5a' };
+
+const svg   = document.getElementById('svg');
+const world = document.getElementById('world');
+const cByCluster = c => clusters.find(k => k.id === c);
+
+// Clusters
+clusters.forEach(c => {
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('x', c.x); rect.setAttribute('y', c.y);
+  rect.setAttribute('width', c.w); rect.setAttribute('height', c.h);
+  rect.setAttribute('rx', 12);
+  rect.setAttribute('fill', '#141414');
+  rect.setAttribute('stroke', '#222');
+  rect.setAttribute('stroke-width', 1);
+  g.appendChild(rect);
+  const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+  label.setAttribute('class','cluster-label');
+  label.setAttribute('x', c.x + 12); label.setAttribute('y', c.y + 28);
+  label.textContent = c.label;
+  g.appendChild(label);
+  const count = document.createElementNS('http://www.w3.org/2000/svg','text');
+  count.setAttribute('class','cluster-count');
+  count.setAttribute('x', c.x + c.w - 12); count.setAttribute('y', c.y + 28);
+  count.setAttribute('text-anchor','end');
+  count.textContent = nodes.filter(n => n.cluster === c.id).length + ' nodes';
+  g.appendChild(count);
+  world.appendChild(g);
+});
+
+// Edges (drawn before nodes so they sit underneath)
+const edgeEls = [];
+edges.forEach((e, i) => {
+  const from = nodes.find(n => n.id === e.from);
+  const to   = nodes.find(n => n.id === e.to);
+  if (!from || !to) { console.warn('edge missing endpoint:', e); return; }
+  const x1 = from.x + from.w;
+  const y1 = from.y + from.h / 2;
+  const x2 = to.x;
+  const y2 = to.y + to.h / 2;
+  // Cubic bezier through gutter
+  const dx = Math.max(60, (x2 - x1) * 0.45);
+  const d  = `M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class','edge');
+  g.dataset.from = e.from; g.dataset.to = e.to;
+  g.dataset.tag = (e.tag || []).join(',');
+  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('d', d);
+  path.setAttribute('stroke', EDGE_COLOR[e.kind] || EDGE_COLOR.normal);
+  path.setAttribute('stroke-width', e.kind === 'critical' ? 2.2 : 1.3);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('marker-end', 'url(#ah-' + (e.kind || 'normal') + ')');
+  if (e.kind === 'mount') path.setAttribute('stroke-dasharray','4 4');
+  g.appendChild(path);
+  if (e.label) {
+    // Mid-point with vertical offset to stagger
+    const midX = (x1 + x2) / 2;
+    const midY = (y1 + y2) / 2 + ((i % 2) ? -7 : 7);
+    const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.setAttribute('x', midX); text.setAttribute('y', midY);
+    text.setAttribute('text-anchor','middle');
+    text.textContent = e.label;
+    g.appendChild(text);
+  }
+  world.appendChild(g);
+  edgeEls.push({ el:g, edge:e });
+});
+
+// Nodes
+const nodeEls = [];
+nodes.forEach(n => {
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class','node');
+  g.dataset.id = n.id;
+  g.dataset.tag = (n.tag || ['all']).join(',');
+  const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('x', n.x); rect.setAttribute('y', n.y);
+  rect.setAttribute('width', n.w); rect.setAttribute('height', n.h);
+  rect.setAttribute('rx', 8);
+  rect.setAttribute('fill', '#181818');
+  rect.setAttribute('stroke', NODE_COLOR[n.color] || COLORS.client);
+  rect.setAttribute('stroke-width', n.critical ? 2.2 : 1.4);
+  g.appendChild(rect);
+  const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+  label.setAttribute('class','label');
+  label.setAttribute('x', n.x + 12); label.setAttribute('y', n.y + 22);
+  label.textContent = n.label;
+  g.appendChild(label);
+  const sub = document.createElementNS('http://www.w3.org/2000/svg','text');
+  sub.setAttribute('class','sub');
+  sub.setAttribute('x', n.x + 12); sub.setAttribute('y', n.y + 38);
+  sub.textContent = n.sub;
+  g.appendChild(sub);
+  // Fix/bug badges (top-right)
+  const fixCount = (FIXES[n.id] || []).length;
+  const bugCount = (KNOWN_BUGS[n.id] || []).length;
+  if (fixCount) {
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', n.x + n.w - 12); c.setAttribute('cy', n.y + 12); c.setAttribute('r', 8);
+    c.setAttribute('class','badge-fix');
+    g.appendChild(c);
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x', n.x + n.w - 12); t.setAttribute('y', n.y + 15);
+    t.setAttribute('class','badge-text');
+    t.textContent = fixCount;
+    g.appendChild(t);
+  }
+  if (bugCount) {
+    const cx = n.x + n.w - (fixCount ? 30 : 12);
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', n.y + 12); c.setAttribute('r', 8);
+    c.setAttribute('class','badge-bug');
+    g.appendChild(c);
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x', cx); t.setAttribute('y', n.y + 15);
+    t.setAttribute('class','badge-text');
+    t.style.fill = '#fff';
+    t.textContent = bugCount;
+    g.appendChild(t);
+  }
+  g.addEventListener('click', (ev) => { ev.stopPropagation(); selectNode(n.id); });
+  g.addEventListener('mouseenter', () => { if (!selectedId) showNode(n.id); });
+  g.addEventListener('mouseleave', () => { if (!selectedId) showDefault(); });
+  world.appendChild(g);
+  nodeEls.push({ el:g, node:n });
+});
+
+/* ─────────────────────────────────────────────────────────────────────
+   FILTER CHIPS
+   ───────────────────────────────────────────────────────────────────── */
+let activeFilter = 'overview';
+const filterEl = document.getElementById('filters');
+FILTERS.forEach(f => {
+  const b = document.createElement('button');
+  b.className = 'chip' + (f.warn ? ' warn' : '') + (f.default ? ' active' : '');
+  b.textContent = f.label;
+  b.dataset.id = f.id;
+  b.addEventListener('click', () => setFilter(f.id));
+  filterEl.appendChild(b);
+});
+
+function setFilter(id) {
+  activeFilter = id;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.id === id));
+  applyFilter();
+}
+function applyFilter() {
+  const visible = new Set();
+  if (activeFilter === 'bugs') {
+    nodes.forEach(n => {
+      const hasIssue = (FIXES[n.id] && FIXES[n.id].length) || (KNOWN_BUGS[n.id] && KNOWN_BUGS[n.id].length);
+      if (hasIssue) visible.add(n.id);
+    });
+  } else {
+    nodes.forEach(n => { if ((n.tag || []).includes(activeFilter)) visible.add(n.id); });
+  }
+  nodeEls.forEach(({ el, node }) => el.classList.toggle('dim', !visible.has(node.id)));
+  edgeEls.forEach(({ el, edge }) => {
+    const tags = (edge.tag || []);
+    const ok = activeFilter === 'bugs'
+      ? (visible.has(edge.from) && visible.has(edge.to))
+      : tags.includes(activeFilter);
+    el.classList.toggle('dim', !ok);
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   SELECT / SIDEBAR
+   ───────────────────────────────────────────────────────────────────── */
+let selectedId = null;
+const sidebarDefault = document.getElementById('sidebar-default');
+const sidebarNode    = document.getElementById('sidebar-node');
+
+function selectNode(id) {
+  selectedId = id;
+  nodeEls.forEach(({ el, node }) => el.classList.toggle('selected', node.id === id));
+  // Dim non-connected
+  const connected = new Set([id]);
+  edges.forEach(e => {
+    if (e.from === id) connected.add(e.to);
+    if (e.to === id)   connected.add(e.from);
+  });
+  nodeEls.forEach(({ el, node }) => el.classList.toggle('dim', !connected.has(node.id)));
+  edgeEls.forEach(({ el, edge }) => el.classList.toggle('dim', edge.from !== id && edge.to !== id));
+  showNode(id);
+}
+function clearSelection() {
+  selectedId = null;
+  nodeEls.forEach(({ el }) => { el.classList.remove('selected'); });
+  applyFilter();
+  showDefault();
+}
+function showDefault() {
+  sidebarDefault.style.display = '';
+  sidebarNode.style.display = 'none';
+  document.getElementById('map-stats').textContent =
+    `${nodes.length} nodes · ${edges.length} edges · ${clusters.length} clusters · ${Object.keys(FIXES).length} nodes with fixes · ${Object.keys(KNOWN_BUGS).length} nodes with bugs`;
+}
+function showNode(id) {
+  const n = nodes.find(x => x.id === id);
+  if (!n) return;
+  const cluster = cByCluster(n.cluster);
+  const inE = edges.filter(e => e.to === id);
+  const outE = edges.filter(e => e.from === id);
+  const fixes = FIXES[id] || [];
+  const bugs = KNOWN_BUGS[id] || [];
+  let h = '';
+  h += `<span class="pill">${cluster.label}</span> `;
+  if (n.critical) h += `<span class="pill" style="background:#ff3860;color:#fff">CRITICAL</span> `;
+  if (n.color === 'dead') h += `<span class="pill" style="background:#5a5a5a;color:#0a0a0a">DEAD</span> `;
+  h += `<h2 style="margin-top:10px">${n.label}</h2>`;
+  h += `<div class="path">${n.path}</div>`;
+  if (n.role)  h += `<p>${n.role}</p>`;
+  if (n.plain) h += `<p class="muted"><b>In plain English:</b> ${n.plain}</p>`;
+  if (n.notes && n.notes.length) {
+    h += `<h3>Notes</h3><ul>`;
+    n.notes.forEach(note => { h += `<li>${note}</li>`; });
+    h += `</ul>`;
+  }
+  if (bugs.length) {
+    h += `<h3>Known bugs / risks</h3>`;
+    bugs.forEach(b => {
+      h += `<div class="bug"><span class="sev ${b.sev}">${b.sev}</span>${b.ref ? `<code style="font-family:'SF Mono',Menlo,monospace;color:#79c0ff;margin-right:6px">${b.ref}</code>` : ''}${b.t}</div>`;
+    });
+  }
+  if (fixes.length) {
+    h += `<h3>Fixes touching this node</h3>`;
+    fixes.forEach(f => {
+      h += `<div class="fix"><span class="num">#${f.n}</span>${f.t}</div>`;
+    });
+  }
+  if (inE.length || outE.length) {
+    h += `<h3>Edges</h3><ul class="edges">`;
+    inE.forEach(e => {
+      const src = nodes.find(x => x.id === e.from);
+      h += `<li><b style="color:var(--text)">${src ? src.label : e.from}</b><span class="arrow">→</span>${e.label || e.kind}</li>`;
+    });
+    outE.forEach(e => {
+      const dst = nodes.find(x => x.id === e.to);
+      h += `<li>${e.label || e.kind}<span class="arrow">→</span><b style="color:var(--text)">${dst ? dst.label : e.to}</b></li>`;
+    });
+    h += `</ul>`;
+  }
+  sidebarNode.innerHTML = h;
+  sidebarDefault.style.display = 'none';
+  sidebarNode.style.display = '';
+}
+
+// Click on background clears
+svg.addEventListener('click', () => clearSelection());
+
+/* ─────────────────────────────────────────────────────────────────────
+   PAN + ZOOM
+   ───────────────────────────────────────────────────────────────────── */
+let tx = 0, ty = 0, scale = 1;
+const minScale = 0.3, maxScale = 3;
+
+function applyTransform() {
+  world.setAttribute('transform', `translate(${tx} ${ty}) scale(${scale})`);
+}
+function fit() {
+  // World bounds
+  const minX = Math.min(...clusters.map(c => c.x));
+  const minY = Math.min(...clusters.map(c => c.y));
+  const maxX = Math.max(...clusters.map(c => c.x + c.w));
+  const maxY = Math.max(...clusters.map(c => c.y + c.h));
+  const wBox = svg.viewBox.baseVal.width;
+  const hBox = svg.viewBox.baseVal.height;
+  const wWorld = maxX - minX, hWorld = maxY - minY;
+  const s = Math.min(wBox / wWorld, hBox / hWorld) * 0.94;
+  scale = s;
+  tx = (wBox - wWorld * s) / 2 - minX * s;
+  ty = (hBox - hWorld * s) / 2 - minY * s;
+  applyTransform();
+}
+fit();
+showDefault();
+applyFilter();
+
+document.getElementById('zoom-fit').onclick = fit;
+document.getElementById('zoom-reset').onclick = () => { tx=0;ty=0;scale=1;applyTransform(); };
+document.getElementById('zoom-in').onclick  = () => { scale = Math.min(maxScale, scale * 1.25); applyTransform(); };
+document.getElementById('zoom-out').onclick = () => { scale = Math.max(minScale, scale / 1.25); applyTransform(); };
+
+// Mouse drag pan
+let dragging = false, lastX = 0, lastY = 0;
+svg.addEventListener('mousedown', (e) => {
+  if (e.target === svg || e.target.tagName === 'rect' && e.target.parentElement === world) {
+    dragging = true; lastX = e.clientX; lastY = e.clientY; svg.classList.add('dragging');
+  }
+});
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  tx += e.clientX - lastX;
+  ty += e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY;
+  applyTransform();
+});
+window.addEventListener('mouseup', () => { dragging = false; svg.classList.remove('dragging'); });
+
+// Wheel zoom anchored to cursor
+svg.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = svg.getBoundingClientRect();
+  const wBox = svg.viewBox.baseVal.width, hBox = svg.viewBox.baseVal.height;
+  const svgX = ((e.clientX - rect.left) / rect.width) * wBox;
+  const svgY = ((e.clientY - rect.top) / rect.height) * hBox;
+  const before = scale;
+  const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+  scale = Math.max(minScale, Math.min(maxScale, scale * factor));
+  // Keep cursor point fixed
+  tx = svgX - (svgX - tx) * (scale / before);
+  ty = svgY - (svgY - ty) * (scale / before);
+  applyTransform();
+}, { passive:false });
+</script>
+</body>
+</html>

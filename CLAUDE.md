@@ -57,7 +57,8 @@ VitalLyfe brand voice (from canonical brain): calm, confident, purposeful, never
 - `/feature {description}` — implement one feature end-to-end (read → propose → edit → suggest commit)
 - `/agent-action {key}` — add a new action to `netlify/functions/agent-action.js`
 - `/handoff` — append a session summary to `HANDOFF.md`
-- `/health` — sanity check (build, console.logs, secrets, git state). Does NOT push.
+- `/health` — sanity check (build, console.logs, secrets, git state, npm audit, live-site probe) + opens `architecture-map.html` in the browser so you can see red zones visually. Does NOT push.
+- `/architecture-map` — regenerate the interactive codebase dashboard. Output: `docs/architecture-map.html` + portable `docs/architecture-map/` markdown folder (README, critical-path, nodes, known-bugs, roadmap).
 
 ## Deploy
 
