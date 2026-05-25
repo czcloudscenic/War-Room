@@ -3,21 +3,21 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-05-25 · **Total open:** 19 bugs + 14 fixes = 33 items
+**Snapshot:** 2026-05-25 · **Total open:** 17 bugs + 13 fixes = 30 items
 
 ```
-🔴 High:   4    │   ✅ Done:   0
-🟡 Med:    8    │
-🟢 Low:    7    │   📋 Fixes: 14
+🔴 High:   3    │   ✅ Done:   2  (Fix #1 + auth bypass)
+🟡 Med:    7    │
+🟢 Low:    7    │   📋 Fixes: 13
 ```
 
 ---
 
 ## 🔴 HIGH — fix this week
 
-- [ ] **App.jsx · L116-117 — AUTH BYPASS**
-  Anonymous visitors get admin access. `if(!session)` commented out. Real risk if URL leaks.
-  → Touches: `src/App.jsx` · Fix #1 (re-enable Google OAuth first)
+- [x] ~~**App.jsx · L116-117 — AUTH BYPASS**~~ ✅ closed 2026-05-25
+  ~~Anonymous visitors get admin access. `if(!session)` commented out.~~
+  → Re-enabled in commit `8e5095e`. Auth gate live + verified with cz@cloudscenic.com and second Google account.
 
 - [ ] **agent-action.js — no caller auth**
   Anyone on internet can POST and burn Anthropic budget OR write to Supabase via SERVICE_KEY.
@@ -63,9 +63,9 @@
   Schema lives only in live Supabase. Drift risk.
   → Fix #10
 
-- [ ] **google-oauth — exchange fails**
-  "Unable to exchange external code" — likely client_secret mismatch. Pull Supabase auth-logs.
-  → Fix #1
+- [x] ~~**google-oauth — exchange fails**~~ ✅ closed 2026-05-25
+  ~~"Unable to exchange external code" — likely client_secret mismatch.~~
+  → Root cause: Google client_secret in Supabase didn't match Google's active value. Reset both in lockstep. Verified working.
 
 ---
 
