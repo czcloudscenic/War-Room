@@ -197,13 +197,22 @@ function App() {
 
   useEffect(() => {
     let cancelled = false;
+
+    // Hard timeout safety: no matter what supabase-js does, the loading
+    // spinner gets dismissed after 4 seconds. Prevents "stuck on spinner"
+    // from any lock contention / hung promise edge case.
+    const stuckGuard = setTimeout(() => {
+      if (!cancelled) {
+        console.warn("[auth] stuckGuard fired — forcing checking=false");
+        setChecking(false);
+      }
+    }, 4000);
+
     // Initial session check (handles OAuth redirect-back: supabase-js reads
     // the auth fragment from the URL before getSession resolves)
     sb.auth.getSession().then(async ({ data: { session: s } }) => {
       if (cancelled) return;
       console.log("[auth] getSession initial", { hasSession: !!s, email: s?.user?.email });
-      // Flip checking OFF immediately so the UI renders. Data fetches
-      // continue in background inside setupSession.
       setChecking(false);
       if (s) {
         try { await setupSession(s); }
@@ -213,6 +222,8 @@ function App() {
     // Handle subsequent auth events (SIGNED_IN, SIGNED_OUT, INITIAL_SESSION, TOKEN_REFRESHED)
     const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, s) => {
       console.log("[auth] onAuthStateChange", event, { hasSession: !!s, email: s?.user?.email });
+      // Always flip checking off as soon as we hear from auth — even if getSession is still hung
+      setChecking(false);
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && s) {
         try { await setupSession(s); }
         catch (e) { console.error("[auth] setupSession failed (event)", e); }
@@ -225,7 +236,11 @@ function App() {
         setClientIds([]);
       }
     });
-    return () => { cancelled = true; subscription?.unsubscribe(); };
+    return () => {
+      cancelled = true;
+      clearTimeout(stuckGuard);
+      subscription?.unsubscribe();
+    };
   }, []);
 
   // While stuck on "awaiting approval", listen for admin to flip our row to 'approved'
