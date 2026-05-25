@@ -54,6 +54,49 @@
   .legend .row:last-child{margin-bottom:0}
   .legend .dot{width:8px;height:8px;border-radius:50%}
   .legend .line{width:18px;height:2px}
+  /* TABS */
+  .tabs{display:flex;gap:4px;background:var(--panel-2);border-radius:10px;padding:3px;border:1px solid var(--border)}
+  .tab{font-size:11px;padding:6px 14px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:7px;font-family:inherit;letter-spacing:.2px;transition:all .12s;font-weight:500}
+  .tab:hover{color:var(--text)}
+  .tab.active{background:var(--accent);color:var(--bg);font-weight:600}
+  .tab .count{display:inline-block;background:rgba(0,0,0,.18);padding:1px 6px;border-radius:8px;margin-left:6px;font-size:9px;font-weight:700}
+  .tab:not(.active) .count{background:var(--panel);color:var(--muted)}
+  /* BUGS VIEW */
+  .bugs-view{flex:1;overflow-y:auto;padding:24px 32px;display:none;background:var(--bg)}
+  .bugs-view.active{display:block}
+  .bugs-view h1.section{font-size:14px;font-weight:700;margin:32px 0 16px;letter-spacing:.5px;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+  .bugs-view h1.section:first-child{margin-top:0}
+  .bugs-view h1.section .ct{font-size:10px;color:var(--muted);font-weight:500;letter-spacing:0;text-transform:none;font-family:'SF Mono',Menlo,monospace}
+  .bugs-view h1.section .dot{width:10px;height:10px;border-radius:50%}
+  .bugs-view .item{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:10px;cursor:pointer;transition:all .15s}
+  .bugs-view .item:hover{border-color:#444;border-left-color:var(--accent);transform:translateX(2px);background:var(--panel-2)}
+  .bugs-view .item.sev-high{border-left-color:var(--critical)}
+  .bugs-view .item.sev-med{border-left-color:var(--accent-2)}
+  .bugs-view .item.sev-low{border-left-color:var(--accent)}
+  .bugs-view .item.fix{border-left-color:var(--route)}
+  .bugs-view .item-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+  .bugs-view .item-sev{font-size:8px;font-weight:700;letter-spacing:1.5px;padding:3px 8px;border-radius:4px;text-transform:uppercase;flex-shrink:0}
+  .bugs-view .item-sev.high{background:var(--critical);color:#fff}
+  .bugs-view .item-sev.med{background:var(--accent-2);color:#fff}
+  .bugs-view .item-sev.low{background:var(--accent);color:#000}
+  .bugs-view .item-sev.fix{background:var(--route);color:#000}
+  .bugs-view .item-node{font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0}
+  .bugs-view .item-ref{font-family:'SF Mono',Menlo,monospace;font-size:11px;color:#79c0ff;background:rgba(121,192,255,.08);padding:2px 7px;border-radius:4px;flex-shrink:0}
+  .bugs-view .item-jump{font-size:10px;color:var(--muted);flex-shrink:0;letter-spacing:.5px}
+  .bugs-view .item-body{font-size:12px;line-height:1.55;color:rgba(255,255,255,.78);margin-left:0}
+  .bugs-view .item-body code{font-family:'SF Mono',Menlo,monospace;font-size:11px;background:var(--panel-2);padding:1px 5px;border-radius:3px;color:#c8d4e0}
+  .bugs-view .summary-bar{display:flex;gap:18px;padding:16px 20px;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:28px}
+  .bugs-view .stat{display:flex;flex-direction:column;gap:3px}
+  .bugs-view .stat-n{font-size:24px;font-weight:700;letter-spacing:-.5px;line-height:1}
+  .bugs-view .stat-l{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-family:'SF Mono',Menlo,monospace;font-weight:600}
+  .bugs-view .stat-n.high{color:var(--critical)}
+  .bugs-view .stat-n.med{color:var(--accent-2)}
+  .bugs-view .stat-n.low{color:var(--accent)}
+  .bugs-view .stat-n.fix{color:var(--route)}
+  .bugs-view .filter-bar{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+  .bugs-view .bf-chip{font-size:10px;padding:5px 11px;border:1px solid var(--border);border-radius:14px;color:var(--muted);background:var(--panel);cursor:pointer;font-family:inherit;letter-spacing:.2px;transition:all .12s}
+  .bugs-view .bf-chip:hover{color:var(--text);border-color:#444}
+  .bugs-view .bf-chip.active{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}
   /* SVG node styling */
   .node{cursor:pointer;transition:opacity .15s}
   .node rect{transition:stroke-width .12s}
@@ -76,11 +119,22 @@
 
 <header>
   <h1>Vantus</h1>
-  <span class="subtitle">architecture map · 2026-05-25</span>
+  <span class="subtitle">project dashboard · 2026-05-25</span>
+  <div class="tabs">
+    <button class="tab active" data-tab="map">Map</button>
+    <button class="tab" data-tab="bugs">Bugs &amp; Roadmap <span class="count" id="tab-bug-count">0</span></button>
+  </div>
   <div class="filters" id="filters"></div>
 </header>
 
 <main>
+  <!-- BUGS & ROADMAP VIEW -->
+  <div class="bugs-view" id="bugs-view">
+    <div class="summary-bar" id="bugs-summary"></div>
+    <div class="filter-bar" id="bugs-filter-bar"></div>
+    <div id="bugs-list"></div>
+  </div>
+
   <div class="canvas" id="canvas">
     <svg id="svg" viewBox="0 0 1480 1100" preserveAspectRatio="xMidYMid meet">
       <defs>
@@ -1072,6 +1126,159 @@ window.addEventListener('mousemove', (e) => {
   applyTransform();
 });
 window.addEventListener('mouseup', () => { dragging = false; svg.classList.remove('dragging'); });
+
+/* ─────────────────────────────────────────────────────────────────────
+   TABS: Map ↔ Bugs & Roadmap
+   ───────────────────────────────────────────────────────────────────── */
+const tabs = document.querySelectorAll('.tab');
+const bugsView = document.getElementById('bugs-view');
+const canvasView = document.getElementById('canvas');
+const sidebarEl = document.getElementById('sidebar');
+const filtersEl = document.getElementById('filters');
+
+function setTab(tabId) {
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+  if (tabId === 'bugs') {
+    bugsView.classList.add('active');
+    canvasView.style.display = 'none';
+    sidebarEl.style.display = 'none';
+    filtersEl.style.display = 'none';
+  } else {
+    bugsView.classList.remove('active');
+    canvasView.style.display = '';
+    sidebarEl.style.display = '';
+    filtersEl.style.display = '';
+  }
+}
+tabs.forEach(t => t.addEventListener('click', () => setTab(t.dataset.tab)));
+
+/* ─────────────────────────────────────────────────────────────────────
+   BUGS & ROADMAP VIEW
+   ───────────────────────────────────────────────────────────────────── */
+let bugsFilter = 'all';
+
+function buildBugItems() {
+  // Flatten all KNOWN_BUGS + FIXES into one array with normalized shape
+  const items = [];
+  Object.entries(KNOWN_BUGS).forEach(([nodeId, bugs]) => {
+    bugs.forEach((b, i) => items.push({
+      kind: 'bug',
+      sev: b.sev,
+      nodeId,
+      ref: b.ref,
+      text: b.t,
+      sortKey: ({ high:0, med:1, low:2 }[b.sev] ?? 3),
+    }));
+  });
+  Object.entries(FIXES).forEach(([nodeId, fixes]) => {
+    fixes.forEach(f => items.push({
+      kind: 'fix',
+      sev: 'fix',
+      nodeId,
+      ref: '#' + f.n,
+      text: f.t,
+      sortKey: 10 + f.n,
+    }));
+  });
+  // Dedupe fixes that touch multiple nodes (same #n) — keep all but render once per node hit
+  return items.sort((a, b) => a.sortKey - b.sortKey);
+}
+
+function renderBugsView() {
+  const items = buildBugItems();
+  const counts = {
+    high: items.filter(i => i.sev === 'high').length,
+    med:  items.filter(i => i.sev === 'med').length,
+    low:  items.filter(i => i.sev === 'low').length,
+    fix:  items.filter(i => i.kind === 'fix').length,
+  };
+
+  // Summary bar
+  document.getElementById('bugs-summary').innerHTML = `
+    <div class="stat"><span class="stat-n high">${counts.high}</span><span class="stat-l">High</span></div>
+    <div class="stat"><span class="stat-n med">${counts.med}</span><span class="stat-l">Med</span></div>
+    <div class="stat"><span class="stat-n low">${counts.low}</span><span class="stat-l">Low</span></div>
+    <div class="stat"><span class="stat-n fix">${counts.fix}</span><span class="stat-l">Fixes</span></div>
+    <div class="stat"><span class="stat-n" style="color:var(--text)">${items.length}</span><span class="stat-l">Total open</span></div>
+  `;
+
+  // Filter chips
+  const chips = [
+    { id:'all',  label:`All (${items.length})` },
+    { id:'high', label:`🔴 High (${counts.high})` },
+    { id:'med',  label:`🟡 Med (${counts.med})` },
+    { id:'low',  label:`🟢 Low (${counts.low})` },
+    { id:'bugs', label:`Bugs only (${counts.high + counts.med + counts.low})` },
+    { id:'fixes',label:`Fixes only (${counts.fix})` },
+  ];
+  document.getElementById('bugs-filter-bar').innerHTML = chips.map(c =>
+    `<button class="bf-chip ${c.id === bugsFilter ? 'active' : ''}" data-bf="${c.id}">${c.label}</button>`
+  ).join('');
+  document.querySelectorAll('.bf-chip').forEach(btn => {
+    btn.addEventListener('click', () => { bugsFilter = btn.dataset.bf; renderBugsView(); });
+  });
+
+  // Filter items
+  let filtered = items;
+  if (bugsFilter === 'high')  filtered = items.filter(i => i.sev === 'high');
+  if (bugsFilter === 'med')   filtered = items.filter(i => i.sev === 'med');
+  if (bugsFilter === 'low')   filtered = items.filter(i => i.sev === 'low');
+  if (bugsFilter === 'bugs')  filtered = items.filter(i => i.kind === 'bug');
+  if (bugsFilter === 'fixes') filtered = items.filter(i => i.kind === 'fix');
+
+  // Group by section
+  const sections = [
+    { id:'high', label:'High severity', color:'var(--critical)', items: filtered.filter(i => i.sev === 'high') },
+    { id:'med',  label:'Medium severity', color:'var(--accent-2)', items: filtered.filter(i => i.sev === 'med') },
+    { id:'low',  label:'Low severity', color:'var(--accent)', items: filtered.filter(i => i.sev === 'low') },
+    { id:'fix',  label:'Numbered roadmap fixes', color:'var(--route)', items: filtered.filter(i => i.kind === 'fix') },
+  ];
+
+  const renderItem = (item) => {
+    const node = nodes.find(n => n.id === item.nodeId);
+    const nodeLabel = node ? `${node.label}` : item.nodeId;
+    const sevClass = `sev-${item.sev === 'fix' ? 'low' : item.sev}`;
+    const sevBadgeClass = item.sev === 'fix' ? 'fix' : item.sev;
+    const sevText = item.sev === 'fix' ? 'FIX' : item.sev.toUpperCase();
+    const refHtml = item.ref ? `<span class="item-ref">${item.ref}</span>` : '';
+    return `
+      <div class="item ${sevClass} ${item.kind === 'fix' ? 'fix' : ''}" data-node="${item.nodeId}">
+        <div class="item-header">
+          <span class="item-sev ${sevBadgeClass}">${sevText}</span>
+          <span class="item-node">${nodeLabel}</span>
+          ${refHtml}
+          <span class="item-jump">→ jump to map</span>
+        </div>
+        <div class="item-body">${item.text}</div>
+      </div>
+    `;
+  };
+
+  let html = '';
+  sections.forEach(sec => {
+    if (sec.items.length === 0) return;
+    html += `<h1 class="section"><span class="dot" style="background:${sec.color}"></span>${sec.label} <span class="ct">(${sec.items.length})</span></h1>`;
+    html += sec.items.map(renderItem).join('');
+  });
+  if (!html) html = `<div style="color:var(--muted);padding:40px;text-align:center;font-size:13px">No items match this filter.</div>`;
+  document.getElementById('bugs-list').innerHTML = html;
+
+  // Wire jump-to-map clicks
+  document.querySelectorAll('.bugs-view .item').forEach(el => {
+    el.addEventListener('click', () => {
+      const nodeId = el.dataset.node;
+      setTab('map');
+      // Defer so canvas is visible before we try to pan
+      setTimeout(() => selectNode(nodeId), 30);
+    });
+  });
+}
+
+// Initial render + tab count
+renderBugsView();
+const totalIssues = Object.values(KNOWN_BUGS).reduce((n, arr) => n + arr.length, 0)
+                  + Object.values(FIXES).reduce((n, arr) => n + arr.length, 0);
+document.getElementById('tab-bug-count').textContent = totalIssues;
 
 // Wheel zoom anchored to cursor
 svg.addEventListener('wheel', (e) => {
