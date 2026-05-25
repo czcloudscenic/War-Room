@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useIsMobile } from '../../utils/hooks.js';
 import { buildSystemPrompt, updateAgentMemory } from '../../core/memory.js';
 import AgentAvatar from '../shared/AgentAvatar.jsx';
+import { apiFetch } from '../../services/apiFetch.js';
 
 function CalendarSaveButton({ items }) {
   const [status, setStatus] = React.useState("idle");
   const save = async () => {
 setStatus("saving");
 try {
-  const res = await fetch("/api/agent-action", {
+  const res = await apiFetch("/api/agent-action", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: "muse_save_calendar", payload: { items } }),
   });
@@ -95,7 +96,7 @@ setActionBusy(true);
 const sysMsg = { role: "system", content: "⏳ Running action…", ts: Date.now(), loading: true };
 setHists(h => ({ ...h, [sel.id]: [...(h[sel.id]||[]), sysMsg] }));
 try {
-  const res = await fetch("/api/agent-action", {
+  const res = await apiFetch("/api/agent-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ agentName: sel.name, action, payload }),
@@ -168,7 +169,7 @@ setHists(h => ({ ...h, [sel.id]: thread }));
 setBusy(true);
 try {
   const ctx = content.length > 0 ? " Pipeline: " + content.slice(0,5).map(c => c.title + "[" + c.stage + "]").join(", ") : "";
-  const res = await fetch("/api/chat", {
+  const res = await apiFetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

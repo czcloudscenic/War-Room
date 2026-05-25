@@ -5,6 +5,7 @@ import './styles/globals.css';
 
 // ── Extracted modules ──
 import { sb, DB_CONNECTED } from './services/supabaseClient.js';
+import { apiFetch } from './services/apiFetch.js';
 import { getIsMobile, useIsMobile, useInterval } from './utils/hooks.js';
 import { NAV, STATUS_COLOR, STAGE_SHORT, STATUSES, FORMATS, PILLARS_LIST, PLATFORMS_LIST, CAMPAIGNS } from './utils/constants.js';
 import { INITIAL_CONTENT, VITAL_LYFE_SOP } from './data/seed.content.js';
@@ -55,6 +56,11 @@ function App() {
   const [role, setRole]       = useState(null);
   const [checking, setChecking] = useState(true);
   const [content, setContent] = useState([]);
+  // pendingInvite: { email, client_users_id, client_id } when the signed-in
+  // email exists in client_users but status is still 'pending'. Drives the
+  // "awaiting approval" screen + realtime listener that flips state when admin approves.
+  const [pendingInvite, setPendingInvite] = useState(null);
+  const [clientIds, setClientIds] = useState([]); // for external client users — which client(s) they belong to
 
   // Dedupe setupSession so it runs at most once per unique user.id.
   // Without this, SIGNED_IN + INITIAL_SESSION + getSession all fire in parallel
@@ -74,41 +80,119 @@ function App() {
     const email = (s?.user?.email || "").toLowerCase();
     console.log("[auth] setupSession start", { email, userId: s?.user?.id });
 
-    // Domain guard: only @cloudscenic.com accounts allowed
-    if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
-      console.warn("[auth] domain guard rejected", email);
-      setupRanForRef.current = null;  // allow retry on next event
-      await sb.auth.signOut();
-      setSession(null); setRole(null);
-      alert(`Access restricted to @${ALLOWED_DOMAIN} accounts.`);
+    // Admin path: @cloudscenic.com → full agency access
+    if (email.endsWith(`@${ALLOWED_DOMAIN}`)) {
+      let detectedRole = ADMIN_EMAILS.includes(email) ? "admin" : "client";
+      setSession(s);
+      setRole(detectedRole);
+      setPendingInvite(null);
+
+      // Best-effort: fetch profile + content. If RLS rejects, log and continue.
+      try {
+        const { data: profile, error: profErr } = await sb
+          .from("profiles").select("role").eq("id", s.user.id).maybeSingle();
+        if (profErr) console.warn("[auth] profile query error", profErr);
+        if (profile?.role && profile.role !== detectedRole) {
+          detectedRole = profile.role;
+          setRole(detectedRole);
+        }
+      } catch (e) { console.warn("[auth] profile query threw", e); }
+
+      try {
+        const { data: items, error: itemsErr } = await sb
+          .from("content_items").select("*").order("id");
+        if (itemsErr) console.warn("[auth] content_items error", itemsErr);
+        if (items) setContent(items.map(r => ({ ...r, platforms: r.platforms || [] })));
+      } catch (e) { console.warn("[auth] content_items threw", e); }
+
+      console.log("[auth] setupSession ok (admin)", { email, role: detectedRole });
       return;
     }
 
-    // Render UI immediately with the session — data fetches happen below
-    // but they don't block the dashboard from appearing.
-    let detectedRole = ADMIN_EMAILS.includes(email) ? "admin" : "client";
-    setSession(s);
-    setRole(detectedRole);
-
-    // Best-effort: fetch profile + content. If RLS rejects, log and continue.
+    // External-client path: look up in client_users allowlist
+    let inviteRows = [];
     try {
-      const { data: profile, error: profErr } = await sb
-        .from("profiles").select("role").eq("id", s.user.id).maybeSingle();
-      if (profErr) console.warn("[auth] profile query error", profErr);
-      if (profile?.role && profile.role !== detectedRole) {
-        detectedRole = profile.role;
-        setRole(detectedRole);
+      const { data, error } = await sb
+        .from("client_users")
+        .select("id, client_id, status, first_login_at")
+        .eq("email", email);
+      if (error) console.warn("[auth] client_users lookup error", error);
+      inviteRows = data || [];
+    } catch (e) {
+      console.warn("[auth] client_users lookup threw", e);
+    }
+
+    const approved = inviteRows.filter(r => r.status === "approved");
+    const pending  = inviteRows.filter(r => r.status === "pending");
+    const rejected = inviteRows.filter(r => r.status === "rejected");
+
+    // Approved external client → into ClientView, scoped to their client_id(s)
+    if (approved.length > 0) {
+      setSession(s);
+      setRole("client");
+      setClientIds(approved.map(r => r.client_id));
+      setPendingInvite(null);
+
+      // Stamp first_login_at if it's never been set (silent best-effort)
+      const needsStamp = approved.filter(r => !r.first_login_at).map(r => r.id);
+      if (needsStamp.length > 0) {
+        sb.from("client_users")
+          .update({ first_login_at: new Date().toISOString() })
+          .in("id", needsStamp).then(() => {});
       }
-    } catch (e) { console.warn("[auth] profile query threw", e); }
+      console.log("[auth] setupSession ok (client)", { email, client_ids: approved.map(r => r.client_id) });
+      return;
+    }
 
-    try {
-      const { data: items, error: itemsErr } = await sb
-        .from("content_items").select("*").order("id");
-      if (itemsErr) console.warn("[auth] content_items error", itemsErr);
-      if (items) setContent(items.map(r => ({ ...r, platforms: r.platforms || [] })));
-    } catch (e) { console.warn("[auth] content_items threw", e); }
+    // Pending invite → show "awaiting approval" screen, don't sign out
+    if (pending.length > 0) {
+      console.log("[auth] invite pending admin approval", { email });
+      setPendingInvite({
+        email,
+        rows: pending,
+      });
+      setSession(s);
+      setRole(null);
 
-    console.log("[auth] setupSession ok", { email, role: detectedRole });
+      // Stamp first_login_at + fire admin notification on FIRST login attempt only
+      const firstTime = pending.filter(r => !r.first_login_at);
+      if (firstTime.length > 0) {
+        const ids = firstTime.map(r => r.id);
+        sb.from("client_users")
+          .update({ first_login_at: new Date().toISOString() })
+          .in("id", ids).then(() => {});
+
+        // Fire notification (best-effort, non-blocking)
+        apiFetch("/api/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "client_invite_first_login",
+            item: {
+              title: `${email} requested access`,
+              campaign: "Client invite",
+              platform: "Auth",
+              pillar: "Access",
+              client_note: `Approve in Clients → Team panel for client ${pending[0].client_id}.`,
+              id: pending[0].id,
+              client_id: pending[0].client_id,
+            },
+            client_id: pending[0].client_id,
+          }),
+        }).catch(() => {});
+      }
+      return;
+    }
+
+    // Rejected or unknown → block
+    setupRanForRef.current = null;
+    await sb.auth.signOut();
+    setSession(null); setRole(null); setPendingInvite(null);
+    if (rejected.length > 0) {
+      alert(`Access denied for ${email}. Contact the agency if you think this is a mistake.`);
+    } else {
+      alert(`${email} is not on the invite list. Ask Cloud Scenic to invite you, then try again.`);
+    }
   };
 
   useEffect(() => {
@@ -137,12 +221,38 @@ function App() {
         setupRanForRef.current = null;
         setSession(null);
         setRole(null);
+        setPendingInvite(null);
+        setClientIds([]);
       }
     });
     return () => { cancelled = true; subscription?.unsubscribe(); };
   }, []);
 
-  const handleSignOut = async () => { await sb.auth.signOut(); setSession(null); setRole(null); };
+  // While stuck on "awaiting approval", listen for admin to flip our row to 'approved'
+  useEffect(() => {
+    if (!pendingInvite?.email) return;
+    const channel = sb.channel(`client_users:${pendingInvite.email}`)
+      .on("postgres_changes",
+          { event: "UPDATE", schema: "public", table: "client_users", filter: `email=eq.${pendingInvite.email}` },
+          (payload) => {
+            console.log("[auth] pending invite update", payload.new);
+            if (payload.new?.status === "approved") {
+              // Re-run setupSession with the current session to flip into client view
+              setupRanForRef.current = null;
+              sb.auth.getSession().then(({ data: { session: s } }) => { if (s) setupSession(s); });
+            }
+            if (payload.new?.status === "rejected") {
+              sb.auth.signOut();
+            }
+          })
+      .subscribe();
+    return () => { sb.removeChannel(channel); };
+  }, [pendingInvite?.email]);
+
+  const handleSignOut = async () => {
+    await sb.auth.signOut();
+    setSession(null); setRole(null); setPendingInvite(null); setClientIds([]);
+  };
 
   if (checking) return (
     <div style={{ minHeight:"100vh", background:"#0a0a0f", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -151,8 +261,30 @@ function App() {
   );
   // Auth gate restored (Fix #1, 2026-05-25). No session → LoginScreen.
   if (!session) return <LoginScreen />;
-  if (role === "client") return <ClientView user={session.user} content={content} setContent={setContent} onSignOut={handleSignOut} />;
+  // External-client invite still pending admin approval (Fix #2.6c, 2026-05-25)
+  if (pendingInvite) return <PendingApprovalScreen email={pendingInvite.email} onSignOut={handleSignOut} />;
+  if (role === "client") return <ClientView user={session.user} content={content} setContent={setContent} onSignOut={handleSignOut} clientIds={clientIds} />;
   return <Vantus onSignOut={handleSignOut} userEmail={session.user.email} content={content} setContent={setContent} />;
+}
+
+function PendingApprovalScreen({ email, onSignOut }) {
+  return (
+    <div style={{ minHeight:"100vh", background:"#0a0a0f", color:"#e6e8ec", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"-apple-system, Inter, sans-serif", padding:"24px" }}>
+      <div style={{ maxWidth:440, textAlign:"center" }}>
+        <div style={{ width:64, height:64, borderRadius:"50%", background:"linear-gradient(135deg,#1a3a5a,#0a1f33)", margin:"0 auto 28px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:28 }}>⏳</div>
+        <div style={{ fontSize:22, fontWeight:600, letterSpacing:-0.4, marginBottom:10 }}>Almost there</div>
+        <div style={{ fontSize:14, opacity:0.65, lineHeight:1.55, marginBottom:6 }}>
+          We've notified Cloud Scenic about your sign-in attempt.
+        </div>
+        <div style={{ fontSize:13, opacity:0.5, marginBottom:32 }}>
+          Once they approve <span style={{ color:"#2AABFF", fontWeight:500 }}>{email}</span>, this page will unlock automatically — no refresh needed.
+        </div>
+        <button onClick={onSignOut} style={{ fontSize:12, padding:"8px 18px", background:"transparent", border:"1px solid rgba(255,255,255,0.15)", color:"rgba(255,255,255,0.6)", borderRadius:8, cursor:"pointer" }}>
+          Sign out
+        </button>
+      </div>
+    </div>
+  );
 }
 // 
 
@@ -221,7 +353,7 @@ document.body.classList.toggle("ai-disabled", !aiEnabled);
   useEffect(() => { aiEnabledRef.current = aiEnabled; }, [aiEnabled]);
   const safeAgentFetch = async (url, opts) => {
 if (!aiEnabledRef.current) throw new Error("AI_DISABLED");
-return fetch(url, opts);
+return apiFetch(url, opts);
   };
   const notifDragRef = React.useRef(null);
   const notifDragging = React.useRef(false);
@@ -280,7 +412,7 @@ const channel = sb.channel("content_changes")
         const clientStatuses = ["Approved", "Needs Revisions"];
         if (clientStatuses.includes(newStatus) && newStatus !== oldStatus) {
           const type = newStatus === "Approved" ? "approved" : "revision_requested";
-          fetch("/api/notify", {
+          apiFetch("/api/notify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ type, item: payload.new, client_id: payload.new?.client_id }),
@@ -550,7 +682,7 @@ if (sb) {
   const handleMuseWrite = async (item, field) => {
 setMuseToast({ id: item.id, field, status: "writing" });
 try {
-  const res = await fetch("/api/agent-action", {
+  const res = await apiFetch("/api/agent-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

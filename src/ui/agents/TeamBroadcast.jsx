@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { apiFetch } from '../../services/apiFetch.js';
 import { useIsMobile } from '../../utils/hooks.js';
 import Card from '../shared/Card.jsx';
 
@@ -34,7 +35,7 @@ setBroadcasts(prev => [...prev, broadcast]);
 // Fire all 8 agents in parallel
 const agentPromises = agents.map(async (agent) => {
   try {
-    const res = await fetch("/api/chat", {
+    const res = await apiFetch("/api/chat", {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
         model:"claude-sonnet-4-20250514", max_tokens:200,

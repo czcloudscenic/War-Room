@@ -1,4 +1,5 @@
 // ── Task Router ──
+import { apiFetch } from '../services/apiFetch.js';
 // Parses natural language input, scores agents by keyword match,
 // executes them in sequence, returns aggregated results.
 
@@ -26,7 +27,7 @@ export async function routeTask(input) {
   for (const agentName of selected) {
     log.push({ agent: agentName, status: 'running', ts: Date.now() });
     try {
-      const res = await fetch('/api/chat', {
+      const res = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

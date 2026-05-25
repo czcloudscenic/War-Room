@@ -1,28 +1,28 @@
 // Master Control — Anthropic proxy
 // Receives agent chat messages from the Vantus frontend
 // and forwards them to Anthropic securely server-side.
+//
+// Requires a valid @cloudscenic.com Supabase session (Authorization: Bearer <access_token>).
+
+const { requireUser, unauthorized, corsHeaders } = require("./_lib/requireUser");
 
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-      },
-      body: "",
-    };
+    return { statusCode: 200, headers: corsHeaders, body: "" };
   }
 
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
+    return { statusCode: 405, headers: corsHeaders, body: "Method Not Allowed" };
   }
+
+  const auth = await requireUser(event);
+  if (!auth.ok) return unauthorized(auth.reason);
 
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_API_KEY) {
     return {
       statusCode: 500,
+      headers: corsHeaders,
       body: JSON.stringify({ error: "API key not configured" }),
     };
   }
@@ -44,16 +44,13 @@ exports.handler = async (event) => {
 
     return {
       statusCode: response.status,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       body: JSON.stringify(data),
     };
   } catch (err) {
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: corsHeaders,
       body: JSON.stringify({ error: err.message }),
     };
   }

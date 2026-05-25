@@ -1,4 +1,5 @@
 import React from 'react';
+import { apiFetch } from '../../services/apiFetch.js';
 import ReactDOM from 'react-dom';
 
 export default function CIDPage() {
@@ -28,7 +29,7 @@ export default function CIDPage() {
         `${i+1}. [${p.platform}] @${p.creator}: "${p.hook}" (${p.views} views, ${p.engagement} eng)`
       ).join("\n");
 
-      const res = await fetch("/api/chat", {
+      const res = await apiFetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -69,7 +70,7 @@ Be specific to VitalLyfe's product and brand. Make hooks that could actually go 
     setCidSearchActive(true);
     try {
       // Step 1: Start the scrape
-      const startRes = await fetch("/api/apify-scrape", {
+      const startRes = await apiFetch("/api/apify-scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: cidSearch.trim(), platform: plat, limit: 30 }),
@@ -92,7 +93,7 @@ Be specific to VitalLyfe's product and brand. Make hooks that could actually go 
         while (attempts < maxAttempts) {
           await new Promise(r => setTimeout(r, 3000));
           attempts++;
-          const pollRes = await fetch("/api/apify-scrape", {
+          const pollRes = await apiFetch("/api/apify-scrape", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ runId: startData.runId, platform: plat, limit: 30 }),
@@ -265,7 +266,7 @@ setPerfSaved(false);
         <button onClick={async () => {
           setBriefLoading(true);
           try {
-            const r = await fetch("/api/agent-action", {
+            const r = await apiFetch("/api/agent-action", {
               method: "POST",
               headers: {"Content-Type":"application/json"},
               body: JSON.stringify({ action: "cid_build_brief", payload: variationView })
@@ -280,7 +281,7 @@ setPerfSaved(false);
         <button onClick={async () => {
           setAbLoading(true);
           try {
-            const r = await fetch("/api/agent-action", {
+            const r = await apiFetch("/api/agent-action", {
               method: "POST",
               headers: {"Content-Type":"application/json"},
               body: JSON.stringify({ action: "cid_ab_variations", payload: variationView })
@@ -684,7 +685,7 @@ setPerfSaved(false);
         <button onClick={async () => {
           setHookLabLoading(true);
           try {
-            const r = await fetch("/api/agent-action", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({action:"scrappy_hook_analysis"}) });
+            const r = await apiFetch("/api/agent-action", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({action:"scrappy_hook_analysis"}) });
             const d = await r.json();
             if (d.hooks) setHookLabData(d);
           } catch(e) { console.error(e); }

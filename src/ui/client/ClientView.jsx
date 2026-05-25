@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { apiFetch } from '../../services/apiFetch.js';
 import { useIsMobile } from '../../utils/hooks.js';
 import { sb } from '../../services/supabaseClient.js';
 import { VITAL_LYFE_SOP } from '../../data/seed.content.js';
@@ -212,7 +213,7 @@ function TheFlow({ ideas }) {
       pillars: [...new Set(ideas.map(i=>i.pillar))],
     };
     try {
-      const res = await fetch("/api/chat", {
+      const res = await apiFetch("/api/chat", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
@@ -546,7 +547,7 @@ function GanttPage({ideas}){
     setLoading(true);setAiMsg("");
     const summary=ideas.map(i=>({title:i.title,campaign:i.campaign,format:i.format,status:i.status,pillar:i.pillar}));
     try{
-      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      const res=await apiFetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
         model:"claude-sonnet-4-20250514",max_tokens:800,
         system:`You are a content strategy expert for Vital Lyfe. Suggest an optimal publishing timeline for the content items. Respond ONLY with a valid JSON array, no markdown, no explanation. Each item: {"id": number, "startWeek": number, "duration": number}. startWeek 1-12, duration 1-4. Prioritize: urgency items first, product launch content weeks 5-8, approved drip content spread weeks 1-4, meet the makers weeks 3-6.`,
         messages:[{role:"user",content:`Suggest timeline for these items:\n${JSON.stringify(summary)}`}]
@@ -857,7 +858,7 @@ ${ideas.map(i=>`\u2022 "${i.title}" | ${i.campaign} | ${i.status} | ${(i.format|
     setMessages(newMsgs);
     setLoading(true);
     try {
-      const res = await fetch("/api/chat",{
+      const res = await apiFetch("/api/chat",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({

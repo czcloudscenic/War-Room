@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../../services/apiFetch.js';
 import { useIsMobile } from '../../utils/hooks.js';
 import Card from '../../ui/shared/Card.jsx';
 
@@ -35,7 +36,7 @@ export default function AdROIHub() {
 setAnalyzing(true); setAiInsight(null);
 try {
   const summary = campaigns.map(c=>`${c.name} (${c.platform}): Spend $${c.spend}, Leads ${c.leads}, Conversions ${c.conversions}, Revenue $${c.revenue}, ROI ${roi(c)}%, ROAS ${roas(c)}x, CPL $${cpl(c)}, CVR ${cvr(c)}%`).join("\n");
-  const res = await fetch("/api/chat", {
+  const res = await apiFetch("/api/chat", {
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
       model:"claude-sonnet-4-20250514", max_tokens:800,

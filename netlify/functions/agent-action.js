@@ -1,5 +1,9 @@
 // agent-action.js — VitalLyfe Vantus Agent Action Engine
 // Handles autonomous agent actions: read/write Supabase, AI generation
+//
+// Requires a valid @cloudscenic.com Supabase session (Authorization: Bearer <access_token>).
+
+const { requireUser, unauthorized } = require("./_lib/requireUser");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -1156,7 +1160,7 @@ Return ONLY the JSON array. Vary the 5 ideas across different pillars and format
 exports.handler = async (event) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 
@@ -1166,6 +1170,10 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, headers: cors, body: "Method Not Allowed" };
   }
+
+  const auth = await requireUser(event);
+  if (!auth.ok) return unauthorized(auth.reason);
+
   if (!SERVICE_KEY) {
     return { statusCode: 500, headers: cors, body: JSON.stringify({ error: "SUPABASE_SERVICE_KEY not set" }) };
   }

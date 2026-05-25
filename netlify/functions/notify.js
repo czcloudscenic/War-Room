@@ -1,5 +1,11 @@
 // notify.js — fires when client approves or requests revisions
 // Sends email via Resend API + Slack + n8n + PERSISTS to notifications table
+//
+// Requires a valid @cloudscenic.com Supabase session (Authorization: Bearer <access_token>).
+// NB: when external clients (e.g. VitalLyfe team) eventually get their own login,
+// loosen requireUser to accept any authenticated user with a matching client_id.
+
+const { requireUser, unauthorized } = require("./_lib/requireUser");
 
 const ADMIN_EMAILS = [
   "cz@cloudscenic.com",
@@ -12,6 +18,8 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json",
 };
 
@@ -49,6 +57,9 @@ async function insertNotification({ type, item, message, client_id }) {
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers: cors, body: "" };
   if (event.httpMethod !== "POST") return { statusCode: 405, headers: cors, body: "Method Not Allowed" };
+
+  const auth = await requireUser(event);
+  if (!auth.ok) return unauthorized(auth.reason);
 
   let body;
   try { body = JSON.parse(event.body); } catch { return { statusCode: 400, headers: cors, body: "Bad JSON" }; }

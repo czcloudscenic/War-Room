@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { apiFetch } from '../../services/apiFetch.js';
 import { useIsMobile } from '../../utils/hooks.js';
 import Card from '../../ui/shared/Card.jsx';
 
@@ -63,7 +64,7 @@ export default function BriefGenPage({ onContentAdded }) {
     }
     setLoading(true); setResult(null); setError(null);
     try {
-      const res = await fetch('/api/agent-action', {
+      const res = await apiFetch('/api/agent-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

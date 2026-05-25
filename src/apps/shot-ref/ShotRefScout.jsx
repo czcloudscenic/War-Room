@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { apiFetch } from '../../services/apiFetch.js';
 import Card from '../../ui/shared/Card.jsx';
 
 // ── Scene 3 Shot List — each shot gets a primary Unsplash query + Pinterest query ──
@@ -188,7 +189,7 @@ export default function ShotRefScout() {
   const fetchPhotos = useCallback(async (shotId, query) => {
     setPhotos(prev => ({ ...prev, [shotId]: { photos: [], loading: true, error: null } }));
     try {
-      const res = await fetch(`/api/unsplash?q=${encodeURIComponent(query)}&per_page=9`);
+      const res = await apiFetch(`/api/unsplash?q=${encodeURIComponent(query)}&per_page=9`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setPhotos(prev => ({ ...prev, [shotId]: { photos: data.photos || [], loading: false, error: null } }));

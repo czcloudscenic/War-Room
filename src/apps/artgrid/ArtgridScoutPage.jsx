@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../../services/apiFetch.js';
 import { useIsMobile } from '../../utils/hooks.js';
 import Card from '../../ui/shared/Card.jsx';
 
@@ -22,7 +23,7 @@ if (scoutingAll) return;
 setScoutingAll(true);
 setAllScoutResult(null);
 try {
-  const res = await fetch("/api/agent-action", {
+  const res = await apiFetch("/api/agent-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ agentName: "Artgrid", action: "artgrid_scout", payload: {} }),
@@ -74,7 +75,7 @@ Return ONLY a JSON object (no markdown, no backticks):
 }
 Include 6-8 search queries. Keep every query under 4 words — short beats specific on Artgrid.`;
 
-  const res = await fetch("/api/chat", {
+  const res = await apiFetch("/api/chat", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({

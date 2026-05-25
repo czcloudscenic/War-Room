@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '../../services/apiFetch.js';
 import { useIsMobile } from '../../utils/hooks.js';
 
 export default function QuickActionsDashboard({ aiEnabled = true }) {
@@ -44,7 +45,7 @@ setActiveAction({ action, agent, label, color });
 setResult(null);
 setExpanded(true);
 try {
-  const res = await fetch("/api/agent-action", {
+  const res = await apiFetch("/api/agent-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ agentName: agent, action, payload }),
