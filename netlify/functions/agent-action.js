@@ -901,9 +901,8 @@ async function lacey_trigger_n8n(payload) {
 // NOTE: Requires cid_library table in Supabase with columns:
 //   id (int8, primary key, auto-increment), type (text) — "hook"|"body"|"cta",
 //   text (text), score (int4), platform (text), views (text), engagement (text),
-//   why_it_works (text), vitallyfe_adaptation (text), created_at (timestamptz, default now())
-// TODO Move 1.1: rename `vitallyfe_adaptation` → `client_adaptation` in a follow-up
-// migration so this column matches the per-client refactor.
+//   why_it_works (text), client_adaptation (text), created_at (timestamptz, default now())
+// (Column renamed from vitallyfe_adaptation in Fix #3.1 migration 20260526.)
 
 async function scrappy_hook_analysis(brand) {
   if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY not set");
@@ -957,9 +956,9 @@ Base your analysis on real patterns that perform well in this brand's space and 
   const SERVICE_KEY_VAL = SERVICE_KEY;
   if (SERVICE_KEY_VAL) {
     const items = [
-      ...(parsed.hooks || []).map(h => ({ type: "hook", text: h.text, score: 100 - (h.rank-1)*10, platform: h.platform, views: h.views, engagement: h.engagement, why_it_works: h.why, vitallyfe_adaptation: h.adaptation })),
-      ...(parsed.bodies || []).map(b => ({ type: "body", text: b.text, score: 100 - (b.rank-1)*10, platform: b.platform, views: b.views, engagement: b.engagement, why_it_works: b.why, vitallyfe_adaptation: b.adaptation })),
-      ...(parsed.ctas || []).map(c => ({ type: "cta", text: c.text, score: 100 - (c.rank-1)*10, platform: c.platform, views: c.views, engagement: c.engagement, why_it_works: c.why, vitallyfe_adaptation: c.adaptation })),
+      ...(parsed.hooks || []).map(h => ({ type: "hook", text: h.text, score: 100 - (h.rank-1)*10, platform: h.platform, views: h.views, engagement: h.engagement, why_it_works: h.why, client_adaptation: h.adaptation })),
+      ...(parsed.bodies || []).map(b => ({ type: "body", text: b.text, score: 100 - (b.rank-1)*10, platform: b.platform, views: b.views, engagement: b.engagement, why_it_works: b.why, client_adaptation: b.adaptation })),
+      ...(parsed.ctas || []).map(c => ({ type: "cta", text: c.text, score: 100 - (c.rank-1)*10, platform: c.platform, views: c.views, engagement: c.engagement, why_it_works: c.why, client_adaptation: c.adaptation })),
     ];
     try {
       await fetch(`${REST}/cid_library`, {

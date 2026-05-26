@@ -15,6 +15,9 @@ Ranked by severity. Each entry cites the file (and line when possible) where the
 | content_items had no migration file (Fix #10) | `20260526_content_items_baseline.sql` captures 25 cols + RLS |
 | content_items wide-open `"Allow all for now"` anon policy (Fix #10.1) | Scoped SELECT+UPDATE for `client_users` added; legacy policy dropped via `20260526_content_items_client_rls.sql` |
 | notify.js per-client n8n routing missing (Fix #7) | `notify.js` pulls `slack_webhook_url` + `n8n_webhook_url` together in one Supabase fetch; each falls back to global env |
+| src/agents/ 8-file dead code folder (Fix #8) | `rm -rf src/agents/` — confirmed zero importers, build passed |
+| pdfjs-dist eager-loaded bundle bloat (Fix #11) | Already shipped — `BriefGenPage.jsx:7` does `await import('pdfjs-dist')`; pdfjs lives in its own 405 KB chunk |
+| cid_library.vitallyfe_adaptation last hardcoded VL reference (Fix #3.1) | Column renamed → `client_adaptation` via `20260526_cid_library_rename_adaptation.sql`; 3 code sites updated |
 
 Test: Muse caption generation against VitalLyfe produces correct voice/structure verified in dev + prod 2026-05-26. Auth-lock recovery verified by manual reproduction.
 
@@ -64,12 +67,6 @@ _(none open — Fix #10.1 closed this 2026-05-26 by adding scoped client policie
 ### cid_posts table · 404 on REST count probe
 Table may exist but with stricter RLS than other tables. Verify in Supabase dashboard.
 
-### briefgen · 405 KB bundle bloat
-`pdfjs-dist` loaded eagerly even when this page is never opened. Dynamic import would save 405 KB for ~95% of users.
-
-### dead-agents · `src/agents/*.agent.js`
-8 files, 96 lines, zero importers. Discovered by `grep -rn "from.*agents/" src/` (matches only `src/ui/agents/`, never bare `agents/`). Safe to delete the entire directory.
-
 ### higgsfield · WIP files inconsistent state
 `src/apps/higgsfield/HiggsfieldStudio.jsx` + `netlify/functions/higgsfield.js` are both untracked. Dirty edits also pending in `src/apps/apps.config.js` and `src/utils/constants.js`. Broke CI last time when commit/uncommit got out of sync. Either ship all 4 changes in one commit or delete the lot.
 
@@ -95,7 +92,5 @@ Not set in `netlify.toml`. Lower urgency since auth is JWT-bound + no inline-scr
 | agent-action.js | MED | Monolith |
 | OpsBoard.jsx | MED | In-memory tasks |
 | cid_posts | LOW | RLS probe returns 404 |
-| briefgen | LOW | pdfjs bundle bloat |
-| src/agents/ | LOW | Dead code (8 files) |
 | higgsfield (UI + fn) | LOW | Untracked WIP |
 | every function | LOW | CORS `*` · no rate limits · CSP/HSTS missing |

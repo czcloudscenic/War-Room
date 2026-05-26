@@ -222,12 +222,7 @@ Every significant file, function, table, and external service in Vantus — grou
 ### `seed.ops.js` — OpsBoard initial tasks
 - **Path:** `src/data/seed.ops.js` (18 lines)
 
-### ✕ `src/agents/` — DEAD CODE
-- **Path:** `src/agents/*.agent.js` (8 files, 96 lines total)
-- **Role:** sean/lacey/muse/overseer/sam/artgrid/scrappy/ali.agent.js — each 12 lines, never imported by anything.
-- **Why dead:** `grep -rn "from.*agents/" src/` matches only `src/ui/agents/`, never bare `agents/`.
-- **History:** Phase 2.3 of `docs/REFACTOR_PLAN.md` was meant to extract agents here. Real persona prompts live in `agentRegistry.js` + `agent-action.js` inline.
-- **Fix:** Safe to delete the entire `src/agents/` directory (Fix #8).
+_(Removed 2026-05-26 — Fix #8 deleted `src/agents/`. Real agent personas live in `agentRegistry.js` + `agent-action.js`'s per-handler prompts.)_
 
 ---
 

@@ -119,7 +119,7 @@
 
 <header>
   <h1>Vantus</h1>
-  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1 + #15 + #10 + #10.1 + #7)</span>
+  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1 + #15 + #10/10.1 + #7 + #3.1 + #8 + #11)</span>
   <div class="tabs">
     <button class="tab active" data-tab="map">Map</button>
     <button class="tab" data-tab="bugs">Bugs &amp; Roadmap <span class="count" id="tab-bug-count">0</span></button>
@@ -180,8 +180,7 @@
       <p class="muted">Click any node to inspect it. Filter chips above narrow the view.</p>
       <h3>Surprises from this map</h3>
       <div class="finding">
-        <b>All 8 files in <code style="font-family:'SF Mono',Menlo,monospace">src/agents/</code> are DEAD CODE.</b>
-        Zero importers (the only matches for <code style="font-family:'SF Mono',Menlo,monospace">"agents/"</code> in src/ point at <code style="font-family:'SF Mono',Menlo,monospace">src/ui/agents/</code>). Real agent personas live inline in <code style="font-family:'SF Mono',Menlo,monospace">core/agentRegistry.js</code>, <code style="font-family:'SF Mono',Menlo,monospace">core/memory.js</code>, and hardcoded prompts inside <code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code>. The folder was created during a Phase 2 refactor (per docs/REFACTOR_PLAN.md) but never wired up.
+        <b><code style="font-family:'SF Mono',Menlo,monospace">src/agents/</code> dead-code folder deleted (Fix #8, 2026-05-26).</b> 8 files / 96 lines removed via <code style="font-family:'SF Mono',Menlo,monospace">rm -rf</code>. Real agent personas live in <code style="font-family:'SF Mono',Menlo,monospace">core/agentRegistry.js</code> + <code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code>'s per-handler prompts (since Move 1, voice is pulled from <code style="font-family:'SF Mono',Menlo,monospace">clients.brand_voice_md</code> at request time).
       </div>
       <div class="finding">
         <b><code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code> is 1,263 lines</b> — a single file holding 16 action handlers, the Anthropic wrapper, Supabase REST helpers, Slack notifier, AND the agent_events logger. Splitting is documented in REFACTOR_PLAN.md but never executed. Editing one action means scrolling past a wall of unrelated code.
@@ -202,7 +201,7 @@
         <b><code style="font-family:'SF Mono',Menlo,monospace">content_items</code> fully version-controlled + RLS-locked (Fix #10 + #10.1, 2026-05-26).</b> Baseline migration captures the 25-column schema + FK + indexes; companion migration adds scoped SELECT+UPDATE for approved <code style="font-family:'SF Mono',Menlo,monospace">client_users</code> and drops the legacy wide-open <code style="font-family:'SF Mono',Menlo,monospace">"Allow all for now"</code> policy. Anon callers with the anon key now return zero rows.
       </div>
       <div class="finding">
-        <b>Main JS bundle is 777 KB</b> (gzip 199 KB). The bulk is <code style="font-family:'SF Mono',Menlo,monospace">pdfjs-dist</code> (405 KB on disk) which is only used by Brief→Content. Dynamic-importing it would cut the bundle in half for everyone who never opens that page.
+        <b>Main JS bundle ~796 KB (gzip 204 KB) — pdfjs already chunked separately (Fix #11).</b> <code style="font-family:'SF Mono',Menlo,monospace">BriefGenPage.jsx:7</code> uses <code style="font-family:'SF Mono',Menlo,monospace">await import('pdfjs-dist')</code>; build output confirms pdfjs is in its own 405 KB chunk. Remaining bundle is React + Supabase + the app surface. Further splitting would need Vite <code style="font-family:'SF Mono',Menlo,monospace">manualChunks</code> config.
       </div>
       <div class="finding">
         <b>Higgsfield Studio still untracked.</b> <code style="font-family:'SF Mono',Menlo,monospace">src/apps/higgsfield/HiggsfieldStudio.jsx</code> + <code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/higgsfield.js</code> + edits to <code style="font-family:'SF Mono',Menlo,monospace">apps.config.js</code> + <code style="font-family:'SF Mono',Menlo,monospace">utils/constants.js</code> all sit dirty in the working tree. They must ship in one commit (broke CI last time when split) — or be deleted.
@@ -330,7 +329,7 @@ const nodes = [
     role: 'Drag-PDF zone → pdfjs extract text → /api/agent-action muse_from_brief → batch INSERT content_items.',
     plain: 'Drop a PDF brief and Muse reads it, generates Reels + Stories, and adds them to the tracker automatically.',
     path: 'src/apps/brief-gen/BriefGenPage.jsx',
-    notes: ['Uses pdfjs-dist (the 405KB bundle bloat)','Action: muse_from_brief'],
+    notes: ['Uses pdfjs-dist via dynamic import (Fix #11) — 405 KB lives in its own chunk','Action: muse_from_brief'],
     tag: ['content','agents','all'],
   }),
   N('higgsfield-ui', 'client', 'HiggsfieldStudio.jsx', 'WIP · untracked', 40, 980, 240, 50, 'dead', {
@@ -512,18 +511,7 @@ const nodes = [
     notes: ['Pure static data','OpsBoard never persists changes — refresh resets'],
     tag: ['all'],
   }),
-  N('dead-agents', 'services', 'src/agents/ (8 files)', 'DEAD — zero callers', 600, 790, 200, 75, 'dead', {
-    role: 'sean/lacey/muse/overseer/sam/artgrid/scrappy/ali.agent.js — each 12 lines, never imported by anything.',
-    plain: 'An entire folder of agent files (one per agent) that NOTHING imports. Created in a refactor that never finished. Pure dead code.',
-    path: 'src/agents/*.agent.js (8 files, 96 lines total)',
-    notes: [
-      'grep -rn "from.*agents/" src/  →  zero hits',
-      'Phase 2.3 of docs/REFACTOR_PLAN.md was meant to extract agents here',
-      'Real persona prompts live in agentRegistry.js + agent-action.js inline',
-      'Safe to delete the entire src/agents/ directory',
-    ],
-    tag: ['overview','agents','all'],
-  }),
+  // dead-agents node removed 2026-05-26 (Fix #8) — src/agents/ deleted.
 
   // ═══════ DATA LAYER ═══════
   N('clients-tbl', 'data', 'clients table', 'multi-tenant root', 860, 110, 200, 65, 'db', {
@@ -780,12 +768,8 @@ const FIXES = {
   'agent-action': [
     { n: 4, t: 'Split 16 action handlers into per-handler files; keep this as router only.' },
   ],
-  'dead-agents': [
-    { n: 8, t: 'DELETE the entire src/agents/ folder — 8 unused files. Or complete the Phase 2 refactor and actually wire them up.' },
-  ],
   'higgsfield-ui':  [{ n: 9, t: 'Commit OR delete: HiggsfieldStudio.jsx + higgsfield.js must ship together (broke CI last time when split).' }],
   'higgsfield-fn':  [{ n: 9, t: 'Commit OR delete.' }],
-  'briefgen':     [{ n: 11, t: 'Dynamic-import pdfjs-dist (only load when page opens) — saves 405KB on initial bundle for non-users.' }],
   'opsboard':     [{ n: 12, t: 'Back tasks with a DB table (currently in-memory only — refresh wipes state).' }],
   'profiles-tbl': [{ n: 13, t: 'Add per-user client assignments table once Phase B multi-tenant lands.' }],
   'seed-content': [{ n: 14, t: 'Decouple from VitalLyfe — make per-client seedable or remove (data now lives in DB).' }],
@@ -823,6 +807,13 @@ const FIXES = {
      #7  per-client n8n routing          → notify.js now pulls slack + n8n URLs
                                             from clients row in one Supabase fetch
                                             (was 2 calls); each falls back to env
+     #8  delete src/agents/ dead code    → rm -rf — 8 files, 96 lines
+     #11 dynamic-import pdfjs (already   → BriefGenPage.jsx:7 was already using
+         shipped, docs-only close)         await import('pdfjs-dist'); 405 KB chunk
+     #3.1 cid_library column rename      → vitallyfe_adaptation → client_adaptation
+                                            (20260526_cid_library_rename_adaptation.sql
+                                            + 3 code sites). Last hardcoded VL ref
+                                            at the agent layer.
    ──────────────────────────────────────────────────────────────────── */
 
 const KNOWN_BUGS = {
@@ -835,14 +826,8 @@ const KNOWN_BUGS = {
   'cid-posts-tbl': [
     { sev:'low',  t:'REST count probe returns 404 — table may exist but with stricter RLS than other tables. Verify in Supabase dashboard.' },
   ],
-  'briefgen': [
-    { sev:'low',  t:'pdfjs-dist (405KB) loaded eagerly even when this page is never opened. Bundle bloat for ~95% of users.' },
-  ],
   'opsboard': [
     { sev:'med',  t:'Tasks stored in in-memory state only. Refresh resets the board. Multi-user can\'t share a task list.' },
-  ],
-  'dead-agents': [
-    { sev:'low',  t:'src/agents/*.agent.js — 8 files, 96 lines, zero importers. Discovered by grep -rn "from.*agents/" src/.' },
   ],
   'higgsfield-ui': [
     { sev:'low',  t:'File untracked since session 2 — broke CI when commit/uncommit got out of sync. Either ship or delete.' },

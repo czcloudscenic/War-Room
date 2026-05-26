@@ -4,13 +4,10 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 
 ## Order to attack (recommended)
 
-1. **#3.1** — Rename `cid_library.vitallyfe_adaptation` → `client_adaptation`. Move 1 leftover.
-3. **#11** — Dynamic-import pdfjs-dist. ~405 KB bundle size win.
-6. **#8** — Delete the dead `src/agents/` folder. 30-second cleanup.
-7. **#9** — Ship or delete Higgsfield. Decision is the work; the code change is small either way.
-8. **#4** — Split agent-action.js. Bigger refactor — plan a sprint.
-9. **#2** — Split App.jsx into smaller components. Same — plan a sprint.
-10. **#12, #13, #14** — Smaller polish items.
+1. **#9** — Ship or delete Higgsfield. Decision is the work; code change is small either way.
+2. **#2** — Split App.jsx (queued to Codex 2026-05-26 on `codex/grunt-2026-05-26` branch). Biggest unlock.
+3. **#4** — Split agent-action.js into per-handler files. Sprint-sized.
+4. **#12, #13, #14** — Smaller polish items.
 
 ---
 
@@ -38,13 +35,10 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 - **Verified:** Muse generated on-brand caption against VitalLyfe in dev — cinematic, calm, purposeful structure intact.
 - **Follow-up:** Fix #3.1 below — `cid_library.vitallyfe_adaptation` column name still references VitalLyfe.
 
-### #3.1 — Rename cid_library.vitallyfe_adaptation → client_adaptation
-- **Where:** `supabase/migrations/<date>_rename_cid_library_column.sql` + `netlify/functions/agent-action.js:958-960`
-- **Why:** Move 1 leftover. The column name is the last hardcoded VitalLyfe reference in the agent layer.
-- **Steps:**
-  1. `alter table cid_library rename column vitallyfe_adaptation to client_adaptation;`
-  2. Update 3 lines in `agent-action.js` (the three `.map` blocks that write to cid_library).
-  3. Remove the TODO comment at L905 noting this debt.
+### ✅ #3.1 — Rename cid_library.vitallyfe_adaptation → client_adaptation — CLOSED 2026-05-26
+- **Where:** `supabase/migrations/20260526_cid_library_rename_adaptation.sql` + `netlify/functions/agent-action.js:959-961`
+- **What landed:** Idempotent `do $$ ... end $$` block that checks `information_schema.columns` before renaming. Three insert sites in `scrappy_hook_analysis` updated. Header comment refreshed.
+- **Out-of-band:** SQL run in Supabase by user before code push so prod doesn't 400 on the new column name.
 
 ### #4 — Split agent-action.js
 - **Where:** `netlify/functions/agent-action.js` (1,263 lines)
@@ -63,9 +57,8 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 - **Where:** `netlify/functions/notify.js`
 - **What landed:** Single Supabase fetch pulls both `slack_webhook_url` and `n8n_webhook_url` from the client row (was two roundtrips after Fix #6). Each falls back to its global env var when the client has no override. Pattern matches commit `702f867` plus the consolidation.
 
-### #8 — Delete `src/agents/` dead code
-- **Files:** `src/agents/{sean,lacey,muse,overseer,sam,artgrid,scrappy,ali}.agent.js`
-- **Steps:** `rm -r src/agents/` — done. Confirmed zero callers via `grep -rn "from.*agents/" src/`.
+### ✅ #8 — Delete `src/agents/` dead code — CLOSED 2026-05-26
+- **What landed:** `rm -rf src/agents/`. 8 files / 96 lines removed. Build passed clean.
 
 ### #9 — Ship or delete Higgsfield
 - **Files:** `netlify/functions/higgsfield.js`, `src/apps/higgsfield/HiggsfieldStudio.jsx`, modified `src/apps/apps.config.js` + `src/utils/constants.js`
@@ -88,10 +81,9 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 - **Then drops** the legacy `"Allow all for now"` policy.
 - **Apply against live DB:** run `20260526_content_items_client_rls.sql` in Supabase SQL Editor. Anon callers should return 0 content_items rows after. Test admin + Natalia paths before considering it verified.
 
-### #11 — Dynamic-import pdfjs-dist
-- **Where:** `src/apps/brief-gen/BriefGenPage.jsx`
-- **Steps:** Replace top-level `import pdfjs from 'pdfjs-dist'` with `const pdfjs = await import('pdfjs-dist')` inside the PDF-drop handler.
-- **Win:** ~405 KB off the main bundle for all users who never open Brief→Content.
+### ✅ #11 — Dynamic-import pdfjs-dist — ALREADY SHIPPED (pre-2026-05-26)
+- **Where:** `src/apps/brief-gen/BriefGenPage.jsx:7`
+- **What's there:** `const pdfjsLib = await import('pdfjs-dist')` inside `extractPdfText`. Vite output confirms pdfjs is in its own 405 KB chunk (`pdf-*.js`), not bundled into the main index. Closed in docs 2026-05-26 — the stale "main bundle is 777 KB, bulk is pdfjs" arch-map finding was wrong.
 
 ### #12 — Back OpsBoard with a DB table
 - **Where:** `src/ui/dashboard/OpsBoard.jsx` + new `supabase/migrations/<date>_tasks.sql`

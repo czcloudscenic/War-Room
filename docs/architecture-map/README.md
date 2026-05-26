@@ -4,7 +4,7 @@
 > Mirrors the interactive `architecture-map.html` at the repo root.
 > Drop this entire folder into any wiki / knowledge base — no rendering deps.
 
-**Snapshot date:** 2026-05-26 (post Move 1 + Fix #15)
+**Snapshot date:** 2026-05-26 (post Move 1 + #15 + #10/10.1 + #7 + #3.1 + #8 + #11)
 **Live URL:** https://usevantus.com
 **Repo:** https://github.com/czcloudscenic/War-Room (auto-deploys on push to `main`)
 
@@ -41,12 +41,8 @@ React 19 + Vite 8  ──▶  Netlify Functions  ──▶  Supabase (DB + Auth 
 
 ## Notable findings (read these first)
 
-### 1. `src/agents/` is entirely dead code
-**8 files, 96 lines, zero importers.** Real agent personas live in `src/core/agentRegistry.js` + `src/core/memory.js` + hardcoded inline inside `netlify/functions/agent-action.js`. The folder was created during a Phase 2 refactor (per `docs/REFACTOR_PLAN.md`) but never wired up.
-
-```bash
-$ grep -rn "from.*agents/" src/   # → only matches src/ui/agents/, never bare agents/
-```
+### 1. ~~`src/agents/` dead code~~ — DELETED 2026-05-26 (Fix #8)
+8 files, 96 lines, zero importers. `rm -rf src/agents/` shipped. Real agent personas live in `src/core/agentRegistry.js` + `src/core/memory.js` + the per-handler prompts inside `netlify/functions/agent-action.js` (since Move 1, voice flows from `clients.brand_voice_md` per request).
 
 ### 2. `agent-action.js` is a 1,263-line monolith
 A single file holds 16 action handlers + the Anthropic wrapper + Supabase REST helpers + Slack notifier + `agent_events` logger. Splitting is documented in `docs/REFACTOR_PLAN.md` but never executed.
@@ -66,8 +62,8 @@ Far from the "anyone gets admin access" finding in the previous snapshot. `App.j
 ### 7. Auth-lock contention auto-recovers — Fix #15 SHIPPED 2026-05-26
 When the 4s `stuckGuard` in `App.jsx` fires, it now clears just the `sb-*-auth-token` localStorage keys (preserving agent histories + apps prefs) and reloads. A one-shot `sessionStorage` flag prevents reload loops. The manual `localStorage.clear(); reload()` workaround is retired.
 
-### 8. Main JS bundle is 777 KB (gzip 199 KB)
-The bulk is `pdfjs-dist` (405 KB on disk) which is only used by Brief→Content. Dynamic-importing it would cut the bundle in half for ~95% of users who never open that page.
+### 8. Main JS bundle ~796 KB (gzip 204 KB) — pdfjs already chunked separately
+`pdfjs-dist` is already lazy-loaded (Fix #11 was already done — `BriefGenPage.jsx:7` uses `await import('pdfjs-dist')`). The remaining 796 KB is React + Supabase + the rest of the app surface. Further code-splitting would need Vite `manualChunks` config — separate task, not blocking.
 
 ### 9. Higgsfield Studio still untracked
 `src/apps/higgsfield/HiggsfieldStudio.jsx` + `netlify/functions/higgsfield.js` + dirty edits to `apps.config.js` + `constants.js` all sit in the working tree. Must ship in one commit (broke CI last time when split) or be deleted together.
