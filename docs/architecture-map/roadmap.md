@@ -4,8 +4,8 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 
 ## Order to attack (recommended)
 
-1. **#10** — Write the missing `content_items` migration. Pure version-control hygiene; one SQL file. ~15 min.
-2. **#7** — Per-client n8n routing. Mirror the Slack pattern from commit `702f867`. ~20-minute change.
+1. **#7** — Per-client n8n routing. Mirror the Slack pattern from commit `702f867`. ~20-minute change.
+2. **#10.1** — Drop the wide-open `content_items` policy (after filling external-client RLS gap). Surfaced by Fix #10.
 3. **#3.1** — Rename `cid_library.vitallyfe_adaptation` → `client_adaptation`. Move 1 leftover.
 4. **#11** — Dynamic-import pdfjs-dist. ~405 KB bundle size win.
 6. **#8** — Delete the dead `src/agents/` folder. 30-second cleanup.
@@ -76,9 +76,17 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
   - **Delete:** `rm` both files + revert dirty edits to `constants.js` + `apps.config.js`.
 - **Don't split-commit** — broke CI last time when files landed before/after their import.
 
-### #10 — Write `content_items` migration
-- **Where:** New file `supabase/migrations/<date>_content_items.sql`
-- **Steps:** Pull live schema from Supabase dashboard (Database → Tables → content_items → "Definition") → save as migration. Include indexes + RLS policies.
+### ✅ #10 — Write `content_items` migration — CLOSED 2026-05-26
+- **Where:** `supabase/migrations/20260526_content_items_baseline.sql`
+- **What landed:** Full 25-column schema, FK to `clients(id) ON DELETE CASCADE`, `content_items_client_idx`, RLS enabled, 3 policies captured faithfully (2 admin + 1 wide-open temp). Idempotent: `CREATE TABLE IF NOT EXISTS` + `DROP POLICY IF EXISTS` + `CREATE POLICY` so it can be applied against the existing prod DB or a fresh dev DB without error.
+- **Surfaced security debt:** the legacy `"Allow all for now"` policy survived the 2026-05-25 anon cleanup. Migration header flags it loudly; DROP statement teed up at bottom for Fix #10.1.
+
+### #10.1 — Drop content_items wide-open policy
+- **Where:** Uncomment the teed-up `drop policy if exists "Allow all for now"` at the bottom of `20260526_content_items_baseline.sql`, or write a follow-up migration.
+- **Prereq:** External approved clients have NO RLS read policy on `content_items` today — they rely on the wide-open one. Before dropping, add either:
+  1. `client_users.client_ids @> array[content_items.client_id]` scoped SELECT policy, OR
+  2. Have every external-client read flow through a Netlify function with `SERVICE_KEY` (bypasses RLS).
+- **Steps:** Fill the RLS gap → drop the policy → verify external client ClientView still loads their content.
 
 ### #11 — Dynamic-import pdfjs-dist
 - **Where:** `src/apps/brief-gen/BriefGenPage.jsx`

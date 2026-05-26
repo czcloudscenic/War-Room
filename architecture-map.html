@@ -119,7 +119,7 @@
 
 <header>
   <h1>Vantus</h1>
-  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1 + Fix #15)</span>
+  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1 + #15 + #10)</span>
   <div class="tabs">
     <button class="tab active" data-tab="map">Map</button>
     <button class="tab" data-tab="bugs">Bugs &amp; Roadmap <span class="count" id="tab-bug-count">0</span></button>
@@ -199,7 +199,7 @@
         <b>Auth-lock contention auto-recovers — SHIPPED 2026-05-26 (Fix #15).</b> Multi-tab usevantus.com or a crashed prior tab can deadlock <code style="font-family:'SF Mono',Menlo,monospace">supabase-js</code>'s <code style="font-family:'SF Mono',Menlo,monospace">navigator.locks</code> mutex during <code style="font-family:'SF Mono',Menlo,monospace">getSession()</code>. When the 4s <code style="font-family:'SF Mono',Menlo,monospace">stuckGuard</code> fires in App.jsx, it now clears just the <code style="font-family:'SF Mono',Menlo,monospace">sb-*-auth-token</code> keys (preserving agent histories + apps prefs) and reloads. A one-shot <code style="font-family:'SF Mono',Menlo,monospace">sessionStorage</code> flag prevents reload loops. Manual workaround retired.
       </div>
       <div class="finding">
-        <b><code style="font-family:'SF Mono',Menlo,monospace">content_items</code> has no migration file.</b> Schema lives only in live Supabase — local dev expectations can drift from production silently. Every other table in the data column has a migration. Worth backfilling.
+        <b><code style="font-family:'SF Mono',Menlo,monospace">content_items</code> migration shipped 2026-05-26 (Fix #10).</b> Captured in <code style="font-family:'SF Mono',Menlo,monospace">supabase/migrations/20260526_content_items_baseline.sql</code> — 25 columns, FK to clients ON DELETE CASCADE, client_idx, RLS + 3 policies. <b>Surfaced security debt:</b> the legacy <code style="font-family:'SF Mono',Menlo,monospace">"Allow all for now"</code> policy (using=true, ALL commands) survived the 2026-05-25 anon cleanup. DROP is teed up at the bottom of the migration; needs Fix #10.1 (external-client RLS) before flipping.
       </div>
       <div class="finding">
         <b>Main JS bundle is 777 KB</b> (gzip 199 KB). The bulk is <code style="font-family:'SF Mono',Menlo,monospace">pdfjs-dist</code> (405 KB on disk) which is only used by Brief→Content. Dynamic-importing it would cut the bundle in half for everyone who never opens that page.
@@ -537,8 +537,14 @@ const nodes = [
   N('content-tbl', 'data', 'content_items table', 'pipeline rows', 860, 185, 200, 65, 'db', {
     role: 'Content pieces (Reels, Posts, Stories, etc.) scoped by client_id. Stages: Ready For Copy Creation → Scheduled.',
     plain: 'Every piece of content — captions, scripts, status, platform, etc. The main data table the dashboard shows.',
-    path: 'NO MIGRATION FILE (schema lives only in live Supabase)',
-    notes: ['Schema NOT in version control — drift risk','client_id added in 20260523 multitenant migration','Realtime subscriptions in App.jsx + ClientView'],
+    path: 'supabase/migrations/20260526_content_items_baseline.sql',
+    notes: [
+      '25 columns including jsonb files[], text[] platforms, FK client_id → clients(id) ON DELETE CASCADE',
+      'content_items_client_idx index on client_id',
+      'RLS enabled. Admin policies: @cloudscenic.com read+write.',
+      '⚠️ Legacy "Allow all for now" policy still active (Fix #10.1) — DROP teed up at bottom of migration',
+      'Realtime subscriptions in App.jsx + ClientView',
+    ],
     tag: ['content','all'],
     critical: true,
   }),
@@ -783,7 +789,7 @@ const FIXES = {
   'higgsfield-ui':  [{ n: 9, t: 'Commit OR delete: HiggsfieldStudio.jsx + higgsfield.js must ship together (broke CI last time when split).' }],
   'higgsfield-fn':  [{ n: 9, t: 'Commit OR delete.' }],
   'content-tbl': [
-    { n: 10, t: 'Write a real migration file for content_items — schema currently lives only in live Supabase (drift risk).' },
+    { n: 10.1, t: 'Drop the wide-open "Allow all for now" RLS policy (teed up at the bottom of 20260526_content_items_baseline.sql). Requires filling external-client read RLS gap first.' },
   ],
   'briefgen':     [{ n: 11, t: 'Dynamic-import pdfjs-dist (only load when page opens) — saves 405KB on initial bundle for non-users.' }],
   'opsboard':     [{ n: 12, t: 'Back tasks with a DB table (currently in-memory only — refresh wipes state).' }],
@@ -813,6 +819,11 @@ const FIXES = {
      #15 supabase-js auth-lock recovery  → stuckGuard clears sb-*-auth-token keys
                                             + reloads; one-shot sessionStorage flag
                                             prevents reload loops
+     #10 content_items baseline migration→ 20260526_content_items_baseline.sql
+                                            (25 cols, FK to clients ON DELETE CASCADE,
+                                            client_idx, RLS + 3 policies);
+                                            surfaced wide-open "Allow all for now"
+                                            policy as Fix #10.1
    ──────────────────────────────────────────────────────────────────── */
 
 const KNOWN_BUGS = {
@@ -832,7 +843,7 @@ const KNOWN_BUGS = {
     { sev:'med',  t:'Tasks stored in in-memory state only. Refresh resets the board. Multi-user can\'t share a task list.' },
   ],
   'content-tbl': [
-    { sev:'med',  t:'No migration file in supabase/migrations/. Schema lives only in live Supabase — version drift risk between local dev expectations and production.' },
+    { sev:'med',  t:'Wide-open RLS policy "Allow all for now" still active — survived 2026-05-25 anon cleanup because no migration existed to be touched. Fix #10.1 will drop it.' },
   ],
   'dead-agents': [
     { sev:'low',  t:'src/agents/*.agent.js — 8 files, 96 lines, zero importers. Discovered by grep -rn "from.*agents/" src/.' },

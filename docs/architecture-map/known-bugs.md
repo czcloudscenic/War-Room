@@ -55,8 +55,8 @@ Slack per-client routing landed 2026-05-25 (`clients.slack_webhook_url`, commit 
 ### OpsBoard.jsx · tasks in memory only
 Refresh resets the board. Multi-user can't share a task list. Needs a DB table.
 
-### content_items · no migration file
-Schema lives only in live Supabase. Drift risk between local dev expectations and prod. All other tables (`clients`, `agent_events`, `notifications`, `profiles`, `cid_posts`, `client_users`, `client-logos` bucket) have proper migration files.
+### content_items · `"Allow all for now"` policy survived 2026-05-25 cleanup
+The baseline migration shipped 2026-05-26 (Fix #10) surfaced a stale wide-open RLS policy on `content_items`: `using=true` for ALL commands, applied to `public` role. Anonymous callers with the anon key can read AND write `content_items` today. The 2026-05-25 anon-policy cleanup (commit `852d915`) missed this one because no migration file existed at the time to be touched. Closing the gap is Fix #10.1 — DROP is teed up at the bottom of `20260526_content_items_baseline.sql` and requires filling an external-client RLS gap first.
 
 ---
 
@@ -96,7 +96,7 @@ Not set in `netlify.toml`. Lower urgency since auth is JWT-bound + no inline-scr
 | agent-action.js | MED | Monolith |
 | notify.js | MED | Per-client n8n routing still missing |
 | OpsBoard.jsx | MED | In-memory tasks |
-| content_items | MED | No migration file |
+| content_items | MED | Wide-open RLS policy "Allow all for now" (surfaced by Fix #10 — DROP teed up) |
 | cid_posts | LOW | RLS probe returns 404 |
 | briefgen | LOW | pdfjs bundle bloat |
 | src/agents/ | LOW | Dead code (8 files) |

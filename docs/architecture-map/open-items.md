@@ -3,13 +3,14 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-05-26 (post Move 1 + Fix #15) · **Total open:** 7 bugs + 9 fixes = 16 items
+**Snapshot:** 2026-05-26 (post Move 1 + #15 + #10) · **Total open:** 6 bugs + 8 fixes = 14 items
 
 ```
-🔴 High:   0    │   ✅ Done:  10  (Fix #1 OAuth, Fix #3 Move 1, Fix #5 caller auth,
-🟡 Med:    4    │                  Fix #6 per-client Slack, Fix #15 auth-lock recovery,
-🟢 Low:    7    │                  5 temp anon RLS policies, Google secret rotation)
-                │   📋 Fixes:  9 open (5 closed)
+🔴 High:   0    │   ✅ Done:  11  (Fix #1 OAuth, Fix #3 Move 1, Fix #5 caller auth,
+🟡 Med:    3    │                  Fix #6 per-client Slack, Fix #10 content_items migration,
+🟢 Low:    7    │                  Fix #15 auth-lock recovery, 5 temp anon RLS policies,
+                │                  Google secret rotation)
+                │   📋 Fixes:  8 open (6 closed)
 ```
 
 ---
@@ -40,9 +41,8 @@ _None open as of 2026-05-26. The week-of work shipped 2026-05-25 — see ✅ blo
   Refresh resets the board. Multi-user can't share a task list. Needs a DB table.
   → Touches: `src/ui/dashboard/OpsBoard.jsx`, new `supabase/migrations/<date>_tasks.sql` · Fix #12
 
-- [ ] **content_items — no migration file**
-  Schema lives only in live Supabase. Drift risk between local dev expectations and prod. Every other table has a migration.
-  → Touches: new `supabase/migrations/<date>_content_items.sql` · Fix #10
+- [x] ~~**content_items — no migration file**~~ ✅ closed 2026-05-26 (Fix #10)
+  Baseline migration written at `supabase/migrations/20260526_content_items_baseline.sql` (25 columns, FK to clients, client_idx, RLS + 3 policies). Flagged a security debt in the migration's header: the legacy `"Allow all for now"` wide-open policy survived the 2026-05-25 anon cleanup because no migration existed to update — drop is teed up at the bottom of the file ready for a follow-up.
 
 - [ ] **Per-client n8n routing still missing**
   Slack per-client done (`clients.slack_webhook_url`, commit 702f867). n8n still global — every notification trigger goes to one webhook regardless of client.
@@ -102,7 +102,8 @@ Cross-references map node badges + the items above.
 - [ ] **#7** — Per-client n8n webhook routing in `notify.js`
 - [ ] **#8** — Delete `src/agents/` dead-code folder
 - [ ] **#9** — Ship or delete Higgsfield (both files + nav edits together)
-- [ ] **#10** — Write `content_items` migration (pull live schema, save as SQL)
+- [x] ~~**#10** — Write `content_items` migration~~ ✅ 2026-05-26 (`20260526_content_items_baseline.sql`)
+- [ ] **#10.1** — Drop wide-open `"Allow all for now"` policy on content_items (DROP is teed up at the bottom of the baseline migration; needs external-client RLS gap filled first)
 - [ ] **#11** — Dynamic-import `pdfjs-dist` in BriefGenPage
 - [ ] **#12** — Back OpsBoard with a `tasks` table in Supabase
 - [ ] **#13** — Per-user client assignments table (now that OAuth is live, this is unblocked)
@@ -171,8 +172,8 @@ Bundle these 5 changes in one commit so CI doesn't break mid-merge again:
 
 ## Suggested attack order
 
-1. **#10 (content_items migration)** — pure schema-in-version-control hygiene; one SQL file. Removes the largest "drift risk" worry. ~15 min.
-2. **#7 (per-client n8n)** — already have the pattern from Slack (commit 702f867); 20-minute change.
+1. **#7 (per-client n8n)** — already have the pattern from Slack (commit 702f867); 20-minute change.
+2. **#10.1 (drop content_items wide-open policy)** — first fill external-client read RLS gap, then uncomment the teed-up DROP at the bottom of `20260526_content_items_baseline.sql`. ~10 min after RLS gap.
 3. **#3.1 (rename cid_library.vitallyfe_adaptation → client_adaptation)** — Move 1 leftover; one ALTER TABLE + 3 line code change.
 4. **#11 (dynamic-import pdfjs)** — bundle size win, ~405 KB off the main chunk.
 6. **#8 (delete src/agents/)** — 30-second cleanup.

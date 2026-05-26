@@ -241,9 +241,11 @@ Every significant file, function, table, and external service in Vantus — grou
 - **Notes:** RLS: admin-only via `auth.jwt()->>'email' like '%@cloudscenic.com'`. Temp anon policies dropped 2026-05-25 (commit `852d915`). Public realtime via `supabase_realtime` publication. Seeded with VitalLyfe automatically.
 
 ### ★ `content_items` table — pipeline rows
-- **Migration:** ⚠️ **NO MIGRATION FILE** (schema lives only in live Supabase — Fix #10)
-- **Columns:** Content pieces (Reels, Posts, Stories) scoped by `client_id`. Stages: Ready For Copy Creation → Scheduled.
-- **Note:** Schema NOT in version control — drift risk. `client_id` added in 20260523 multitenant migration.
+- **Migration:** `supabase/migrations/20260526_content_items_baseline.sql` (Fix #10, 2026-05-26)
+- **Columns (25):** `id text pk, title text not null, description, campaign, platform, type, format, stage, status, pillar, platforms text[], script, caption, cta, hashtags, seo_keywords, notes, start_week int, duration int, created_at timestamptz default now(), updated_at timestamptz default now(), files jsonb default '[]', publish_date, client_note, client_id uuid FK clients(id) ON DELETE CASCADE`
+- **Indexes:** `content_items_pkey` (PK on id), `content_items_client_idx` (btree on client_id)
+- **RLS policies:** `admins read content_items` (SELECT @cloudscenic.com), `admins write content_items` (ALL @cloudscenic.com), and ⚠️ `Allow all for now` (legacy wide-open policy, Fix #10.1 will drop it).
+- **Note:** Stages: Ready For Copy Creation → Need Copy Approval → Ready For Content Creation → Need Content Approval → Needs Revisions → Approved → Ready For Schedule → Scheduled.
 
 ### ★ `agent_events` table — brain Move 2
 - **Migration:** `supabase/migrations/20260523_agent_events.sql`
