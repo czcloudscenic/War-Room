@@ -1,9 +1,11 @@
-// notify.js — fires when client approves or requests revisions
-// Sends email via Resend API + Slack + n8n + PERSISTS to notifications table
+// notify.js — fires when a client approves or requests revisions.
+// Sends email via Resend + Slack webhook + n8n webhook + persists to the
+// notifications table. Slack and n8n URLs are read per-client from
+// clients.slack_webhook_url / clients.n8n_webhook_url in a single fetch
+// when client_id is on the payload; each falls back to the global env var.
 //
-// Requires a valid @cloudscenic.com Supabase session (Authorization: Bearer <access_token>).
-// NB: when external clients (e.g. VitalLyfe team) eventually get their own login,
-// loosen requireUser to accept any authenticated user with a matching client_id.
+// Requires a valid Supabase session (Authorization: Bearer <access_token>).
+// requireUser allows @cloudscenic.com admins OR approved client_users.
 
 const { requireUser, unauthorized } = require("./_lib/requireUser");
 
@@ -149,23 +151,29 @@ exports.handler = async (event) => {
     results.push({ channel: "email", ok: false, error: "RESEND_API_KEY not set" });
   }
 
-  // ── SLACK (per-client webhook if available, else global fallback) ───────────
+  // ── Per-client webhook lookup (one roundtrip, both URLs) ────────────────────
+  // Slack + n8n live on the same clients row; fetch them together so notify
+  // doesn't double-hit Supabase. Each falls back to the global env var when
+  // the client has no override (or the lookup fails).
   let SLACK = process.env.SLACK_WEBHOOK_URL;
+  let N8N   = process.env.N8N_NOTIFY_URL || process.env.N8N_WEBHOOK_URL;
   if (client_id) {
     try {
       const cRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/clients?id=eq.${client_id}&select=slack_webhook_url`,
+        `${SUPABASE_URL}/rest/v1/clients?id=eq.${client_id}&select=slack_webhook_url,n8n_webhook_url`,
         { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
       );
       if (cRes.ok) {
-        const rows = await cRes.json();
-        const perClient = rows?.[0]?.slack_webhook_url;
-        if (perClient) SLACK = perClient;
+        const row = (await cRes.json())?.[0];
+        if (row?.slack_webhook_url) SLACK = row.slack_webhook_url;
+        if (row?.n8n_webhook_url)   N8N   = row.n8n_webhook_url;
       }
     } catch (e) {
-      console.warn("[notify] client slack lookup failed:", e.message);
+      console.warn("[notify] client webhook lookup failed:", e.message);
     }
   }
+
+  // ── SLACK ───────────────────────────────────────────────────────────────────
   if (SLACK) {
     const slackBody = {
       blocks: [
@@ -204,8 +212,7 @@ exports.handler = async (event) => {
     }
   }
 
-  // ── N8N FALLBACK ────────────────────────────────────────────────────────────
-  const N8N = process.env.N8N_NOTIFY_URL || process.env.N8N_WEBHOOK_URL;
+  // ── N8N (per-client webhook resolved above, else global) ───────────────────
   if (N8N) {
     try {
       await fetch(N8N, {

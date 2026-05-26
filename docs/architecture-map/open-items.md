@@ -3,14 +3,15 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-05-26 (post Move 1 + #15 + #10 + #10.1) · **Total open:** 6 bugs + 7 fixes = 13 items
+**Snapshot:** 2026-05-26 (post Move 1 + #15 + #10 + #10.1 + #7) · **Total open:** 5 bugs + 6 fixes = 11 items
 
 ```
-🔴 High:   0    │   ✅ Done:  12  (Fix #1 OAuth, Fix #3 Move 1, Fix #5 caller auth,
-🟡 Med:    3    │                  Fix #6 per-client Slack, Fix #10 baseline + #10.1 scoped RLS,
-🟢 Low:    7    │                  Fix #15 auth-lock recovery, 5 temp anon RLS policies,
+🔴 High:   0    │   ✅ Done:  13  (Fix #1 OAuth, Fix #3 Move 1, Fix #5 caller auth,
+🟡 Med:    2    │                  Fix #6 per-client Slack, Fix #7 per-client n8n,
+🟢 Low:    7    │                  Fix #10 baseline + #10.1 scoped RLS,
+                │                  Fix #15 auth-lock recovery, 5 temp anon RLS policies,
                 │                  Google secret rotation)
-                │   📋 Fixes:  7 open (7 closed)
+                │   📋 Fixes:  6 open (8 closed)
 ```
 
 ---
@@ -44,9 +45,8 @@ _None open as of 2026-05-26. The week-of work shipped 2026-05-25 — see ✅ blo
 - [x] ~~**content_items — no migration file**~~ ✅ closed 2026-05-26 (Fix #10 baseline + Fix #10.1 scoped RLS)
   Baseline migration at `supabase/migrations/20260526_content_items_baseline.sql` (25 columns, FK to clients, client_idx, RLS + 3 policies). Follow-up `20260526_content_items_client_rls.sql` adds scoped SELECT+UPDATE for approved `client_users` and drops the wide-open `"Allow all for now"` policy. Anon callers no longer get any content_items rows.
 
-- [ ] **Per-client n8n routing still missing**
-  Slack per-client done (`clients.slack_webhook_url`, commit 702f867). n8n still global — every notification trigger goes to one webhook regardless of client.
-  → Touches: `netlify/functions/notify.js` · Fix #7
+- [x] ~~**Per-client n8n routing**~~ ✅ closed 2026-05-26 (Fix #7)
+  `notify.js` now reads `slack_webhook_url` and `n8n_webhook_url` from the client row in one Supabase fetch (was two roundtrips), each falling back to the global env var. Mirrors the Slack pattern shipped 2026-05-25 (commit 702f867) plus a small efficiency win.
 
 ---
 
@@ -99,7 +99,7 @@ Cross-references map node badges + the items above.
 - [ ] **#4** — Split `agent-action.js` into per-handler files → keep as router only
 - [x] ~~**#5** — Caller auth on all 5 functions~~ ✅ commit `2a9c9c1` (shared `_lib/requireUser.js`)
 - [x] ~~**#6** — Per-client Slack routing~~ ✅ commit `702f867` (`clients.slack_webhook_url`)
-- [ ] **#7** — Per-client n8n webhook routing in `notify.js`
+- [x] ~~**#7** — Per-client n8n webhook routing in `notify.js`~~ ✅ 2026-05-26 (one combined Supabase fetch for slack+n8n URLs; each falls back to env)
 - [ ] **#8** — Delete `src/agents/` dead-code folder
 - [ ] **#9** — Ship or delete Higgsfield (both files + nav edits together)
 - [x] ~~**#10** — Write `content_items` migration~~ ✅ 2026-05-26 (`20260526_content_items_baseline.sql`)
@@ -145,15 +145,6 @@ Cross-references map node badges + the items above.
 
 ## Cross-cutting work (still open)
 
-### When Fix #7 (per-client n8n) lands → mirror the Slack pattern
-```js
-// netlify/functions/notify.js — already exists for slack_webhook_url
-// add identical block for n8n_webhook_url:
-const rows = await sbSelect(`clients?id=eq.${client_id}&select=n8n_webhook_url`);
-const perClient = rows?.[0]?.n8n_webhook_url;
-const url = perClient || process.env.N8N_WEBHOOK_URL;
-```
-
 ### When Fix #9 (Higgsfield) lands as a SHIP → one atomic commit
 Bundle these 5 changes in one commit so CI doesn't break mid-merge again:
 1. `src/apps/higgsfield/HiggsfieldStudio.jsx` (new)
@@ -172,8 +163,7 @@ Bundle these 5 changes in one commit so CI doesn't break mid-merge again:
 
 ## Suggested attack order
 
-1. **#7 (per-client n8n)** — already have the pattern from Slack (commit 702f867); 20-minute change.
-2. **#3.1 (rename cid_library.vitallyfe_adaptation → client_adaptation)** — Move 1 leftover; one ALTER TABLE + 3 line code change.
+1. **#3.1 (rename cid_library.vitallyfe_adaptation → client_adaptation)** — Move 1 leftover; one ALTER TABLE + 3 line code change.
 4. **#11 (dynamic-import pdfjs)** — bundle size win, ~405 KB off the main chunk.
 6. **#8 (delete src/agents/)** — 30-second cleanup.
 7. **#9 (ship or delete Higgsfield)** — decision is the hard part; the work is small.

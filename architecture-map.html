@@ -119,7 +119,7 @@
 
 <header>
   <h1>Vantus</h1>
-  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1 + #15 + #10 + #10.1)</span>
+  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1 + #15 + #10 + #10.1 + #7)</span>
   <div class="tabs">
     <button class="tab active" data-tab="map">Map</button>
     <button class="tab" data-tab="bugs">Bugs &amp; Roadmap <span class="count" id="tab-bug-count">0</span></button>
@@ -193,7 +193,7 @@
         <b>Brain Move 1 (Cortex wiring) — SHIPPED 2026-05-26.</b> <code style="font-family:'SF Mono',Menlo,monospace">getBrandContext(client_id)</code> in <code style="font-family:'SF Mono',Menlo,monospace">agent-action.js</code> now reads <code style="font-family:'SF Mono',Menlo,monospace">clients.brand_voice_md</code> per request and interpolates into all 12 prompt sites. VitalLyfe seeded via <code style="font-family:'SF Mono',Menlo,monospace">20260526_seed_vitallyfe_brand_voice.sql</code>. Dead <code style="font-family:'SF Mono',Menlo,monospace">seedMuseMemory()</code> removed from <code style="font-family:'SF Mono',Menlo,monospace">memory.js</code>. Multi-tenancy at the agent layer is now real — adding a new client with their own brand voice gets their voice in generated content automatically.
       </div>
       <div class="finding">
-        <b>Per-client Slack routing works; per-client n8n does not.</b> <code style="font-family:'SF Mono',Menlo,monospace">notify.js</code> reads <code style="font-family:'SF Mono',Menlo,monospace">clients.slack_webhook_url</code> when client_id is on the payload (commit 702f867), falling back to global <code style="font-family:'SF Mono',Menlo,monospace">SLACK_WEBHOOK_URL</code>. n8n still uses one global webhook for every client (Fix #7).
+        <b>Per-client Slack + n8n routing complete (Fix #6 + #7).</b> <code style="font-family:'SF Mono',Menlo,monospace">notify.js</code> pulls both <code style="font-family:'SF Mono',Menlo,monospace">slack_webhook_url</code> and <code style="font-family:'SF Mono',Menlo,monospace">n8n_webhook_url</code> from the clients row in one Supabase fetch (consolidated from the two roundtrips after Fix #6 shipped solo). Each falls back to its global env var when the client has no override.
       </div>
       <div class="finding">
         <b>Auth-lock contention auto-recovers — SHIPPED 2026-05-26 (Fix #15).</b> Multi-tab usevantus.com or a crashed prior tab can deadlock <code style="font-family:'SF Mono',Menlo,monospace">supabase-js</code>'s <code style="font-family:'SF Mono',Menlo,monospace">navigator.locks</code> mutex during <code style="font-family:'SF Mono',Menlo,monospace">getSession()</code>. When the 4s <code style="font-family:'SF Mono',Menlo,monospace">stuckGuard</code> fires in App.jsx, it now clears just the <code style="font-family:'SF Mono',Menlo,monospace">sb-*-auth-token</code> keys (preserving agent histories + apps prefs) and reloads. A one-shot <code style="font-family:'SF Mono',Menlo,monospace">sessionStorage</code> flag prevents reload loops. Manual workaround retired.
@@ -376,9 +376,9 @@ const nodes = [
     plain: 'When a client approves or rejects a piece, this endpoint sends the email, posts to Slack, and saves the notification to the database so it survives a page refresh.',
     path: 'netlify/functions/notify.js',
     notes: [
-      'L17-44: insertNotification helper for notifications table (Move 3)',
+      'L28: insertNotification helper for notifications table (Move 3)',
       'Prefer:resolution=ignore-duplicates → unique index dedupes multi-tab POSTs',
-      'Per-client Slack routing live (2026-05-25, commit 702f867) — reads clients.slack_webhook_url, falls back to global env',
+      'Per-client Slack + n8n routing — single Supabase fetch pulls both webhook URLs, each falls back to global env (commit 702f867 for Slack, 2026-05-26 Fix #7 added n8n in same fetch)',
       'Requires valid @cloudscenic.com or approved client_users session via requireUser helper',
     ],
     tag: ['notifications','content','all'],
@@ -632,7 +632,7 @@ const nodes = [
     role: 'cloudscenic.app.n8n.cloud webhook — "VitalLyfe Vantus — Content Sync" workflow.',
     plain: 'External automation tool. Vantus can trigger n8n workflows (e.g., to sync content from another tool).',
     path: 'External · cloudscenic.app.n8n.cloud',
-    notes: ['Triggered by lacey_trigger_n8n action + notify.js','N8N_WEBHOOK_URL env var','Per-client URL TODO (client.n8n_webhook_url)'],
+    notes: ['Triggered by lacey_trigger_n8n action + notify.js','N8N_WEBHOOK_URL env var (global fallback)','Per-client routing in notify.js reads clients.n8n_webhook_url (Fix #7, 2026-05-26)'],
     tag: ['agents','notifications','all'],
   }),
   N('tavily', 'external', 'Tavily', 'web search API', 1120, 470, 200, 50, 'external', {
@@ -738,7 +738,7 @@ const edges = [
   { from:'require-user', to:'supabase-ext',   kind:'api', label:'/auth/v1/user', tag:['auth','all'] },
   { from:'addclient',    to:'client-users-tbl', kind:'db', label:'invite/approve/reject', tag:['auth','multi-tenant','all'] },
   { from:'app',          to:'client-users-tbl', kind:'db', label:'allowlist check + realtime', tag:['auth','multi-tenant','all'] },
-  { from:'notify',       to:'clients-tbl',    kind:'db', label:'lookup slack_webhook_url', tag:['notifications','multi-tenant','all'] },
+  { from:'notify',       to:'clients-tbl',    kind:'db', label:'lookup slack+n8n urls', tag:['notifications','multi-tenant','all'] },
 
   // ── Service deps ──
   { from:'app',          to:'supabaseClient', kind:'normal', label:'sb', tag:['overview','all'] },
@@ -780,10 +780,6 @@ const FIXES = {
   'agent-action': [
     { n: 4, t: 'Split 16 action handlers into per-handler files; keep this as router only.' },
   ],
-  'notify': [
-    { n: 7, t: 'Wire per-client n8n routing (Slack already done — see commit 702f867).' },
-    { n: 15, t: 'Switch from Slack incoming webhook to bot token (chat.postMessage) for agent-attributed messages — see open-items.md.' },
-  ],
   'dead-agents': [
     { n: 8, t: 'DELETE the entire src/agents/ folder — 8 unused files. Or complete the Phase 2 refactor and actually wire them up.' },
   ],
@@ -824,6 +820,9 @@ const FIXES = {
                                             (clients read+update scoped to their
                                             client_id; "Allow all for now" dropped;
                                             anon callers return 0 rows)
+     #7  per-client n8n routing          → notify.js now pulls slack + n8n URLs
+                                            from clients row in one Supabase fetch
+                                            (was 2 calls); each falls back to env
    ──────────────────────────────────────────────────────────────────── */
 
 const KNOWN_BUGS = {

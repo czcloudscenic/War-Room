@@ -129,9 +129,8 @@ Every significant file, function, table, and external service in Vantus — grou
   - L8: `requireUser` import (loosened to accept any authenticated user with matching client_id)
   - L28: `insertNotification` helper for notifications table (Move 3)
   - L61: `requireUser(event)` gate
-  - L157-162: Per-client Slack lookup — reads `clients.slack_webhook_url`, falls back to global env (commit `702f867`)
+  - Per-client Slack + n8n routing: one Supabase fetch pulls both `slack_webhook_url` and `n8n_webhook_url` from the clients row; each falls back to its global env var (Fix #6 commit `702f867` for Slack; Fix #7 2026-05-26 added n8n in the same fetch)
   - `Prefer:resolution=ignore-duplicates` → unique index dedupes multi-tab POSTs
-  - Per-client n8n routing still TODO — uses global `N8N_WEBHOOK_URL` (Fix #7)
 
 ### `/api/cid-scrape` — cid-scrape.js
 - **Path:** `netlify/functions/cid-scrape.js`
@@ -308,9 +307,9 @@ Every significant file, function, table, and external service in Vantus — grou
 - **Notes:** `notify.js` L157-162 prefers per-client webhook when `client_id` is on payload, falls back to global env (commit `702f867`). `agent-action.js` still uses the global webhook for every action — per-client routing TODO there too.
 
 ### n8n cloud — automation webhook
-- **URL:** `cloudscenic.app.n8n.cloud` webhook
+- **URL:** `cloudscenic.app.n8n.cloud` webhook (global fallback via `N8N_WEBHOOK_URL` env)
 - **Workflow:** "VitalLyfe Vantus — Content Sync"
-- **Notes:** Triggered by `lacey_trigger_n8n` action + notify.js. Per-client URL TODO (Fix #7) — column `clients.n8n_webhook_url` exists but is not read yet.
+- **Notes:** Triggered by `lacey_trigger_n8n` action + notify.js. Per-client routing live (Fix #7, 2026-05-26): `notify.js` reads `clients.n8n_webhook_url` for the event's client, falls back to global env when unset.
 
 ### Tavily — web search API
 - **URL:** `api.tavily.com/search`

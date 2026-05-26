@@ -57,8 +57,8 @@ Far from the "anyone gets admin access" finding in the previous snapshot. `App.j
 ### 4. Brain Move 1 (Cortex wiring) — SHIPPED 2026-05-26
 `getBrandContext(client_id)` at `agent-action.js:94` now fetches `clients.name` + `clients.brand_voice_md` per request. 12 prompt sites refactored to interpolate `${brand.name}` and `${brand.voice}`. Dead `seedMuseMemory()` removed from `memory.js`. VitalLyfe seeded via `supabase/migrations/20260526_seed_vitallyfe_brand_voice.sql`. Multi-tenancy at the agent layer is now real — any new client added via AddClient modal with their own `brand_voice_md` gets their voice in generated content automatically. *Leftover: `cid_library.vitallyfe_adaptation` column rename tracked as Fix #3.1.*
 
-### 5. Per-client Slack done, per-client n8n still pending
-Both columns exist on `clients` (`slack_webhook_url`, `n8n_webhook_url`). Only Slack reads from the per-client value (`notify.js:157-162`). n8n is still global. Same one-block change would close Fix #7.
+### 5. Per-client Slack + n8n routing complete — Fix #6 + #7 SHIPPED
+`notify.js` pulls both `slack_webhook_url` and `n8n_webhook_url` from the clients row in one Supabase fetch (consolidated to a single roundtrip after Fix #6 originally shipped with a dedicated Slack lookup). Each URL falls back to its global env var when the client has no override.
 
 ### 6. `content_items` is fully in version control + RLS-locked — Fix #10 + #10.1 SHIPPED 2026-05-26
 `supabase/migrations/20260526_content_items_baseline.sql` captures the 25-column schema with FK to `clients(id) ON DELETE CASCADE` and `content_items_client_idx`. Companion `20260526_content_items_client_rls.sql` closes a wide-open RLS hole that survived the 2026-05-25 anon-policy cleanup: scoped SELECT+UPDATE policies for approved `client_users` plus a DROP of the legacy `"Allow all for now"` policy. Anonymous callers with the anon key now return zero content_items rows. Verified live.

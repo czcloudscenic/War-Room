@@ -14,6 +14,7 @@ Ranked by severity. Each entry cites the file (and line when possible) where the
 | supabase-js auth-lock deadlock | stuckGuard now clears `sb-*-auth-token` keys + reloads (Fix #15); one-shot `sessionStorage` flag prevents reload loops |
 | content_items had no migration file (Fix #10) | `20260526_content_items_baseline.sql` captures 25 cols + RLS |
 | content_items wide-open `"Allow all for now"` anon policy (Fix #10.1) | Scoped SELECT+UPDATE for `client_users` added; legacy policy dropped via `20260526_content_items_client_rls.sql` |
+| notify.js per-client n8n routing missing (Fix #7) | `notify.js` pulls `slack_webhook_url` + `n8n_webhook_url` together in one Supabase fetch; each falls back to global env |
 
 Test: Muse caption generation against VitalLyfe produces correct voice/structure verified in dev + prod 2026-05-26. Auth-lock recovery verified by manual reproduction.
 
@@ -50,9 +51,6 @@ Cognitive load + harder to test in isolation. Phase 3.x of `docs/REFACTOR_PLAN.m
 
 ### agent-action.js · L1302 · monolith
 1,302 lines, 16 action handlers + Anthropic wrapper + Supabase helpers + Slack notifier + agent_events logger + new `getBrandContext` helper all in one file. Editing one action means scrolling past walls of unrelated code.
-
-### notify.js · per-client n8n routing still missing
-Slack per-client routing landed 2026-05-25 (`clients.slack_webhook_url`, commit `702f867`). `n8n_webhook_url` per-client routing is still TODO — every notification triggers the global env var's webhook. Same one-block pattern as the Slack fix would close it.
 
 ### OpsBoard.jsx · tasks in memory only
 Refresh resets the board. Multi-user can't share a task list. Needs a DB table.
@@ -95,7 +93,6 @@ Not set in `netlify.toml`. Lower urgency since auth is JWT-bound + no inline-scr
 |---|---|---|
 | App.jsx | MED | 1,646-line monolith (auth-lock auto-recovery shipped 2026-05-26) |
 | agent-action.js | MED | Monolith |
-| notify.js | MED | Per-client n8n routing still missing |
 | OpsBoard.jsx | MED | In-memory tasks |
 | cid_posts | LOW | RLS probe returns 404 |
 | briefgen | LOW | pdfjs bundle bloat |

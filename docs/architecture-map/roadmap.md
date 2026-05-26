@@ -4,8 +4,7 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 
 ## Order to attack (recommended)
 
-1. **#7** — Per-client n8n routing. Mirror the Slack pattern from commit `702f867`. ~20-minute change.
-2. **#3.1** — Rename `cid_library.vitallyfe_adaptation` → `client_adaptation`. Move 1 leftover.
+1. **#3.1** — Rename `cid_library.vitallyfe_adaptation` → `client_adaptation`. Move 1 leftover.
 3. **#11** — Dynamic-import pdfjs-dist. ~405 KB bundle size win.
 6. **#8** — Delete the dead `src/agents/` folder. 30-second cleanup.
 7. **#9** — Ship or delete Higgsfield. Decision is the work; the code change is small either way.
@@ -60,9 +59,9 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 - **Where:** `netlify/functions/notify.js` L157-162
 - **Closed by:** Commit `702f867`. New `clients.slack_webhook_url` column. `notify.js` prefers it when `client_id` is on the payload; falls back to global `SLACK_WEBHOOK_URL`. Edit Client modal exposes the field under "Optional integrations".
 
-### #7 — Per-client n8n webhook routing
+### ✅ #7 — Per-client n8n webhook routing — CLOSED 2026-05-26
 - **Where:** `netlify/functions/notify.js`
-- **Steps:** Mirror the Slack pattern from commit `702f867`. Read `clients.n8n_webhook_url` for the event's client; fall back to global `N8N_WEBHOOK_URL`. Column already exists.
+- **What landed:** Single Supabase fetch pulls both `slack_webhook_url` and `n8n_webhook_url` from the client row (was two roundtrips after Fix #6). Each falls back to its global env var when the client has no override. Pattern matches commit `702f867` plus the consolidation.
 
 ### #8 — Delete `src/agents/` dead code
 - **Files:** `src/agents/{sean,lacey,muse,overseer,sam,artgrid,scrappy,ali}.agent.js`
