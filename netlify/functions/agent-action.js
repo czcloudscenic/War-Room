@@ -5,7 +5,14 @@
 // Requires a valid @cloudscenic.com admin OR approved client_users session
 // (Authorization: Bearer <access_token>).
 
-const { requireUser, unauthorized } = require("./_lib/requireUser");
+const { requireUser, unauthorized, cors: makeCors } = require("./_lib/requireUser");
+const { rateLimit, tooManyRequests } = require("./_lib/rateLimit");
+
+// 60/min is generous for normal Vantus usage (humans clicking agent action buttons
+// rarely exceed ~5/min). The cap exists to bound per-user Anthropic spend if a
+// token leaks or a client loops on errors.
+const AGENT_ACTION_RATE_LIMIT_MAX = 60;
+const AGENT_ACTION_RATE_LIMIT_WINDOW_MS = 60_000;
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -1201,11 +1208,7 @@ Return ONLY the JSON array. Vary the 5 ideas across different pillars and format
 }
 
 exports.handler = async (event) => {
-  const cors = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
+  const cors = makeCors(event);
 
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers: cors, body: "" };
@@ -1215,7 +1218,10 @@ exports.handler = async (event) => {
   }
 
   const auth = await requireUser(event);
-  if (!auth.ok) return unauthorized(auth.reason);
+  if (!auth.ok) return unauthorized(auth.reason, event);
+
+  const rl = rateLimit(`agent-action:${auth.user.id}`, AGENT_ACTION_RATE_LIMIT_MAX, AGENT_ACTION_RATE_LIMIT_WINDOW_MS);
+  if (!rl.ok) return tooManyRequests(rl.retryAfter, cors);
 
   if (!SERVICE_KEY) {
     return { statusCode: 500, headers: cors, body: JSON.stringify({ error: "SUPABASE_SERVICE_KEY not set" }) };

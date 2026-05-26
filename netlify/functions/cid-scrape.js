@@ -3,12 +3,10 @@
 // GET /api/cid-scrape?platform=tiktok&query=water&limit=30
 // Header: Authorization: Bearer <CID_BEARER_TOKEN>
 
+const { cors } = require("./_lib/requireUser");
+
 exports.handler = async (event) => {
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  };
+  const headers = cors(event);
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "" };
 

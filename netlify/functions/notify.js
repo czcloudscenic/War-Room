@@ -7,7 +7,7 @@
 // Requires a valid Supabase session (Authorization: Bearer <access_token>).
 // requireUser allows @cloudscenic.com admins OR approved client_users.
 
-const { requireUser, unauthorized } = require("./_lib/requireUser");
+const { requireUser, unauthorized, cors: makeCors } = require("./_lib/requireUser");
 
 const ADMIN_EMAILS = [
   "cz@cloudscenic.com",
@@ -18,12 +18,9 @@ const ADMIN_EMAILS = [
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
 
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Content-Type": "application/json",
-};
+// CORS headers are built per-request from event.origin (tightened 2026-05-26 sweep).
+// We compose them inside the handler so each response respects the calling origin
+// against the allowlist in _lib/requireUser.js.
 
 // Persist the notification to Supabase. Unique constraint on (type, content_item_id)
 // dedupes when multiple admin clients fire /api/notify simultaneously.
@@ -57,11 +54,12 @@ async function insertNotification({ type, item, message, client_id }) {
 }
 
 exports.handler = async (event) => {
+  const cors = { ...makeCors(event), "Content-Type": "application/json" };
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers: cors, body: "" };
   if (event.httpMethod !== "POST") return { statusCode: 405, headers: cors, body: "Method Not Allowed" };
 
   const auth = await requireUser(event);
-  if (!auth.ok) return unauthorized(auth.reason);
+  if (!auth.ok) return unauthorized(auth.reason, event);
 
   let body;
   try { body = JSON.parse(event.body); } catch { return { statusCode: 400, headers: cors, body: "Bad JSON" }; }

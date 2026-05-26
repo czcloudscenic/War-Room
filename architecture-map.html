@@ -119,7 +119,7 @@
 
 <header>
   <h1>Vantus</h1>
-  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1 + #15 + #10/10.1 + #7 + #3.1 + #8 + #11)</span>
+  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1 · #15 · #10/10.1 · #7 · #3.1 · #8 · #11 · #2 App.jsx split · security sweep)</span>
   <div class="tabs">
     <button class="tab active" data-tab="map">Map</button>
     <button class="tab" data-tab="bugs">Bugs &amp; Roadmap <span class="count" id="tab-bug-count">0</span></button>
@@ -136,7 +136,7 @@
   </div>
 
   <div class="canvas" id="canvas">
-    <svg id="svg" viewBox="0 0 1480 1100" preserveAspectRatio="xMidYMid meet">
+    <svg id="svg" viewBox="0 0 1480 1140" preserveAspectRatio="xMidYMid meet">
       <defs>
         <marker id="ah-critical" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
           <path d="M0 0 L10 5 L0 10 z" fill="#ff3860"/>
@@ -183,7 +183,13 @@
         <b><code style="font-family:'SF Mono',Menlo,monospace">src/agents/</code> dead-code folder deleted (Fix #8, 2026-05-26).</b> 8 files / 96 lines removed via <code style="font-family:'SF Mono',Menlo,monospace">rm -rf</code>. Real agent personas live in <code style="font-family:'SF Mono',Menlo,monospace">core/agentRegistry.js</code> + <code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code>'s per-handler prompts (since Move 1, voice is pulled from <code style="font-family:'SF Mono',Menlo,monospace">clients.brand_voice_md</code> at request time).
       </div>
       <div class="finding">
-        <b><code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code> is 1,263 lines</b> — a single file holding 16 action handlers, the Anthropic wrapper, Supabase REST helpers, Slack notifier, AND the agent_events logger. Splitting is documented in REFACTOR_PLAN.md but never executed. Editing one action means scrolling past a wall of unrelated code.
+        <b>Security hardening sweep shipped 2026-05-26.</b> CORS locked from <code style="font-family:'SF Mono',Menlo,monospace">*</code> to an allowlist (usevantus.com + the Netlify subdomain + deploy previews) across all 6 functions. Per-user rate limits on <code style="font-family:'SF Mono',Menlo,monospace">/api/chat</code> (30/min) and <code style="font-family:'SF Mono',Menlo,monospace">/api/agent-action</code> (60/min) via new <code style="font-family:'SF Mono',Menlo,monospace">_lib/rateLimit.js</code> sliding-window helper — caps the per-user blast radius if a token leaks. New <code style="font-family:'SF Mono',Menlo,monospace">netlify.toml</code> headers: HSTS preload, Referrer-Policy, Permissions-Policy, and a tight CSP whitelisting only the actual external origins (Anthropic, Supabase, Resend, Slack, n8n, Tavily, Apify, Unsplash images).
+      </div>
+      <div class="finding">
+        <b>App.jsx down from 1,676 → 1,342 lines.</b> Codex extracted 6 route components (Dashboard, Agents, Content, Tracker, Taskboard, Sops) into <code style="font-family:'SF Mono',Menlo,monospace">src/ui/routes/</code>. App.jsx is still the owner of state — the routes are pure presentation that take props. Highest prop count: TrackerRoute at 13 (under the 15-smell threshold).
+      </div>
+      <div class="finding">
+        <b><code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code> is 1,317 lines</b> — a single file holding 16 action handlers, the Anthropic wrapper, Supabase REST helpers, Slack notifier, AND the agent_events logger. Splitting into per-handler files is the next big mechanical refactor (Fix #4) — same shape as the App.jsx split Codex just landed.
       </div>
       <div class="finding">
         <b>Auth is LIVE — and split four ways.</b> <code style="font-family:'SF Mono',Menlo,monospace">App.jsx</code> <code style="font-family:'SF Mono',Menlo,monospace">setupSession()</code> at L72 branches on (1) admin = @cloudscenic.com, (2) approved external client via <code style="font-family:'SF Mono',Menlo,monospace">client_users</code> allowlist, (3) pending invite → PendingApprovalScreen with realtime unlock, (4) unknown email → blocked. All 5 protected functions now reject anonymous callers via <code style="font-family:'SF Mono',Menlo,monospace">_lib/requireUser.js</code>. The client side stamps every fetch with the access token via <code style="font-family:'SF Mono',Menlo,monospace">services/apiFetch.js</code> (26 call sites).
@@ -218,11 +224,11 @@
    CLUSTERS — 5 columns, left to right
    ───────────────────────────────────────────────────────────────────── */
 const clusters = [
-  { id:'client',   label:'Client UI',     x:20,   y:60,  w:280, h:1020 },
-  { id:'routes',   label:'API Routes',    x:320,  y:60,  w:240, h:1020 },
-  { id:'services', label:'Core Services', x:580,  y:60,  w:240, h:1020 },
-  { id:'data',     label:'Data Layer',    x:840,  y:60,  w:240, h:1020 },
-  { id:'external', label:'External APIs', x:1100, y:60,  w:240, h:1020 },
+  { id:'client',   label:'Client UI',     x:20,   y:60,  w:280, h:1060 },
+  { id:'routes',   label:'API Routes',    x:320,  y:60,  w:240, h:1060 },
+  { id:'services', label:'Core Services', x:580,  y:60,  w:240, h:1060 },
+  { id:'data',     label:'Data Layer',    x:840,  y:60,  w:240, h:1060 },
+  { id:'external', label:'External APIs', x:1100, y:60,  w:240, h:1060 },
 ];
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -244,13 +250,14 @@ const nodes = [
   N('app', 'client', 'App.jsx', 'root + state + auth gate', 40, 180, 240, 90, 'client', {
     role: 'Root React tree: auth gate (admin / approved client / pending invite / unknown), currentClient state, content/notifications/clients fetch + realtime subs, layout shell, every nav route handler.',
     plain: 'The big brain of the frontend. It checks who is logged in (agency admin, approved external client, or someone waiting on an invite), picks the active client, loads all the data, and decides which page to show based on the sidebar item you clicked.',
-    path: 'src/App.jsx (1,646 lines)',
+    path: 'src/App.jsx (1,342 lines)',
     notes: [
       'L51: ADMIN_EMAILS hardcoded allowlist (cz/dv/ss @ cloudscenic.com)',
       'L72: setupSession — branches on @cloudscenic.com (admin) vs client_users allowlist (external)',
       'PendingApprovalScreen renders for status=pending; auto-unlocks via realtime when admin approves',
-      'L204: 4s stuckGuard with auto-recovery (Fix #15, 2026-05-26) — clears sb-*-auth-token keys + reloads; one-shot sessionStorage flag prevents reload loops',
-      'L1200+: giant render switch (one block per nav id)',
+      'L204: 4s stuckGuard with auto-recovery (Fix #15) — clears sb-*-auth-token keys + reloads',
+      '6 route blocks extracted to src/ui/routes/ via Codex (Fix #2, 2026-05-26): Dashboard, Agents, Content, Tracker, Taskboard, Sops. App.jsx still owns state, passes via props.',
+      'L1200+: render switch — now mostly one-liners delegating to route components',
     ],
     tag: ['overview','auth','multi-tenant','content','agents','notifications','all'],
     critical: true,
@@ -339,7 +346,18 @@ const nodes = [
     notes: ['Import was previously in App.jsx, broke CI builds when reverted','Currently no nav entry in deployed code','Live /api/higgsfield → 404'],
     tag: ['all'],
   }),
-  N('addclient2', 'client', 'AppsPage / Settings / others', '(8 minor pages, see legend)', 40, 1045, 240, 30, 'client', {
+  N('routes-folder', 'client', 'src/ui/routes/', '6 extracted route components', 40, 1045, 240, 30, 'client', {
+    role: 'DashboardRoute, AgentsRoute, ContentRoute, TrackerRoute, TaskboardRoute, SopsRoute — pure presentation; receive state/setters/derived values/handlers as props from App.jsx.',
+    plain: 'Six new files Codex carved out of App.jsx (Fix #2, 2026-05-26). Each is one nav route. App.jsx still owns all state — these are dumb components.',
+    path: 'src/ui/routes/*.jsx (6 files, ~454 lines total)',
+    notes: [
+      'Highest prop count: TrackerRoute (13)',
+      'DashboardRoute 130, ContentRoute 104, TrackerRoute 117, SopsRoute 85, TaskboardRoute 12, AgentsRoute 6',
+      'Each landed in its own commit; build passed after every extraction',
+    ],
+    tag: ['overview','all'],
+  }),
+  N('addclient2', 'client', 'AppsPage / Settings / others', '(8 minor pages, see legend)', 40, 1080, 240, 25, 'client', {
     role: 'AppsPage, SettingsPage, ICPPage, TeamBroadcast, ReferencesPage, SkillsPage, AdROIHub, ArtgridScoutPage, HeroGeneratorPage, ShotRefScout, QuickActionsDashboard, AgentCard, AgentAvatar, MetricCard, Card.',
     plain: 'The grab-bag of smaller pages and shared visual components — pages users tap into but that don\'t hold critical logic.',
     path: 'src/ui/* and src/apps/*',
@@ -351,12 +369,13 @@ const nodes = [
   N('agent-action', 'routes', '/api/agent-action', 'agent-action.js', 340, 180, 200, 75, 'route', {
     role: '16-action switch over POST {action,payload,client_id}; routes to muse_/sean_/lacey_/sam_/overseer_/artgrid_/scrappy_/cid_ handlers, logs to agent_events, posts to Slack.',
     plain: 'The single endpoint every agent action goes through. The user clicks a button, Vantus POSTs {action: "muse_write_content"} here, and this file figures out what to do, calls Claude, writes the result to the database, and tells Slack.',
-    path: 'netlify/functions/agent-action.js (1,302 lines — monolith)',
+    path: 'netlify/functions/agent-action.js (1,317 lines — monolith)',
     notes: [
-      'L94: getBrandContext(client_id) — reads clients.brand_voice_md, falls back gracefully (Move 1, 2026-05-26)',
-      'L127: model = claude-haiku-4-5-20251001 (upgraded from deprecated haiku-3)',
+      'L94: getBrandContext(client_id) — reads clients.brand_voice_md (Move 1)',
+      'L127: model = claude-haiku-4-5-20251001',
       'L1188: brand context fetched once per request, passed to every handler',
-      'L1198: exports.handler with switch (L1227) + try/catch/finally for logging',
+      'L1198: exports.handler with cors(event) + requireUser + rateLimit(60/min/user) gates',
+      'L1227: switch over 16 action keys; try/catch/finally writes agent_events',
       'L67: logAgentEvent wrapper for agent_events table',
       'L18: SLACK_AGENT_LABELS for per-action post formatting',
     ],
@@ -366,8 +385,8 @@ const nodes = [
   N('chat', 'routes', '/api/chat', 'Anthropic proxy', 340, 270, 200, 50, 'route', {
     role: 'Thin proxy: parses request body, forwards to Anthropic Messages API server-side.',
     plain: 'A pass-through that keeps the Anthropic API key on the server. The frontend never sees the key.',
-    path: 'netlify/functions/chat.js (60 lines)',
-    notes: ['No model hardcoded — passes through whatever the client sent','Used by AgentChatPage free-form chats','CORS: *  (unauthenticated)'],
+    path: 'netlify/functions/chat.js',
+    notes: ['No model hardcoded — passes through whatever the client sent','Used by AgentChatPage free-form chats + several jsx pages','requireUser gate + 30 req/min rate limit per user.id (2026-05-26 security sweep)','CORS allowlisted to usevantus.com + Netlify subdomain + deploy previews'],
     tag: ['agents','all'],
   }),
   N('notify', 'routes', '/api/notify', 'client-action notifier', 340, 335, 200, 65, 'route', {
@@ -410,17 +429,30 @@ const nodes = [
     notes: ['Live /api/higgsfield → 404','Reads HIGGSFIELD_ACCESS_TOKEN env var'],
     tag: ['all'],
   }),
-  N('require-user', 'routes', '_lib/requireUser.js', 'shared auth gate', 340, 675, 200, 60, 'route', {
-    role: 'Shared helper used by chat/agent-action/notify/apify-scrape/unsplash. Validates Supabase JWT via /auth/v1/user. Allows @cloudscenic.com admins OR emails approved in client_users.',
+  N('require-user', 'routes', '_lib/requireUser.js', 'auth gate + cors', 340, 675, 200, 60, 'route', {
+    role: 'Shared helper: requireUser(event) + cors(event) + unauthorized(reason, event). Validates Supabase JWT, returns user. Used by chat/agent-action/notify/apify-scrape/unsplash (+cid-scrape for cors only).',
     plain: 'The bouncer that every locked-down endpoint calls before doing any work. Either you are a Cloud Scenic admin, or your email has been approved in the invite list — otherwise the request gets a 401.',
     path: 'netlify/functions/_lib/requireUser.js',
     notes: [
-      'Added 2026-05-25 for Fix #2',
+      'Added 2026-05-25 for Fix #5',
+      'cors(event) builds per-request CORS headers from an allowlist regex (2026-05-26 security sweep)',
       'Returns { ok, user: { id, email, role, client_ids } } or { ok:false, reason }',
       'Uses SERVICE_KEY as apikey for both /auth/v1/user lookup and client_users SELECT',
     ],
     tag: ['auth','all'],
     critical: true,
+  }),
+  N('rate-limit', 'routes', '_lib/rateLimit.js', 'in-mem sliding window', 340, 745, 200, 60, 'route', {
+    role: 'rateLimit(key, max, windowMs) — per-instance Map of (count, windowStart). Sweeps expired buckets once a minute to bound memory.',
+    plain: 'Per-user request counter that lives in memory. When a user blows past the limit (e.g. 30 chat calls per minute), the next call gets a 429 with Retry-After. Cold starts reset the counter — acceptable for now; swap for Supabase-backed if we ever go distributed.',
+    path: 'netlify/functions/_lib/rateLimit.js',
+    notes: [
+      'Added 2026-05-26 security sweep',
+      'Defaults: 30 req/min, sliding window keyed on user.id + endpoint',
+      'Wired into chat.js (30/min) and agent-action.js (60/min)',
+      'tooManyRequests(retryAfter, corsHeaders) builds the 429 response',
+    ],
+    tag: ['auth','all'],
   }),
 
   // ═══════ CORE SERVICES ═══════
@@ -712,7 +744,14 @@ const edges = [
   { from:'routeTask',    to:'agentRegistry',  kind:'normal', label:'route lookup', tag:['agents','all'] },
   { from:'memory',       to:'agentRegistry',  kind:'normal', label:'prompt compose', tag:['agents','all'] },
 
-  // ── Auth gates added 2026-05-25 (Fix #2) ──
+  // ── Route extraction (Fix #2, Codex, 2026-05-26) ──
+  { from:'app',          to:'routes-folder',  kind:'mount', label:'render route by activeNav', tag:['overview','all'] },
+
+  // ── Rate limit (2026-05-26 security sweep) ──
+  { from:'chat',         to:'rate-limit',     kind:'critical', label:'30/min/user', tag:['auth','all'] },
+  { from:'agent-action', to:'rate-limit',     kind:'critical', label:'60/min/user', tag:['auth','overview','all'] },
+
+  // ── Auth gates added 2026-05-25 (Fix #5) ──
   { from:'app',          to:'api-fetch',      kind:'critical', label:'apiFetch wrapper', tag:['overview','auth','all'] },
   { from:'api-fetch',    to:'agent-action',   kind:'critical', label:'Bearer <token>', tag:['overview','auth','all'] },
   { from:'api-fetch',    to:'chat',           kind:'critical', label:'Bearer <token>', tag:['auth','all'] },
@@ -814,6 +853,15 @@ const FIXES = {
                                             (20260526_cid_library_rename_adaptation.sql
                                             + 3 code sites). Last hardcoded VL ref
                                             at the agent layer.
+     #2  App.jsx split (Codex)           → 6 route components extracted to
+                                            src/ui/routes/; App.jsx 1,676 → 1,342;
+                                            build passed after every commit
+     +   Security hardening sweep        → CORS allowlist (was "*"), per-user rate
+                                            limits on /api/chat (30/min) +
+                                            /api/agent-action (60/min) via
+                                            _lib/rateLimit.js, HSTS preload +
+                                            Referrer-Policy + Permissions-Policy +
+                                            tight CSP in netlify.toml
    ──────────────────────────────────────────────────────────────────── */
 
 const KNOWN_BUGS = {

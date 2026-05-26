@@ -5,20 +5,16 @@
 //
 // Requires a valid @cloudscenic.com Supabase session (Authorization: Bearer <access_token>).
 
-const { requireUser, unauthorized } = require("./_lib/requireUser");
+const { requireUser, unauthorized, cors } = require("./_lib/requireUser");
 
 exports.handler = async (event) => {
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
+  const headers = cors(event);
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "" };
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: "Method Not Allowed" };
 
   const auth = await requireUser(event);
-  if (!auth.ok) return unauthorized(auth.reason);
+  if (!auth.ok) return unauthorized(auth.reason, event);
 
   const APIFY_TOKEN = process.env.APIFY_API_TOKEN;
   if (!APIFY_TOKEN) return { statusCode: 500, headers, body: JSON.stringify({ error: "APIFY_API_TOKEN not configured" }) };

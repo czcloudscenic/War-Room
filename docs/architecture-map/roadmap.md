@@ -5,9 +5,8 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 ## Order to attack (recommended)
 
 1. **#9** — Ship or delete Higgsfield. Decision is the work; code change is small either way.
-2. **#2** — Split App.jsx (queued to Codex 2026-05-26 on `codex/grunt-2026-05-26` branch). Biggest unlock.
-3. **#4** — Split agent-action.js into per-handler files. Sprint-sized.
-4. **#12, #13, #14** — Smaller polish items.
+2. **#4** — Split agent-action.js (1,317 lines) into per-handler files. Same shape as the App.jsx split Codex just landed.
+3. **#12, #13, #14** — Smaller polish items.
 
 ---
 
@@ -18,10 +17,9 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 - **Closed by:** `8e5095e` (gate + admin RLS) + `307b64f` (dedupe setupSession) + `d0acec3` (4s stuckGuard hotfix)
 - **What landed:** Four-way branch — admin / approved external client / pending invite (realtime unlock) / unknown blocked. Google OAuth verified end-to-end.
 
-### #2 — Split App.jsx into smaller components
-- **Where:** `src/App.jsx` (1,646 lines)
-- **Why:** Phase 3.x of `docs/REFACTOR_PLAN.md`. The `Vantus` shell component (~1,200 lines after auth code added) is ripe to break apart.
-- **Suggestion:** Extract one component per nav route handler (Dashboard, TaskBoard, Agents, Pipeline, Production, Apps, Settings, CIDPage); keep App.jsx as a router shell + auth setup + realtime subscriptions only.
+### ✅ #2 — Split App.jsx into smaller components — CLOSED 2026-05-26 (Codex)
+- **Where:** `src/App.jsx` (1,676 → 1,342 lines) + new `src/ui/routes/`
+- **What landed:** Six route components extracted (DashboardRoute, AgentsRoute, ContentRoute, TrackerRoute, TaskboardRoute, SopsRoute) on branch `codex/grunt-2026-05-26`, then merged onto main. App.jsx still owns state — routes are dumb presentation taking props. Highest prop count: TrackerRoute at 13. Build passed after each of the 7 commits (one per route + a notes summary).
 
 ### ✅ #3 — Brain Move 1: Cortex wiring (per-client agent voice) — CLOSED 2026-05-26
 - **Where:** `netlify/functions/agent-action.js` + `src/core/memory.js` + `supabase/migrations/20260526_seed_vitallyfe_brand_voice.sql`
@@ -134,11 +132,8 @@ All 5 temp anon policies dropped in `supabase/migrations/20260525_drop_temp_anon
 - **Where:** Supabase dashboard → Authentication → Users → "Send password recovery"
 - **Status:** Lower urgency now that OAuth is the only used login path — but password login technically still works.
 
-### Tighten security headers
-- **Where:** `netlify.toml`
-- **What:** Add CSP (`default-src 'self'`), HSTS (`max-age=31536000; includeSubDomains; preload`), Referrer-Policy (`strict-origin-when-cross-origin`).
-- **Why:** Defense in depth. JWT bearer + admin RLS already block most realistic attacks, but these headers harden against future XSS or downgrade scenarios.
-
-### Tighten CORS + add rate limits
-- **Where:** every `netlify/functions/*.js` CORS header + new `_lib/rateLimit.js`
-- **What:** Lock origin to `https://usevantus.com` (currently `*`). Add per-user rate limit on `/api/chat` (most expensive endpoint).
+### ✅ Security headers + CORS + rate limits — CLOSED 2026-05-26
+- **What landed:**
+  - `_lib/requireUser.js` exports `cors(event)` — per-request origin matching against an allowlist regex (`usevantus\.com` + `(deploy-preview-*--)?majestic-cassata-aa16e9.netlify.app`). All 6 functions rewritten to use it. `Vary: Origin` header included.
+  - `_lib/rateLimit.js` — in-memory sliding window. Wired into `/api/chat` (30/min/user) and `/api/agent-action` (60/min/user). Cold starts reset — acceptable defense for now.
+  - `netlify.toml` adds HSTS preload, Referrer-Policy, Permissions-Policy, and a tight CSP whitelisting only the real external origins.

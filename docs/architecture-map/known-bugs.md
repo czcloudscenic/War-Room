@@ -18,6 +18,8 @@ Ranked by severity. Each entry cites the file (and line when possible) where the
 | src/agents/ 8-file dead code folder (Fix #8) | `rm -rf src/agents/` — confirmed zero importers, build passed |
 | pdfjs-dist eager-loaded bundle bloat (Fix #11) | Already shipped — `BriefGenPage.jsx:7` does `await import('pdfjs-dist')`; pdfjs lives in its own 405 KB chunk |
 | cid_library.vitallyfe_adaptation last hardcoded VL reference (Fix #3.1) | Column renamed → `client_adaptation` via `20260526_cid_library_rename_adaptation.sql`; 3 code sites updated |
+| Fix #2 — App.jsx 1,676-line monolith | Codex extracted 6 route components to `src/ui/routes/`; App.jsx down to 1,342 lines |
+| Security sweep — CORS `*`, rate limits, CSP/HSTS/Referrer-Policy | CORS allowlist via `_lib/requireUser.js cors(event)`; `_lib/rateLimit.js` wired into chat (30/min) + agent-action (60/min); `netlify.toml` adds HSTS + Referrer-Policy + Permissions-Policy + tight CSP |
 
 Test: Muse caption generation against VitalLyfe produces correct voice/structure verified in dev + prod 2026-05-26. Auth-lock recovery verified by manual reproduction.
 
@@ -73,14 +75,7 @@ Table may exist but with stricter RLS than other tables. Verify in Supabase dash
 ### /api/higgsfield · 404 in production
 Function not deployed (file untracked). UI references would fail. Resolved either way by Fix #9.
 
-### CORS still `*` on every function
-Auth gate stops anonymous abuse, but tightening origin to `https://usevantus.com` would reduce surface area for credential-replay attacks.
-
-### Rate limits absent
-Authenticated misuse is uncapped. One user could hammer `/api/chat` to burn Anthropic budget. Lower urgency now that anonymous abuse is blocked but worth a `Retry-After` middleware.
-
-### CSP / HSTS / Referrer-Policy headers missing
-Not set in `netlify.toml`. Lower urgency since auth is JWT-bound + no inline-script eval.
+_(All three closed 2026-05-26 in the security hardening sweep — see Closed section above.)_
 
 ---
 
@@ -93,4 +88,3 @@ Not set in `netlify.toml`. Lower urgency since auth is JWT-bound + no inline-scr
 | OpsBoard.jsx | MED | In-memory tasks |
 | cid_posts | LOW | RLS probe returns 404 |
 | higgsfield (UI + fn) | LOW | Untracked WIP |
-| every function | LOW | CORS `*` · no rate limits · CSP/HSTS missing |

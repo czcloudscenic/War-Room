@@ -17,16 +17,40 @@
 
 const ADMIN_DOMAIN = "cloudscenic.com";
 
+// Origin allowlist (was "*" — tightened 2026-05-26 as part of the security
+// hardening sweep). Production (usevantus.com), the original Netlify subdomain,
+// and Netlify deploy previews (deploy-preview-*--majestic-cassata-aa16e9.netlify.app)
+// are all matched. Anything else gets the production origin returned — which
+// means the browser will refuse to read the response cross-origin, but the
+// function still executes and writes data (RLS + requireUser still gate).
+const ALLOWED_ORIGIN_RE = /^https:\/\/(?:usevantus\.com|(?:[a-z0-9-]+--)?majestic-cassata-aa16e9\.netlify\.app)$/i;
+const FALLBACK_ORIGIN = "https://usevantus.com";
+
+function cors(event) {
+  const origin = event?.headers?.origin || event?.headers?.Origin || "";
+  const allow = ALLOWED_ORIGIN_RE.test(origin) ? origin : FALLBACK_ORIGIN;
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+// Back-compat alias — older imports use `corsHeaders` directly without an event.
+// They'll get the locked-down production origin instead of "*". Safe for any
+// server-to-server call but breaks browser cross-origin for non-prod hosts.
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": FALLBACK_ORIGIN,
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Vary": "Origin",
 };
 
-function unauthorized(reason = "Unauthorized") {
+function unauthorized(reason = "Unauthorized", event) {
   return {
     statusCode: 401,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...cors(event), "Content-Type": "application/json" },
     body: JSON.stringify({ error: reason }),
   };
 }
@@ -97,4 +121,4 @@ async function requireUser(event) {
   }
 }
 
-module.exports = { requireUser, unauthorized, corsHeaders };
+module.exports = { requireUser, unauthorized, corsHeaders, cors };

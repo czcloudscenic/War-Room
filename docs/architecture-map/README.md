@@ -4,7 +4,7 @@
 > Mirrors the interactive `architecture-map.html` at the repo root.
 > Drop this entire folder into any wiki / knowledge base — no rendering deps.
 
-**Snapshot date:** 2026-05-26 (post Move 1 + #15 + #10/10.1 + #7 + #3.1 + #8 + #11)
+**Snapshot date:** 2026-05-26 (post Move 1 · #15 · #10/10.1 · #7 · #3.1 · #8 · #11 · #2 App.jsx split · security sweep)
 **Live URL:** https://usevantus.com
 **Repo:** https://github.com/czcloudscenic/War-Room (auto-deploys on push to `main`)
 
@@ -44,8 +44,16 @@ React 19 + Vite 8  ──▶  Netlify Functions  ──▶  Supabase (DB + Auth 
 ### 1. ~~`src/agents/` dead code~~ — DELETED 2026-05-26 (Fix #8)
 8 files, 96 lines, zero importers. `rm -rf src/agents/` shipped. Real agent personas live in `src/core/agentRegistry.js` + `src/core/memory.js` + the per-handler prompts inside `netlify/functions/agent-action.js` (since Move 1, voice flows from `clients.brand_voice_md` per request).
 
-### 2. `agent-action.js` is a 1,263-line monolith
-A single file holds 16 action handlers + the Anthropic wrapper + Supabase REST helpers + Slack notifier + `agent_events` logger. Splitting is documented in `docs/REFACTOR_PLAN.md` but never executed.
+### 2. `agent-action.js` is a 1,317-line monolith — Fix #4 still pending
+A single file holds 16 action handlers + the Anthropic wrapper + Supabase REST helpers + Slack notifier + `agent_events` logger + new `getBrandContext` + rate-limit gate. Same shape as the App.jsx split Codex just landed — could pass to Codex next.
+
+### 2a. App.jsx split SHIPPED 2026-05-26 (Fix #2 — Codex)
+1,676 → 1,342 lines. Six route components extracted to `src/ui/routes/`: DashboardRoute (130), ContentRoute (104), TrackerRoute (117), SopsRoute (85), TaskboardRoute (12), AgentsRoute (6). App.jsx still owns state — routes are pure presentation. Highest prop count: TrackerRoute at 13. Build passed after every commit.
+
+### 2b. Security hardening sweep SHIPPED 2026-05-26
+- **CORS** locked from `*` to an allowlist regex in `_lib/requireUser.js cors(event)` covering usevantus.com + the Netlify subdomain + deploy previews. All 6 functions rewritten.
+- **Rate limits** via new `_lib/rateLimit.js` (in-memory sliding window, per-instance). Wired into `/api/chat` (30/min/user) and `/api/agent-action` (60/min/user). Caps per-user Anthropic budget if a token leaks.
+- **Security headers** added in `netlify.toml`: HSTS preload (1y), Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo denied), and a tight CSP whitelisting only the actual external origins (Anthropic, Supabase, Resend, Slack, n8n, Tavily, Apify, Unsplash images).
 
 ### 3. Auth is LIVE and four-way
 Far from the "anyone gets admin access" finding in the previous snapshot. `App.jsx:72` `setupSession` distinguishes admin / approved client / pending invite (with realtime unlock) / unknown blocked. Every protected serverless function rejects callers without a valid JWT.

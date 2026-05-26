@@ -4,9 +4,17 @@
 //
 // Requires a valid @cloudscenic.com Supabase session (Authorization: Bearer <access_token>).
 
-const { requireUser, unauthorized, corsHeaders } = require("./_lib/requireUser");
+const { requireUser, unauthorized, cors } = require("./_lib/requireUser");
+const { rateLimit, tooManyRequests } = require("./_lib/rateLimit");
+
+// /api/chat hits the Anthropic API on every call → caps the per-user blast radius
+// if a token leaks or an automated client misbehaves. 30 req/min is generous for
+// human chat use; the cap exists for budget protection, not normal-use throttling.
+const CHAT_RATE_LIMIT_MAX = 30;
+const CHAT_RATE_LIMIT_WINDOW_MS = 60_000;
 
 exports.handler = async (event) => {
+  const corsHeaders = cors(event);
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers: corsHeaders, body: "" };
   }
@@ -16,7 +24,11 @@ exports.handler = async (event) => {
   }
 
   const auth = await requireUser(event);
-  if (!auth.ok) return unauthorized(auth.reason);
+  if (!auth.ok) return unauthorized(auth.reason, event);
+
+  // Rate limit per authenticated user.id
+  const rl = rateLimit(`chat:${auth.user.id}`, CHAT_RATE_LIMIT_MAX, CHAT_RATE_LIMIT_WINDOW_MS);
+  if (!rl.ok) return tooManyRequests(rl.retryAfter, corsHeaders);
 
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_API_KEY) {

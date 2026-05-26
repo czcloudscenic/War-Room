@@ -3,16 +3,18 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-05-26 (post Move 1 + #15 + #10 + #10.1 + #7 + #8 + #11 + #3.1) · **Total open:** 3 bugs + 4 fixes = 7 items
+**Snapshot:** 2026-05-26 (post Move 1 · #15 · #10/10.1 · #7 · #8 · #11 · #3.1 · #2 App.jsx split · security sweep) · **Total open:** 1 bug + 3 fixes = 4 items
 
 ```
-🔴 High:   0    │   ✅ Done:  16  (Fix #1 OAuth, Fix #3 Move 1, Fix #3.1 cid_library rename,
-🟡 Med:    2    │                  Fix #5 caller auth, Fix #6 per-client Slack,
-🟢 Low:    1    │                  Fix #7 per-client n8n, Fix #8 delete dead src/agents/,
+🔴 High:   0    │   ✅ Done:  18  (Fix #1 OAuth, Fix #2 App.jsx split (Codex),
+🟡 Med:    2    │                  Fix #3 Move 1, Fix #3.1 cid_library rename,
+🟢 Low:    1    │                  Fix #5 caller auth, Fix #6 per-client Slack,
+                │                  Fix #7 per-client n8n, Fix #8 delete dead src/agents/,
                 │                  Fix #10 baseline + #10.1 scoped RLS, Fix #11 pdfjs dynamic,
-                │                  Fix #15 auth-lock recovery, 5 temp anon RLS policies,
-                │                  Google secret rotation)
-                │   📋 Fixes:  4 open (11 closed)
+                │                  Fix #15 auth-lock recovery, security hardening sweep
+                │                  (CORS + rate limits + CSP/HSTS/Permissions/Referrer),
+                │                  5 temp anon RLS policies, Google secret rotation)
+                │   📋 Fixes:  3 open (12 closed)
 ```
 
 ---
@@ -71,13 +73,10 @@ _None open as of 2026-05-26. The week-of work shipped 2026-05-25 — see ✅ blo
 - [ ] **/api/higgsfield · 404 in production**
   Function not deployed. UI references would fail. Resolved by Fix #9 either direction.
 
-- [ ] **CORS still `*` on every function + no rate limits**
-  Auth gate stops anonymous abuse but authenticated misuse is uncapped (one user could hammer /api/chat). Tighten origin to `https://usevantus.com` + add `Retry-After` rate-limiter.
-  → Touches: every `netlify/functions/*.js` CORS header + new `_lib/rateLimit.js`
-
-- [ ] **CSP / HSTS / Referrer-Policy headers missing**
-  Not set in `netlify.toml`. Lower urgency since auth is JWT-bound + no inline-script eval.
-  → Touches: `netlify.toml`
+- [x] ~~**CORS still `*` on every function + no rate limits**~~ ✅ closed 2026-05-26 (security sweep)
+  CORS allowlist in `_lib/requireUser.js` `cors(event)` matches usevantus.com + the Netlify subdomain + deploy previews. All 6 functions rewritten to call it. New `_lib/rateLimit.js` sliding-window helper wired into /api/chat (30/min/user) and /api/agent-action (60/min/user).
+- [x] ~~**CSP / HSTS / Referrer-Policy headers missing**~~ ✅ closed 2026-05-26 (security sweep)
+  Added to `netlify.toml`: HSTS preload, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo denied), plus a tight CSP whitelisting only Anthropic/Supabase/Resend/Slack/n8n/Tavily/Apify/Unsplash origins.
 
 - [ ] **Rotate Supabase admin passwords**
   `Cloudai25%` still in git history. Lower urgency now that Google OAuth is the only login path used in practice — but the password path technically still works.
@@ -90,7 +89,7 @@ _None open as of 2026-05-26. The week-of work shipped 2026-05-25 — see ✅ blo
 Cross-references map node badges + the items above.
 
 - [x] ~~**#1** — Re-enable Google OAuth + auth gate~~ ✅ commit `8e5095e` + hotfix `d0acec3`
-- [ ] **#2** — Split App.jsx into smaller components → Phase 3.x of REFACTOR_PLAN.md
+- [x] ~~**#2** — Split App.jsx into smaller components~~ ✅ 2026-05-26 (Codex extracted 6 route components to `src/ui/routes/`; App.jsx 1,676 → 1,342 lines; commits `4ee755b`/`6589b78`/`bee8946`/`f2d384c`/`94eae54`/`c4f2cc5`/`e57e951`)
 - [x] ~~**#3** — Brain Move 1: per-client agent voice from `clients.brand_voice_md`~~ ✅ 2026-05-26 (getBrandContext + 12 prompt sites + memory.js seed removal + VitalLyfe SQL seed)
 - [ ] **#4** — Split `agent-action.js` into per-handler files → keep as router only
 - [x] ~~**#5** — Caller auth on all 5 functions~~ ✅ commit `2a9c9c1` (shared `_lib/requireUser.js`)
@@ -121,6 +120,14 @@ Cross-references map node badges + the items above.
 
 - [x] ~~**Fix #11 — Dynamic-import pdfjs-dist**~~
   Already shipped before this session. `BriefGenPage.jsx:7` does `await import('pdfjs-dist')` inside `extractPdfText`. Vite output confirms pdfjs is in its own 405 KB chunk (`pdf-*.js`), not bundled into the main index. Arch map finding ("main bundle is 777 KB, bulk is pdfjs") was stale — closed in docs only.
+
+- [x] ~~**Fix #2 — Split App.jsx into smaller components (Codex)**~~
+  6 route components extracted to `src/ui/routes/`: DashboardRoute (130), AgentsRoute (6), ContentRoute (104), TrackerRoute (117), TaskboardRoute (12), SopsRoute (85). App.jsx 1,676 → 1,342 lines. Build passed after every commit. Highest prop count: TrackerRoute at 13 (under 15-smell threshold). Commits: `4ee755b`, `6589b78`, `bee8946`, `f2d384c`, `94eae54`, `c4f2cc5`, `e57e951`.
+
+- [x] ~~**Security hardening sweep — CORS + rate limits + CSP/HSTS/Permissions/Referrer**~~
+  - `_lib/requireUser.js cors(event)` builds per-request CORS from an allowlist regex matching usevantus.com + the Netlify subdomain + deploy previews. All 6 functions rewritten (was `*` on every one).
+  - New `_lib/rateLimit.js`: in-memory sliding window keyed on `user.id:endpoint`. Wired into `/api/chat` (30/min) and `/api/agent-action` (60/min). Cold starts reset — acceptable since authentic abuse is already capped by Anthropic + auth.
+  - `netlify.toml` headers: HSTS preload (1y), Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo denied), and a tight CSP whitelisting only the real external origins (Anthropic, Supabase, Resend, Slack, n8n, Tavily, Apify, Unsplash).
 
 ## ✅ Closed 2026-05-25 (kept for history)
 
@@ -166,11 +173,9 @@ Bundle these 5 changes in one commit so CI doesn't break mid-merge again:
 
 ## Suggested attack order
 
-1. **#9 (ship or delete Higgsfield)** — decision is the hard part; the work is small. Needs your call.
-2. **#2** — Split App.jsx (queued to Codex on `codex/grunt-2026-05-26` branch). Biggest unlock.
-3. **#4** — Split agent-action.js into per-handler files. Same shape as #2; sprint-sized.
-4. **#12, #13, #14** — polish items (OpsBoard DB-backed tasks, per-user client assignments, decouple seed.content).
-5. **Security hardening** — CORS lock to origin, rate limits on /api/chat, CSP/HSTS/Referrer-Policy headers in netlify.toml.
+1. **#9 (ship or delete Higgsfield)** — decision is the hard part; work is small. Needs your call.
+2. **#4** — Split agent-action.js (1,317 lines) into per-handler files. Same shape as #2 — could pass to Codex.
+3. **#12, #13, #14** — polish (OpsBoard DB-backed tasks, per-user client assignments, decouple seed.content).
 
 ---
 

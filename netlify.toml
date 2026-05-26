@@ -53,5 +53,16 @@
 [[headers]]
   for = "/*"
   [headers.values]
+    # Existing
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
+    # Added 2026-05-26 security sweep
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # CSP — locked down to the actual origins this app talks to.
+    # If a new external service is added (e.g. another Anthropic-style API), update
+    # connect-src here. 'unsafe-inline' on style-src is required by inline styled-jsx
+    # patterns across the React tree; tighten further when those are factored out.
+    # img-src includes data:/blob: for inline previews and the Supabase storage host.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://wjcstqqihtebkpyuacop.supabase.co https://images.unsplash.com; font-src 'self' data:; connect-src 'self' https://wjcstqqihtebkpyuacop.supabase.co wss://wjcstqqihtebkpyuacop.supabase.co https://api.anthropic.com https://api.resend.com https://api.tavily.com https://api.apify.com https://cloudscenic.app.n8n.cloud https://hooks.slack.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"

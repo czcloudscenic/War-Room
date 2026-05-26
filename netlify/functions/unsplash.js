@@ -2,20 +2,16 @@
 //
 // Requires a valid @cloudscenic.com Supabase session (Authorization: Bearer <access_token>).
 
-const { requireUser, unauthorized } = require("./_lib/requireUser");
+const { requireUser, unauthorized, cors } = require("./_lib/requireUser");
 
 exports.handler = async (event) => {
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-  };
+  const headers = cors(event);
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "" };
   if (event.httpMethod !== "GET") return { statusCode: 405, headers, body: "Method Not Allowed" };
 
   const auth = await requireUser(event);
-  if (!auth.ok) return unauthorized(auth.reason);
+  if (!auth.ok) return unauthorized(auth.reason, event);
 
   const UNSPLASH_KEY = process.env.UNSPLASH_ACCESS_KEY;
   if (!UNSPLASH_KEY) {
