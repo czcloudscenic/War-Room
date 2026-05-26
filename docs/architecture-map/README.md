@@ -4,9 +4,16 @@
 > Mirrors the interactive `architecture-map.html` at the repo root.
 > Drop this entire folder into any wiki / knowledge base — no rendering deps.
 
-**Snapshot date:** 2026-05-25
+**Snapshot date:** 2026-05-25 (updated after Fix #1, #2, #4 + invite flow shipped)
 **Live URL:** https://usevantus.com
 **Repo:** https://github.com/czcloudscenic/War-Room
+
+## What changed 2026-05-25
+
+- **Auth** — Google OAuth restored. Auth bypass removed (`src/App.jsx:262`). Every 5 protected functions now require a valid Supabase JWT via shared `netlify/functions/_lib/requireUser.js`.
+- **Invite flow** — New `client_users` allowlist table. Admins can invite external client teammates from the Edit Client modal's Team Access panel. Approved emails get into ClientView; pending shows an "awaiting approval" screen that auto-unlocks via realtime.
+- **Per-client Slack** — New `clients.slack_webhook_url` column. `notify.js` now uses the per-client URL when available, falls back to global env.
+- **Closed temp policies** — 5 anon RLS policies dropped (agent_events, notifications, clients, client-logos). Replaced with admin-only via `auth.jwt()->>'email' like '%@cloudscenic.com'`.
 
 ## Stack at a glance
 
@@ -39,14 +46,14 @@ $ grep -rn "from.*agents/" src/   # → zero hits
 ### 2. `agent-action.js` is a 1,255-line monolith
 A single file holds 16 action handlers + the Anthropic wrapper + Supabase REST helpers + Slack notifier + the new `agent_events` logger. Splitting is documented in `docs/REFACTOR_PLAN.md` but never executed.
 
-### 3. Authentication is currently BYPASSED
-`src/App.jsx:116-117` — `if(!session)` is commented out. Anyone with the URL becomes the admin fallback user. Google OAuth is configured in Supabase but the code-exchange step fails. Debugging postponed.
+### 3. ~~Authentication is currently BYPASSED~~ ✅ FIXED 2026-05-25
+~~`src/App.jsx:116-117` — `if(!session)` is commented out.~~ Auth gate is back. `App.jsx` now distinguishes admin / approved-client / pending-invite / unknown paths. Google OAuth working after client_secret rotation.
 
 ### 4. Brain Move 1 is half-done
-The `clients.brand_voice_md` column exists and AddClient modal lets you write it, but `agent-action.js` ignores it. All agent prompts still use hardcoded VitalLyfe voice. Same for `slack_channel_id` (notifications still go to global webhook) and `n8n_webhook_url`.
+The `clients.brand_voice_md` column exists and AddClient modal lets you write it, but `agent-action.js` ignores it. All agent prompts still use hardcoded VitalLyfe voice. (`slack_webhook_url` per-client routing IS now done — commit 702f867. `n8n_webhook_url` still global.)
 
-### 5. Functions are unauthenticated
-Only `/api/cid-scrape` requires a bearer token. The other 5 deployed functions (`chat`, `agent-action`, `notify`, `apify-scrape`, `unsplash`) accept anonymous POSTs and use server-side service keys / Anthropic budget. Anyone on the internet can hit them.
+### 5. ~~Functions are unauthenticated~~ ✅ FIXED 2026-05-25
+~~Only `/api/cid-scrape` requires a bearer token. The other 5 functions accept anonymous POSTs.~~ All 5 (`chat`, `agent-action`, `notify`, `apify-scrape`, `unsplash`) now require a valid Supabase JWT via shared `netlify/functions/_lib/requireUser.js`. Either an @cloudscenic.com admin OR an email approved in `client_users`.
 
 ### 6. Main JS bundle is 777 KB (gzip 199 KB)
 The bulk is `pdfjs-dist` (405 KB on disk) which is only used by Brief→Content. Dynamic-importing it would cut the bundle in half for the ~95% of users who never open that page.
@@ -64,19 +71,20 @@ Schema lives only in live Supabase. Drift risk between local dev expectations an
 ├─────────────┤  ├─────────────┤  ├─────────────┤  ├─────────────┤  ├─────────────┤
 │ main.jsx    │  │ agent-      │  │ supabase-   │  │ clients     │  │ Anthropic   │
 │ App.jsx ★   │  │  action ★   │  │  Client ★   │  │ content     │  │  ★          │
-│ LoginScreen │  │ chat        │  │ memory      │  │ agent_      │  │ Supabase ★  │
-│ AddClient   │  │ notify      │  │ routeTask   │  │  events ★   │  │ Resend      │
-│ AgentChat ★ │  │ cid-scrape  │  │ agent-      │  │ notifs      │  │ Slack       │
-│ Activity-   │  │ apify-      │  │  Registry   │  │ profiles    │  │ n8n         │
-│  Feed ★     │  │  scrape     │  │ constants   │  │ cid_posts   │  │ Tavily      │
-│ OpsBoard    │  │ unsplash    │  │ apps-config │  │ logos       │  │ Google OAuth│
-│ PipelineBd  │  │ higgsfield  │  │ hooks       │  │  bucket     │  │ Apify       │
-│ EditModal   │  │  (404 ✕)    │  │ seed.*      │  │             │  │ Netlify     │
-│ ClientView  │  │             │  │ agents/ ✕   │  │             │  │             │
-│ CIDPage     │  │             │  │             │  │             │  │             │
-│ BriefGen    │  │             │  │             │  │             │  │             │
+│ LoginScreen │  │ chat        │  │ apiFetch ★  │  │ agent_      │  │ Supabase ★  │
+│ AddClient   │  │ notify      │  │  ⚙ NEW      │  │  events ★   │  │ Resend      │
+│ AgentChat ★ │  │ cid-scrape  │  │ memory      │  │ notifs      │  │ Slack       │
+│ Activity-   │  │ apify-      │  │ routeTask   │  │ profiles    │  │ n8n         │
+│  Feed ★     │  │  scrape     │  │ agent-      │  │ cid_posts   │  │ Tavily      │
+│ OpsBoard    │  │ unsplash    │  │  Registry   │  │ logos       │  │ Google OAuth│
+│ PipelineBd  │  │ require-    │  │ constants   │  │  bucket     │  │ Apify       │
+│ EditModal   │  │  User ★ NEW │  │ apps-config │  │ client_     │  │ Netlify     │
+│ ClientView  │  │ higgsfield  │  │ hooks       │  │  users ⚙ NEW│  │             │
+│ CIDPage     │  │  (404 ✕)    │  │ seed.*      │  │             │  │             │
+│ BriefGen    │  │             │  │ agents/ ✕   │  │             │  │             │
 └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
                      ★ = on critical path     ✕ = dead/not deployed
+                     ⚙ NEW = added 2026-05-25 (Fix #1+#2 bundle)
 ```
 
 ## Color legend (interactive HTML version)

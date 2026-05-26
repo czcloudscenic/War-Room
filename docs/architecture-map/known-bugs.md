@@ -2,30 +2,29 @@
 
 Ranked by severity. Each entry cites the file (and line when possible) where the issue lives.
 
+## ✅ Closed 2026-05-25
+
+The following HIGH-severity bugs all closed in today's session:
+
+| Bug | Closed by |
+|---|---|
+| App.jsx — AUTH BYPASS | Commit `8e5095e` (gate restored) + hotfix `d0acec3` |
+| agent-action.js — no caller auth | Commit `2a9c9c1` (requireUser gate) |
+| chat.js — no caller auth | Commit `2a9c9c1` |
+| notify.js — no caller auth | Commit `2a9c9c1` |
+| google-oauth — exchange fails | Client_secret rotated + verified |
+
+MED-severity closures: `notify.js` global Slack only → per-client routing (commit `702f867`). LOW-severity: 5 temp anon RLS policies on agent_events / notifications / clients / client-logos — all dropped (commit `852d915`).
+
 ## 🔴 HIGH — fix soon
 
-### App.jsx · L116-117 · AUTH BYPASS
-**Anonymous visitors get admin access.** `if(!session)` is commented out, falls through to admin fallback user. Intentional + documented but a real risk if anyone discovers the URL. Reversal blocked on Google OAuth debugging.
-```js
-// src/App.jsx:116-117
-// AUTH BYPASS (temporary — Google OAuth debug pending).
-// if (!session) return <LoginScreen />;
-```
-
-### agent-action.js · no caller auth
-Anyone on internet can POST to `/api/agent-action` and either burn Anthropic budget OR write to Supabase via SERVICE_KEY (which bypasses RLS). Only `cid-scrape.js` requires a bearer token.
-
-### chat.js · no caller auth + no rate limit
-Anonymous burn of Anthropic key. `chat.js` forwards any POST body to Anthropic without authentication.
-
-### notify.js · no caller auth
-Anyone can spam notifications + trigger emails to `ADMIN_EMAILS` via Resend.
+_(none open — all closed 2026-05-25)_
 
 ---
 
 ## 🟡 MED — fix when planning the next refactor
 
-### App.jsx · 1,471-line component
+### App.jsx · 1,500+ line component
 Cognitive load + harder to test in isolation. Phase 3.x of `docs/REFACTOR_PLAN.md` was meant to split this; never done. The `Vantus` shell component alone is ~1,040 lines.
 
 ### agent-action.js · L1255 · monolith
@@ -56,17 +55,14 @@ if (!getMemory('Muse').brand) {
 ```
 Blocks multi-tenancy. Should pull from `clients.brand_voice_md` instead.
 
-### notify.js · global SLACK_WEBHOOK_URL ignored per-client
-All notifications go to `#vitallyfe-war-room` regardless of which client triggered. The `clients.slack_channel_id` column exists but isn't consumed. Same gap for `n8n_webhook_url`.
+### notify.js · per-client n8n routing still missing
+Slack per-client routing landed 2026-05-25 (`clients.slack_webhook_url`). `n8n_webhook_url` per-client routing still TODO — every notification still falls back to the global env var.
 
 ### OpsBoard.jsx · tasks in memory only
 Refresh resets the board. Multi-user can't share a task list. Needs a DB table.
 
 ### content_items · no migration file
 Schema lives only in live Supabase. Drift risk between local dev expectations and prod. All other tables have proper migration files.
-
-### google-oauth · exchange fails
-"Unable to exchange external code" — likely client_secret mismatch between Supabase and Google. Auth flow can't complete. Pull Supabase auth-logs to diagnose.
 
 ---
 
@@ -87,29 +83,25 @@ Table may exist but with stricter RLS than other tables. Verify in Supabase dash
 ### /api/higgsfield · 404 in production
 Function not deployed (file untracked). Any UI references to it would fail.
 
-### Temp anon RLS policies (5 places)
-Marked with TODO comments — must drop when OAuth comes back:
-- `agent_events.sql:34` — "anon read while auth bypassed (TODO remove)"
-- `notifications.sql:44-49` — "anon read/update while auth bypassed (TODO remove)"
-- `clients_multitenant.sql:44-46` — "anon read/write clients (TODO remove)"
-- `client_logos_bucket.sql:16,20,24` — "Anon upload/update/delete client-logos (TODO restrict to admins)"
+### ~~Temp anon RLS policies (5 places)~~ ✅ DROPPED 2026-05-25
+All temp anon policies dropped in commit `852d915` (`20260525_drop_temp_anon_policies.sql`). Admin-only access enforced everywhere.
+
+### App.jsx · supabase-js auth lock contention
+Multi-tab usevantus.com or stale localStorage hangs `sb.auth.getSession()` / `signOut()` / DB queries indefinitely. Mitigated by 4s `stuckGuard` timeout that forces `checking=false`, but the underlying queries still error. Workaround: `localStorage.clear(); location.reload();`. Real fix would be an auto-recovery loop in setupSession.
 
 ---
 
-## Summary by node
+## Summary by node (post 2026-05-25)
 
 | Node | Severity | Issue |
 |---|---|---|
-| App.jsx | HIGH + MED | Auth bypass · 1471-line monolith |
-| agent-action.js | HIGH + MED + MED | No caller auth · monolith · hardcoded brand voice |
-| chat.js | HIGH | No caller auth |
-| notify.js | HIGH + MED | No caller auth · global Slack only |
+| App.jsx | MED + LOW | 1500+-line monolith · supabase-js auth lock contention |
+| agent-action.js | MED + MED | Monolith · hardcoded brand voice |
+| notify.js | MED | Per-client n8n routing still missing |
 | memory.js | MED | Hardcoded Muse pre-seed |
 | OpsBoard.jsx | MED | In-memory tasks |
 | content_items | MED | No migration file |
-| google-oauth | MED | Exchange fails |
 | cid_posts | LOW | RLS probe returns 404 |
 | briefgen | LOW | pdfjs bundle bloat |
 | src/agents/ | LOW | Dead code |
 | higgsfield (UI + fn) | LOW | Untracked WIP |
-| events_tbl, notifs_tbl, clients_tbl, logos_bucket | LOW | Temp anon RLS policies |

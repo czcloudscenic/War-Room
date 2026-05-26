@@ -234,16 +234,14 @@ const nodes = [
     critical: true,
   }),
   N('app', 'client', 'App.jsx', 'root + state + auth gate', 40, 180, 240, 90, 'client', {
-    role: 'Root React tree: auth bypass, currentClient state, content/notifications/clients fetch + realtime subs, layout shell, every nav route handler.',
-    plain: 'The big brain of the frontend. It checks if you are logged in, picks the active client, loads all the data, and decides which page to show based on the sidebar item you clicked.',
-    path: 'src/App.jsx (1,471 lines)',
+    role: 'Root React tree: auth gate (admin / approved client / pending invite / unknown), currentClient state, content/notifications/clients fetch + realtime subs, layout shell, every nav route handler.',
+    plain: 'The big brain of the frontend. It checks who is logged in (agency admin, approved external client, or someone waiting on an invite), picks the active client, loads all the data, and decides which page to show based on the sidebar item you clicked.',
+    path: 'src/App.jsx (1,500+ lines)',
     notes: [
-      'L116-117: AUTH BYPASS — `if(!session)` commented; admin fallback user',
-      'L143-159: 8 useState lots + currentClient/clientPickerOpen/editingClient',
-      'L196-271: Vantus useEffect — content fetch + content_changes realtime',
-      'L278-312: clients useEffect — fetch + realtime; sets currentClient',
-      'L315-359: notifications useEffect — scoped fetch + INSERT/UPDATE realtime',
-      'L1025-1380: giant route switch (one ternary per nav id)',
+      'L67+: setupSession — branches on @cloudscenic.com (admin) vs client_users allowlist (external)',
+      'PendingApprovalScreen renders for status=pending; auto-unlocks via realtime when admin approves',
+      '4s stuckGuard timeout forces checking=false to survive supabase-js auth lock hangs',
+      'L1025+: giant route switch (one ternary per nav id)',
     ],
     tag: ['overview','auth','multi-tenant','content','agents','notifications','all'],
     critical: true,
@@ -255,17 +253,17 @@ const nodes = [
     notes: ['Renders sb.auth.signInWithOAuth with hd:cloudscenic.com hint','Currently dormant (auth bypass)','Parses URL ?error= params for surfaced auth failures'],
     tag: ['auth','all'],
   }),
-  N('addclient', 'client', 'AddClientModal.jsx', 'create + edit + archive', 40, 360, 240, 65, 'client', {
-    role: 'Multi-purpose modal for client onboarding/edit/archive; handles logo upload to Supabase Storage.',
-    plain: 'The form you fill out to add a new client (or edit one). Lets you upload their logo, set their brand voice, etc.',
+  N('addclient', 'client', 'AddClientModal.jsx', 'create + edit + team', 40, 360, 240, 65, 'client', {
+    role: 'Multi-purpose modal for client onboarding/edit/archive; embeds ClientTeamPanel in edit mode for invite/approve/reject flow; handles logo upload to Supabase Storage.',
+    plain: 'The form you fill out to add a new client (or edit one). In edit mode it also shows the Team Access panel where admins invite client teammates and approve their login requests.',
     path: 'src/ui/clients/AddClientModal.jsx',
     notes: [
-      'Toggles edit vs create via editingClient prop',
+      'Edit mode embeds ClientTeamPanel.jsx (added 2026-05-25, commit 19b6235)',
+      'New slack_webhook_url field for per-client Slack routing (2026-05-25, commit 702f867)',
       'Uploads to client-logos bucket via sb.storage.from(...)',
       'fontSize:16 on inputs to dodge iOS auto-zoom',
-      'Archive action: status=archived (soft delete)',
     ],
-    tag: ['multi-tenant','all'],
+    tag: ['multi-tenant','auth','all'],
   }),
   N('agentchat', 'client', 'AgentChatPage.jsx', 'chat UI for 7 agents', 40, 440, 240, 65, 'client', {
     role: 'Per-agent chat panel: prompt builder, message thread, quick-action buttons, agent-action invoker.',
@@ -369,7 +367,8 @@ const nodes = [
     notes: [
       'L17-44: insertNotification helper for notifications table (Move 3)',
       'Prefer:resolution=ignore-duplicates → unique index dedupes multi-tab POSTs',
-      'Per-client routing TODO: still uses global SLACK_WEBHOOK_URL, not client.slack_channel_id',
+      'Per-client Slack routing live (2026-05-25, commit 702f867) — reads clients.slack_webhook_url, falls back to global env',
+      'Requires valid @cloudscenic.com or approved client_users session via requireUser helper',
     ],
     tag: ['notifications','content','all'],
   }),
@@ -401,6 +400,18 @@ const nodes = [
     notes: ['Live /api/higgsfield → 404','Reads HIGGSFIELD_ACCESS_TOKEN env var'],
     tag: ['all'],
   }),
+  N('require-user', 'routes', '_lib/requireUser.js', 'shared auth gate', 340, 675, 200, 60, 'route', {
+    role: 'Shared helper used by chat/agent-action/notify/apify-scrape/unsplash. Validates Supabase JWT via /auth/v1/user. Allows @cloudscenic.com admins OR emails approved in client_users.',
+    plain: 'The bouncer that every locked-down endpoint calls before doing any work. Either you are a Cloud Scenic admin, or your email has been approved in the invite list — otherwise the request gets a 401.',
+    path: 'netlify/functions/_lib/requireUser.js',
+    notes: [
+      'Added 2026-05-25 for Fix #2',
+      'Returns { ok, user: { id, email, role, client_ids } } or { ok:false, reason }',
+      'Uses SERVICE_KEY as apikey for both /auth/v1/user lookup and client_users SELECT',
+    ],
+    tag: ['auth','all'],
+    critical: true,
+  }),
 
   // ═══════ CORE SERVICES ═══════
   N('supabaseClient', 'services', 'supabaseClient.js', 'sb singleton', 600, 110, 200, 55, 'service', {
@@ -409,6 +420,17 @@ const nodes = [
     path: 'src/services/supabaseClient.js (15 lines)',
     notes: ['THROWS at module-load if env vars missing — would crash the whole app','15 lines, no fancy config'],
     tag: ['overview','all'],
+    critical: true,
+  }),
+  N('api-fetch', 'services', 'apiFetch.js', 'auth header wrapper', 600, 870, 200, 55, 'service', {
+    role: 'Thin wrapper around fetch() that injects Authorization: Bearer <access_token> from the current Supabase session. Used by every call to the 5 gated functions.',
+    plain: 'A helper that automatically adds your login token to every request to the protected endpoints. Without it, the server returns 401.',
+    path: 'src/services/apiFetch.js',
+    notes: [
+      'Added 2026-05-25 for Fix #2.6 — 26 call sites across 11 files now use it',
+      'Calls sb.auth.getSession() inline; safe to call when not signed in (request goes out tokenless and the server returns 401)',
+    ],
+    tag: ['auth','overview','all'],
     critical: true,
   }),
   N('memory', 'services', 'memory.js', 'agent memory store', 600, 180, 200, 60, 'service', {
@@ -541,8 +563,15 @@ const nodes = [
     role: 'Public storage bucket for client logo uploads from AddClientModal.',
     plain: 'A folder in Supabase Storage where client logo files live. Public-read so logos render in the picker.',
     path: 'supabase/migrations/20260524_client_logos_bucket.sql',
-    notes: ['public:true','Anon upload allowed (TODO: restrict when auth restored)'],
+    notes: ['public:true','Anon write policies dropped 2026-05-25 (commit 852d915); admin-only via 20260525_admin_rls_for_oauth.sql'],
     tag: ['multi-tenant','all'],
+  }),
+  N('client-users-tbl', 'data', 'client_users table', 'invite/allowlist', 860, 625, 200, 60, 'db', {
+    role: 'External-client login allowlist. Rows: (email, client_id, status, invited_at, first_login_at, approved_at). Status: pending/approved/rejected.',
+    plain: 'List of external client teammates (like Natalia at VitalLyfe) who can log in. Admins invite them, they get a "pending" row, admin clicks Approve, status flips to "approved" and they can use the app.',
+    path: 'supabase/migrations/20260525_client_users_allowlist.sql',
+    notes: ['Added 2026-05-25 for Fix #2.6 invite flow','RLS: admins full read/write; approved clients can read their own row(s)','Realtime enabled — admin approving a row instantly unlocks the client\'s PendingApprovalScreen'],
+    tag: ['auth','multi-tenant','all'],
   }),
 
   // ═══════ EXTERNAL APIS ═══════
@@ -594,11 +623,11 @@ const nodes = [
     notes: ['Called from scrappy_research + scrappy_muse_collab handlers','TAVILY_API_KEY env var'],
     tag: ['agents','all'],
   }),
-  N('google-oauth', 'external', 'Google OAuth', 'Workspace SSO (broken)', 1120, 535, 200, 55, 'external', {
+  N('google-oauth', 'external', 'Google OAuth', 'Workspace SSO', 1120, 535, 200, 55, 'external', {
     role: 'accounts.google.com OAuth — Internal-audience client for @cloudscenic.com Workspace.',
-    plain: 'Google "sign in with Google" — set up but currently broken (the code-exchange step fails).',
+    plain: 'Google "sign in with Google" — working as of 2026-05-25 after client_secret rotation.',
     path: 'External · accounts.google.com',
-    notes: ['Configured in Supabase Auth Providers + Google Cloud Console','Last error: "Unable to exchange external code" — likely client-secret mismatch','Bypassed in App.jsx currently'],
+    notes: ['Configured in Supabase Auth Providers + Google Cloud Console','Audience: Internal (only @cloudscenic.com); external clients sign in via the same OAuth + client_users allowlist','To allow non-@cloudscenic.com Google accounts, would need to switch to External audience (Google verification required)'],
     tag: ['auth','all'],
   }),
   N('apify', 'external', 'Apify', 'scraping actors', 1120, 605, 200, 50, 'external', {
@@ -676,6 +705,22 @@ const edges = [
   { from:'routeTask',    to:'agentRegistry',  kind:'normal', label:'route lookup', tag:['agents','all'] },
   { from:'memory',       to:'agentRegistry',  kind:'normal', label:'prompt compose', tag:['agents','all'] },
 
+  // ── Auth gates added 2026-05-25 (Fix #2) ──
+  { from:'app',          to:'api-fetch',      kind:'critical', label:'apiFetch wrapper', tag:['overview','auth','all'] },
+  { from:'api-fetch',    to:'agent-action',   kind:'critical', label:'Bearer <token>', tag:['overview','auth','all'] },
+  { from:'api-fetch',    to:'chat',           kind:'critical', label:'Bearer <token>', tag:['auth','all'] },
+  { from:'api-fetch',    to:'notify',         kind:'critical', label:'Bearer <token>', tag:['auth','all'] },
+  { from:'agent-action', to:'require-user',   kind:'critical', label:'verify', tag:['auth','all'] },
+  { from:'chat',         to:'require-user',   kind:'critical', label:'verify', tag:['auth','all'] },
+  { from:'notify',       to:'require-user',   kind:'critical', label:'verify', tag:['auth','all'] },
+  { from:'apify-scrape', to:'require-user',   kind:'critical', label:'verify', tag:['auth','all'] },
+  { from:'unsplash',     to:'require-user',   kind:'critical', label:'verify', tag:['auth','all'] },
+  { from:'require-user', to:'client-users-tbl', kind:'db', label:'check allowlist', tag:['auth','multi-tenant','all'] },
+  { from:'require-user', to:'supabase-ext',   kind:'api', label:'/auth/v1/user', tag:['auth','all'] },
+  { from:'addclient',    to:'client-users-tbl', kind:'db', label:'invite/approve/reject', tag:['auth','multi-tenant','all'] },
+  { from:'app',          to:'client-users-tbl', kind:'db', label:'allowlist check + realtime', tag:['auth','multi-tenant','all'] },
+  { from:'notify',       to:'clients-tbl',    kind:'db', label:'lookup slack_webhook_url', tag:['notifications','multi-tenant','all'] },
+
   // ── Service deps ──
   { from:'app',          to:'supabaseClient', kind:'normal', label:'sb', tag:['overview','all'] },
   { from:'app',          to:'constants',      kind:'normal', label:'NAV + colors', tag:['overview','all'] },
@@ -711,22 +756,16 @@ const edges = [
    ───────────────────────────────────────────────────────────────────── */
 const FIXES = {
   'app': [
-    { n: 1, t: 'Re-enable Google OAuth: pull Supabase auth-logs → identify exchange failure → fix client_secret mismatch → uncomment L117' },
-    { n: 2, t: 'Split into smaller components: App.jsx is 1,471 lines (root + 16 route handlers + 3 useEffects). Phase 3.x of REFACTOR_PLAN.md.' },
+    { n: 2, t: 'Split into smaller components: App.jsx is 1,500+ lines. Phase 3.x of REFACTOR_PLAN.md.' },
   ],
   'agent-action': [
     { n: 3, t: 'Move 1 (Cortex wiring): replace hardcoded "VitalLyfe brand voice" prompts with per-client lookup of clients.brand_voice_md.' },
     { n: 4, t: 'Split 16 action handlers into per-handler files; keep this as router only.' },
-    { n: 5, t: 'Add caller auth (bearer token check) to match the cid-scrape pattern.' },
   ],
   'notify': [
-    { n: 6, t: 'Wire per-client Slack: read clients.slack_channel_id instead of global SLACK_WEBHOOK_URL.' },
-    { n: 7, t: 'Wire per-client n8n routing similarly.' },
-    { n: 5, t: 'Add caller auth.' },
+    { n: 7, t: 'Wire per-client n8n routing (Slack already done — see commit 702f867).' },
+    { n: 15, t: 'Switch from Slack incoming webhook to bot token (chat.postMessage) for agent-attributed messages — see open-items.md.' },
   ],
-  'chat':         [{ n: 5, t: 'Add caller auth — currently anyone can burn the Anthropic budget.' }],
-  'apify-scrape': [{ n: 5, t: 'Add caller auth.' }],
-  'unsplash':     [{ n: 5, t: 'Add caller auth.' }],
   'memory': [
     { n: 3, t: 'Move 1: remove hardcoded VitalLyfe pre-seed at L75-81; pull from clients.brand_voice_md.' },
   ],
@@ -744,22 +783,25 @@ const FIXES = {
   'seed-content': [{ n: 14, t: 'Decouple from VitalLyfe — make per-client seedable or remove (data now lives in DB).' }],
 };
 
+/* ────────────────────────────────────────────────────────────────────
+   ✅ CLOSED 2026-05-25 (kept here for history; no badges rendered):
+     #1  OAuth + auth bypass             → commit 8e5095e, hotfix d0acec3
+     #5  Caller auth on 5 functions      → commit 2a9c9c1 (chat,
+                                            agent-action, notify,
+                                            apify-scrape, unsplash)
+     #6  Per-client Slack routing        → commit 702f867
+     +   External-client invite/allowlist→ commit 2a9c9c1 + 19b6235
+         (client_users table, requireUser, ClientTeamPanel)
+   ──────────────────────────────────────────────────────────────────── */
+
 const KNOWN_BUGS = {
   'app': [
-    { sev:'high', ref:'L116-117', t:'AUTH BYPASS — anonymous visitors get admin access. Intentional + documented but a real risk if anyone discovers the URL.' },
-    { sev:'med',  ref:'L1471',    t:'1,471-line component. Cognitive load + harder to test in isolation.' },
+    { sev:'med',  ref:'L1500+',   t:'1,500+ line component. Cognitive load + harder to test in isolation.' },
+    { sev:'low',  t:'supabase-js auth lock can hang the app when multiple usevantus.com tabs are open or localStorage is stale. Mitigated by 4s stuckGuard timeout in App.jsx; not yet auto-recovering. Workaround: localStorage.clear() + reload.' },
   ],
   'agent-action': [
     { sev:'med',  ref:'L1255',          t:'Monolith: 1,255 lines, 16 action handlers + Anthropic + Supabase + Slack helpers all in one file.' },
     { sev:'med',  ref:'L138-144',       t:'Brand voice ("VitalLyfe", "cinematic, calm, purposeful") hardcoded in muse_write_content system prompt — wrong for any non-VitalLyfe client.' },
-    { sev:'high', t:'No caller authentication — anyone on internet can POST and burn Anthropic budget OR write to Supabase via SERVICE_KEY.' },
-  ],
-  'chat': [
-    { sev:'high', t:'No caller auth + no rate limit. Anonymous burn of Anthropic key.' },
-  ],
-  'notify': [
-    { sev:'med',  t:'Global SLACK_WEBHOOK_URL ignored per-client channel column. All notifications go to #vitallyfe-war-room regardless of which client triggered.' },
-    { sev:'high', t:'No caller auth — anyone can spam notifications + trigger emails to ADMIN_EMAILS.' },
   ],
   'cid-posts-tbl': [
     { sev:'low',  t:'REST count probe returns 404 — table may exist but with stricter RLS than other tables. Verify in Supabase dashboard.' },
@@ -785,22 +827,21 @@ const KNOWN_BUGS = {
   'higgsfield-fn': [
     { sev:'low',  t:'/api/higgsfield → 404 in production (function not deployed). UI references would fail.' },
   ],
-  'google-oauth': [
-    { sev:'med',  t:'OAuth exchange fails with "Unable to exchange external code" — likely client_secret mismatch between Supabase and Google. Auth flow can\'t complete.' },
-  ],
-  'logos-bucket': [
-    { sev:'low',  t:'Anon upload + update + delete policies on storage.objects — TODO restrict to admins once auth is restored.' },
-  ],
-  'events-tbl': [
-    { sev:'low',  t:'Temp "anon read while auth bypassed" RLS policy — must drop when OAuth comes back.' },
-  ],
-  'notifs-tbl': [
-    { sev:'low',  t:'Same temp anon policies as agent_events (TODO drop with auth restore).' },
-  ],
-  'clients-tbl': [
-    { sev:'low',  t:'Same temp anon read/write policies.' },
-  ],
 };
+
+/* ────────────────────────────────────────────────────────────────────
+   ✅ BUGS CLOSED 2026-05-25:
+     app · AUTH BYPASS                  → auth gate restored in 8e5095e
+     agent-action · no caller auth      → requireUser gate, 2a9c9c1
+     chat · no caller auth              → requireUser gate, 2a9c9c1
+     notify · no caller auth            → requireUser gate, 2a9c9c1
+     notify · global Slack only         → per-client routing, 702f867
+     google-oauth · exchange fails      → secret rotated + verified
+     logos-bucket · anon policies       → dropped, 852d915
+     events-tbl · temp anon policy      → dropped, 852d915
+     notifs-tbl · temp anon policies    → dropped, 852d915
+     clients-tbl · temp anon policies   → dropped, 852d915
+   ──────────────────────────────────────────────────────────────────── */
 
 /* ─────────────────────────────────────────────────────────────────────
    FILTER CHIPS

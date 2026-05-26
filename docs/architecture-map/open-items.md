@@ -3,12 +3,12 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-05-25 · **Total open:** 17 bugs + 13 fixes = 30 items
+**Snapshot:** 2026-05-25 · **Total open:** 14 bugs + 12 fixes = 26 items
 
 ```
-🔴 High:   3    │   ✅ Done:   2  (Fix #1 + auth bypass)
+🔴 High:   0    │   ✅ Done:   5  (Fix #1 + Fix #2 + auth bypass + 3 unauthed funcs)
 🟡 Med:    7    │
-🟢 Low:    7    │   📋 Fixes: 13
+🟢 Low:    7    │   📋 Fixes: 12
 ```
 
 ---
@@ -19,17 +19,10 @@
   ~~Anonymous visitors get admin access. `if(!session)` commented out.~~
   → Re-enabled in commit `8e5095e`. Auth gate live + verified with cz@cloudscenic.com and second Google account.
 
-- [ ] **agent-action.js — no caller auth**
-  Anyone on internet can POST and burn Anthropic budget OR write to Supabase via SERVICE_KEY.
-  → Touches: `netlify/functions/agent-action.js` · Fix #5
-
-- [ ] **chat.js — no caller auth + no rate limit**
-  Anonymous burn of Anthropic key. Forward proxy with zero gates.
-  → Touches: `netlify/functions/chat.js` · Fix #5
-
-- [ ] **notify.js — no caller auth**
-  Anyone can spam notifications + trigger emails to `ADMIN_EMAILS` via Resend.
-  → Touches: `netlify/functions/notify.js` · Fix #5
+- [x] ~~**agent-action.js — no caller auth**~~ ✅ closed 2026-05-25 (Fix #2 / commit 2a9c9c1)
+- [x] ~~**chat.js — no caller auth + no rate limit**~~ ✅ closed 2026-05-25 (Fix #2 / commit 2a9c9c1)
+  Rate limiting still TBD — only the auth gate landed.
+- [x] ~~**notify.js — no caller auth**~~ ✅ closed 2026-05-25 (Fix #2 / commit 2a9c9c1)
 
 ---
 
@@ -70,6 +63,11 @@
 ---
 
 ## 🟢 LOW — track, no urgency
+
+- [ ] **Vantus Slack bot — agent-attributed messages**
+  Right now Claude MCP posts as the signed-in user. Set up a real "Vantus" Slack app with bot token → `SLACK_BOT_TOKEN` env → switch notify.js + future agent posts to `chat.postMessage`. Will also let us reuse the deprecated `slack_channel_id` field for per-client routing by channel ID instead of webhook URLs.
+  → Touches: new Slack app + `netlify/functions/notify.js`
+
 
 - [ ] **cid_posts table — 404 on REST count probe**
   Table may exist with stricter RLS than other tables. Verify in dashboard.
