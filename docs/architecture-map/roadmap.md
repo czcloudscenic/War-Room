@@ -4,64 +4,78 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 
 ## Order to attack (recommended)
 
-1. **#1 + #2** — Re-enable Google OAuth, then re-enable the auth gate in App.jsx. Unblocks 5+ downstream items.
-2. **#3** — Brain Move 1 (Cortex wiring). Per-client agent brand voice. Touches memory.js + agent-action.js.
-3. **#5** — Add caller auth to the 5 unauthed functions. Security debt.
-4. **#6 + #7** — Per-client Slack + n8n routing in notify.js.
-5. **#10** — Write the missing `content_items` migration. Lock the schema in version control.
-6. **#11** — Dynamic-import pdfjs-dist. Bundle size win.
-7. **#8** — Delete the dead `src/agents/` folder. Pure cleanup.
-8. **#4** — Split agent-action.js. Bigger refactor.
-9. **#9** — Ship or delete Higgsfield. Resolve the WIP state.
+1. **#10** — Write the missing `content_items` migration. Pure version-control hygiene; one SQL file. ~15 min.
+2. **#7** — Per-client n8n routing. Mirror the Slack pattern from commit `702f867`. ~20-minute change.
+3. **#3.1** — Rename `cid_library.vitallyfe_adaptation` → `client_adaptation`. Move 1 leftover.
+4. **#15** — Auth-lock auto-recovery. Stops the recurring "tell user to clear localStorage" support thread.
+5. **#11** — Dynamic-import pdfjs-dist. ~405 KB bundle size win.
+6. **#8** — Delete the dead `src/agents/` folder. 30-second cleanup.
+7. **#9** — Ship or delete Higgsfield. Decision is the work; the code change is small either way.
+8. **#4** — Split agent-action.js. Bigger refactor — plan a sprint.
+9. **#2** — Split App.jsx into smaller components. Same — plan a sprint.
 10. **#12, #13, #14** — Smaller polish items.
 
 ---
 
 ## All fixes
 
-### #1 — Re-enable Google OAuth
-- **Where:** `src/App.jsx:117`
-- **Steps:** Pull Supabase auth-logs (dashboard → Logs → Auth) → identify the exact exchange failure → fix client_secret mismatch → uncomment `if (!session) return <LoginScreen />`.
+### ✅ #1 — Re-enable Google OAuth + auth gate — CLOSED 2026-05-25
+- **Where:** `src/App.jsx` (setupSession + render branches)
+- **Closed by:** `8e5095e` (gate + admin RLS) + `307b64f` (dedupe setupSession) + `d0acec3` (4s stuckGuard hotfix)
+- **What landed:** Four-way branch — admin / approved external client / pending invite (realtime unlock) / unknown blocked. Google OAuth verified end-to-end.
 
 ### #2 — Split App.jsx into smaller components
-- **Where:** `src/App.jsx` (1,471 lines)
-- **Why:** Phase 3.x of `docs/REFACTOR_PLAN.md`. The `Vantus` shell component (~1,040 lines) is ripe to break apart.
-- **Suggestion:** Extract one component per nav route handler; keep App.jsx as a router shell.
+- **Where:** `src/App.jsx` (1,646 lines)
+- **Why:** Phase 3.x of `docs/REFACTOR_PLAN.md`. The `Vantus` shell component (~1,200 lines after auth code added) is ripe to break apart.
+- **Suggestion:** Extract one component per nav route handler (Dashboard, TaskBoard, Agents, Pipeline, Production, Apps, Settings, CIDPage); keep App.jsx as a router shell + auth setup + realtime subscriptions only.
 
-### #3 — Brain Move 1: Cortex wiring (per-client agent voice)
-- **Where:** `netlify/functions/agent-action.js` + `src/core/memory.js`
+### ✅ #3 — Brain Move 1: Cortex wiring (per-client agent voice) — CLOSED 2026-05-26
+- **Where:** `netlify/functions/agent-action.js` + `src/core/memory.js` + `supabase/migrations/20260526_seed_vitallyfe_brand_voice.sql`
+- **What landed:**
+  1. `getBrandContext(client_id)` helper at `agent-action.js:94` fetches `clients.name` + `clients.brand_voice_md` via Supabase REST, falls back gracefully when client_id is null or brand_voice_md is empty.
+  2. `exports.handler` calls it once per request, passes `brand` to every handler.
+  3. 12 prompt sites refactored to interpolate `${brand.name}` and `${brand.voice}` — was 5 in the original audit, expanded to all of: muse_write_content, overseer_scan, sean_briefing, sam_health, scrappy_research, scrappy_muse_collab, artgrid_scout, muse_generate_calendar, muse_from_brief, scrappy_hook_analysis, cid_build_brief, cid_ab_variations, muse_ig_ideas.
+  4. Dynamic `#${brand.name}` hashtag templates replace `#VitalLyfe` in 3 JSON-schema example strings.
+  5. Dead `seedMuseMemory()` in `memory.js` removed entirely (zero callers).
+  6. VitalLyfe seeded via SQL migration so behavior is identical pre/post for the existing client.
+- **Verified:** Muse generated on-brand caption against VitalLyfe in dev — cinematic, calm, purposeful structure intact.
+- **Follow-up:** Fix #3.1 below — `cid_library.vitallyfe_adaptation` column name still references VitalLyfe.
+
+### #3.1 — Rename cid_library.vitallyfe_adaptation → client_adaptation
+- **Where:** `supabase/migrations/<date>_rename_cid_library_column.sql` + `netlify/functions/agent-action.js:958-960`
+- **Why:** Move 1 leftover. The column name is the last hardcoded VitalLyfe reference in the agent layer.
 - **Steps:**
-  1. Replace hardcoded "VitalLyfe brand voice" in agent-action.js system prompts with per-client lookup of `clients.brand_voice_md`.
-  2. Remove the hardcoded Muse pre-seed at `memory.js:75-81`.
-  3. Optional: populate Cortex wiki entries at `~/Desktop/Agent Cortex/wiki/clients/<slug>/brand-voice.md` and write a sync script (per Counsel's spec).
+  1. `alter table cid_library rename column vitallyfe_adaptation to client_adaptation;`
+  2. Update 3 lines in `agent-action.js` (the three `.map` blocks that write to cid_library).
+  3. Remove the TODO comment at L905 noting this debt.
 
 ### #4 — Split agent-action.js
-- **Where:** `netlify/functions/agent-action.js` (1,255 lines)
+- **Where:** `netlify/functions/agent-action.js` (1,263 lines)
 - **Steps:** Move each handler into its own file (`netlify/functions/agent-action/handlers/muse_write_content.js`, etc.). Keep `agent-action.js` as a router only.
 
-### #5 — Caller auth on all functions
+### ✅ #5 — Caller auth on all functions — CLOSED 2026-05-25
 - **Where:** `netlify/functions/{chat,agent-action,notify,apify-scrape,unsplash}.js`
-- **Pattern to copy:** `cid-scrape.js` — `Authorization: Bearer <CID_BEARER_TOKEN>` check.
-- **Suggested env vars:** `AGENT_ACTION_BEARER`, `CHAT_BEARER`, `NOTIFY_BEARER` (or one shared `API_BEARER`).
+- **Closed by:** Commit `2a9c9c1` — shared helper `netlify/functions/_lib/requireUser.js` validates Supabase JWT. Either @cloudscenic.com admin OR approved `client_users` row required.
+- **Pattern landed:** Bearer-token + JWT lookup at `/auth/v1/user`, then client_users allowlist check. `cid-scrape.js` keeps its pre-existing CID_BEARER_TOKEN gate.
 
-### #6 — Per-client Slack channel routing
-- **Where:** `netlify/functions/notify.js` + agent-action.js
-- **Steps:** Read `clients.slack_channel_id` for the event's client, route to that channel instead of global `SLACK_WEBHOOK_URL`.
-- **Note:** Channels need either a webhook URL each OR migrate to Slack's chat.postMessage with bot token + channel id.
+### ✅ #6 — Per-client Slack routing — CLOSED 2026-05-25
+- **Where:** `netlify/functions/notify.js` L157-162
+- **Closed by:** Commit `702f867`. New `clients.slack_webhook_url` column. `notify.js` prefers it when `client_id` is on the payload; falls back to global `SLACK_WEBHOOK_URL`. Edit Client modal exposes the field under "Optional integrations".
 
 ### #7 — Per-client n8n webhook routing
 - **Where:** `netlify/functions/notify.js`
-- **Steps:** Look up `clients.n8n_webhook_url` for the event's client; fall back to global `N8N_WEBHOOK_URL`.
+- **Steps:** Mirror the Slack pattern from commit `702f867`. Read `clients.n8n_webhook_url` for the event's client; fall back to global `N8N_WEBHOOK_URL`. Column already exists.
 
 ### #8 — Delete `src/agents/` dead code
 - **Files:** `src/agents/{sean,lacey,muse,overseer,sam,artgrid,scrappy,ali}.agent.js`
 - **Steps:** `rm -r src/agents/` — done. Confirmed zero callers via `grep -rn "from.*agents/" src/`.
 
 ### #9 — Ship or delete Higgsfield
-- **Files:** `netlify/functions/higgsfield.js`, `src/apps/higgsfield/HiggsfieldStudio.jsx`
+- **Files:** `netlify/functions/higgsfield.js`, `src/apps/higgsfield/HiggsfieldStudio.jsx`, modified `src/apps/apps.config.js` + `src/utils/constants.js`
 - **Two options:**
-  - **Ship:** Commit both + add CREATIVE nav entry + add `<HiggsfieldStudio />` render in App.jsx + add `HIGGSFIELD_ACCESS_TOKEN` env var in Netlify. Test live.
-  - **Delete:** `rm` both files + remove dirty edits to `constants.js` + `apps.config.js`.
+  - **Ship in ONE commit:** Both new files + the apps.config + constants edits + the import + `<HiggsfieldStudio />` render in App.jsx + `HIGGSFIELD_ACCESS_TOKEN` env in Netlify. Test live before pushing.
+  - **Delete:** `rm` both files + revert dirty edits to `constants.js` + `apps.config.js`.
+- **Don't split-commit** — broke CI last time when files landed before/after their import.
 
 ### #10 — Write `content_items` migration
 - **Where:** New file `supabase/migrations/<date>_content_items.sql`
@@ -89,7 +103,7 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 
 ### #13 — Per-user client assignments
 - **Where:** New `supabase/migrations/<date>_user_clients.sql`
-- **When:** After Google OAuth is restored (no point until users have real identities).
+- **When:** Now unblocked (OAuth is live + `client_users` table exists). Could be folded into `client_users` as a multi-row pattern instead of a new table.
 - **Schema:** `(user_id, client_id, role)` — controls which clients each Cloud Scenic team member sees.
 
 ### #14 — Decouple seed.content.js from VitalLyfe
@@ -98,32 +112,32 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
   - Per-client seedable (read `seed.content.<slug>.js` based on currentClient)
   - Or just remove it — data lives in DB now, fallback is obsolete.
 
+### #15 — Auto-recover from supabase-js auth-lock errors
+- **Where:** `src/App.jsx:204` (stuckGuard timeout) + `setupSession`
+- **Why:** Currently the 4s stuckGuard forces `checking=false` so the UI doesn't hang, but the underlying `navigator.locks` deadlock means session-dependent calls still error. User must clear localStorage manually.
+- **Steps:**
+  1. On stuckGuard fire, clear the supabase-js lock keys in localStorage (`sb-<project>-auth-token*` and `supabase.auth.token`).
+  2. Re-run `sb.auth.getSession()` once before falling through to the login screen.
+  3. Log a one-line warning to console + (optionally) toast "Session was stuck — recovered. Try again."
+
 ---
 
 ## Cross-cutting work
 
-### Drop temporary anon RLS policies (when #1 lands)
-Once Google OAuth is back, remove these temp policies:
-
-```sql
--- supabase/migrations/20260523_agent_events.sql:34
-drop policy "anon read while auth bypassed (TODO remove)" on public.agent_events;
-
--- supabase/migrations/20260523_notifications.sql:44-49
-drop policy "anon read while auth bypassed (TODO remove)" on public.notifications;
-drop policy "anon update while auth bypassed (TODO remove)" on public.notifications;
-
--- supabase/migrations/20260523_clients_multitenant.sql:44-46
-drop policy "anon read clients (TODO remove)" on public.clients;
-drop policy "anon write clients (TODO remove)" on public.clients;
-
--- supabase/migrations/20260524_client_logos_bucket.sql:16,20,24
-drop policy "Anon upload client-logos (TODO restrict to admins when auth back)" on storage.objects;
-drop policy "Anon update client-logos (TODO restrict to admins when auth back)" on storage.objects;
-drop policy "Anon delete client-logos (TODO restrict to admins when auth back)" on storage.objects;
-```
+### ✅ Drop temporary anon RLS policies — DONE 2026-05-25
+All 5 temp anon policies dropped in `supabase/migrations/20260525_drop_temp_anon_policies.sql` (commit `852d915`). Admin-only RLS enforced across `agent_events`, `notifications`, `clients`, and the `client-logos` storage bucket via `auth.jwt()->>'email' like '%@cloudscenic.com'`.
 
 ### Rotate Supabase admin passwords (when convenient)
 - **Why:** `Cloudai25%` (former SETUP_PASSWORD) is in git history. Becomes irrelevant once Google OAuth is the only path in.
 - **Who:** `cz@cloudscenic.com`, `dv@cloudscenic.com`, `ss@cloudscenic.com`
 - **Where:** Supabase dashboard → Authentication → Users → "Send password recovery"
+- **Status:** Lower urgency now that OAuth is the only used login path — but password login technically still works.
+
+### Tighten security headers
+- **Where:** `netlify.toml`
+- **What:** Add CSP (`default-src 'self'`), HSTS (`max-age=31536000; includeSubDomains; preload`), Referrer-Policy (`strict-origin-when-cross-origin`).
+- **Why:** Defense in depth. JWT bearer + admin RLS already block most realistic attacks, but these headers harden against future XSS or downgrade scenarios.
+
+### Tighten CORS + add rate limits
+- **Where:** every `netlify/functions/*.js` CORS header + new `_lib/rateLimit.js`
+- **What:** Lock origin to `https://usevantus.com` (currently `*`). Add per-user rate limit on `/api/chat` (most expensive endpoint).

@@ -1,7 +1,9 @@
-// agent-action.js — VitalLyfe Vantus Agent Action Engine
-// Handles autonomous agent actions: read/write Supabase, AI generation
+// agent-action.js — Vantus Agent Action Engine
+// Handles autonomous agent actions: read/write Supabase, AI generation.
+// Per-client brand voice loaded from clients.brand_voice_md at request time (Move 1).
 //
-// Requires a valid @cloudscenic.com Supabase session (Authorization: Bearer <access_token>).
+// Requires a valid @cloudscenic.com admin OR approved client_users session
+// (Authorization: Bearer <access_token>).
 
 const { requireUser, unauthorized } = require("./_lib/requireUser");
 
@@ -92,6 +94,28 @@ async function sbGet(table, params = "") {
   return res.json();
 }
 
+// Move 1 — read client's brand voice from DB instead of hardcoding it inline.
+// Falls back to a generic context if client_id is missing or brand_voice_md is empty,
+// so prompts still work for orphaned requests (e.g. before a client is selected).
+async function getBrandContext(client_id) {
+  const fallback = { name: "the brand", slug: null, voice: "", clientId: null };
+  if (!client_id) return fallback;
+  try {
+    const rows = await sbGet("clients", `?id=eq.${client_id}&select=name,slug,brand_voice_md`);
+    const r = rows?.[0];
+    if (!r) return { ...fallback, clientId: client_id };
+    return {
+      name: r.name || "the brand",
+      slug: r.slug || null,
+      voice: r.brand_voice_md || "",
+      clientId: client_id,
+    };
+  } catch (e) {
+    console.warn("[brand] getBrandContext failed:", e.message);
+    return { ...fallback, clientId: client_id };
+  }
+}
+
 async function postToSlack(label, text) {
   if (!SLACK_WEBHOOK_URL) return;
   try {
@@ -140,13 +164,14 @@ async function ai(system, user, maxTokens = 1200) {
 
 // ─── ACTION HANDLERS ──────────────────────────────────────────────────────────
 
-async function muse_write_content(payload) {
+async function muse_write_content(payload, brand) {
   const { itemId, itemTitle, pillar, format, description, fieldToUpdate = "caption" } = payload;
 
-  const systemPrompt = `You are Muse, Content Ideation Agent for the VitalLyfe Vantus by Cloud Scenic. 
-Write ${fieldToUpdate === "script" ? "video scripts" : "captions"} for the VitalLyfe brand.
-Brand voice: cinematic, calm, purposeful. Key phrases: abundance, access, built for beyond.
-AVOID: revolutionary, game-changing, exclamation points.
+  const systemPrompt = `You are Muse, Content Ideation Agent for ${brand.name} via Cloud Scenic Vantus.
+Write ${fieldToUpdate === "script" ? "video scripts" : "captions"} for the ${brand.name} brand.
+
+${brand.voice}
+
 Caption structure: poetic statement then blank line then expand metaphor then blank line then bridge to brand then blank line then soft CTA like "Join us (Link in bio)".
 For scripts: Opening Scene, Middle, Closing Frame format.
 Write real copy, not descriptions.`;
@@ -176,7 +201,7 @@ Write only the ${fieldToUpdate} content, nothing else.`;
   };
 }
 
-async function overseer_scan() {
+async function overseer_scan(brand) {
   const items = await sbGet("content_items", "?order=id");
 
   const SOP_STEPS = [
@@ -191,7 +216,7 @@ async function overseer_scan() {
 
   const summary = items.map(i => `ID:${i.id} | "${i.title}" | Status:${i.status} | Pillar:${i.pillar} | Format:${i.format} | Caption:${i.caption ? "YES" : "NO"} | Script:${i.script ? "YES" : "NO"}`).join("\n");
 
-  const systemPrompt = `You are Overseer, SOP Guardian for VitalLyfe Vantus. 
+  const systemPrompt = `You are Overseer, SOP Guardian for ${brand.name} via Cloud Scenic Vantus.
 Enforce this 7-step SOP:
 ${SOP_STEPS.join("\n")}
 
@@ -228,7 +253,7 @@ Return empty array [] if everything looks compliant. Only return the JSON array,
   };
 }
 
-async function sean_briefing() {
+async function sean_briefing(brand) {
   const items = await sbGet("content_items", "?order=id");
 
   const byStatus = {};
@@ -243,8 +268,8 @@ async function sean_briefing() {
   const scheduled = items.filter(i => i.status === "Scheduled");
   const inCreation = items.filter(i => ["Ready For Copy Creation", "Ready For Content Creation"].includes(i.status));
 
-  const systemPrompt = `You are Sean, Commander Agent for the VitalLyfe Vantus by Cloud Scenic. 
-You orchestrate all 7 agents and own the content pipeline. 
+  const systemPrompt = `You are Sean, Commander Agent for ${brand.name} via Cloud Scenic Vantus.
+You orchestrate all 7 agents and own the content pipeline.
 Personality: decisive, calm, short punchy sentences. Military precision. Lead with what matters most.`;
 
   const userPrompt = `Generate a morning briefing for the team. Here's the pipeline status:
@@ -310,7 +335,7 @@ async function lacey_advance() {
   };
 }
 
-async function sam_health() {
+async function sam_health(brand) {
   const items = await sbGet("content_items", "?order=id");
 
   const statusCounts = {};
@@ -330,7 +355,7 @@ async function sam_health() {
     && !i.script && i.format === "Reel"
   );
 
-  const systemPrompt = `You are Sam, Monitor Agent for VitalLyfe Vantus. You watch system health, pipeline metrics, and flag anomalies. Methodical, data-driven, brief.`;
+  const systemPrompt = `You are Sam, Monitor Agent for ${brand.name} via Cloud Scenic Vantus. You watch system health, pipeline metrics, and flag anomalies. Methodical, data-driven, brief.`;
 
   const userPrompt = `Generate a pipeline health report:
 
@@ -378,7 +403,7 @@ async function tavilySearch(query, searchDepth = "advanced", maxResults = 8) {
   return res.json();
 }
 
-async function scrappy_research(payload) {
+async function scrappy_research(payload, brand) {
   const { topic = "wellness hydration water technology" } = payload;
 
   if (!TAVILY_KEY) {
@@ -431,16 +456,13 @@ async function scrappy_research(payload) {
   allResults.sort((a, b) => (b.score || 0) - (a.score || 0));
   const topResults = allResults.slice(0, 25);
 
-  const systemPrompt = `You are Scrappy, VitalLyfe's Trend Scout agent for Cloud Scenic's Vantus.
+  const systemPrompt = `You are Scrappy, ${brand.name}'s Trend Scout agent for Cloud Scenic's Vantus.
 You scour the internet for content trends, viral topics, and fresh angles — then report back with gems for Muse to work with.
 
-VitalLyfe context:
-- Brand: wellness/hydration technology. Mission: abundance → access.
-- Content pillars: Abundance, Access, Innovation, Startup Diaries, Tierra Bomba, Product Launch, Meet the Makers
-- Target audience: health-conscious consumers, sustainability advocates, startup/innovation crowd, outdoor/travel lifestyle
-- Platforms: Instagram (Reels/Carousels), TikTok, YouTube, X/Threads
+${brand.name} context:
+${brand.voice || "(No brand voice configured — work from the search results alone.)"}
 
-Your job: Analyze the live internet data below (fresh Tavily search results). Extract trends, angles, hooks, and content opportunities VitalLyfe could own.
+Your job: Analyze the live internet data below (fresh Tavily search results). Extract trends, angles, hooks, and content opportunities ${brand.name} could own.
 Be a scout, not an analyst — cut the fluff, surface the gems. Think like a creative director who just did deep research.
 
 Return a structured JSON object:
@@ -449,9 +471,9 @@ Return a structured JSON object:
   "topTrends": [
     {
       "trend": "trend name",
-      "why": "why it matters for VitalLyfe specifically",
+      "why": "why it matters for ${brand.name} specifically",
       "pillar": "which content pillar it maps to",
-      "hookIdea": "one-line hook VitalLyfe could use",
+      "hookIdea": "one-line hook ${brand.name} could use",
       "heat": "🔥🔥🔥|🔥🔥|🔥"
     }
   ],
@@ -511,9 +533,9 @@ ${topResults.map((r, i) => `[${i + 1}] "${r.title}"
   };
 }
 
-async function scrappy_muse_collab(payload) {
+async function scrappy_muse_collab(payload, brand) {
   // Phase 1: Scrappy researches
-  const research = await scrappy_research(payload);
+  const research = await scrappy_research(payload, brand);
   if (!research.success || !research.report) {
     return { ...research, action: "scrappy_muse_collab", message: "❌ Research phase failed — collaboration aborted" };
   }
@@ -524,11 +546,11 @@ async function scrappy_muse_collab(payload) {
   const existingItems = await sbGet("content_items", "?order=id&limit=5");
   const existingTitles = existingItems.map(i => i.title).join(", ");
 
-  const museSystemPrompt = `You are Muse, Content Ideation Agent for VitalLyfe by Cloud Scenic.
+  const museSystemPrompt = `You are Muse, Content Ideation Agent for ${brand.name} via Cloud Scenic Vantus.
 Scrappy has just completed live internet research and handed you a trend brief. Your job is to turn those trends into concrete, on-brand content pieces.
 
-Brand voice: cinematic, calm, purposeful. Key phrases: abundance, access, built for beyond.
-AVOID: revolutionary, game-changing, exclamation points, generic corporate content.
+${brand.voice}
+
 Caption structure: poetic statement → expand metaphor → bridge to brand → soft CTA "Join us (Link in bio)".
 
 Existing content (don't repeat): ${existingTitles}
@@ -591,7 +613,7 @@ Now create the content ideas.`;
   };
 }
 
-async function artgrid_scout(payload) {
+async function artgrid_scout(payload, brand) {
   const { itemId } = payload;
 
   let items = await sbGet("content_items", "?order=id");
@@ -617,9 +639,12 @@ async function artgrid_scout(payload) {
   }
 
   // Lean prompt — just keywords, no essays
-  const systemPrompt = `You are Artgrid, footage scout for VitalLyfe (wellness/hydration brand). 
+  const systemPrompt = `You are Artgrid, footage scout for ${brand.name} via Cloud Scenic Vantus.
 For each video item, return 5 Artgrid.io search keywords that will find the best matching cinematic footage.
-VitalLyfe aesthetic: cinematic, calm, water in motion, warm naturals, real human moments. No corporate, no fake smiles.
+
+${brand.name} brand notes (use these to pick aesthetic-appropriate keywords):
+${brand.voice || "(No brand voice configured — default to cinematic, calm, real human moments. Avoid corporate stock vibes.)"}
+
 CRITICAL — Artgrid search only works with SHORT queries (2-4 words max). Long phrases return zero results.
 GOOD: "slow motion water", "sunrise landscape", "woman walking nature", "water droplet macro"
 BAD: "slow motion water droplet hitting calm surface golden hour" — too long, returns nothing.
@@ -652,16 +677,19 @@ Return ONLY a JSON array: [{ "itemId": "vl-X", "title": "...", "keywords": ["2-4
   };
 }
 
-async function muse_generate_calendar() {
+async function muse_generate_calendar(brand) {
   const items = await sbGet("content_items", "?order=id&limit=10");
   const pillars = ["Abundance", "Access", "Innovation", "Tierra Bomba", "Startup Diaries", "Product Launch", "Meet the Makers"];
   const existing = items.map(i => i.title).join(", ");
+  const brandHashtag = "#" + (brand.name || "").replace(/\s+/g, "");
 
-  const systemPrompt = `You are Muse, Content Ideation Agent for VitalLyfe Vantus by Cloud Scenic.
-Generate content calendar ideas. Brand voice: cinematic, calm, purposeful.
+  const systemPrompt = `You are Muse, Content Ideation Agent for ${brand.name} via Cloud Scenic Vantus.
+Generate content calendar ideas.
+
+${brand.voice}
+
 Content pillars: ${pillars.join(", ")}.
 Platforms: Instagram (Reels, Graphics, Carousels), TikTok (Reels), YouTube (Shorts, Long-form), X/Threads.
-AVOID: revolutionary, game-changing, exclamation points, generic corporate content.
 
 Return a JSON array of content items only (no markdown, no backticks):
 [
@@ -680,7 +708,7 @@ Return a JSON array of content items only (no markdown, no backticks):
     "script": "",
     "cta": "Join us (Link in bio)",
     "seoKeywords": "",
-    "hashtags": "#VitalLyfe",
+    "hashtags": "${brandHashtag}",
     "startWeek": 1,
     "duration": 1,
     "notes": ""
@@ -740,18 +768,20 @@ async function muse_save_calendar(payload) {
 
 // ─── MUSE FROM BRIEF ─────────────────────────────────────────────────────────
 
-async function muse_from_brief(payload) {
+async function muse_from_brief(payload, brand) {
   const { reels = 8, stories = 4, campaign = "Drip Campaign" } = payload;
   // Trim brief to 3000 chars — PDFs can dump a lot of noise
   const brief = (payload.brief || "").trim().slice(0, 3000);
   if (!brief || brief.length < 10) {
     return { success: false, agent: "Muse", action: "muse_from_brief", message: "❌ Brief is too short — add more detail" };
   }
+  const brandHashtag = "#" + (brand.name || "").replace(/\s+/g, "");
 
-  const systemPrompt = `You are Muse, Content Ideation Agent for VitalLyfe by Cloud Scenic.
+  const systemPrompt = `You are Muse, Content Ideation Agent for ${brand.name} via Cloud Scenic Vantus.
 You read creative briefs and generate specific, production-ready content ideas.
-Brand: VitalLyfe — wellness/hydration technology. Cinematic, calm, purposeful.
-AVOID: people, faces, corporate setups, fake smiles, text overlays, logos.
+
+${brand.voice}
+
 FORMAT RULES:
 - Reels: vertical video, 15-60s, Instagram/TikTok
 - Stories: vertical, 15s max, Instagram Stories
@@ -774,7 +804,7 @@ Return ONLY a valid JSON array (no markdown, no backticks, no explanation):
     "notes": "director notes — location, lighting, shot type",
     "cta": "Join us (Link in bio)",
     "seoKeywords": "",
-    "hashtags": "#VitalLyfe",
+    "hashtags": "${brandHashtag}",
     "startWeek": 1,
     "duration": 1
   }
@@ -872,35 +902,40 @@ async function lacey_trigger_n8n(payload) {
 //   id (int8, primary key, auto-increment), type (text) — "hook"|"body"|"cta",
 //   text (text), score (int4), platform (text), views (text), engagement (text),
 //   why_it_works (text), vitallyfe_adaptation (text), created_at (timestamptz, default now())
+// TODO Move 1.1: rename `vitallyfe_adaptation` → `client_adaptation` in a follow-up
+// migration so this column matches the per-client refactor.
 
-async function scrappy_hook_analysis() {
+async function scrappy_hook_analysis(brand) {
   if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY not set");
 
-  const prompt = `You are Scrappy, a trend scout for VitalLyfe — a water technology company focused on hydration innovation, water access, and wellness.
+  const prompt = `You are Scrappy, a trend scout for ${brand.name} via Cloud Scenic Vantus.
 
-Analyze the top 20 performing content pieces in the wellness/hydration space and identify the best performing hooks, body copy patterns, and CTAs.
+${brand.name} brand context:
+${brand.voice || "(No brand voice configured — base analysis on the content concept alone.)"}
+
+Analyze the top 20 performing content pieces in this brand's space and identify the best performing hooks, body copy patterns, and CTAs.
 
 Return ONLY valid JSON (no markdown) in this exact format:
 {
   "hooks": [
-    { "rank": 1, "text": "combined hook summary", "voice_hook": "exact words spoken in first 3 seconds", "text_hook": "ON-SCREEN TEXT IN CAPS", "platform": "TikTok", "views": "4.2M", "engagement": "11.4%", "why": "Sentence one about psychology. Sentence two about format. Sentence three about why it stops the scroll.", "adaptation": "VitalLyfe version of this hook" },
-    { "rank": 2, "text": "combined hook summary", "voice_hook": "spoken hook text", "text_hook": "ON-SCREEN TEXT", "platform": "Instagram", "views": "2.1M", "engagement": "8.7%", "why": "Why it worked.", "adaptation": "VitalLyfe version" },
-    { "rank": 3, "text": "combined hook summary", "voice_hook": "spoken hook text", "text_hook": "ON-SCREEN TEXT", "platform": "TikTok", "views": "1.8M", "engagement": "7.2%", "why": "Why it worked.", "adaptation": "VitalLyfe version" }
+    { "rank": 1, "text": "combined hook summary", "voice_hook": "exact words spoken in first 3 seconds", "text_hook": "ON-SCREEN TEXT IN CAPS", "platform": "TikTok", "views": "4.2M", "engagement": "11.4%", "why": "Sentence one about psychology. Sentence two about format. Sentence three about why it stops the scroll.", "adaptation": "${brand.name} version of this hook" },
+    { "rank": 2, "text": "combined hook summary", "voice_hook": "spoken hook text", "text_hook": "ON-SCREEN TEXT", "platform": "Instagram", "views": "2.1M", "engagement": "8.7%", "why": "Why it worked.", "adaptation": "${brand.name} version" },
+    { "rank": 3, "text": "combined hook summary", "voice_hook": "spoken hook text", "text_hook": "ON-SCREEN TEXT", "platform": "TikTok", "views": "1.8M", "engagement": "7.2%", "why": "Why it worked.", "adaptation": "${brand.name} version" }
   ],
   "bodies": [
-    { "rank": 1, "text": "body copy summary", "voice_body": "what they actually say in the body", "text_body": "KEY STAT OR TEXT SHOWN ON SCREEN", "platform": "Instagram", "views": "3.1M", "engagement": "9.2%", "why": "Why this body copy structure works in 2-3 sentences.", "adaptation": "VitalLyfe version" },
-    { "rank": 2, "text": "body copy summary", "voice_body": "spoken body copy", "text_body": "ON-SCREEN TEXT", "platform": "TikTok", "views": "2.4M", "engagement": "8.1%", "why": "Why it worked.", "adaptation": "VitalLyfe version" },
-    { "rank": 3, "text": "body copy summary", "voice_body": "spoken body copy", "text_body": "ON-SCREEN TEXT", "platform": "YouTube", "views": "1.2M", "engagement": "6.3%", "why": "Why it worked.", "adaptation": "VitalLyfe version" }
+    { "rank": 1, "text": "body copy summary", "voice_body": "what they actually say in the body", "text_body": "KEY STAT OR TEXT SHOWN ON SCREEN", "platform": "Instagram", "views": "3.1M", "engagement": "9.2%", "why": "Why this body copy structure works in 2-3 sentences.", "adaptation": "${brand.name} version" },
+    { "rank": 2, "text": "body copy summary", "voice_body": "spoken body copy", "text_body": "ON-SCREEN TEXT", "platform": "TikTok", "views": "2.4M", "engagement": "8.1%", "why": "Why it worked.", "adaptation": "${brand.name} version" },
+    { "rank": 3, "text": "body copy summary", "voice_body": "spoken body copy", "text_body": "ON-SCREEN TEXT", "platform": "YouTube", "views": "1.2M", "engagement": "6.3%", "why": "Why it worked.", "adaptation": "${brand.name} version" }
   ],
   "ctas": [
-    { "rank": 1, "text": "CTA summary", "voice_cta": "what they say for the CTA", "text_cta": "ON-SCREEN CTA TEXT 👇", "platform": "TikTok", "views": "5.1M", "engagement": "12.1%", "why": "Why this CTA converts in 2-3 sentences.", "adaptation": "VitalLyfe version" },
-    { "rank": 2, "text": "CTA summary", "voice_cta": "spoken CTA", "text_cta": "ON-SCREEN CTA", "platform": "Instagram", "views": "2.8M", "engagement": "9.4%", "why": "Why it worked.", "adaptation": "VitalLyfe version" },
-    { "rank": 3, "text": "CTA summary", "voice_cta": "spoken CTA", "text_cta": "ON-SCREEN CTA", "platform": "Instagram", "views": "1.9M", "engagement": "7.8%", "why": "Why it worked.", "adaptation": "VitalLyfe version" }
+    { "rank": 1, "text": "CTA summary", "voice_cta": "what they say for the CTA", "text_cta": "ON-SCREEN CTA TEXT 👇", "platform": "TikTok", "views": "5.1M", "engagement": "12.1%", "why": "Why this CTA converts in 2-3 sentences.", "adaptation": "${brand.name} version" },
+    { "rank": 2, "text": "CTA summary", "voice_cta": "spoken CTA", "text_cta": "ON-SCREEN CTA", "platform": "Instagram", "views": "2.8M", "engagement": "9.4%", "why": "Why it worked.", "adaptation": "${brand.name} version" },
+    { "rank": 3, "text": "CTA summary", "voice_cta": "spoken CTA", "text_cta": "ON-SCREEN CTA", "platform": "Instagram", "views": "1.9M", "engagement": "7.8%", "why": "Why it worked.", "adaptation": "${brand.name} version" }
   ],
   "message": "🎣 Hook analysis complete — top 3 hooks, body copy, and CTAs surfaced from 20 competitor posts"
 }
 
-Base your analysis on real patterns that perform well in wellness, hydration, water tech, and startup founder content. Make the VitalLyfe adaptations specific and immediately usable.`;
+Base your analysis on real patterns that perform well in this brand's space and target audience. Make the ${brand.name} adaptations specific and immediately usable.`;
 
   const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -950,11 +985,14 @@ Base your analysis on real patterns that perform well in wellness, hydration, wa
 
 // ─── CID: BUILD BRIEF ─────────────────────────────────────────────────────────
 
-async function cid_build_brief(payload) {
+async function cid_build_brief(payload, brand) {
   if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY not set");
   const { title, hook, voiceHook, textHook, voiceBody, textBody, voiceCta, textCta, format, trigger, variation, platform } = payload;
 
-  const prompt = `You are a creative director building a production brief for VitalLyfe — a water technology company focused on hydration innovation and water access.
+  const prompt = `You are a creative director building a production brief for ${brand.name} via Cloud Scenic Vantus.
+
+${brand.name} brand context:
+${brand.voice || "(No brand voice configured — work from the competitor analysis alone.)"}
 
 Based on this winning competitor content analysis, build a complete production brief:
 
@@ -968,11 +1006,11 @@ BODY (Text on Screen): ${textBody || ''}
 CTA (Voice): ${voiceCta || ''}
 CTA (Text on Screen): ${textCta || ''}
 EMOTIONAL TRIGGER: ${trigger}
-VITALLYFE VARIATION: ${variation}
+${brand.name.toUpperCase()} VARIATION: ${variation}
 
 Return ONLY valid JSON (no markdown):
 {
-  "title": "VitalLyfe version of the content title",
+  "title": "${brand.name} version of the content title",
   "concept": "2-3 sentence creative concept",
   "format": "${format}",
   "platform": "${platform}",
@@ -1019,18 +1057,21 @@ Return ONLY valid JSON (no markdown):
 
 // ─── CID: A/B VARIATIONS ──────────────────────────────────────────────────────
 
-async function cid_ab_variations(payload) {
+async function cid_ab_variations(payload, brand) {
   if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY not set");
   const { hook, trigger, variation, platform, format } = payload;
 
-  const prompt = `You are a content strategist for VitalLyfe — a water technology company.
+  const prompt = `You are a content strategist for ${brand.name} via Cloud Scenic Vantus.
+
+${brand.name} brand context:
+${brand.voice || "(No brand voice configured — focus on platform performance and hook mechanics.)"}
 
 Based on this winning hook concept: "${hook}"
 Trigger type: ${trigger}
 Platform: ${platform}
-Original VitalLyfe variation: "${variation}"
+Original ${brand.name} variation: "${variation}"
 
-Generate 3 distinct A/B variations for VitalLyfe, each with a different angle. Rank them by predicted performance.
+Generate 3 distinct A/B variations for ${brand.name}, each with a different angle. Rank them by predicted performance.
 
 Return ONLY valid JSON:
 {
@@ -1080,17 +1121,20 @@ Return ONLY valid JSON:
 
 // ─── MAIN HANDLER ─────────────────────────────────────────────────────────────
 
-async function muse_ig_ideas(payload = {}) {
+async function muse_ig_ideas(payload = {}, brand) {
   const { campaign = "Drip Campaign" } = payload;
   const pillars = ["Abundance", "Access", "Innovation", "Tierra Bomba", "Startup Diaries", "Product Launch", "Meet the Makers"];
   const existing = await sbGet("content_items", "?platform=eq.instagram&order=id.desc&limit=20");
   const existingTitles = existing.map(i => i.title).join(", ");
+  const brandHashtag = "#" + (brand.name || "").replace(/\s+/g, "");
 
-  const systemPrompt = `You are Muse, Content Ideation Agent for VitalLyfe Vantus by Cloud Scenic.
-Generate exactly 5 Instagram content ideas. Brand voice: cinematic, calm, purposeful.
+  const systemPrompt = `You are Muse, Content Ideation Agent for ${brand.name} via Cloud Scenic Vantus.
+Generate exactly 5 Instagram content ideas.
+
+${brand.voice}
+
 Content pillars: ${pillars.join(", ")}.
 Instagram formats: Reel, Carousel, Graphics (IMG).
-AVOID: revolutionary, game-changing, exclamation points, generic corporate content.
 
 Return a JSON array of exactly 5 items only (no markdown, no backticks):
 [
@@ -1108,7 +1152,7 @@ Return a JSON array of exactly 5 items only (no markdown, no backticks):
     "script": "",
     "cta": "Join us (Link in bio)",
     "seoKeywords": "",
-    "hashtags": "#VitalLyfe",
+    "hashtags": "${brandHashtag}",
     "platforms": ["IG"],
     "startWeek": 1,
     "duration": 1,
@@ -1183,26 +1227,27 @@ exports.handler = async (event) => {
 
   const { action, payload = {}, client_id = null } = JSON.parse(event.body || "{}");
   const agent_name = deriveAgentName(action);
+  const brand = await getBrandContext(client_id);
 
   try {
     let result;
     switch (action) {
-      case "muse_write_content":     result = await muse_write_content(payload); break;
-      case "overseer_scan":          result = await overseer_scan(); break;
-      case "sean_briefing":          result = await sean_briefing(); break;
+      case "muse_write_content":     result = await muse_write_content(payload, brand); break;
+      case "overseer_scan":          result = await overseer_scan(brand); break;
+      case "sean_briefing":          result = await sean_briefing(brand); break;
       case "lacey_advance":          result = await lacey_advance(); break;
-      case "sam_health":             result = await sam_health(); break;
-      case "muse_from_brief":        result = await muse_from_brief(payload); break;
-      case "muse_generate_calendar": result = await muse_generate_calendar(); break;
+      case "sam_health":             result = await sam_health(brand); break;
+      case "muse_from_brief":        result = await muse_from_brief(payload, brand); break;
+      case "muse_generate_calendar": result = await muse_generate_calendar(brand); break;
       case "muse_save_calendar":     result = await muse_save_calendar(payload); break;
-      case "artgrid_scout":          result = await artgrid_scout(payload); break;
-      case "scrappy_research":       result = await scrappy_research(payload); break;
-      case "scrappy_muse_collab":    result = await scrappy_muse_collab(payload); break;
-      case "scrappy_hook_analysis":  result = await scrappy_hook_analysis(); break;
+      case "artgrid_scout":          result = await artgrid_scout(payload, brand); break;
+      case "scrappy_research":       result = await scrappy_research(payload, brand); break;
+      case "scrappy_muse_collab":    result = await scrappy_muse_collab(payload, brand); break;
+      case "scrappy_hook_analysis":  result = await scrappy_hook_analysis(brand); break;
       case "lacey_trigger_n8n":      result = await lacey_trigger_n8n(payload); break;
-      case "cid_build_brief":        result = await cid_build_brief(payload); break;
-      case "cid_ab_variations":      result = await cid_ab_variations(payload); break;
-      case "muse_ig_ideas":          result = await muse_ig_ideas(payload); break;
+      case "cid_build_brief":        result = await cid_build_brief(payload, brand); break;
+      case "cid_ab_variations":      result = await cid_ab_variations(payload, brand); break;
+      case "muse_ig_ideas":          result = await muse_ig_ideas(payload, brand); break;
       default:
         await logAgentEvent({
           agent_name: "Unknown",

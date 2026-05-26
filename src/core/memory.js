@@ -72,15 +72,7 @@ export const updateAgentMemory = (agentName, userInput, agentResponse) => {
   });
 };
 
-// Pre-seed Muse with brand context (call once on app mount)
-export const seedMuseMemory = () => {
-  if (!getMemory('Muse').brand) {
-    setMemory('Muse', {
-      brand: 'VitalLyfe',
-      niche: 'hydration wellness water autonomy',
-      tone: 'cinematic calm purposeful never corporate',
-      campaigns: ['Drip Campaign', 'Meet the Makers', 'Product Launch'],
-      pillars: ['Abundance', 'Access', 'Innovation', 'Tierra Bomba', 'Startup Diaries'],
-    });
-  }
-};
+// (Move 1) The old `seedMuseMemory()` hardcoded VitalLyfe brand context into
+// localStorage at app mount. It had zero callers and was blocking multi-tenancy
+// so it's been removed. Per-client brand voice now flows from
+// clients.brand_voice_md → agent-action.js getBrandContext() at request time.

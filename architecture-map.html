@@ -119,7 +119,7 @@
 
 <header>
   <h1>Vantus</h1>
-  <span class="subtitle">project dashboard · 2026-05-25</span>
+  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1)</span>
   <div class="tabs">
     <button class="tab active" data-tab="map">Map</button>
     <button class="tab" data-tab="bugs">Bugs &amp; Roadmap <span class="count" id="tab-bug-count">0</span></button>
@@ -181,22 +181,31 @@
       <h3>Surprises from this map</h3>
       <div class="finding">
         <b>All 8 files in <code style="font-family:'SF Mono',Menlo,monospace">src/agents/</code> are DEAD CODE.</b>
-        Zero importers. The real agent personas live inline in <code style="font-family:'SF Mono',Menlo,monospace">core/agentRegistry.js</code> + <code style="font-family:'SF Mono',Menlo,monospace">core/memory.js</code> + hardcoded prompts inside <code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code>. The folder was created during a Phase 2 refactor (per docs/REFACTOR_PLAN.md) but never wired up.
+        Zero importers (the only matches for <code style="font-family:'SF Mono',Menlo,monospace">"agents/"</code> in src/ point at <code style="font-family:'SF Mono',Menlo,monospace">src/ui/agents/</code>). Real agent personas live inline in <code style="font-family:'SF Mono',Menlo,monospace">core/agentRegistry.js</code>, <code style="font-family:'SF Mono',Menlo,monospace">core/memory.js</code>, and hardcoded prompts inside <code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code>. The folder was created during a Phase 2 refactor (per docs/REFACTOR_PLAN.md) but never wired up.
       </div>
       <div class="finding">
-        <b><code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code> is 1,255 lines</b> — a single file holding 16 action handlers, the Anthropic wrapper, Supabase REST helpers, Slack notifier, AND the new agent_events logger. Splitting it is documented in REFACTOR_PLAN.md but never executed. Editing one action means scrolling past a wall of unrelated code.
+        <b><code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/agent-action.js</code> is 1,263 lines</b> — a single file holding 16 action handlers, the Anthropic wrapper, Supabase REST helpers, Slack notifier, AND the agent_events logger. Splitting is documented in REFACTOR_PLAN.md but never executed. Editing one action means scrolling past a wall of unrelated code.
       </div>
       <div class="finding">
-        <b>Authentication is currently BYPASSED in App.jsx</b> (line 116-117). Anyone with the URL becomes the admin fallback user. Google OAuth provider is configured in Supabase but the code-exchange step fails — debugging postponed. See KNOWN_BUGS on the App node.
+        <b>Auth is LIVE — and split four ways.</b> <code style="font-family:'SF Mono',Menlo,monospace">App.jsx</code> <code style="font-family:'SF Mono',Menlo,monospace">setupSession()</code> at L72 branches on (1) admin = @cloudscenic.com, (2) approved external client via <code style="font-family:'SF Mono',Menlo,monospace">client_users</code> allowlist, (3) pending invite → PendingApprovalScreen with realtime unlock, (4) unknown email → blocked. All 5 protected functions now reject anonymous callers via <code style="font-family:'SF Mono',Menlo,monospace">_lib/requireUser.js</code>. The client side stamps every fetch with the access token via <code style="font-family:'SF Mono',Menlo,monospace">services/apiFetch.js</code> (26 call sites).
       </div>
       <div class="finding">
-        <b>Brain Move 1 (Cortex wiring) is half-done.</b> The <code style="font-family:'SF Mono',Menlo,monospace">clients.brand_voice_md</code> column exists and the AddClient modal lets you write it, but <code style="font-family:'SF Mono',Menlo,monospace">agent-action.js</code> ignores it — all agent prompts still use hardcoded VitalLyfe voice. Same for <code style="font-family:'SF Mono',Menlo,monospace">slack_channel_id</code> and <code style="font-family:'SF Mono',Menlo,monospace">n8n_webhook_url</code> per-client routing.
+        <b>Brain Move 1 (Cortex wiring) — SHIPPED 2026-05-26.</b> <code style="font-family:'SF Mono',Menlo,monospace">getBrandContext(client_id)</code> in <code style="font-family:'SF Mono',Menlo,monospace">agent-action.js</code> now reads <code style="font-family:'SF Mono',Menlo,monospace">clients.brand_voice_md</code> per request and interpolates into all 12 prompt sites. VitalLyfe seeded via <code style="font-family:'SF Mono',Menlo,monospace">20260526_seed_vitallyfe_brand_voice.sql</code>. Dead <code style="font-family:'SF Mono',Menlo,monospace">seedMuseMemory()</code> removed from <code style="font-family:'SF Mono',Menlo,monospace">memory.js</code>. Multi-tenancy at the agent layer is now real — adding a new client with their own brand voice gets their voice in generated content automatically.
       </div>
       <div class="finding">
-        <b>Functions are unauthenticated.</b> Only <code style="font-family:'SF Mono',Menlo,monospace">/api/cid-scrape</code> requires a bearer token. The other 5 deployed functions (chat, agent-action, notify, apify-scrape, unsplash) accept anonymous POSTs and use server-side service keys / Anthropic budget. Anyone on the internet can hit them.
+        <b>Per-client Slack routing works; per-client n8n does not.</b> <code style="font-family:'SF Mono',Menlo,monospace">notify.js</code> reads <code style="font-family:'SF Mono',Menlo,monospace">clients.slack_webhook_url</code> when client_id is on the payload (commit 702f867), falling back to global <code style="font-family:'SF Mono',Menlo,monospace">SLACK_WEBHOOK_URL</code>. n8n still uses one global webhook for every client (Fix #7).
+      </div>
+      <div class="finding">
+        <b>Auth-lock contention can hang the app.</b> Multi-tab usevantus.com or stale localStorage causes <code style="font-family:'SF Mono',Menlo,monospace">supabase-js</code> to deadlock on <code style="font-family:'SF Mono',Menlo,monospace">navigator.locks</code> during <code style="font-family:'SF Mono',Menlo,monospace">getSession()</code> / <code style="font-family:'SF Mono',Menlo,monospace">signOut()</code>. Mitigated by a 4s <code style="font-family:'SF Mono',Menlo,monospace">stuckGuard</code> timeout in App.jsx but not auto-recovered. Manual workaround: <code style="font-family:'SF Mono',Menlo,monospace">localStorage.clear(); location.reload()</code>.
+      </div>
+      <div class="finding">
+        <b><code style="font-family:'SF Mono',Menlo,monospace">content_items</code> has no migration file.</b> Schema lives only in live Supabase — local dev expectations can drift from production silently. Every other table in the data column has a migration. Worth backfilling.
       </div>
       <div class="finding">
         <b>Main JS bundle is 777 KB</b> (gzip 199 KB). The bulk is <code style="font-family:'SF Mono',Menlo,monospace">pdfjs-dist</code> (405 KB on disk) which is only used by Brief→Content. Dynamic-importing it would cut the bundle in half for everyone who never opens that page.
+      </div>
+      <div class="finding">
+        <b>Higgsfield Studio still untracked.</b> <code style="font-family:'SF Mono',Menlo,monospace">src/apps/higgsfield/HiggsfieldStudio.jsx</code> + <code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/higgsfield.js</code> + edits to <code style="font-family:'SF Mono',Menlo,monospace">apps.config.js</code> + <code style="font-family:'SF Mono',Menlo,monospace">utils/constants.js</code> all sit dirty in the working tree. They must ship in one commit (broke CI last time when split) — or be deleted.
       </div>
       <h3>Map stats</h3>
       <p class="muted" id="map-stats"></p>
@@ -236,21 +245,22 @@ const nodes = [
   N('app', 'client', 'App.jsx', 'root + state + auth gate', 40, 180, 240, 90, 'client', {
     role: 'Root React tree: auth gate (admin / approved client / pending invite / unknown), currentClient state, content/notifications/clients fetch + realtime subs, layout shell, every nav route handler.',
     plain: 'The big brain of the frontend. It checks who is logged in (agency admin, approved external client, or someone waiting on an invite), picks the active client, loads all the data, and decides which page to show based on the sidebar item you clicked.',
-    path: 'src/App.jsx (1,500+ lines)',
+    path: 'src/App.jsx (1,646 lines)',
     notes: [
-      'L67+: setupSession — branches on @cloudscenic.com (admin) vs client_users allowlist (external)',
+      'L51: ADMIN_EMAILS hardcoded allowlist (cz/dv/ss @ cloudscenic.com)',
+      'L72: setupSession — branches on @cloudscenic.com (admin) vs client_users allowlist (external)',
       'PendingApprovalScreen renders for status=pending; auto-unlocks via realtime when admin approves',
-      '4s stuckGuard timeout forces checking=false to survive supabase-js auth lock hangs',
-      'L1025+: giant route switch (one ternary per nav id)',
+      'L204: 4s stuckGuard timeout forces checking=false to survive supabase-js auth lock hangs',
+      'L1200+: giant render switch (one block per nav id)',
     ],
     tag: ['overview','auth','multi-tenant','content','agents','notifications','all'],
     critical: true,
   }),
   N('login', 'client', 'LoginScreen.jsx', 'Google OAuth button', 40, 295, 240, 50, 'client', {
     role: '"Continue with Google" button calling sb.auth.signInWithOAuth + URL-error display.',
-    plain: 'The login page. Currently never shown because auth is bypassed in App.jsx.',
+    plain: 'The login page. Now LIVE: shown to anyone without a session. Admins land on full Vantus; approved external clients land on ClientView; pending invites land on PendingApprovalScreen.',
     path: 'src/ui/layout/LoginScreen.jsx',
-    notes: ['Renders sb.auth.signInWithOAuth with hd:cloudscenic.com hint','Currently dormant (auth bypass)','Parses URL ?error= params for surfaced auth failures'],
+    notes: ['Renders sb.auth.signInWithOAuth with hd:cloudscenic.com hint for admin path','External clients sign in with the same Google button — gated by client_users allowlist','Parses URL ?error= params for surfaced auth failures'],
     tag: ['auth','all'],
   }),
   N('addclient', 'client', 'AddClientModal.jsx', 'create + edit + team', 40, 360, 240, 65, 'client', {
@@ -342,13 +352,14 @@ const nodes = [
   N('agent-action', 'routes', '/api/agent-action', 'agent-action.js', 340, 180, 200, 75, 'route', {
     role: '16-action switch over POST {action,payload,client_id}; routes to muse_/sean_/lacey_/sam_/overseer_/artgrid_/scrappy_/cid_ handlers, logs to agent_events, posts to Slack.',
     plain: 'The single endpoint every agent action goes through. The user clicks a button, Vantus POSTs {action: "muse_write_content"} here, and this file figures out what to do, calls Claude, writes the result to the database, and tells Slack.',
-    path: 'netlify/functions/agent-action.js (1,255 lines — monolith)',
+    path: 'netlify/functions/agent-action.js (1,302 lines — monolith)',
     notes: [
-      'L122: model = claude-haiku-4-5-20251001 (upgraded from deprecated haiku-3)',
-      'L1106-1252: exports.handler with switch + try/catch/finally for logging',
-      'L63-80: logAgentEvent wrapper for agent_events table',
-      'L14-27: SLACK_AGENT_LABELS for per-action post formatting',
-      'Holds 16 different handler functions inline — splitting deferred',
+      'L94: getBrandContext(client_id) — reads clients.brand_voice_md, falls back gracefully (Move 1, 2026-05-26)',
+      'L127: model = claude-haiku-4-5-20251001 (upgraded from deprecated haiku-3)',
+      'L1188: brand context fetched once per request, passed to every handler',
+      'L1198: exports.handler with switch (L1227) + try/catch/finally for logging',
+      'L67: logAgentEvent wrapper for agent_events table',
+      'L18: SLACK_AGENT_LABELS for per-action post formatting',
     ],
     tag: ['overview','agents','content','cid','all'],
     critical: true,
@@ -436,9 +447,10 @@ const nodes = [
   N('memory', 'services', 'memory.js', 'agent memory store', 600, 180, 200, 60, 'service', {
     role: 'localStorage-backed per-agent memory + buildSystemPrompt composer + updateAgentMemory hook.',
     plain: 'Where each agent\'s "memory" is stored in the browser. Builds the prompt sent to Claude by stuffing in agent identity + accumulated context.',
-    path: 'src/core/memory.js (86 lines)',
+    path: 'src/core/memory.js (79 lines)',
     notes: [
-      'L75-81: Muse pre-seed (brand:VitalLyfe, tone:...) — hardcoded, blocks Move 1',
+      'Move 1 (2026-05-26): hardcoded VitalLyfe seedMuseMemory() removed — zero callers anyway',
+      'Per-client brand voice now flows from clients.brand_voice_md via agent-action.js server-side',
       'localStorage key per agent — wipes on browser clear',
       'updateAgentMemory: appends last user msg + AI response',
     ],
@@ -549,7 +561,7 @@ const nodes = [
     role: 'role (admin|client), email — FK to auth.users.id. Drives ClientView vs Vantus routing in App.jsx.',
     plain: 'Tells the app which users are admins and which are clients (so admins see the full dashboard, clients see the simpler approval view).',
     path: 'supabase/migrations/002_profiles.sql',
-    notes: ['Currently bypassed (auth off)','Admin email allowlist baked in App.jsx ADMIN_EMAILS'],
+    notes: ['Active — referenced by App.jsx admin path','Admin email allowlist hardcoded at App.jsx:51 ADMIN_EMAILS (cz/dv/ss @ cloudscenic.com)','Client-side role lookup happens after setupSession admin/client branching'],
     tag: ['auth','all'],
   }),
   N('cid-posts-tbl', 'data', 'cid_posts table', 'competitor intel scrapes', 860, 480, 200, 60, 'db', {
@@ -603,10 +615,10 @@ const nodes = [
     tag: ['notifications','all'],
   }),
   N('slack', 'external', 'Slack', 'incoming webhook', 1120, 330, 200, 55, 'external', {
-    role: 'SLACK_WEBHOOK_URL → posts to #vitallyfe-war-room as "VitalLyfe War Room" bot.',
-    plain: 'Slack notifications go here. Used by agent-action.js for every action + notify.js for client events.',
+    role: 'SLACK_WEBHOOK_URL (global) + per-client clients.slack_webhook_url → incoming webhook posts.',
+    plain: 'Slack notifications go here. notify.js now picks the per-client webhook when known; agent-action.js still uses the global one.',
     path: 'External · hooks.slack.com',
-    notes: ['Currently global — does NOT use client.slack_channel_id yet','Posts from agent-action AND notify','postToSlack wrapper in both files'],
+    notes: ['notify.js L157-162: per-client lookup of clients.slack_webhook_url, falls back to global env (commit 702f867)','agent-action.js: still uses global SLACK_WEBHOOK_URL for every action','Per-client routing for agent-action TBD — same pattern as notify would work'],
     tag: ['agents','notifications','all'],
   }),
   N('n8n', 'external', 'n8n cloud', 'automation webhook', 1120, 400, 200, 55, 'external', {
@@ -759,15 +771,11 @@ const FIXES = {
     { n: 2, t: 'Split into smaller components: App.jsx is 1,500+ lines. Phase 3.x of REFACTOR_PLAN.md.' },
   ],
   'agent-action': [
-    { n: 3, t: 'Move 1 (Cortex wiring): replace hardcoded "VitalLyfe brand voice" prompts with per-client lookup of clients.brand_voice_md.' },
     { n: 4, t: 'Split 16 action handlers into per-handler files; keep this as router only.' },
   ],
   'notify': [
     { n: 7, t: 'Wire per-client n8n routing (Slack already done — see commit 702f867).' },
     { n: 15, t: 'Switch from Slack incoming webhook to bot token (chat.postMessage) for agent-attributed messages — see open-items.md.' },
-  ],
-  'memory': [
-    { n: 3, t: 'Move 1: remove hardcoded VitalLyfe pre-seed at L75-81; pull from clients.brand_voice_md.' },
   ],
   'dead-agents': [
     { n: 8, t: 'DELETE the entire src/agents/ folder — 8 unused files. Or complete the Phase 2 refactor and actually wire them up.' },
@@ -784,7 +792,8 @@ const FIXES = {
 };
 
 /* ────────────────────────────────────────────────────────────────────
-   ✅ CLOSED 2026-05-25 (kept here for history; no badges rendered):
+   ✅ CLOSED (kept here for history; no badges rendered):
+     2026-05-25
      #1  OAuth + auth bypass             → commit 8e5095e, hotfix d0acec3
      #5  Caller auth on 5 functions      → commit 2a9c9c1 (chat,
                                             agent-action, notify,
@@ -792,22 +801,23 @@ const FIXES = {
      #6  Per-client Slack routing        → commit 702f867
      +   External-client invite/allowlist→ commit 2a9c9c1 + 19b6235
          (client_users table, requireUser, ClientTeamPanel)
+     2026-05-26
+     #3  Brain Move 1 (Cortex wiring)    → getBrandContext() + 12 prompt
+                                            sites reading clients.brand_voice_md;
+                                            seedMuseMemory removed from memory.js;
+                                            VitalLyfe seeded via SQL migration
    ──────────────────────────────────────────────────────────────────── */
 
 const KNOWN_BUGS = {
   'app': [
-    { sev:'med',  ref:'L1500+',   t:'1,500+ line component. Cognitive load + harder to test in isolation.' },
-    { sev:'low',  t:'supabase-js auth lock can hang the app when multiple usevantus.com tabs are open or localStorage is stale. Mitigated by 4s stuckGuard timeout in App.jsx; not yet auto-recovering. Workaround: localStorage.clear() + reload.' },
+    { sev:'med',  ref:'L1646',   t:'1,646 line component. Cognitive load + harder to test in isolation. Split tracked in REFACTOR_PLAN.md Phase 3.x.' },
+    { sev:'med',  ref:'L204',    t:'supabase-js auth lock can hang the app when multiple usevantus.com tabs are open or localStorage is stale. Mitigated by 4s stuckGuard timeout (L204); not yet auto-recovering. Workaround: localStorage.clear() + reload.' },
   ],
   'agent-action': [
-    { sev:'med',  ref:'L1255',          t:'Monolith: 1,255 lines, 16 action handlers + Anthropic + Supabase + Slack helpers all in one file.' },
-    { sev:'med',  ref:'L138-144',       t:'Brand voice ("VitalLyfe", "cinematic, calm, purposeful") hardcoded in muse_write_content system prompt — wrong for any non-VitalLyfe client.' },
+    { sev:'med',  ref:'L1302',          t:'Monolith: 1,302 lines, 16 action handlers + Anthropic + Supabase + Slack helpers all in one file. Fix #4.' },
   ],
   'cid-posts-tbl': [
     { sev:'low',  t:'REST count probe returns 404 — table may exist but with stricter RLS than other tables. Verify in Supabase dashboard.' },
-  ],
-  'memory': [
-    { sev:'med',  ref:'L75-81', t:'Hardcoded Muse pre-seed (brand:VitalLyfe, tone:cinematic calm purposeful…) blocks multi-tenancy from working correctly.' },
   ],
   'briefgen': [
     { sev:'low',  t:'pdfjs-dist (405KB) loaded eagerly even when this page is never opened. Bundle bloat for ~95% of users.' },
