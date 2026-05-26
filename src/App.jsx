@@ -29,7 +29,6 @@ import TeamBroadcast from './ui/agents/TeamBroadcast.jsx';
 import ArtgridScoutPage from './apps/artgrid/ArtgridScoutPage.jsx';
 import ShotRefScout from './apps/shot-ref/ShotRefScout.jsx';
 import HeroGeneratorPage from './apps/hero-gen/HeroGeneratorPage.jsx';
-import AgentChatPage from './ui/agents/AgentChatPage.jsx';
 import EditContentModal from './ui/pipeline/EditContentModal.jsx';
 import CIDPage from './apps/competitor-intel/CIDPage.jsx';
 import ICPPage from './ui/command/ICPPage.jsx';
@@ -43,6 +42,7 @@ import OpsBoard from './ui/dashboard/OpsBoard.jsx';
 import ContentPipelineBoard from './ui/pipeline/ContentPipelineBoard.jsx';
 import AddClientModal from './ui/clients/AddClientModal.jsx';
 import DashboardRoute from './ui/routes/DashboardRoute.jsx';
+import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 
 //  ROOT APP WRAPPER
 const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
@@ -1239,7 +1239,7 @@ return (
 
     {/* AGENTS */}
     {activeNav === "agents" && (
-      <AgentChatPage agents={agents} content={content} currentClient={currentClient} />
+      <AgentsRoute agents={agents} content={content} currentClient={currentClient} />
     )}
 
     {/* CONTENT (unified: Instagram / TikTok / YouTube with tab switcher) */}
