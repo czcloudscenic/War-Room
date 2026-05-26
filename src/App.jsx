@@ -1309,7 +1309,7 @@ return (
 
     {/* AGENTS */}
     {activeNav === "agents" && (
-      <AgentChatPage agents={agents} content={content} />
+      <AgentChatPage agents={agents} content={content} currentClient={currentClient} />
     )}
 
     {/* CONTENT (unified: Instagram / TikTok / YouTube with tab switcher) */}

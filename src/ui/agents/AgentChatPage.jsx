@@ -32,7 +32,7 @@ try {
   );
 }
 
-export default function AgentChatPage({ agents, content }) {
+export default function AgentChatPage({ agents, content, currentClient }) {
   const isMobile = useIsMobile();
   const [mobileAgentList, setMobileAgentList] = useState(false);
   const PROMPTS = {
@@ -104,7 +104,12 @@ try {
   const res = await apiFetch("/api/agent-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ agentName: sel.name, action, payload: finalPayload }),
+    body: JSON.stringify({
+      agentName: sel.name,
+      action,
+      payload: finalPayload,
+      client_id: currentClient?.id || null,
+    }),
   });
   const d = await res.json();
   if (d.error) throw new Error(d.error);
@@ -174,13 +179,22 @@ setHists(h => ({ ...h, [sel.id]: thread }));
 setBusy(true);
 try {
   const ctx = content.length > 0 ? " Pipeline: " + content.slice(0,5).map(c => c.title + "[" + c.stage + "]").join(", ") : "";
+  // Inject the active client's brand voice (or the per-run override) so free-form
+  // chat respects the same voice as quick actions. /api/chat is a pure proxy so
+  // the system prompt has to carry the context client-side.
+  const trimmedOverride = voiceOverride.trim();
+  const effectiveVoice = trimmedOverride || currentClient?.brand_voice_md || "";
+  const brandName = currentClient?.name || "the brand";
+  const brandBlock = effectiveVoice
+    ? `\n\nActive client: ${brandName}.\nBrand voice & guidelines:\n${effectiveVoice}`
+    : (currentClient?.name ? `\n\nActive client: ${brandName}.` : "");
   const res = await apiFetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
       max_tokens: 1000,
-      system: buildSystemPrompt(sel.name, PROMPTS[sel.name]) + ctx,
+      system: buildSystemPrompt(sel.name, PROMPTS[sel.name]) + ctx + brandBlock,
       messages: thread.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
     }),
   });
