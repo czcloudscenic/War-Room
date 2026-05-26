@@ -38,7 +38,7 @@ const agentPromises = agents.map(async (agent) => {
     const res = await apiFetch("/api/chat", {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
-        model:"claude-sonnet-4-20250514", max_tokens:200,
+        model:"claude-sonnet-4-6", max_tokens:200,
         system: AGENT_SYSTEM[agent.name] || `You are ${agent.name}, an agent in the VitalLyfe Vantus. Respond to the brief concisely.`,
         messages:[{role:"user",content:text}]
       })

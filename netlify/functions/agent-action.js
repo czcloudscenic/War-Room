@@ -1227,7 +1227,11 @@ exports.handler = async (event) => {
 
   const { action, payload = {}, client_id = null } = JSON.parse(event.body || "{}");
   const agent_name = deriveAgentName(action);
-  const brand = await getBrandContext(client_id);
+  let brand = await getBrandContext(client_id);
+  // Per-request voice override — replaces brand.voice for this one call without
+  // touching clients.brand_voice_md. Useful for "try a punchier tone" runs.
+  const voiceOverride = (payload.voiceOverride || "").trim();
+  if (voiceOverride) brand = { ...brand, voice: voiceOverride };
 
   try {
     let result;

@@ -33,7 +33,7 @@ export default function CIDPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-6",
           max_tokens: 2000,
           system: `You are a content strategist for VitalLyfe — a wellness/hydration technology brand by Cloud Scenic. VitalLyfe makes portable water purification units. The brand voice is: calm, capable, authentic, cinematic. NOT corporate, NOT salesy. Think founder-led content, lifestyle integration, and real human stories.
 

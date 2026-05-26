@@ -31,7 +31,7 @@ export async function routeTask(input) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 400,
           system: buildSystemPrompt(agentName, ROUTE_PROMPTS[agentName]),
           messages: [{ role: 'user', content: input }],

@@ -217,7 +217,7 @@ function TheFlow({ ideas }) {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
-          model:"claude-sonnet-4-20250514",
+          model:"claude-sonnet-4-6",
           max_tokens:1000,
           system:`You are the creative strategist for Vital Lyfe, a water technology company. Your brand voice is calm, confident, cinematic, and purposeful. You write in clear prose — no bullet lists. Think editorial, not corporate. The internal tracker tool is called "The Flow." Write a brief, energetic overview (3-4 paragraphs) of the current content pipeline state for the team. Be specific about what's moving, what needs attention, and what's looking strong. Sign off with a motivational one-liner that feels on-brand with Vital Lyfe's mission around water, access, and innovation.`,
           messages:[{role:"user",content:`Here is our current content pipeline data:\n\n${JSON.stringify(summary,null,2)}\n\nItems needing attention: ${summary.needsAttention.join(", ")||"none"}\n\nWrite The Flow overview.`}]
@@ -548,7 +548,7 @@ function GanttPage({ideas}){
     const summary=ideas.map(i=>({title:i.title,campaign:i.campaign,format:i.format,status:i.status,pillar:i.pillar}));
     try{
       const res=await apiFetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",max_tokens:800,
+        model:"claude-sonnet-4-6",max_tokens:800,
         system:`You are a content strategy expert for Vital Lyfe. Suggest an optimal publishing timeline for the content items. Respond ONLY with a valid JSON array, no markdown, no explanation. Each item: {"id": number, "startWeek": number, "duration": number}. startWeek 1-12, duration 1-4. Prioritize: urgency items first, product launch content weeks 5-8, approved drip content spread weeks 1-4, meet the makers weeks 3-6.`,
         messages:[{role:"user",content:`Suggest timeline for these items:\n${JSON.stringify(summary)}`}]
       })});
@@ -862,7 +862,7 @@ ${ideas.map(i=>`\u2022 "${i.title}" | ${i.campaign} | ${i.status} | ${(i.format|
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
+          model:"claude-sonnet-4-6",
           max_tokens:900,
           system:buildContext(),
           messages:newMsgs.filter(m=>m.role!=="system").map(m=>({role:m.role,content:m.content})),

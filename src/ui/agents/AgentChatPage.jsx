@@ -77,6 +77,8 @@ try {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
+  const [voiceOverride, setVoiceOverride] = useState("");
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const msgs = hists[sel.id] || [];
@@ -95,11 +97,14 @@ if (actionBusy) return;
 setActionBusy(true);
 const sysMsg = { role: "system", content: "⏳ Running action…", ts: Date.now(), loading: true };
 setHists(h => ({ ...h, [sel.id]: [...(h[sel.id]||[]), sysMsg] }));
+// Merge in voice override if user has typed one; trimmed to avoid empty-string POSTs.
+const trimmedOverride = voiceOverride.trim();
+const finalPayload = trimmedOverride ? { ...payload, voiceOverride: trimmedOverride } : payload;
 try {
   const res = await apiFetch("/api/agent-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ agentName: sel.name, action, payload }),
+    body: JSON.stringify({ agentName: sel.name, action, payload: finalPayload }),
   });
   const d = await res.json();
   if (d.error) throw new Error(d.error);
@@ -173,7 +178,7 @@ try {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 1000,
       system: buildSystemPrompt(sel.name, PROMPTS[sel.name]) + ctx,
       messages: thread.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
@@ -250,6 +255,40 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
       </div>
       {msgs.length > 0 && <button onClick={() => setHists(h => { const n = { ...h, [sel.id]: [] }; try { const t={}; Object.keys(n).forEach(k=>{t[k]=(n[k]||[]).slice(-10);}); localStorage.setItem("vantus_agent_hists",JSON.stringify(t)); } catch {} return n; })} style={{ background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, color:"rgba(255,255,255,0.35)", fontSize:11, cursor:"pointer", padding:"5px 11px", fontFamily:"Inter,sans-serif" }}>Clear</button>}
     </div>
+
+    {/*  VOICE OVERRIDE (per-request)  */}
+    {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Overseer" || sel.name === "Lacey" || sel.name === "Sam" || sel.name === "Artgrid" || sel.name === "Scrappy") && (
+      <div style={{ padding:"6px 16px 4px", borderBottom: voiceOpen ? "1px solid rgba(255,255,255,0.07)" : "none", background:"rgba(0,0,0,0.015)", flexShrink:0 }}>
+        <button onClick={() => setVoiceOpen(v => !v)}
+          style={{ background:"none", border:"none", padding:0, color:"rgba(255,255,255,0.4)", fontSize:10, fontWeight:600, letterSpacing:0.6, textTransform:"uppercase", cursor:"pointer", fontFamily:"Inter,sans-serif", display:"flex", alignItems:"center", gap:5 }}>
+          <span style={{ display:"inline-block", transform: voiceOpen ? "rotate(90deg)" : "none", transition:"transform 0.15s" }}>▸</span>
+          Override voice for this run
+          {voiceOverride.trim() && !voiceOpen && (
+            <span style={{ fontSize:9, color:sel.color, background:sel.color + "15", padding:"1px 7px", borderRadius:10, letterSpacing:0, textTransform:"none", marginLeft:4 }}>active</span>
+          )}
+        </button>
+        {voiceOpen && (
+          <div style={{ marginTop:6, marginBottom:4 }}>
+            <textarea
+              value={voiceOverride}
+              onChange={e => setVoiceOverride(e.target.value)}
+              placeholder={"e.g. punchier, more energetic, drop the cinematic vibe — short bursts, urgent tone. Leave empty to use the client's saved brand voice."}
+              rows={2}
+              style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"7px 10px", color:"#f5f5f7", fontSize:11, outline:"none", fontFamily:"Inter,sans-serif", resize:"vertical", lineHeight:1.5 }}
+            />
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:4 }}>
+              <span style={{ fontSize:9, color:"rgba(255,255,255,0.35)" }}>Applies only to the next action click. Does not save to the client.</span>
+              {voiceOverride && (
+                <button onClick={() => setVoiceOverride("")}
+                  style={{ background:"none", border:"none", color:"rgba(255,255,255,0.4)", fontSize:10, cursor:"pointer", fontFamily:"Inter,sans-serif", padding:"2px 6px" }}>
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )}
 
     {/*  AGENT ACTION BUTTONS  */}
     {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Overseer" || sel.name === "Lacey" || sel.name === "Sam" || sel.name === "Artgrid" || sel.name === "Scrappy") && (

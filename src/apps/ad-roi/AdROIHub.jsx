@@ -39,7 +39,7 @@ try {
   const res = await apiFetch("/api/chat", {
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
-      model:"claude-sonnet-4-20250514", max_tokens:800,
+      model:"claude-sonnet-4-6", max_tokens:800,
       system:"You are Sam, Ad Performance Analyst for VitalLyfe's Vantus. Analyze ad campaign data and give sharp, actionable ROI insights. Brand: wellness/hydration tech. Be specific, data-driven, direct. Max 200 words. Lead with what needs to change NOW.",
       messages:[{role:"user",content:`Analyze these ad campaigns:\n${summary}\n\nTotal: Spend $${totalSpend}, Revenue $${totalRevenue}, ROAS ${overallROAS}x, ${totalLeads} leads, ${totalConversions} conversions\n\nGive: (1) What's performing, (2) What's bleeding money, (3) 3 specific optimizations to run this week.`}]
     })
