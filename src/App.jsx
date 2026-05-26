@@ -37,12 +37,12 @@ import ClientView from './ui/client/ClientView.jsx';
 import SettingsPage from './ui/settings/SettingsPage.jsx';
 import TypingTask from './ui/shared/TypingTask.jsx';
 import PlaceholderPage from './ui/shared/PlaceholderPage.jsx';
-import OpsBoard from './ui/dashboard/OpsBoard.jsx';
 import AddClientModal from './ui/clients/AddClientModal.jsx';
 import DashboardRoute from './ui/routes/DashboardRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
 import TrackerRoute from './ui/routes/TrackerRoute.jsx';
+import TaskboardRoute from './ui/routes/TaskboardRoute.jsx';
 
 //  ROOT APP WRAPPER
 const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
@@ -1280,11 +1280,7 @@ return (
 
     {/* TASK BOARD */}
     {activeNav === "taskboard" && (
-      <div style={{ animation:"fadeIn 0.4s ease" }}>
-        <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:6, letterSpacing:-1 }}>Task Board</h1>
-        <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", marginBottom:24 }}>Tasks auto-advance every ~20s · Add tasks to the backlog below</p>
-        <OpsBoard />
-      </div>
+      <TaskboardRoute />
     )}
 
     {activeNav === "cid" && React.createElement(CIDPage, null)}
