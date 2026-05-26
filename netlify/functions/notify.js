@@ -149,8 +149,23 @@ exports.handler = async (event) => {
     results.push({ channel: "email", ok: false, error: "RESEND_API_KEY not set" });
   }
 
-  // ── SLACK ───────────────────────────────────────────────────────────────────
-  const SLACK = process.env.SLACK_WEBHOOK_URL;
+  // ── SLACK (per-client webhook if available, else global fallback) ───────────
+  let SLACK = process.env.SLACK_WEBHOOK_URL;
+  if (client_id) {
+    try {
+      const cRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/clients?id=eq.${client_id}&select=slack_webhook_url`,
+        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      );
+      if (cRes.ok) {
+        const rows = await cRes.json();
+        const perClient = rows?.[0]?.slack_webhook_url;
+        if (perClient) SLACK = perClient;
+      }
+    } catch (e) {
+      console.warn("[notify] client slack lookup failed:", e.message);
+    }
+  }
   if (SLACK) {
     const slackBody = {
       blocks: [
