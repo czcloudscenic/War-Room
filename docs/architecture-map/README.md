@@ -4,7 +4,7 @@
 > Mirrors the interactive `architecture-map.html` at the repo root.
 > Drop this entire folder into any wiki / knowledge base — no rendering deps.
 
-**Snapshot date:** 2026-05-26 (post Move 1)
+**Snapshot date:** 2026-05-26 (post Move 1 + Fix #15)
 **Live URL:** https://usevantus.com
 **Repo:** https://github.com/czcloudscenic/War-Room (auto-deploys on push to `main`)
 
@@ -63,8 +63,8 @@ Both columns exist on `clients` (`slack_webhook_url`, `n8n_webhook_url`). Only S
 ### 6. `content_items` has no migration file
 Schema lives only in live Supabase. Drift risk between local dev expectations and prod. Every other table (`clients`, `agent_events`, `notifications`, `profiles`, `cid_posts`, `client_users`) has a proper migration file.
 
-### 7. supabase-js auth-lock contention can still hang the app
-Multi-tab usevantus.com or stale localStorage causes `sb.auth.getSession()` / `signOut()` to deadlock on `navigator.locks`. Mitigated by a 4s `stuckGuard` (App.jsx:204) but the underlying queries still error — user has to `localStorage.clear(); location.reload()`. Real fix would be auto-recovery in `setupSession`.
+### 7. Auth-lock contention auto-recovers — Fix #15 SHIPPED 2026-05-26
+When the 4s `stuckGuard` in `App.jsx` fires, it now clears just the `sb-*-auth-token` localStorage keys (preserving agent histories + apps prefs) and reloads. A one-shot `sessionStorage` flag prevents reload loops. The manual `localStorage.clear(); reload()` workaround is retired.
 
 ### 8. Main JS bundle is 777 KB (gzip 199 KB)
 The bulk is `pdfjs-dist` (405 KB on disk) which is only used by Brief→Content. Dynamic-importing it would cut the bundle in half for ~95% of users who never open that page.

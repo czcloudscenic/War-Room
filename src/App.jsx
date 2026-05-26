@@ -198,14 +198,42 @@ function App() {
   useEffect(() => {
     let cancelled = false;
 
-    // Hard timeout safety: no matter what supabase-js does, the loading
-    // spinner gets dismissed after 4 seconds. Prevents "stuck on spinner"
-    // from any lock contention / hung promise edge case.
+    // Fix #15 — auth-lock auto-recovery.
+    // supabase-js holds a navigator.locks mutex around getSession()/signOut().
+    // If a prior tab crashed mid-call (or the user has stale localStorage),
+    // the lock can deadlock — getSession() never resolves and the whole app
+    // hangs. Manual fix used to be `localStorage.clear(); reload()`.
+    // Now we do it automatically: stuckGuard fires after 4s, clears just the
+    // sb-*-auth-token keys, and reloads once. A sessionStorage flag prevents
+    // an infinite reload loop if the second attempt also hangs.
+    const RECOVERY_FLAG = "vantus_auth_recovery_attempted";
+
     const stuckGuard = setTimeout(() => {
-      if (!cancelled) {
-        console.warn("[auth] stuckGuard fired — forcing checking=false");
+      if (cancelled) return;
+      const alreadyTried = (() => { try { return sessionStorage.getItem(RECOVERY_FLAG); } catch { return null; } })();
+      if (alreadyTried) {
+        // Recovery already ran this tab; don't loop. Drop to login screen.
+        console.warn("[auth] stuckGuard fired again after recovery — falling through to login");
         setChecking(false);
+        return;
       }
+      console.warn("[auth] stuckGuard fired — auto-recovering (clearing sb auth keys + reload)");
+      try { sessionStorage.setItem(RECOVERY_FLAG, "1"); } catch {}
+      try {
+        // Clear only the supabase-js auth-token keys — preserve unrelated app state
+        // like vantus_agent_hists, vantus_current_client_id, apps prefs, etc.
+        const toRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (/^sb-.*-auth-token/.test(k) || k.startsWith("supabase.auth"))) toRemove.push(k);
+        }
+        toRemove.forEach(k => localStorage.removeItem(k));
+        console.log("[auth] recovery cleared", toRemove.length, "auth key(s):", toRemove);
+      } catch (e) {
+        console.warn("[auth] recovery localStorage clear failed", e);
+      }
+      // Reload — fastest path back to a working session
+      location.reload();
     }, 4000);
 
     // Initial session check (handles OAuth redirect-back: supabase-js reads
@@ -225,6 +253,8 @@ function App() {
       // Always flip checking off as soon as we hear from auth — even if getSession is still hung
       setChecking(false);
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && s) {
+        // Clear recovery flag so the next time we get stuck, auto-recovery can fire again
+        try { sessionStorage.removeItem(RECOVERY_FLAG); } catch {}
         try { await setupSession(s); }
         catch (e) { console.error("[auth] setupSession failed (event)", e); }
       }

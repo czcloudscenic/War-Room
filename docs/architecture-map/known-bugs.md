@@ -2,15 +2,18 @@
 
 Ranked by severity. Each entry cites the file (and line when possible) where the issue lives.
 
-## ✅ Closed 2026-05-26 (Move 1)
+## ✅ Closed 2026-05-26 (Move 1 + Fix #15)
 
 | Bug | Closed by |
 |---|---|
-| agent-action.js — 12 hardcoded VitalLyfe brand prompts | `getBrandContext()` + `clients.brand_voice_md` reads per request |
+| agent-action.js — 12 hardcoded VitalLyfe brand prompts | `getBrandContext()` + `clients.brand_voice_md` reads per request (Move 1) |
 | memory.js — hardcoded Muse pre-seed | `seedMuseMemory()` removed entirely (zero callers) |
 | `#VitalLyfe` hashtag templates in 3 JSON schemas | Dynamic `#${brand.name}` interpolation |
+| AgentChatPage missing `currentClient` prop | `client_id` now reaches `/api/agent-action`; chat path also gets brand voice injected |
+| 9 frontend call sites on retired model IDs | `claude-sonnet-4-20250514` → `claude-sonnet-4-6` (8 sites) and `claude-3-haiku-20240307` → `claude-haiku-4-5-20251001` (1 site) |
+| supabase-js auth-lock deadlock | stuckGuard now clears `sb-*-auth-token` keys + reloads (Fix #15); one-shot `sessionStorage` flag prevents reload loops |
 
-Test: Muse caption generation against VitalLyfe produces identical voice/structure pre vs post — verified in dev 2026-05-26.
+Test: Muse caption generation against VitalLyfe produces correct voice/structure verified in dev + prod 2026-05-26. Auth-lock recovery verified by manual reproduction.
 
 Open leftover: `cid_library.vitallyfe_adaptation` column name (Fix #3.1).
 
@@ -42,9 +45,6 @@ _(none open as of 2026-05-26)_
 
 ### App.jsx · 1,646-line component
 Cognitive load + harder to test in isolation. Phase 3.x of `docs/REFACTOR_PLAN.md` was meant to split this; never done. Suggested extraction: one component per nav route handler, keep App.jsx as a router shell.
-
-### App.jsx · L204 — supabase-js auth-lock contention
-Multi-tab usevantus.com or stale localStorage causes `sb.auth.getSession()` / `signOut()` / DB queries to deadlock on `navigator.locks` indefinitely. Mitigated by a 4s `stuckGuard` timeout that forces `checking=false` (`App.jsx:204`), but the underlying queries still error. Workaround: `localStorage.clear(); location.reload();`. Real fix would be auto-recovery in `setupSession`.
 
 ### agent-action.js · L1302 · monolith
 1,302 lines, 16 action handlers + Anthropic wrapper + Supabase helpers + Slack notifier + agent_events logger + new `getBrandContext` helper all in one file. Editing one action means scrolling past walls of unrelated code.
@@ -92,7 +92,7 @@ Not set in `netlify.toml`. Lower urgency since auth is JWT-bound + no inline-scr
 
 | Node | Severity | Issue |
 |---|---|---|
-| App.jsx | MED + MED | 1,646-line monolith · supabase-js auth-lock contention |
+| App.jsx | MED | 1,646-line monolith (auth-lock auto-recovery shipped 2026-05-26) |
 | agent-action.js | MED | Monolith |
 | notify.js | MED | Per-client n8n routing still missing |
 | OpsBoard.jsx | MED | In-memory tasks |

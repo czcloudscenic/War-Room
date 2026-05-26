@@ -119,7 +119,7 @@
 
 <header>
   <h1>Vantus</h1>
-  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1)</span>
+  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1 + Fix #15)</span>
   <div class="tabs">
     <button class="tab active" data-tab="map">Map</button>
     <button class="tab" data-tab="bugs">Bugs &amp; Roadmap <span class="count" id="tab-bug-count">0</span></button>
@@ -196,7 +196,7 @@
         <b>Per-client Slack routing works; per-client n8n does not.</b> <code style="font-family:'SF Mono',Menlo,monospace">notify.js</code> reads <code style="font-family:'SF Mono',Menlo,monospace">clients.slack_webhook_url</code> when client_id is on the payload (commit 702f867), falling back to global <code style="font-family:'SF Mono',Menlo,monospace">SLACK_WEBHOOK_URL</code>. n8n still uses one global webhook for every client (Fix #7).
       </div>
       <div class="finding">
-        <b>Auth-lock contention can hang the app.</b> Multi-tab usevantus.com or stale localStorage causes <code style="font-family:'SF Mono',Menlo,monospace">supabase-js</code> to deadlock on <code style="font-family:'SF Mono',Menlo,monospace">navigator.locks</code> during <code style="font-family:'SF Mono',Menlo,monospace">getSession()</code> / <code style="font-family:'SF Mono',Menlo,monospace">signOut()</code>. Mitigated by a 4s <code style="font-family:'SF Mono',Menlo,monospace">stuckGuard</code> timeout in App.jsx but not auto-recovered. Manual workaround: <code style="font-family:'SF Mono',Menlo,monospace">localStorage.clear(); location.reload()</code>.
+        <b>Auth-lock contention auto-recovers — SHIPPED 2026-05-26 (Fix #15).</b> Multi-tab usevantus.com or a crashed prior tab can deadlock <code style="font-family:'SF Mono',Menlo,monospace">supabase-js</code>'s <code style="font-family:'SF Mono',Menlo,monospace">navigator.locks</code> mutex during <code style="font-family:'SF Mono',Menlo,monospace">getSession()</code>. When the 4s <code style="font-family:'SF Mono',Menlo,monospace">stuckGuard</code> fires in App.jsx, it now clears just the <code style="font-family:'SF Mono',Menlo,monospace">sb-*-auth-token</code> keys (preserving agent histories + apps prefs) and reloads. A one-shot <code style="font-family:'SF Mono',Menlo,monospace">sessionStorage</code> flag prevents reload loops. Manual workaround retired.
       </div>
       <div class="finding">
         <b><code style="font-family:'SF Mono',Menlo,monospace">content_items</code> has no migration file.</b> Schema lives only in live Supabase — local dev expectations can drift from production silently. Every other table in the data column has a migration. Worth backfilling.
@@ -250,7 +250,7 @@ const nodes = [
       'L51: ADMIN_EMAILS hardcoded allowlist (cz/dv/ss @ cloudscenic.com)',
       'L72: setupSession — branches on @cloudscenic.com (admin) vs client_users allowlist (external)',
       'PendingApprovalScreen renders for status=pending; auto-unlocks via realtime when admin approves',
-      'L204: 4s stuckGuard timeout forces checking=false to survive supabase-js auth lock hangs',
+      'L204: 4s stuckGuard with auto-recovery (Fix #15, 2026-05-26) — clears sb-*-auth-token keys + reloads; one-shot sessionStorage flag prevents reload loops',
       'L1200+: giant render switch (one block per nav id)',
     ],
     tag: ['overview','auth','multi-tenant','content','agents','notifications','all'],
@@ -806,12 +806,18 @@ const FIXES = {
                                             sites reading clients.brand_voice_md;
                                             seedMuseMemory removed from memory.js;
                                             VitalLyfe seeded via SQL migration
+     +   AgentChatPage currentClient prop → client_id now reaches /api/agent-action;
+                                            chat path also gets brand voice injected
+     +   Frontend model deprecation       → 8 sites bumped to claude-sonnet-4-6,
+                                            1 site to claude-haiku-4-5-20251001
+     #15 supabase-js auth-lock recovery  → stuckGuard clears sb-*-auth-token keys
+                                            + reloads; one-shot sessionStorage flag
+                                            prevents reload loops
    ──────────────────────────────────────────────────────────────────── */
 
 const KNOWN_BUGS = {
   'app': [
     { sev:'med',  ref:'L1646',   t:'1,646 line component. Cognitive load + harder to test in isolation. Split tracked in REFACTOR_PLAN.md Phase 3.x.' },
-    { sev:'med',  ref:'L204',    t:'supabase-js auth lock can hang the app when multiple usevantus.com tabs are open or localStorage is stale. Mitigated by 4s stuckGuard timeout (L204); not yet auto-recovering. Workaround: localStorage.clear() + reload.' },
   ],
   'agent-action': [
     { sev:'med',  ref:'L1302',          t:'Monolith: 1,302 lines, 16 action handlers + Anthropic + Supabase + Slack helpers all in one file. Fix #4.' },

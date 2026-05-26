@@ -7,8 +7,7 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 1. **#10** — Write the missing `content_items` migration. Pure version-control hygiene; one SQL file. ~15 min.
 2. **#7** — Per-client n8n routing. Mirror the Slack pattern from commit `702f867`. ~20-minute change.
 3. **#3.1** — Rename `cid_library.vitallyfe_adaptation` → `client_adaptation`. Move 1 leftover.
-4. **#15** — Auth-lock auto-recovery. Stops the recurring "tell user to clear localStorage" support thread.
-5. **#11** — Dynamic-import pdfjs-dist. ~405 KB bundle size win.
+4. **#11** — Dynamic-import pdfjs-dist. ~405 KB bundle size win.
 6. **#8** — Delete the dead `src/agents/` folder. 30-second cleanup.
 7. **#9** — Ship or delete Higgsfield. Decision is the work; the code change is small either way.
 8. **#4** — Split agent-action.js. Bigger refactor — plan a sprint.
@@ -112,13 +111,15 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
   - Per-client seedable (read `seed.content.<slug>.js` based on currentClient)
   - Or just remove it — data lives in DB now, fallback is obsolete.
 
-### #15 — Auto-recover from supabase-js auth-lock errors
-- **Where:** `src/App.jsx:204` (stuckGuard timeout) + `setupSession`
-- **Why:** Currently the 4s stuckGuard forces `checking=false` so the UI doesn't hang, but the underlying `navigator.locks` deadlock means session-dependent calls still error. User must clear localStorage manually.
-- **Steps:**
-  1. On stuckGuard fire, clear the supabase-js lock keys in localStorage (`sb-<project>-auth-token*` and `supabase.auth.token`).
-  2. Re-run `sb.auth.getSession()` once before falling through to the login screen.
-  3. Log a one-line warning to console + (optionally) toast "Session was stuck — recovered. Try again."
+### ✅ #15 — Auto-recover from supabase-js auth-lock errors — CLOSED 2026-05-26
+- **Where:** `src/App.jsx` stuckGuard callback
+- **What landed:** When the 4s stuckGuard fires, the callback now:
+  1. Sets a one-shot `sessionStorage["vantus_auth_recovery_attempted"]` flag to prevent reload loops.
+  2. Iterates `localStorage` and removes only keys matching `/^sb-.*-auth-token/` or `^supabase\.auth` — preserves `vantus_agent_hists`, `vantus_current_client_id`, apps prefs, etc.
+  3. Calls `location.reload()` to break any in-flight `navigator.locks` mutexes.
+  4. On the reloaded tab, the `SIGNED_IN`/`INITIAL_SESSION` handler clears the recovery flag so the mechanism can fire again next time.
+  5. If stuckGuard fires a second time (recovery flag already set), falls through to login screen cleanly.
+- **Manual workaround retired:** `localStorage.clear(); location.reload()` no longer needed for this class of failure.
 
 ---
 

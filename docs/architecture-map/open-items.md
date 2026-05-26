@@ -3,13 +3,13 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-05-26 (post Move 1) · **Total open:** 8 bugs + 10 fixes = 18 items
+**Snapshot:** 2026-05-26 (post Move 1 + Fix #15) · **Total open:** 7 bugs + 9 fixes = 16 items
 
 ```
-🔴 High:   0    │   ✅ Done:   9  (Fix #1 OAuth, Fix #3 Move 1, Fix #5 caller auth,
-🟡 Med:    5    │                  Fix #6 per-client Slack, 5 temp anon RLS policies,
-🟢 Low:    7    │                  Google secret rotation)
-                │   📋 Fixes: 10 open (4 closed)
+🔴 High:   0    │   ✅ Done:  10  (Fix #1 OAuth, Fix #3 Move 1, Fix #5 caller auth,
+🟡 Med:    4    │                  Fix #6 per-client Slack, Fix #15 auth-lock recovery,
+🟢 Low:    7    │                  5 temp anon RLS policies, Google secret rotation)
+                │   📋 Fixes:  9 open (5 closed)
 ```
 
 ---
@@ -26,9 +26,8 @@ _None open as of 2026-05-26. The week-of work shipped 2026-05-25 — see ✅ blo
   Cognitive load + harder to test in isolation. Phase 3.x of `docs/REFACTOR_PLAN.md` was meant to split this; never done.
   → Touches: `src/App.jsx` · Fix #2
 
-- [ ] **App.jsx · L204 — supabase-js auth-lock contention**
-  Multi-tab usevantus.com or stale localStorage causes `sb.auth.getSession()` / `signOut()` to deadlock on `navigator.locks`. The 4s `stuckGuard` keeps the UI from hanging forever but doesn't actually recover the session — user has to clear localStorage and reload.
-  → Touches: `src/App.jsx:204` (stuckGuard), `setupSession` retry loop · Fix #15
+- [x] ~~**App.jsx · L204 — supabase-js auth-lock contention**~~ ✅ closed 2026-05-26 (Fix #15)
+  Auto-recovery now fires when stuckGuard hits 4s: clears just the `sb-*-auth-token` keys, sets a one-shot `sessionStorage` flag (prevents reload loops), then `location.reload()`. Manual `localStorage.clear()` workaround retired.
 
 - [ ] **agent-action.js · L1302 — monolith**
   16 action handlers + Anthropic wrapper + Supabase helpers + Slack notifier + agent_events logger all in one file. Editing one action means scrolling past walls of unrelated code.
@@ -108,7 +107,7 @@ Cross-references map node badges + the items above.
 - [ ] **#12** — Back OpsBoard with a `tasks` table in Supabase
 - [ ] **#13** — Per-user client assignments table (now that OAuth is live, this is unblocked)
 - [ ] **#14** — Decouple `seed.content.js` from VitalLyfe (or remove — DB is authoritative now)
-- [ ] **#15** — Auto-recover from supabase-js auth-lock errors in `setupSession`
+- [x] ~~**#15** — Auto-recover from supabase-js auth-lock errors~~ ✅ 2026-05-26 (App.jsx stuckGuard now clears sb-auth-token keys + reloads; one-shot sessionStorage flag prevents reload loops)
 
 ---
 
@@ -175,8 +174,7 @@ Bundle these 5 changes in one commit so CI doesn't break mid-merge again:
 1. **#10 (content_items migration)** — pure schema-in-version-control hygiene; one SQL file. Removes the largest "drift risk" worry. ~15 min.
 2. **#7 (per-client n8n)** — already have the pattern from Slack (commit 702f867); 20-minute change.
 3. **#3.1 (rename cid_library.vitallyfe_adaptation → client_adaptation)** — Move 1 leftover; one ALTER TABLE + 3 line code change.
-4. **#15 (auth-lock auto-recover)** — quality of life; would stop the recurring "tell user to clear localStorage" support thread.
-5. **#11 (dynamic-import pdfjs)** — bundle size win, ~405 KB off the main chunk.
+4. **#11 (dynamic-import pdfjs)** — bundle size win, ~405 KB off the main chunk.
 6. **#8 (delete src/agents/)** — 30-second cleanup.
 7. **#9 (ship or delete Higgsfield)** — decision is the hard part; the work is small.
 8. **#2, #4** — larger refactors (App.jsx + agent-action.js splits); plan a sprint, not a session.
