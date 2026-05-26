@@ -60,8 +60,8 @@ Far from the "anyone gets admin access" finding in the previous snapshot. `App.j
 ### 5. Per-client Slack done, per-client n8n still pending
 Both columns exist on `clients` (`slack_webhook_url`, `n8n_webhook_url`). Only Slack reads from the per-client value (`notify.js:157-162`). n8n is still global. Same one-block change would close Fix #7.
 
-### 6. `content_items` baseline migration — SHIPPED 2026-05-26 (Fix #10)
-Captured in `supabase/migrations/20260526_content_items_baseline.sql` — 25 columns, FK to `clients(id) ON DELETE CASCADE`, `content_items_client_idx`, RLS + 3 policies. **Surfaced a security debt:** the legacy `"Allow all for now"` policy (using=true, ALL commands) survived the 2026-05-25 anon-policy cleanup because no migration existed to be touched. DROP statement is teed up at the bottom of the migration; requires filling an external-client RLS gap first (Fix #10.1).
+### 6. `content_items` is fully in version control + RLS-locked — Fix #10 + #10.1 SHIPPED 2026-05-26
+`supabase/migrations/20260526_content_items_baseline.sql` captures the 25-column schema with FK to `clients(id) ON DELETE CASCADE` and `content_items_client_idx`. Companion `20260526_content_items_client_rls.sql` closes a wide-open RLS hole that survived the 2026-05-25 anon-policy cleanup: scoped SELECT+UPDATE policies for approved `client_users` plus a DROP of the legacy `"Allow all for now"` policy. Anonymous callers with the anon key now return zero content_items rows. Verified live.
 
 ### 7. Auth-lock contention auto-recovers — Fix #15 SHIPPED 2026-05-26
 When the 4s `stuckGuard` in `App.jsx` fires, it now clears just the `sb-*-auth-token` localStorage keys (preserving agent histories + apps prefs) and reloads. A one-shot `sessionStorage` flag prevents reload loops. The manual `localStorage.clear(); reload()` workaround is retired.

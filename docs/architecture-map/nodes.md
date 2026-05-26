@@ -244,7 +244,7 @@ Every significant file, function, table, and external service in Vantus — grou
 - **Migration:** `supabase/migrations/20260526_content_items_baseline.sql` (Fix #10, 2026-05-26)
 - **Columns (25):** `id text pk, title text not null, description, campaign, platform, type, format, stage, status, pillar, platforms text[], script, caption, cta, hashtags, seo_keywords, notes, start_week int, duration int, created_at timestamptz default now(), updated_at timestamptz default now(), files jsonb default '[]', publish_date, client_note, client_id uuid FK clients(id) ON DELETE CASCADE`
 - **Indexes:** `content_items_pkey` (PK on id), `content_items_client_idx` (btree on client_id)
-- **RLS policies:** `admins read content_items` (SELECT @cloudscenic.com), `admins write content_items` (ALL @cloudscenic.com), and ⚠️ `Allow all for now` (legacy wide-open policy, Fix #10.1 will drop it).
+- **RLS policies (post-Fix-#10.1):** `admins read content_items` (SELECT @cloudscenic.com), `admins write content_items` (ALL @cloudscenic.com), `clients read scoped content_items` (SELECT — approved client_users matching row's client_id), `clients update scoped content_items` (UPDATE — same row qualifier + with_check prevents re-parenting). Anon callers get zero rows.
 - **Note:** Stages: Ready For Copy Creation → Need Copy Approval → Ready For Content Creation → Need Content Approval → Needs Revisions → Approved → Ready For Schedule → Scheduled.
 
 ### ★ `agent_events` table — brain Move 2

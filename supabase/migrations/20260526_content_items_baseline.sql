@@ -9,16 +9,16 @@
 -- has the table) or a fresh dev DB (which doesn't).
 --
 -- ────────────────────────────────────────────────────────────────────────
--- ⚠️ SECURITY DEBT (read this before applying to a fresh DB):
--- The "Allow all for now" RLS policy at the bottom of this file is a
--- wide-open temp policy (using=true, ALL commands) that survived the
--- 2026-05-25 anon-policy cleanup (commit 852d915) because content_items
--- had no migration file to be touched. Anonymous callers with the anon
--- key can currently read AND write content_items.
+-- ⚠️ The "Allow all for now" policy near the bottom of this file is a
+-- legacy wide-open temp policy. It's captured here for historical fidelity
+-- (this is what was live in prod as of 2026-05-26) — but it's REPLACED in
+-- the follow-up migration 20260526_content_items_client_rls.sql by scoped
+-- SELECT + UPDATE policies for approved external clients.
 --
--- The drop is teed up at the very bottom — uncomment and re-run when
--- you've confirmed (a) every protected /api/* function calls requireUser,
--- and (b) no client UI path depends on anon reads of content_items.
+-- If you're running migrations against a fresh DB, run this file FIRST,
+-- then the _client_rls.sql one. Together they produce the correct
+-- end state: admin full access + external client scoped access + zero
+-- anonymous access.
 -- ────────────────────────────────────────────────────────────────────────
 
 create table if not exists public.content_items (
@@ -78,13 +78,6 @@ create policy "Allow all for now"
   using (true);
 
 -- ────────────────────────────────────────────────────────────────────────
--- WHEN READY TO CLOSE THE SECURITY DEBT, uncomment and run:
---
--- drop policy if exists "Allow all for now" on public.content_items;
---
--- Then verify in dev that:
---   - admin (@cloudscenic.com) can still CRUD content_items
---   - external approved clients can still read their scoped rows
---     (note: external clients currently have NO RLS policy giving them
---     scoped read access — that's a separate gap to fill before drop)
+-- The wide-open "Allow all for now" policy above is dropped in the
+-- follow-up migration: 20260526_content_items_client_rls.sql
 -- ────────────────────────────────────────────────────────────────────────

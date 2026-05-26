@@ -5,9 +5,8 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 ## Order to attack (recommended)
 
 1. **#7** — Per-client n8n routing. Mirror the Slack pattern from commit `702f867`. ~20-minute change.
-2. **#10.1** — Drop the wide-open `content_items` policy (after filling external-client RLS gap). Surfaced by Fix #10.
-3. **#3.1** — Rename `cid_library.vitallyfe_adaptation` → `client_adaptation`. Move 1 leftover.
-4. **#11** — Dynamic-import pdfjs-dist. ~405 KB bundle size win.
+2. **#3.1** — Rename `cid_library.vitallyfe_adaptation` → `client_adaptation`. Move 1 leftover.
+3. **#11** — Dynamic-import pdfjs-dist. ~405 KB bundle size win.
 6. **#8** — Delete the dead `src/agents/` folder. 30-second cleanup.
 7. **#9** — Ship or delete Higgsfield. Decision is the work; the code change is small either way.
 8. **#4** — Split agent-action.js. Bigger refactor — plan a sprint.
@@ -81,12 +80,14 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 - **What landed:** Full 25-column schema, FK to `clients(id) ON DELETE CASCADE`, `content_items_client_idx`, RLS enabled, 3 policies captured faithfully (2 admin + 1 wide-open temp). Idempotent: `CREATE TABLE IF NOT EXISTS` + `DROP POLICY IF EXISTS` + `CREATE POLICY` so it can be applied against the existing prod DB or a fresh dev DB without error.
 - **Surfaced security debt:** the legacy `"Allow all for now"` policy survived the 2026-05-25 anon cleanup. Migration header flags it loudly; DROP statement teed up at bottom for Fix #10.1.
 
-### #10.1 — Drop content_items wide-open policy
-- **Where:** Uncomment the teed-up `drop policy if exists "Allow all for now"` at the bottom of `20260526_content_items_baseline.sql`, or write a follow-up migration.
-- **Prereq:** External approved clients have NO RLS read policy on `content_items` today — they rely on the wide-open one. Before dropping, add either:
-  1. `client_users.client_ids @> array[content_items.client_id]` scoped SELECT policy, OR
-  2. Have every external-client read flow through a Netlify function with `SERVICE_KEY` (bypasses RLS).
-- **Steps:** Fill the RLS gap → drop the policy → verify external client ClientView still loads their content.
+### ✅ #10.1 — Drop content_items wide-open policy — CLOSED 2026-05-26 (code shipped)
+- **Where:** `supabase/migrations/20260526_content_items_client_rls.sql`
+- **What landed:** Two scoped policies for `client_users`:
+  - `clients read scoped content_items` (SELECT) — using an `exists` subquery against `client_users` with `lower(email)` match + `status='approved'` + `client_id` equality
+  - `clients update scoped content_items` (UPDATE) — same row qualifier, plus `with check` that prevents re-parenting a row to a different client_id
+  - INSERT and DELETE remain admin-only
+- **Then drops** the legacy `"Allow all for now"` policy.
+- **Apply against live DB:** run `20260526_content_items_client_rls.sql` in Supabase SQL Editor. Anon callers should return 0 content_items rows after. Test admin + Natalia paths before considering it verified.
 
 ### #11 — Dynamic-import pdfjs-dist
 - **Where:** `src/apps/brief-gen/BriefGenPage.jsx`
