@@ -1,4 +1,4 @@
-# Vantus Handoff Brief — 2026-05-26
+# Vantus Handoff Brief — 2026-05-26 (post Move 1 sprint)
 
 ## Project
 Cloud Scenic × VitalLyfe "Vantus" — content operations dashboard.
@@ -8,11 +8,11 @@ Cloud Scenic × VitalLyfe "Vantus" — content operations dashboard.
 **Internal name:** "warroom" (per `package.json` — kept for repo + Netlify subdomain consistency)
 
 ## Stack
-- **Frontend:** React 19 + Vite 8 (Node 22 pinned via `.nvmrc` and `netlify.toml`)
-- **Backend:** Supabase (`wjcstqqihtebkpyuacop`) — tables: `content_items`, `profiles`, `cid_posts`, `agent_events`, `notifications`, `clients`, **`client_users`** (NEW 2026-05-25)
-- **Netlify Functions:** `/api/chat`, `/api/agent-action`, `/api/notify`, `/api/cid-scrape`, `/api/apify-scrape`, `/api/unsplash`, `/api/higgsfield` (untracked) — plus shared helper `netlify/functions/_lib/requireUser.js`
-- **Anthropic model:** `claude-haiku-4-5-20251001`
-- **Workflows:** n8n cloud at `https://cloudscenic.app.n8n.cloud`, workflow "VitalLyfe Vantus — Content Sync" (ID `3WXHHEiMz9rMnBEn`) — published + live
+- **Frontend:** React 19 + Vite 8 (Node 22 pinned via `.nvmrc` and `netlify.toml`). `src/App.jsx` now 1,342 lines (was 1,676 — Codex split out 6 route components into `src/ui/routes/` as Fix #2).
+- **Backend:** Supabase (`wjcstqqihtebkpyuacop`) — tables: `content_items` (now versioned!), `profiles`, `cid_posts`, `cid_library` (column renamed Fix #3.1), `agent_events`, `notifications`, `clients`, `client_users`
+- **Netlify Functions:** `/api/chat`, `/api/agent-action`, `/api/notify`, `/api/cid-scrape`, `/api/apify-scrape`, `/api/unsplash`, `/api/higgsfield` (untracked) — plus shared helpers `_lib/requireUser.js` (auth + cors) and `_lib/rateLimit.js` (NEW 2026-05-26 — in-memory sliding window)
+- **Anthropic models:** `claude-haiku-4-5-20251001` (server-side functions) + `claude-sonnet-4-6` (frontend /api/chat callers — bumped from retired `claude-sonnet-4-20250514` on 2026-05-26)
+- **Workflows:** n8n cloud at `https://cloudscenic.app.n8n.cloud`, workflow "VitalLyfe Vantus — Content Sync" (ID `3WXHHEiMz9rMnBEn`) — published + live. Per-client routing via `clients.n8n_webhook_url` (Fix #7).
 
 ## Env Vars (Netlify, all set)
 `ANTHROPIC_API_KEY` · `SUPABASE_SERVICE_KEY` · `SUPABASE_URL` · `VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY` · `TAVILY_API_KEY` · `N8N_WEBHOOK_URL` · `SLACK_WEBHOOK_URL` (global fallback) · `SLACK_BOT_TOKEN` · `CID_BEARER_TOKEN` · `RESEND_API_KEY`
@@ -32,37 +32,39 @@ Every invocation writes one row to `agent_events` via SERVICE_KEY (success/error
 ## Brain Trilogy Status
 | Move | What | Status |
 | --- | --- | --- |
-| **1** — Cortex wiring | Pull agent brand voice + SOPs from `clients.brand_voice_md` instead of hardcoded `seed.agents.js` / `memory.js` | ⏸ **Still pending.** Blocker unchanged — `~/Desktop/Agent Cortex/wiki/clients/vitallyfe/` doesn't exist; `scripts/sync-cortex.mjs` exists as a stub but uncommitted. Next session's top candidate. |
+| **1** — Cortex wiring | Per-client agent brand voice from `clients.brand_voice_md` | ✅ **Live 2026-05-26** (commit `767cb93`). `agent-action.js:94 getBrandContext(client_id)` reads `clients.brand_voice_md` per request; 12 prompt sites interpolate `${brand.name}` + `${brand.voice}`; dynamic `#${brand.name}` hashtags; dead `seedMuseMemory` removed. VitalLyfe seeded via `20260526_seed_vitallyfe_brand_voice.sql`. **Per-request voice override** also wired in `agent-action.js` (payload.voiceOverride replaces brand.voice for that call) + `AgentChatPage.jsx` exposes a textarea — useful for "try a punchier tone" runs. |
 | **2** — `agent_events` | Real history of agent invocations | ✅ Live |
 | **3** — Notifications persistence | Durable, deduped, realtime | ✅ Live |
 
-## ✅ Security Posture (REWRITTEN 2026-05-26)
+**Brain trilogy complete.** Forward layer: Cortex wiki entries (`wiki/clients/<slug>/brand-voice.md`) push into `clients.brand_voice_md` via `scripts/sync-cortex.mjs` (stub exists, schema not finalized — don't create the directory until founder signs off on the convention).
 
-**Auth: live.** Google OAuth restored 2026-05-25. `App.jsx` now distinguishes four paths:
-1. **Admin** (@cloudscenic.com) → full Vantus
-2. **Approved external client** (`client_users.status='approved'`) → ClientView scoped to their `client_id`
-3. **Pending invite** → `PendingApprovalScreen` (auto-unlocks via realtime when admin approves)
-4. **Unknown** → blocked with "you're not invited" message
+## ✅ Security Posture (REWRITTEN 2026-05-26 PM — hardening sweep complete)
 
-**Function-level auth: live.** All 5 protected functions (`chat`, `agent-action`, `notify`, `apify-scrape`, `unsplash`) now reject anonymous callers via the shared helper at `netlify/functions/_lib/requireUser.js`. `cid-scrape.js` keeps its pre-existing bearer-token gate.
+**Auth: live.** Four-way branch in `App.jsx setupSession()` (L72) — admin / approved external client / pending invite (realtime unlock) / unknown blocked.
 
-**Client-side auth header injection: live.** `src/services/apiFetch.js` wraps `fetch()` to attach the user's `access_token`. 26 call sites across 11 client files now use it.
+**Function-level auth: live.** All 5 protected functions reject anon callers via `_lib/requireUser.js`. `cid-scrape.js` keeps its pre-existing bearer gate.
+
+**Client-side auth injection: live.** `src/services/apiFetch.js` attaches the access token on every protected call (26 sites). `AgentChatPage` now also passes `currentClient.id` as `client_id` so the backend resolves brand voice correctly (fixed 2026-05-26 — Move 1 was silently using fallback before this prop wiring).
 
 **RLS posture:**
-- All temp anon policies dropped 2026-05-25 (commit `852d915`). Authenticated admin policies in place across `agent_events`, `notifications`, `clients`, `content_items`, `client-logos` bucket.
-- `client_users` table — admins full read/write; approved clients can read their own row(s); realtime enabled so approval triggers UI unlock without refresh.
+- Temp anon policies fully cleared. Admin policies (@cloudscenic.com email check) on every table.
+- `client_users` — admins full r/w; approved clients read their own row(s); realtime enabled.
+- `content_items` — admins full r/w; approved clients scoped SELECT+UPDATE to their `client_id` (via `EXISTS` subquery against `client_users`); INSERT/DELETE admin-only; legacy "Allow all for now" anon policy DROPPED (Fix #10.1, `20260526_content_items_client_rls.sql`). Anon REST probe with anon key now returns 0 rows.
 
-**Open security debt:**
-- **Supabase admin passwords NOT rotated** (`Cloudai25%` in git history). Less urgent now — full Google OAuth path is the only login route in practice.
-- **CORS still `*`** on every function — worth tightening but lower priority.
-- **CSP / HSTS / Referrer-Policy headers** not in `netlify.toml`.
-- **No rate limits** on `/api/chat` etc. — auth gate stops anonymous abuse but authenticated misuse uncapped.
-- **supabase-js auth lock contention** — multi-tab usevantus.com or stale localStorage hangs `getSession()` / `signOut()`. Mitigated by a 4s `stuckGuard` timeout but the underlying issue persists. Workaround: `localStorage.clear(); location.reload();`.
+**Security hardening sweep (Fix-batch shipped 2026-05-26 PM, commit `8e59968`):**
+- **CORS** locked from `*` to allowlist regex via `_lib/requireUser.js cors(event)` — matches `usevantus.com` + `(deploy-preview-*--)?majestic-cassata-aa16e9.netlify.app`. All 6 functions rewritten. `Vary: Origin`.
+- **Rate limits** via new `_lib/rateLimit.js` — in-memory sliding window keyed on `user.id:endpoint`. `/api/chat` 30/min, `/api/agent-action` 60/min. Cold starts reset (acceptable since auth+RLS are primary defense).
+- **Headers** in `netlify.toml`: HSTS preload (1y, includeSubDomains, preload), Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo denied), tight CSP whitelisting only Anthropic + Supabase REST+WSS + Resend + Slack hooks + n8n cloud + Tavily + Apify + Unsplash images. `style-src 'unsafe-inline'` retained for inline-style React patterns (tighten when factored out — separate task).
+- **Auth-lock contention** auto-recovers now (Fix #15). On stuckGuard fire: clears `sb-*-auth-token` localStorage keys, sets one-shot `sessionStorage` flag to prevent reload loops, then `location.reload()`. Manual `localStorage.clear() + reload` workaround retired.
 
-## Per-client Routing
-- **Slack:** `clients.slack_webhook_url` column (NEW 2026-05-25). `notify.js` prefers it when `client_id` is in the payload; falls back to global `SLACK_WEBHOOK_URL`. Edit Client modal exposes the field under "Optional integrations".
-- **n8n:** still global `N8N_WEBHOOK_URL`. Per-client routing TBD (Fix #7).
-- **Brand voice:** still hardcoded VitalLyfe in `agent-action.js` + `memory.js`. Brain Move 1 to come.
+**Remaining open security debt (low urgency):**
+- Supabase admin passwords (`Cloudai25%` in git history) not rotated — pure password login isn't used in practice; rotate when convenient.
+- `style-src 'unsafe-inline'` in CSP — required by current inline-style patterns.
+
+## Per-client Routing (all live as of 2026-05-26)
+- **Slack:** `clients.slack_webhook_url` column. `notify.js` prefers it; falls back to global `SLACK_WEBHOOK_URL`. (Fix #6, commit `702f867`)
+- **n8n:** `clients.n8n_webhook_url` column. `notify.js` reads it in the same Supabase fetch as Slack (one roundtrip pulls both); falls back to global env. (Fix #7, commit `2bb8958`)
+- **Brand voice:** `clients.brand_voice_md` column. `agent-action.js getBrandContext(client_id)` reads it per request, passes to every handler. Per-request override via `payload.voiceOverride`. (Move 1 / Fix #3, commit `767cb93`)
 
 ## Dirty / Uncommitted WIP (intentional)
 - `src/apps/higgsfield/HiggsfieldStudio.jsx` (untracked) — Higgsfield Studio frontend, half-built
@@ -77,6 +79,28 @@ Every invocation writes one row to `agent_events` via SERVICE_KEY (success/error
 When Higgsfield ships: commit `HiggsfieldStudio.jsx` + `higgsfield.js` + the apps.config.js / constants.js modifications + the import + render in `src/App.jsx` ALL IN ONE COMMIT.
 
 ## Session log
+
+### 2026-05-26 PM — Move 1 sprint (9 fixes shipped + security sweep + Codex App.jsx split)
+
+Massive session. Closed half the open punch-list in one afternoon.
+
+| Commit | What |
+| --- | --- |
+| `767cb93` | `feat(brand)`: per-client brand voice from clients.brand_voice_md (Move 1 / Fix #3). New `getBrandContext` helper + 12 prompt sites refactored + dynamic hashtags + `seedMuseMemory` removed + VitalLyfe SQL seed |
+| `22cc58f` | `feat(brand)`: per-request voice override + bump 9 deprecated frontend models (`claude-sonnet-4-20250514` → `claude-sonnet-4-6`; `claude-3-haiku-20240307` → `claude-haiku-4-5-20251001`) |
+| `0c163dd` | `fix(brand)`: pass currentClient into AgentChatPage (post-Move-1 regression — `client_id: null` was reaching backend) |
+| `2b43364` | `fix(auth)`: auto-recover from supabase-js auth-lock deadlock (Fix #15). stuckGuard clears `sb-*-auth-token` keys + reloads; one-shot sessionStorage flag prevents reload loops |
+| `ed46c31` | `chore(schema)`: content_items baseline migration (Fix #10) — 25 cols + FK + indexes + RLS captured in `20260526_content_items_baseline.sql`. Surfaced wide-open "Allow all for now" policy as security debt |
+| `5a51b00` | `fix(rls)`: scoped client policies on content_items + drop wide-open anon (Fix #10.1) — `20260526_content_items_client_rls.sql`. Anon REST returns 0 rows now |
+| `2bb8958` | `feat(notify)`: per-client n8n routing + consolidated slack+n8n into one Supabase fetch (Fix #7) |
+| `4b54630` | `chore(cleanup)`: delete dead `src/agents/` folder (Fix #8) — 8 files, 96 lines |
+| `183d53f` | `chore(cleanup)`: cid_library column rename `vitallyfe_adaptation` → `client_adaptation` (Fix #3.1) + close Fix #11 (pdfjs already dynamic) + arch map sync |
+| Codex on `codex/grunt-2026-05-26` | `refactor(App)`: extract 6 route components to `src/ui/routes/` (Fix #2). App.jsx 1,676 → 1,342 lines. 7 commits (`4ee755b` Dashboard, `6589b78` Agents, `bee8946` Content, `f2d384c` Tracker, `94eae54` Taskboard, `c4f2cc5` Sops, `e57e951` notes) |
+| `8e59968` | `security`: CORS allowlist + per-user rate limits + CSP/HSTS/Permissions/Referrer (security hardening sweep) |
+
+**What unlocked:** brain trilogy complete. Multi-tenancy is real end-to-end — adding a new client via AddClient modal + filling `brand_voice_md` gets them their own agent voice automatically. Security posture moved from "auth gate only" to "auth + RLS + CORS + rate limits + CSP". App.jsx finally splittable. Three migrations applied to live Supabase by founder (brand voice seed, content_items baseline, content_items client_rls, cid_library rename) — all verified before code push.
+
+**Codex workflow established:** I work main, Codex grinds on `codex/grunt-<date>` feature branches. Brief Codex with exact line numbers + dirty-WIP out-of-scope list + CODEX_NOTES.md as the report. Use `git push origin HEAD:main` to dodge stale local main refs.
 
 ### 2026-05-25 — Auth restore + invite flow + per-client Slack
 Eight commits, four high-severity bugs closed, full external-client invite flow shipped.
@@ -99,24 +123,23 @@ Repo tidy, component extraction, security audit, Move 2 + Move 3 deployed, custo
 
 ## What's NOT Built / Open Items
 
-**High-value next moves:**
-- **Brain Move 1** (Cortex wiring) — replace hardcoded VitalLyfe brand voice in `agent-action.js:138-144` + `memory.js:75-81` with per-client lookup from `clients.brand_voice_md`. Makes multi-tenancy real for agent prompts.
-- **`content_items` migration file** — schema lives only in live Supabase; drift risk.
+**Sprint-scale (queue to Codex when ready):**
+- **Fix #4** — Split `agent-action.js` (1,317 lines) into per-handler files. Same shape as Codex's Fix #2 App.jsx split — clear mechanical refactor, no judgment calls, perfect Codex candidate. Brief would look just like the App.jsx one.
+- **Fix #12** — Back OpsBoard with a DB-backed `tasks` table (new migration + UI rewrite). ~1 hr.
+- **Fix #13** — Per-user client assignments table (now unblocked by OAuth).
 
-**Polish / debt:**
-- Auto-recover from supabase-js auth lock errors in `setupSession` (currently relies on user clearing localStorage manually)
-- Vantus-bot Slack app for agent-attributed messages (currently MCP posts as the signed-in user)
-- Per-client n8n routing (parallel to Slack — Fix #7)
-- Split `App.jsx` into smaller components (Phase 3.x of `docs/REFACTOR_PLAN.md`)
-- Split `agent-action.js` 16 handlers into per-handler files
-- Dynamic-import `pdfjs-dist` in BriefGenPage (saves 405KB)
-- Tighten CORS, add CSP/HSTS/Referrer-Policy headers
-- Rotate Supabase admin passwords (low urgency)
-- External tracker → n8n trigger (SharePoint/Airtable side)
+**Decision-bound:**
+- **Fix #9** — Ship or delete Higgsfield. UI + function still untracked; must commit all 5 files together (UI + backend + apps.config edit + constants edit + App.jsx import/render) or `rm` them all. Decision is the work; code change is small either way.
 
-**Dead-code cleanup:**
-- `src/agents/` folder — 8 files, zero importers (Fix #8)
-- Decide Higgsfield: ship the WIP files together or delete them (Fix #9)
+**Polish:**
+- **Vantus-bot Slack app** for agent-attributed messages (currently posts as signed-in user via MCP).
+- **Fix #14** — Decouple `seed.content.js` from VitalLyfe (or remove — DB is authoritative now).
+- **External tracker → n8n trigger** (SharePoint/Airtable side).
+- Rotate Supabase admin passwords (very low urgency — OAuth is sole path used).
+- Tighten `style-src 'unsafe-inline'` in CSP when inline-style React patterns get factored out.
+
+**Cortex bridge (forward design — not built):**
+- `wiki/clients/<slug>/brand-voice.md` → `clients.brand_voice_md` push pipeline via `scripts/sync-cortex.mjs` (stub already exists in working tree). DO NOT create `wiki/clients/` until founder signs off on the schema. See `~/.claude/projects/-Users-chrisz/memory/project_cortex_vantus_bridge.md`.
 
 ## Strategic Context
 - **Client:** VitalLyfe (Natalia = approver, Jon = JC, Danny = Cloud Scenic ops)
@@ -128,21 +151,28 @@ Repo tidy, component extraction, security audit, Move 2 + Move 3 deployed, custo
 Cloud Scenic OS lives at `~/Desktop/Software builds/Cloud Scenic OS/` — separate codebase, Portal Build Companion agent owns it. Don't mix the two.
 
 ## Key Files (Vantus)
-- `src/App.jsx` — root component (~1,500 lines)
-- `src/services/apiFetch.js` — auth-aware fetch wrapper (NEW)
-- `src/services/supabaseClient.js` — Supabase singleton
-- `src/ui/clients/AddClientModal.jsx` — client CRUD + team management
-- `src/ui/clients/ClientTeamPanel.jsx` — invite/approve/reject UI (NEW)
-- `src/ui/layout/LoginScreen.jsx` — Google OAuth button
-- `netlify/functions/_lib/requireUser.js` — shared auth gate (NEW)
-- `netlify/functions/agent-action.js` — all 16 agent actions + agent_events logging
-- `netlify/functions/notify.js` — client-action notifications + per-client Slack routing
-- `supabase/migrations/20260525_client_users_allowlist.sql` — invite/allowlist table (NEW)
-- `supabase/migrations/20260525_clients_slack_webhook.sql` — per-client Slack column (NEW)
-- `supabase/migrations/20260525_admin_rls_for_oauth.sql` — admin RLS policies (NEW)
-- `supabase/migrations/20260525_drop_temp_anon_policies.sql` — anon policy cleanup (NEW)
-- `architecture-map.html` — interactive system map (regenerated 2026-05-26)
-- `docs/architecture-map/` — portable markdown export of the map
-- `docs/architecture-map/open-items.md` — checkbox punch-list
-- `docs/REFACTOR_PLAN.md` — pre-existing refactor roadmap
-- `START HERE.md` — quick-orient nav for cold opens
+- `src/App.jsx` — root component (1,342 lines, post Codex Fix #2 split). Owns all state; routes are dumb presentation.
+- `src/ui/routes/` — 6 extracted route components (DashboardRoute · AgentsRoute · ContentRoute · TrackerRoute · TaskboardRoute · SopsRoute). Codex 2026-05-26 Fix #2.
+- `src/services/apiFetch.js` — auth-aware fetch wrapper. Attaches `Bearer <access_token>` to every protected call.
+- `src/services/supabaseClient.js` — Supabase singleton.
+- `src/ui/clients/AddClientModal.jsx` — client CRUD + team management. Embeds ClientTeamPanel.
+- `src/ui/clients/ClientTeamPanel.jsx` — invite/approve/reject UI.
+- `src/ui/layout/LoginScreen.jsx` — Google OAuth button.
+- `src/ui/agents/AgentChatPage.jsx` — chat panel. Passes `currentClient.id` as `client_id` for brand voice resolution. Voice-override textarea above quick actions.
+- `netlify/functions/_lib/requireUser.js` — shared auth gate + per-request `cors(event)` (allowlist regex).
+- `netlify/functions/_lib/rateLimit.js` — NEW 2026-05-26. In-memory sliding-window per-user rate limit.
+- `netlify/functions/agent-action.js` — 16 agent actions (1,317 lines — Fix #4 to split). `getBrandContext` at L94. Rate-limit 60/min/user.
+- `netlify/functions/chat.js` — Anthropic proxy. Rate-limit 30/min/user.
+- `netlify/functions/notify.js` — client notifications + per-client Slack + per-client n8n (single consolidated Supabase fetch).
+- `supabase/migrations/20260526_seed_vitallyfe_brand_voice.sql` — VitalLyfe brand voice seed (Move 1).
+- `supabase/migrations/20260526_content_items_baseline.sql` — full content_items DDL (Fix #10).
+- `supabase/migrations/20260526_content_items_client_rls.sql` — scoped client RLS + drop anon policy (Fix #10.1).
+- `supabase/migrations/20260526_cid_library_rename_adaptation.sql` — column rename (Fix #3.1, idempotent DO block).
+- `supabase/migrations/20260525_*.sql` — auth restore batch (client_users, slack_webhook, admin RLS, drop temp anon).
+- `netlify.toml` — security headers (HSTS, CSP, Referrer-Policy, Permissions-Policy) added 2026-05-26.
+- `architecture-map.html` — interactive system map (regenerated 2026-05-26 with all today's changes).
+- `docs/architecture-map/` — portable markdown export (README · critical-path · nodes · known-bugs · roadmap · open-items).
+- `docs/architecture-map/open-items.md` — checkbox punch-list. Current open count: 1 bug + 3 fixes = 4 items.
+- `docs/REFACTOR_PLAN.md` — pre-existing refactor roadmap.
+- `START HERE.md` — quick-orient nav for cold opens.
+- `CODEX_NOTES.md` — Codex's report from the Fix #2 split run (2026-05-26).
