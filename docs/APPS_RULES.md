@@ -8,14 +8,13 @@ An app is an optional module that adds functionality to Vantus. Apps can be togg
 
 - Dashboard
 - Agents
-- Instagram / TikTok / YouTube pipelines
-- Content Tracker
+- Pipeline (unified Instagram/TikTok/YouTube with platform tabs)
+- Production (was Content Tracker)
 - Task Board
-- Ad ROI Hub
-- Team Broadcast
-- References
-- Skills
-- SOPs
+- Competitor Intel
+- Ideal Customer
+- Clients
+- Settings
 - Apps (the toggle page itself)
 
 ## Toggleable Apps

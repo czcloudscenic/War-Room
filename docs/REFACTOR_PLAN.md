@@ -1,5 +1,16 @@
 # Vantus — Refactor Plan
 
+> **Status as of 2026-05-26:** Phases 0-2 fully done. Phase 3 mostly done (~13 of 15 components extracted). Phase 4 partial. Phase 5 not done (and per the file's own note, mostly N/A — inline styles intentional). For the live punch-list of remaining work, see `docs/architecture-map/open-items.md`. This file is kept as historical record of the migration plan.
+
+| Phase | Status |
+| --- | --- |
+| 0 — Build system (Vite + Node 22) | ✅ Done |
+| 1 — Extract data & config | ✅ Done |
+| 2 — Extract core logic | ✅ Done |
+| 3 — Extract UI components | 🟡 Mostly done — App.jsx is still ~1,500 lines and houses the route-switch + shell. Subcomponents are extracted (LoginScreen, AgentChatPage, ClientView, etc.). What remains: splitting the Vantus shell itself. |
+| 4 — Extract services & state | 🟡 Partial — Supabase singleton + realtime live in App.jsx not a dedicated service file. State is local useState; no zustand/context layer added (current scope hasn't needed it). |
+| 5 — Extract styles | ⏸ Skipped intentionally — see file's own note about inline styles staying. |
+
 ## Guiding Principle
 
 Restructure for maintainability. Preserve every feature. Change zero pixels.

@@ -45,5 +45,7 @@ Each agent is defined in `/src/agents/{name}.agent.js` with:
 
 - Chat: `POST /api/chat` (proxied to Anthropic)
 - Actions: `POST /api/agent-action` (Supabase + AI)
-- Model: `claude-sonnet-4-20250514`
+- Model: `claude-haiku-4-5-20251001`
 - Max tokens: 400 (routeTask), 1000 (agent chat)
+- **Auth (since 2026-05-25):** both endpoints require `Authorization: Bearer <Supabase access_token>`. Use `src/services/apiFetch.js` from the client — it injects the header automatically. Server-side, `netlify/functions/_lib/requireUser.js` validates and rejects with 401 unless the caller is `@cloudscenic.com` or an approved row in `client_users`.
+- **Logging:** every action invocation writes one row to `agent_events` via SERVICE_KEY for audit + ActivityFeed rendering.
