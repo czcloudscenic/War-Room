@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
+import ClientTeamPanel from './ClientTeamPanel.jsx';
 
 function slugify(s) {
   return s.toLowerCase().trim()
@@ -9,7 +10,7 @@ function slugify(s) {
     .replace(/^-|-$/g, "");
 }
 
-export default function AddClientModal({ onClose, onCreated, onUpdated, editingClient = null }) {
+export default function AddClientModal({ onClose, onCreated, onUpdated, editingClient = null, currentUserId = null }) {
   const isEdit = !!editingClient;
   const [name, setName] = useState(editingClient?.name || "");
   const [slug, setSlug] = useState(editingClient?.slug || "");
@@ -220,7 +221,15 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
           </div>
         )}
 
-        <div style={{ display:"flex", gap:8, justifyContent:"space-between", alignItems:"center" }}>
+        {isEdit && (
+          <ClientTeamPanel
+            clientId={editingClient.id}
+            clientName={editingClient.name}
+            currentUserId={currentUserId}
+          />
+        )}
+
+        <div style={{ display:"flex", gap:8, justifyContent:"space-between", alignItems:"center", marginTop: isEdit ? 18 : 0 }}>
           {isEdit ? (
             <button type="button" onClick={handleArchive} disabled={archiving || saving} style={{ background:"transparent", border:"1px solid rgba(255,69,58,0.35)", borderRadius:10, color:"#ff453a", fontSize:11, fontWeight:500, padding:"9px 14px", cursor: archiving?"not-allowed":"pointer", fontFamily:"Inter, sans-serif", opacity: archiving?0.55:1 }}>
               {archiving ? "Archiving…" : "Archive Client"}

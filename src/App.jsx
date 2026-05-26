@@ -279,7 +279,7 @@ function App() {
   // External-client invite still pending admin approval (Fix #2.6c, 2026-05-25)
   if (pendingInvite) return <PendingApprovalScreen email={pendingInvite.email} onSignOut={handleSignOut} />;
   if (role === "client") return <ClientView user={session.user} content={content} setContent={setContent} onSignOut={handleSignOut} clientIds={clientIds} />;
-  return <Vantus onSignOut={handleSignOut} userEmail={session.user.email} content={content} setContent={setContent} />;
+  return <Vantus onSignOut={handleSignOut} userEmail={session.user.email} userId={session.user.id} content={content} setContent={setContent} />;
 }
 
 function PendingApprovalScreen({ email, onSignOut }) {
@@ -313,7 +313,7 @@ document.head.appendChild(fontLink);
 
 
 
-function Vantus({ onSignOut, userEmail, content: contentProp, setContent: setContentProp }) {
+function Vantus({ onSignOut, userEmail, userId, content: contentProp, setContent: setContentProp }) {
   const isMobile = useIsMobile();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -1048,6 +1048,7 @@ return (
               {/* ADD CLIENT MODAL */}
               {addClientOpen && createPortal(
                 <AddClientModal
+                  currentUserId={userId}
                   onClose={() => setAddClientOpen(false)}
                   onCreated={(c) => {
                     setClients(prev => [...prev, c]);
@@ -1061,6 +1062,7 @@ return (
               {editingClient && createPortal(
                 <AddClientModal
                   editingClient={editingClient}
+                  currentUserId={userId}
                   onClose={() => setEditingClient(null)}
                   onUpdated={(c) => {
                     // If archived, drop from active list; otherwise update in place
