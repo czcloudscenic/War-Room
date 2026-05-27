@@ -119,7 +119,7 @@
 
 <header>
   <h1>Vantus</h1>
-  <span class="subtitle">project dashboard · 2026-05-26 (post Move 1 · #15 · #10/10.1 · #7 · #3.1 · #8 · #11 · #2 App.jsx split · security sweep)</span>
+  <span class="subtitle">project dashboard · 2026-05-26 PM (clean working tree · Higgsfield WIP cleared · post Move 1 · #15 · #10/10.1 · #7 · #3.1 · #8 · #11 · #2 App.jsx split · security sweep)</span>
   <div class="tabs">
     <button class="tab active" data-tab="map">Map</button>
     <button class="tab" data-tab="bugs">Bugs &amp; Roadmap <span class="count" id="tab-bug-count">0</span></button>
@@ -210,7 +210,7 @@
         <b>Main JS bundle ~796 KB (gzip 204 KB) — pdfjs already chunked separately (Fix #11).</b> <code style="font-family:'SF Mono',Menlo,monospace">BriefGenPage.jsx:7</code> uses <code style="font-family:'SF Mono',Menlo,monospace">await import('pdfjs-dist')</code>; build output confirms pdfjs is in its own 405 KB chunk. Remaining bundle is React + Supabase + the app surface. Further splitting would need Vite <code style="font-family:'SF Mono',Menlo,monospace">manualChunks</code> config.
       </div>
       <div class="finding">
-        <b>Higgsfield Studio still untracked.</b> <code style="font-family:'SF Mono',Menlo,monospace">src/apps/higgsfield/HiggsfieldStudio.jsx</code> + <code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/higgsfield.js</code> + edits to <code style="font-family:'SF Mono',Menlo,monospace">apps.config.js</code> + <code style="font-family:'SF Mono',Menlo,monospace">utils/constants.js</code> all sit dirty in the working tree. They must ship in one commit (broke CI last time when split) — or be deleted.
+        <b>Working tree fully clean — local HEAD = <code style="font-family:'SF Mono',Menlo,monospace">origin/main</code> at <code style="font-family:'SF Mono',Menlo,monospace">19e7f02</code>.</b> The Higgsfield WIP files (<code style="font-family:'SF Mono',Menlo,monospace">HiggsfieldStudio.jsx</code> + <code style="font-family:'SF Mono',Menlo,monospace">higgsfield.js</code>) and the dormant <code style="font-family:'SF Mono',Menlo,monospace">PasswordGate.jsx</code> that the previous map flagged are no longer in the tree. <code style="font-family:'SF Mono',Menlo,monospace">apps.config.js</code> and <code style="font-family:'SF Mono',Menlo,monospace">constants.js</code> are clean. Whatever happens next is a real new commit on a real branch, not a recovered orphan.
       </div>
       <h3>Map stats</h3>
       <p class="muted" id="map-stats"></p>
@@ -339,14 +339,8 @@ const nodes = [
     notes: ['Uses pdfjs-dist via dynamic import (Fix #11) — 405 KB lives in its own chunk','Action: muse_from_brief'],
     tag: ['content','agents','all'],
   }),
-  N('higgsfield-ui', 'client', 'HiggsfieldStudio.jsx', 'WIP · untracked', 40, 980, 240, 50, 'dead', {
-    role: 'Higgsfield AI image/video gen UI — WIP, file not in git.',
-    plain: 'Half-built page for generating images/videos via Higgsfield. Exists on disk but never committed.',
-    path: 'src/apps/higgsfield/HiggsfieldStudio.jsx (UNTRACKED)',
-    notes: ['Import was previously in App.jsx, broke CI builds when reverted','Currently no nav entry in deployed code','Live /api/higgsfield → 404'],
-    tag: ['all'],
-  }),
-  N('routes-folder', 'client', 'src/ui/routes/', '6 extracted route components', 40, 1045, 240, 30, 'client', {
+  // higgsfield-ui node removed 2026-05-26 PM — file no longer in tree; never deployed.
+  N('routes-folder', 'client', 'src/ui/routes/', '6 extracted route components', 40, 980, 240, 60, 'client', {
     role: 'DashboardRoute, AgentsRoute, ContentRoute, TrackerRoute, TaskboardRoute, SopsRoute — pure presentation; receive state/setters/derived values/handlers as props from App.jsx.',
     plain: 'Six new files Codex carved out of App.jsx (Fix #2, 2026-05-26). Each is one nav route. App.jsx still owns all state — these are dumb components.',
     path: 'src/ui/routes/*.jsx (6 files, ~454 lines total)',
@@ -357,7 +351,7 @@ const nodes = [
     ],
     tag: ['overview','all'],
   }),
-  N('addclient2', 'client', 'AppsPage / Settings / others', '(8 minor pages, see legend)', 40, 1080, 240, 25, 'client', {
+  N('addclient2', 'client', 'AppsPage / Settings / others', '(8 minor pages, see legend)', 40, 1050, 240, 50, 'client', {
     role: 'AppsPage, SettingsPage, ICPPage, TeamBroadcast, ReferencesPage, SkillsPage, AdROIHub, ArtgridScoutPage, HeroGeneratorPage, ShotRefScout, QuickActionsDashboard, AgentCard, AgentAvatar, MetricCard, Card.',
     plain: 'The grab-bag of smaller pages and shared visual components — pages users tap into but that don\'t hold critical logic.',
     path: 'src/ui/* and src/apps/*',
@@ -422,14 +416,8 @@ const nodes = [
     notes: ['Only called from ShotRefScout','GET-only (returns 405 on POST)'],
     tag: ['all'],
   }),
-  N('higgsfield-fn', 'routes', '/api/higgsfield', 'NOT DEPLOYED', 340, 610, 200, 50, 'dead', {
-    role: 'Higgsfield AI proxy — file exists locally but is untracked (never deployed).',
-    plain: 'The other half of the Higgsfield WIP. The file exists but isn\'t in git, so the live site returns 404 for this endpoint.',
-    path: 'netlify/functions/higgsfield.js (UNTRACKED)',
-    notes: ['Live /api/higgsfield → 404','Reads HIGGSFIELD_ACCESS_TOKEN env var'],
-    tag: ['all'],
-  }),
-  N('require-user', 'routes', '_lib/requireUser.js', 'auth gate + cors', 340, 675, 200, 60, 'route', {
+  // higgsfield-fn node removed 2026-05-26 PM — file no longer in tree; never deployed.
+  N('require-user', 'routes', '_lib/requireUser.js', 'auth gate + cors', 340, 610, 200, 60, 'route', {
     role: 'Shared helper: requireUser(event) + cors(event) + unauthorized(reason, event). Validates Supabase JWT, returns user. Used by chat/agent-action/notify/apify-scrape/unsplash (+cid-scrape for cors only).',
     plain: 'The bouncer that every locked-down endpoint calls before doing any work. Either you are a Cloud Scenic admin, or your email has been approved in the invite list — otherwise the request gets a 401.',
     path: 'netlify/functions/_lib/requireUser.js',
@@ -442,7 +430,7 @@ const nodes = [
     tag: ['auth','all'],
     critical: true,
   }),
-  N('rate-limit', 'routes', '_lib/rateLimit.js', 'in-mem sliding window', 340, 745, 200, 60, 'route', {
+  N('rate-limit', 'routes', '_lib/rateLimit.js', 'in-mem sliding window', 340, 680, 200, 60, 'route', {
     role: 'rateLimit(key, max, windowMs) — per-instance Map of (count, windowStart). Sweeps expired buckets once a minute to bound memory.',
     plain: 'Per-user request counter that lives in memory. When a user blows past the limit (e.g. 30 chat calls per minute), the next call gets a 429 with Retry-After. Cold starts reset the counter — acceptable for now; swap for Supabase-backed if we ever go distributed.',
     path: 'netlify/functions/_lib/rateLimit.js',
@@ -505,14 +493,14 @@ const nodes = [
     role: 'Sidebar NAV array, STATUS_COLOR map, FORMATS/PILLARS/PLATFORMS dropdown options.',
     plain: 'The list of sidebar items, status color codes, and dropdown options. The single source of truth for what nav items exist.',
     path: 'src/utils/constants.js (37 lines)',
-    notes: ['Dirty in working tree (Higgsfield CREATIVE entry uncommitted)','Has dynamic feel but is static data'],
+    notes: ['Clean — no CREATIVE section, no Higgsfield nav entry','Has dynamic feel but is static data'],
     tag: ['overview','all'],
   }),
   N('apps-config', 'services', 'apps.config.js', 'toggleable Apps registry', 600, 455, 200, 55, 'service', {
     role: 'DEFAULT_APPS list + localStorage persistence (loadApps/saveApps/isAppEnabled).',
     plain: 'The list of optional modules (ArtGrid, Brief→Content, References, etc.) that can be toggled on/off from the Apps page.',
     path: 'src/apps/apps.config.js (43 lines)',
-    notes: ['Toggle state persisted to localStorage','Dirty: Higgsfield entry present locally not in git'],
+    notes: ['Toggle state persisted to localStorage','Clean — Higgsfield WIP entry never committed and no longer in working tree'],
     tag: ['all'],
   }),
   N('hooks', 'services', 'hooks.js', 'useIsMobile + useInterval', 600, 525, 200, 50, 'service', {
@@ -790,8 +778,7 @@ const edges = [
   { from:'netlify-ext',  to:'apify-scrape',   kind:'mount', label:'/api/apify-scrape', tag:['all'] },
   { from:'netlify-ext',  to:'unsplash',       kind:'mount', label:'/api/unsplash', tag:['all'] },
 
-  // ── Higgsfield WIP (dotted lines via 'normal' but flagged) ──
-  { from:'higgsfield-ui', to:'higgsfield-fn', kind:'normal', label:'POST (404 in prod)', tag:['all'] },
+  // higgsfield-ui → higgsfield-fn edge removed 2026-05-26 PM — both nodes deleted.
 
   // ── Dead code (no incoming edges → visually orphaned in the agents column) ──
   // intentionally left without edges to surface deadness visually
@@ -801,14 +788,12 @@ const edges = [
    FIXES + KNOWN_BUGS
    ───────────────────────────────────────────────────────────────────── */
 const FIXES = {
-  'app': [
-    { n: 2, t: 'Split into smaller components: App.jsx is 1,500+ lines. Phase 3.x of REFACTOR_PLAN.md.' },
-  ],
+  // 'app' Fix #2 closed 2026-05-26 — Codex extracted 6 route components into src/ui/routes/;
+  // App.jsx 1,676 → 1,342. Deeper state extraction tracked separately as the lower-priority follow-up.
   'agent-action': [
     { n: 4, t: 'Split 16 action handlers into per-handler files; keep this as router only.' },
   ],
-  'higgsfield-ui':  [{ n: 9, t: 'Commit OR delete: HiggsfieldStudio.jsx + higgsfield.js must ship together (broke CI last time when split).' }],
-  'higgsfield-fn':  [{ n: 9, t: 'Commit OR delete.' }],
+  // higgsfield Fix #9 closed by removal — files no longer in tree; future Higgsfield ship will be a fresh commit.
   'opsboard':     [{ n: 12, t: 'Back tasks with a DB table (currently in-memory only — refresh wipes state).' }],
   'profiles-tbl': [{ n: 13, t: 'Add per-user client assignments table once Phase B multi-tenant lands.' }],
   'seed-content': [{ n: 14, t: 'Decouple from VitalLyfe — make per-client seedable or remove (data now lives in DB).' }],
@@ -862,14 +847,20 @@ const FIXES = {
                                             _lib/rateLimit.js, HSTS preload +
                                             Referrer-Policy + Permissions-Policy +
                                             tight CSP in netlify.toml
+     #9  Higgsfield WIP cleared           → HiggsfieldStudio.jsx + higgsfield.js
+                                            removed from working tree (never were
+                                            in git anyway). apps.config.js +
+                                            utils/constants.js are clean. Future
+                                            ship is a fresh commit, not a recovered
+                                            orphan.
    ──────────────────────────────────────────────────────────────────── */
 
 const KNOWN_BUGS = {
   'app': [
-    { sev:'med',  ref:'L1646',   t:'1,646 line component. Cognitive load + harder to test in isolation. Split tracked in REFACTOR_PLAN.md Phase 3.x.' },
+    { sev:'med',  ref:'L1342',   t:'1,342 lines after the Fix #2 route split (Codex, 2026-05-26). Still owns all state; routes under src/ui/routes/ are dumb props consumers. Deeper state extraction is the next refactor — lower urgency than the agent-action.js split.' },
   ],
   'agent-action': [
-    { sev:'med',  ref:'L1302',          t:'Monolith: 1,302 lines, 16 action handlers + Anthropic + Supabase + Slack helpers all in one file. Fix #4.' },
+    { sev:'med',  ref:'L1317',   t:'Monolith: 1,317 lines, 16 action handlers + Anthropic wrapper + Supabase helpers + Slack notifier + agent_events logger all in one file. Same shape as the App.jsx split — perfect Codex candidate. Fix #4.' },
   ],
   'cid-posts-tbl': [
     { sev:'low',  t:'REST count probe returns 404 — table may exist but with stricter RLS than other tables. Verify in Supabase dashboard.' },
@@ -877,12 +868,7 @@ const KNOWN_BUGS = {
   'opsboard': [
     { sev:'med',  t:'Tasks stored in in-memory state only. Refresh resets the board. Multi-user can\'t share a task list.' },
   ],
-  'higgsfield-ui': [
-    { sev:'low',  t:'File untracked since session 2 — broke CI when commit/uncommit got out of sync. Either ship or delete.' },
-  ],
-  'higgsfield-fn': [
-    { sev:'low',  t:'/api/higgsfield → 404 in production (function not deployed). UI references would fail.' },
-  ],
+  // higgsfield-ui / higgsfield-fn bugs removed 2026-05-26 PM — files no longer in tree (Fix #9 closed by removal).
 };
 
 /* ────────────────────────────────────────────────────────────────────

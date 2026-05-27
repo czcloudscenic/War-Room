@@ -3,53 +3,44 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-05-26 (post Move 1 · #15 · #10/10.1 · #7 · #8 · #11 · #3.1 · #2 App.jsx split · security sweep) · **Total open:** 1 bug + 3 fixes = 4 items
+**Snapshot:** 2026-05-26 PM (clean working tree · Higgsfield WIP cleared · post Move 1 · #15 · #10/10.1 · #7 · #8 · #11 · #3.1 · #2 App.jsx split · security sweep · #9 closed by removal)
+
+**Open work:** 3 MED bugs · 4 LOW track-only · 4 numbered fixes (#4, #12, #13, #14 — #4 and #12 overlap MED bugs).
 
 ```
-🔴 High:   0    │   ✅ Done:  18  (Fix #1 OAuth, Fix #2 App.jsx split (Codex),
-🟡 Med:    2    │                  Fix #3 Move 1, Fix #3.1 cid_library rename,
-🟢 Low:    1    │                  Fix #5 caller auth, Fix #6 per-client Slack,
+🔴 High:   0    │   ✅ Done:  19  (Fix #1 OAuth, Fix #2 App.jsx split (Codex),
+🟡 Med:    3    │                  Fix #3 Move 1, Fix #3.1 cid_library rename,
+🟢 Low:    4    │                  Fix #5 caller auth, Fix #6 per-client Slack,
                 │                  Fix #7 per-client n8n, Fix #8 delete dead src/agents/,
-                │                  Fix #10 baseline + #10.1 scoped RLS, Fix #11 pdfjs dynamic,
+                │                  Fix #9 Higgsfield closed-by-removal, Fix #10
+                │                  baseline + #10.1 scoped RLS, Fix #11 pdfjs dynamic,
                 │                  Fix #15 auth-lock recovery, security hardening sweep
                 │                  (CORS + rate limits + CSP/HSTS/Permissions/Referrer),
                 │                  5 temp anon RLS policies, Google secret rotation)
-                │   📋 Fixes:  3 open (12 closed)
+                │   📋 Fixes:  4 open (13 closed)
 ```
 
 ---
 
 ## 🔴 HIGH — fix this week
 
-_None open as of 2026-05-26. The week-of work shipped 2026-05-25 — see ✅ block below._
+_None open as of 2026-05-26 PM. Last HIGH-severity batch closed 2026-05-25 (auth restore)._
 
 ---
 
 ## 🟡 MED — fix when planning next refactor
 
-- [ ] **App.jsx · 1,646-line component**
-  Cognitive load + harder to test in isolation. Phase 3.x of `docs/REFACTOR_PLAN.md` was meant to split this; never done.
-  → Touches: `src/App.jsx` · Fix #2
-
-- [x] ~~**App.jsx · L204 — supabase-js auth-lock contention**~~ ✅ closed 2026-05-26 (Fix #15)
-  Auto-recovery now fires when stuckGuard hits 4s: clears just the `sb-*-auth-token` keys, sets a one-shot `sessionStorage` flag (prevents reload loops), then `location.reload()`. Manual `localStorage.clear()` workaround retired.
-
-- [ ] **agent-action.js · L1302 — monolith**
-  16 action handlers + Anthropic wrapper + Supabase helpers + Slack notifier + agent_events logger all in one file. Editing one action means scrolling past walls of unrelated code.
+- [ ] **agent-action.js · L1317 — monolith**
+  1,317 lines, 16 action handlers + Anthropic wrapper + Supabase helpers + Slack notifier + agent_events logger + `getBrandContext` + rate-limit gate. Same mechanical shape as the App.jsx split Codex just landed → ideal Codex candidate. Brief = handler line ranges + dirty-WIP exclusion + `CODEX_NOTES.md` as the report.
   → Touches: `netlify/functions/agent-action.js` · Fix #4
 
-- [x] ~~**agent-action.js · 12 hardcoded VitalLyfe prompts**~~ ✅ closed 2026-05-26 (Fix #3 / Move 1)
-- [x] ~~**memory.js · L77-81 hardcoded Muse pre-seed**~~ ✅ closed 2026-05-26 (Fix #3 / Move 1)
+- [ ] **App.jsx · L1342 — still owns all state**
+  Down from 1,676 to 1,342 after Codex extracted 6 route components into `src/ui/routes/` (Fix #2 shipped 2026-05-26). Routes are pure presentation now, but App.jsx still owns every piece of state in the app — `currentClient`, content/notifications/clients fetch + realtime subs, modal state, the works. Deeper extraction (state hooks, context providers) is the next refactor — lower urgency than the agent-action.js split, no clean Codex pattern yet.
+  → Touches: `src/App.jsx` (state extraction TBD)
 
 - [ ] **OpsBoard.jsx — tasks in memory only**
-  Refresh resets the board. Multi-user can't share a task list. Needs a DB table.
+  Refresh resets the board. Multi-user can't share a task list. Needs a DB table — schema sketch in `roadmap.md` Fix #12.
   → Touches: `src/ui/dashboard/OpsBoard.jsx`, new `supabase/migrations/<date>_tasks.sql` · Fix #12
-
-- [x] ~~**content_items — no migration file**~~ ✅ closed 2026-05-26 (Fix #10 baseline + Fix #10.1 scoped RLS)
-  Baseline migration at `supabase/migrations/20260526_content_items_baseline.sql` (25 columns, FK to clients, client_idx, RLS + 3 policies). Follow-up `20260526_content_items_client_rls.sql` adds scoped SELECT+UPDATE for approved `client_users` and drops the wide-open `"Allow all for now"` policy. Anon callers no longer get any content_items rows.
-
-- [x] ~~**Per-client n8n routing**~~ ✅ closed 2026-05-26 (Fix #7)
-  `notify.js` now reads `slack_webhook_url` and `n8n_webhook_url` from the client row in one Supabase fetch (was two roundtrips), each falling back to the global env var. Mirrors the Slack pattern shipped 2026-05-25 (commit 702f867) plus a small efficiency win.
 
 ---
 
@@ -63,57 +54,55 @@ _None open as of 2026-05-26. The week-of work shipped 2026-05-25 — see ✅ blo
   Table may exist with stricter RLS than other tables. Verify in Supabase dashboard.
   → Touches: `supabase/migrations/003_cid_posts.sql` (verify policies)
 
-- [x] ~~**briefgen — 405 KB pdfjs bundle bloat**~~ ✅ closed 2026-05-26 (already shipped — `BriefGenPage.jsx:7` does `await import('pdfjs-dist')` inside `extractPdfText`; build output confirms pdfjs is in its own 405 KB chunk, not bundled into the main 796 KB index)
-- [x] ~~**src/agents/ — entire folder is dead code**~~ ✅ closed 2026-05-26 (Fix #8 — `rm -rf src/agents/` — 8 files, 96 lines deleted; build passed)
-
-- [ ] **higgsfield · UI + function untracked**
-  `src/apps/higgsfield/HiggsfieldStudio.jsx` + `netlify/functions/higgsfield.js` both in working tree but not git. Plus dirty edits to `src/apps/apps.config.js` and `src/utils/constants.js`. Must ship together (broke CI last time when split) or be deleted together.
-  → Touches: those 4 files + `src/App.jsx` import · Fix #9
-
-- [ ] **/api/higgsfield · 404 in production**
-  Function not deployed. UI references would fail. Resolved by Fix #9 either direction.
-
-- [x] ~~**CORS still `*` on every function + no rate limits**~~ ✅ closed 2026-05-26 (security sweep)
-  CORS allowlist in `_lib/requireUser.js` `cors(event)` matches usevantus.com + the Netlify subdomain + deploy previews. All 6 functions rewritten to call it. New `_lib/rateLimit.js` sliding-window helper wired into /api/chat (30/min/user) and /api/agent-action (60/min/user).
-- [x] ~~**CSP / HSTS / Referrer-Policy headers missing**~~ ✅ closed 2026-05-26 (security sweep)
-  Added to `netlify.toml`: HSTS preload, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo denied), plus a tight CSP whitelisting only Anthropic/Supabase/Resend/Slack/n8n/Tavily/Apify/Unsplash origins.
-
 - [ ] **Rotate Supabase admin passwords**
   `Cloudai25%` still in git history. Lower urgency now that Google OAuth is the only login path used in practice — but the password path technically still works.
   → Accounts: `cz@`, `dv@`, `ss@` cloudscenic.com
 
+- [ ] **Tighten `style-src 'unsafe-inline'` in CSP**
+  Required by current inline-style React patterns. When inline styles get factored out, drop `'unsafe-inline'` from `style-src` in `netlify.toml`.
+  → Touches: `netlify.toml` (after inline-style refactor)
+
 ---
 
-## 📋 Numbered Roadmap Fixes (open)
+## 📋 Numbered Roadmap Fixes
 
 Cross-references map node badges + the items above.
 
 - [x] ~~**#1** — Re-enable Google OAuth + auth gate~~ ✅ commit `8e5095e` + hotfix `d0acec3`
-- [x] ~~**#2** — Split App.jsx into smaller components~~ ✅ 2026-05-26 (Codex extracted 6 route components to `src/ui/routes/`; App.jsx 1,676 → 1,342 lines; commits `4ee755b`/`6589b78`/`bee8946`/`f2d384c`/`94eae54`/`c4f2cc5`/`e57e951`)
-- [x] ~~**#3** — Brain Move 1: per-client agent voice from `clients.brand_voice_md`~~ ✅ 2026-05-26 (getBrandContext + 12 prompt sites + memory.js seed removal + VitalLyfe SQL seed)
+- [x] ~~**#2** — Split App.jsx into smaller components~~ ✅ 2026-05-26 (Codex extracted 6 route components to `src/ui/routes/`; App.jsx 1,676 → 1,342 lines; 7 commits: `4ee755b`/`6589b78`/`bee8946`/`f2d384c`/`94eae54`/`c4f2cc5`/`e57e951`)
+- [x] ~~**#3** — Brain Move 1: per-client agent voice from `clients.brand_voice_md`~~ ✅ 2026-05-26 (getBrandContext + 12 prompt sites + memory.js seed removal + VitalLyfe SQL seed; commit `767cb93`)
+- [x] ~~**#3.1** — Rename `cid_library.vitallyfe_adaptation` → `client_adaptation`~~ ✅ 2026-05-26 (idempotent SQL migration + 3 code sites; commit `183d53f`)
 - [ ] **#4** — Split `agent-action.js` into per-handler files → keep as router only
 - [x] ~~**#5** — Caller auth on all 5 functions~~ ✅ commit `2a9c9c1` (shared `_lib/requireUser.js`)
 - [x] ~~**#6** — Per-client Slack routing~~ ✅ commit `702f867` (`clients.slack_webhook_url`)
-- [x] ~~**#7** — Per-client n8n webhook routing in `notify.js`~~ ✅ 2026-05-26 (one combined Supabase fetch for slack+n8n URLs; each falls back to env)
-- [x] ~~**#8** — Delete `src/agents/` dead-code folder~~ ✅ 2026-05-26 (`rm -rf src/agents/`; 8 files, 96 lines)
-- [ ] **#9** — Ship or delete Higgsfield (both files + nav edits together)
-- [x] ~~**#10** — Write `content_items` migration~~ ✅ 2026-05-26 (`20260526_content_items_baseline.sql`)
-- [x] ~~**#10.1** — Drop wide-open `"Allow all for now"` policy on content_items~~ ✅ 2026-05-26 (`20260526_content_items_client_rls.sql` adds scoped client policies + drops the wide-open one)
+- [x] ~~**#7** — Per-client n8n webhook routing in `notify.js`~~ ✅ 2026-05-26 (one combined Supabase fetch for slack+n8n URLs; each falls back to env; commit `2bb8958`)
+- [x] ~~**#8** — Delete `src/agents/` dead-code folder~~ ✅ 2026-05-26 (`rm -rf src/agents/`; 8 files, 96 lines; commit `4b54630`)
+- [x] ~~**#9** — Ship or delete Higgsfield~~ ✅ 2026-05-26 PM (closed by removal — both WIP files no longer in tree; never were in git on main; `apps.config.js` + `constants.js` clean. Future Higgsfield ship is a fresh atomic commit.)
+- [x] ~~**#10** — Write `content_items` migration~~ ✅ 2026-05-26 (`20260526_content_items_baseline.sql`; commit `ed46c31`)
+- [x] ~~**#10.1** — Drop wide-open `"Allow all for now"` policy on content_items~~ ✅ 2026-05-26 (`20260526_content_items_client_rls.sql` adds scoped client policies + drops the wide-open one; commit `5a51b00`)
 - [x] ~~**#11** — Dynamic-import `pdfjs-dist` in BriefGenPage~~ ✅ already shipped — `BriefGenPage.jsx:7` uses `await import('pdfjs-dist')`; pdfjs lives in its own 405 KB chunk
 - [ ] **#12** — Back OpsBoard with a `tasks` table in Supabase
-- [ ] **#13** — Per-user client assignments table (now that OAuth is live, this is unblocked)
+- [ ] **#13** — Per-user client assignments table (now that OAuth + `client_users` are live, this is unblocked)
 - [ ] **#14** — Decouple `seed.content.js` from VitalLyfe (or remove — DB is authoritative now)
-- [x] ~~**#15** — Auto-recover from supabase-js auth-lock errors~~ ✅ 2026-05-26 (App.jsx stuckGuard now clears sb-auth-token keys + reloads; one-shot sessionStorage flag prevents reload loops)
+- [x] ~~**#15** — Auto-recover from supabase-js auth-lock errors~~ ✅ 2026-05-26 (App.jsx stuckGuard now clears `sb-*-auth-token` keys + reloads; one-shot sessionStorage flag prevents reload loops; commit `2b43364`)
 
 ---
+
+## ✅ Closed 2026-05-26 PM (Higgsfield WIP cleanup)
+
+- [x] ~~**Fix #9 — Higgsfield WIP files in inconsistent state**~~
+  `src/apps/higgsfield/HiggsfieldStudio.jsx` + `netlify/functions/higgsfield.js` removed from working tree. Verified neither file exists on local HEAD or `origin/main` (`git ls-tree -r origin/main | grep higgs` → empty). `src/apps/apps.config.js` + `src/utils/constants.js` confirmed clean — no CREATIVE section, no Higgsfield DEFAULT_APPS entry. If Higgsfield ships later, it's a fresh atomic commit on a fresh branch, not a recovered orphan. Old broken-CI risk from `5d5300b` no longer applies.
 
 ## ✅ Closed 2026-05-26 (Move 1 + leftovers)
 
 - [x] ~~**Fix #3 — Brain Move 1: per-client brand voice**~~
   New `getBrandContext(client_id)` in `agent-action.js:94` fetches `clients.name` + `clients.brand_voice_md` per request. 12 prompt sites refactored to interpolate `${brand.name}` and `${brand.voice}` instead of hardcoded "VitalLyfe / cinematic, calm, purposeful". Dynamic `#${brand.name}` hashtag templates replace `#VitalLyfe` in 3 places. Dead `seedMuseMemory()` removed from `memory.js`. VitalLyfe seeded via `supabase/migrations/20260526_seed_vitallyfe_brand_voice.sql`.
 
+- [x] ~~**Per-request voice override**~~
+  `agent-action.js` accepts `payload.voiceOverride` and substitutes it for `brand.voice` for that call. `AgentChatPage.jsx` exposes a textarea above quick actions — useful for "try a punchier tone" runs without touching the client's saved brand_voice_md.
+
 - [x] ~~**Fix #3.1 — Rename cid_library.vitallyfe_adaptation → client_adaptation**~~
-  Last hardcoded VitalLyfe reference at the agent layer closed. SQL migration: `20260526_cid_library_rename_adaptation.sql` (idempotent — uses `information_schema` check). Three insert sites in `agent-action.js:959-961` updated. Header comment refreshed.
+  Last hardcoded VitalLyfe reference at the agent layer closed. SQL migration: `20260526_cid_library_rename_adaptation.sql` (idempotent — uses `information_schema` check). Three insert sites in `agent-action.js` updated. Header comment refreshed.
 
 - [x] ~~**Fix #8 — Delete dead src/agents/ folder**~~
   `rm -rf src/agents/` — 8 files, 96 lines. Confirmed zero importers before delete. Build passed clean.
@@ -126,8 +115,11 @@ Cross-references map node badges + the items above.
 
 - [x] ~~**Security hardening sweep — CORS + rate limits + CSP/HSTS/Permissions/Referrer**~~
   - `_lib/requireUser.js cors(event)` builds per-request CORS from an allowlist regex matching usevantus.com + the Netlify subdomain + deploy previews. All 6 functions rewritten (was `*` on every one).
-  - New `_lib/rateLimit.js`: in-memory sliding window keyed on `user.id:endpoint`. Wired into `/api/chat` (30/min) and `/api/agent-action` (60/min). Cold starts reset — acceptable since authentic abuse is already capped by Anthropic + auth.
+  - New `_lib/rateLimit.js`: in-memory sliding window keyed on `user.id:endpoint`. Wired into `/api/chat` (30/min) and `/api/agent-action` (60/min). Cold starts reset — acceptable since auth + RLS are primary defense.
   - `netlify.toml` headers: HSTS preload (1y), Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo denied), and a tight CSP whitelisting only the real external origins (Anthropic, Supabase, Resend, Slack, n8n, Tavily, Apify, Unsplash).
+
+- [x] ~~**Fix #15 — Auto-recover from supabase-js auth-lock errors**~~
+  Auto-recovery now fires when stuckGuard hits 4s: clears just the `sb-*-auth-token` keys (preserves agent histories + apps prefs), sets a one-shot `sessionStorage` flag (prevents reload loops), then `location.reload()`. Manual `localStorage.clear()` workaround retired. Commit `2b43364`.
 
 ## ✅ Closed 2026-05-25 (kept for history)
 
@@ -155,27 +147,25 @@ Cross-references map node badges + the items above.
 
 ## Cross-cutting work (still open)
 
-### When Fix #9 (Higgsfield) lands as a SHIP → one atomic commit
-Bundle these 5 changes in one commit so CI doesn't break mid-merge again:
-1. `src/apps/higgsfield/HiggsfieldStudio.jsx` (new)
-2. `netlify/functions/higgsfield.js` (new)
-3. `src/apps/apps.config.js` (M — Higgsfield entry in DEFAULT_APPS)
-4. `src/utils/constants.js` (M — CREATIVE/Higgsfield section in NAV)
-5. `src/App.jsx` (import + render block)
-+ Netlify env var: `HIGGSFIELD_ACCESS_TOKEN`
-
 ### When fully off password login → rotate Supabase admin passwords
 - `cz@cloudscenic.com`, `dv@cloudscenic.com`, `ss@cloudscenic.com`
 - `Cloudai25%` is in git history forever — becomes irrelevant once password login is dead
 - Where: Supabase dashboard → Authentication → Users → "Send password recovery"
 
+### When inline-style React patterns get factored out → tighten CSP
+- Drop `'unsafe-inline'` from `style-src` in `netlify.toml`
+- Currently required because several React components use inline style objects
+
 ---
 
 ## Suggested attack order
 
-1. **#9 (ship or delete Higgsfield)** — decision is the hard part; work is small. Needs your call.
-2. **#4** — Split agent-action.js (1,317 lines) into per-handler files. Same shape as #2 — could pass to Codex.
-3. **#12, #13, #14** — polish (OpsBoard DB-backed tasks, per-user client assignments, decouple seed.content).
+1. **#4 (agent-action.js split)** — same mechanical shape as Codex's Fix #2 App.jsx split. Brief Codex with the handler line ranges and a dirty-WIP exclusion list, get a `CODEX_NOTES.md` report. Closing this unblocks per-handler iteration (currently every edit means scrolling past 16 unrelated handlers). Highest leverage open item.
+2. **#12 (OpsBoard DB-backed tasks)** — small migration + UI rewrite, ~1hr. Schema sketch already in `roadmap.md`. Closes a med-severity bug.
+3. **#13 (per-user client assignments)** — small, unlocks per-Cloud-Scenic-teammate client scoping. Could fold into `client_users` instead of a new table.
+4. **#14 (decouple seed.content.js from VitalLyfe)** — or just delete (DB is authoritative).
+5. **App.jsx state extraction** — no fix# yet, no clean Codex pattern. Defer until #4 lands and Codex pattern is proven a second time.
+6. **Slack bot + Supabase password rotation + CSP `style-src` tightening** — track-only, no deadline.
 
 ---
 

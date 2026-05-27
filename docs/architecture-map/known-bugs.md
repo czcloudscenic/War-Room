@@ -20,6 +20,7 @@ Ranked by severity. Each entry cites the file (and line when possible) where the
 | cid_library.vitallyfe_adaptation last hardcoded VL reference (Fix #3.1) | Column renamed → `client_adaptation` via `20260526_cid_library_rename_adaptation.sql`; 3 code sites updated |
 | Fix #2 — App.jsx 1,676-line monolith | Codex extracted 6 route components to `src/ui/routes/`; App.jsx down to 1,342 lines |
 | Security sweep — CORS `*`, rate limits, CSP/HSTS/Referrer-Policy | CORS allowlist via `_lib/requireUser.js cors(event)`; `_lib/rateLimit.js` wired into chat (30/min) + agent-action (60/min); `netlify.toml` adds HSTS + Referrer-Policy + Permissions-Policy + tight CSP |
+| Fix #9 — Higgsfield WIP files in inconsistent state | `HiggsfieldStudio.jsx` + `higgsfield.js` removed from working tree (closed by removal). `apps.config.js` + `constants.js` clean. Future Higgsfield ship is a fresh commit, not a recovered orphan. |
 
 Test: Muse caption generation against VitalLyfe produces correct voice/structure verified in dev + prod 2026-05-26. Auth-lock recovery verified by manual reproduction.
 
@@ -51,16 +52,14 @@ _(none open as of 2026-05-26)_
 
 ## 🟡 MED — fix when planning the next refactor
 
-### App.jsx · 1,646-line component
-Cognitive load + harder to test in isolation. Phase 3.x of `docs/REFACTOR_PLAN.md` was meant to split this; never done. Suggested extraction: one component per nav route handler, keep App.jsx as a router shell.
+### App.jsx · L1342 · still owns all state
+1,342 lines after the Fix #2 route split (Codex, 2026-05-26). Six route components now live in `src/ui/routes/` — they're pure presentation receiving state/setters/handlers as props. App.jsx remains the single owner of every piece of state in the app. Deeper extraction (state hooks, context providers) is the next refactor, lower urgency than the agent-action.js split.
 
-### agent-action.js · L1302 · monolith
-1,302 lines, 16 action handlers + Anthropic wrapper + Supabase helpers + Slack notifier + agent_events logger + new `getBrandContext` helper all in one file. Editing one action means scrolling past walls of unrelated code.
+### agent-action.js · L1317 · monolith
+1,317 lines, 16 action handlers + Anthropic wrapper + Supabase helpers + Slack notifier + agent_events logger + `getBrandContext` helper + rate-limit gate all in one file. Editing one action means scrolling past walls of unrelated code. Same shape as the App.jsx split Codex just landed — perfect Codex candidate. Fix #4.
 
 ### OpsBoard.jsx · tasks in memory only
-Refresh resets the board. Multi-user can't share a task list. Needs a DB table.
-
-_(none open — Fix #10.1 closed this 2026-05-26 by adding scoped client policies + dropping "Allow all for now". See known-bugs § Closed.)_
+Refresh resets the board. Multi-user can't share a task list. Needs a DB table. Fix #12.
 
 ---
 
@@ -69,22 +68,13 @@ _(none open — Fix #10.1 closed this 2026-05-26 by adding scoped client policie
 ### cid_posts table · 404 on REST count probe
 Table may exist but with stricter RLS than other tables. Verify in Supabase dashboard.
 
-### higgsfield · WIP files inconsistent state
-`src/apps/higgsfield/HiggsfieldStudio.jsx` + `netlify/functions/higgsfield.js` are both untracked. Dirty edits also pending in `src/apps/apps.config.js` and `src/utils/constants.js`. Broke CI last time when commit/uncommit got out of sync. Either ship all 4 changes in one commit or delete the lot.
-
-### /api/higgsfield · 404 in production
-Function not deployed (file untracked). UI references would fail. Resolved either way by Fix #9.
-
-_(All three closed 2026-05-26 in the security hardening sweep — see Closed section above.)_
-
 ---
 
-## Summary by node (post 2026-05-26)
+## Summary by node (post 2026-05-26 PM)
 
 | Node | Severity | Issue |
 |---|---|---|
-| App.jsx | MED | 1,646-line monolith (auth-lock auto-recovery shipped 2026-05-26) |
-| agent-action.js | MED | Monolith |
-| OpsBoard.jsx | MED | In-memory tasks |
+| App.jsx | MED | 1,342-line state owner (route split shipped) |
+| agent-action.js | MED | 1,317-line monolith — Fix #4 (Codex candidate) |
+| OpsBoard.jsx | MED | In-memory tasks — Fix #12 |
 | cid_posts | LOW | RLS probe returns 404 |
-| higgsfield (UI + fn) | LOW | Untracked WIP |

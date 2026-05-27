@@ -8,7 +8,6 @@ import { sb, DB_CONNECTED } from './services/supabaseClient.js';
 import { apiFetch } from './services/apiFetch.js';
 import { getIsMobile, useIsMobile, useInterval } from './utils/hooks.js';
 import { NAV } from './utils/constants.js';
-import { INITIAL_CONTENT } from './data/seed.content.js';
 import { AGENTS_BASE, ACTION_COLORS } from './data/seed.agents.js';
 import { OPS_INIT } from './data/seed.ops.js';
 import { getMemory, setMemory, buildSystemPrompt, updateAgentMemory } from './core/memory.js';

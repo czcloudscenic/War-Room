@@ -4,7 +4,7 @@
 > Mirrors the interactive `architecture-map.html` at the repo root.
 > Drop this entire folder into any wiki / knowledge base — no rendering deps.
 
-**Snapshot date:** 2026-05-26 (post Move 1 · #15 · #10/10.1 · #7 · #3.1 · #8 · #11 · #2 App.jsx split · security sweep)
+**Snapshot date:** 2026-05-26 PM (clean working tree · Higgsfield WIP cleared · post Move 1 · #15 · #10/10.1 · #7 · #3.1 · #8 · #11 · #2 App.jsx split · security sweep)
 **Live URL:** https://usevantus.com
 **Repo:** https://github.com/czcloudscenic/War-Room (auto-deploys on push to `main`)
 
@@ -73,8 +73,8 @@ When the 4s `stuckGuard` in `App.jsx` fires, it now clears just the `sb-*-auth-t
 ### 8. Main JS bundle ~796 KB (gzip 204 KB) — pdfjs already chunked separately
 `pdfjs-dist` is already lazy-loaded (Fix #11 was already done — `BriefGenPage.jsx:7` uses `await import('pdfjs-dist')`). The remaining 796 KB is React + Supabase + the rest of the app surface. Further code-splitting would need Vite `manualChunks` config — separate task, not blocking.
 
-### 9. Higgsfield Studio still untracked
-`src/apps/higgsfield/HiggsfieldStudio.jsx` + `netlify/functions/higgsfield.js` + dirty edits to `apps.config.js` + `constants.js` all sit in the working tree. Must ship in one commit (broke CI last time when split) or be deleted together.
+### 9. Working tree fully clean — local HEAD = `origin/main` at `19e7f02`
+The Higgsfield WIP files (`HiggsfieldStudio.jsx` + `higgsfield.js`) and the dormant `PasswordGate.jsx` that the previous snapshot flagged are no longer in the tree. `apps.config.js` and `constants.js` are clean — no CREATIVE section, no Higgsfield nav entry. Whatever ships next is a fresh commit on a real branch, not a recovered orphan. Fix #9 closed by removal.
 
 ---
 
@@ -94,13 +94,12 @@ When the 4s `stuckGuard` in `App.jsx` fires, it now clears just the `sb-*-auth-t
 │ OpsBoard    │  │ unsplash    │  │ constants   │  │ cid_posts   │  │ Apify       │
 │ PipelineBd  │  │ require-    │  │ apps-config │  │ logos       │  │ Netlify     │
 │ EditModal   │  │  User ★     │  │ hooks       │  │  bucket     │  │             │
-│ ClientView  │  │ higgsfield  │  │ seed.*      │  │ client_     │  │             │
-│ CIDPage     │  │  (404 ✕)    │  │ agents/ ✕   │  │  users      │  │             │
+│ ClientView  │  │ rate-limit  │  │ seed.*      │  │ client_     │  │             │
+│ CIDPage     │  │             │  │             │  │  users      │  │             │
 │ BriefGen    │  │             │  │             │  │             │  │             │
-│ Higgsfield  │  │             │  │             │  │             │  │             │
-│  Studio ✕   │  │             │  │             │  │             │  │             │
+│ routes/ (6) │  │             │  │             │  │             │  │             │
 └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
-                     ★ = on critical path     ✕ = dead/untracked
+                     ★ = on critical path
 ```
 
 ## Color legend (interactive HTML version)

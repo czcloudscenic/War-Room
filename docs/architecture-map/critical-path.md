@@ -51,11 +51,11 @@ User
 
 | Step | Node | File | Why critical |
 |---|---|---|---|
-| 1 | App.jsx | `src/App.jsx` (1,646 lines) | Holds the entire fetch + state + realtime subscription logic + 4-way auth gate. |
+| 1 | App.jsx | `src/App.jsx` (1,342 lines, post Fix #2) | Holds the entire fetch + state + realtime subscription logic + 4-way auth gate. Routes are dumb props consumers under `src/ui/routes/`. |
 | 1 | AgentChatPage | `src/ui/agents/AgentChatPage.jsx` | Alternate entry into the same `/api/agent-action` endpoint. |
 | 1 | apiFetch | `src/services/apiFetch.js` (25 lines) | Stamps `Authorization: Bearer <token>` on every protected call. Without it: 401 on every action. |
-| 2 | requireUser | `netlify/functions/_lib/requireUser.js` (100 lines) | Validates JWT against `/auth/v1/user` + checks @cloudscenic.com admin OR `client_users` allowlist. |
-| 2 | agent-action.js | `netlify/functions/agent-action.js` (1,263 lines) | All 16 actions route through this monolith. |
+| 2 | requireUser | `netlify/functions/_lib/requireUser.js` (124 lines) | Validates JWT against `/auth/v1/user` + checks @cloudscenic.com admin OR `client_users` allowlist; also exports `cors(event)` for per-request CORS headers. |
+| 2 | agent-action.js | `netlify/functions/agent-action.js` (1,317 lines) | All 16 actions route through this monolith. |
 | 3 | `ai()` helper | `netlify/functions/agent-action.js:113-131` | Single point of contact with Anthropic API. |
 | 5 | content_items table | live Supabase (no migration file!) | Backing store for every content piece. |
 | 6 | agent_events table | `supabase/migrations/20260523_agent_events.sql` | The brain — every agent decision logged here. |
@@ -95,6 +95,6 @@ content_items     ──realtime UPDATE──▶        App.jsx
 ## Recent failures on this path (closed, but worth remembering)
 
 1. **Anthropic model deprecation** (commit `54870ae`) — `claude-3-haiku-20240307` started returning errors; every agent invocation failed silently. Fixed by upgrading to `claude-haiku-4-5-20251001`. *Move 2's agent_events logging is what surfaced this — pre-Move-2 it was hidden by fake ACTIVITY_POOL theater.*
-2. **Broken Higgsfield import in App.jsx** (commit `5d5300b`) — caused CI builds to fail with `UNRESOLVED_IMPORT`. Local builds worked because the untracked file was on disk; CI didn't have it. **Don't split-commit Higgsfield** — Fix #9 must land atomically.
+2. **Broken Higgsfield import in App.jsx** (commit `5d5300b`) — caused CI builds to fail with `UNRESOLVED_IMPORT`. Local builds worked because the untracked file was on disk; CI didn't have it. *Closed 2026-05-26 PM by removing the Higgsfield WIP files entirely — Fix #9 closed by removal. If Higgsfield ships later, it has to be a fresh atomic commit, not a recovered orphan.*
 3. **`createPortal` import path bug** (commit `587db1d`) — was importing from `react-dom/client` (no `createPortal` export). Notification panel silently failed to render for weeks.
 4. **Auth gate flicker / stuck-checking** (commit `307b64f` + hotfix `d0acec3`) — duplicate `setupSession()` runs caused `checking` state to stay true forever. Fixed with a dedupe ref + 4s `stuckGuard` that forces `checking=false` when supabase-js `navigator.locks` deadlocks.

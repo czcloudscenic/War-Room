@@ -4,9 +4,10 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 
 ## Order to attack (recommended)
 
-1. **#9** — Ship or delete Higgsfield. Decision is the work; code change is small either way.
-2. **#4** — Split agent-action.js (1,317 lines) into per-handler files. Same shape as the App.jsx split Codex just landed.
-3. **#12, #13, #14** — Smaller polish items.
+1. **#4** — Split agent-action.js (1,317 lines) into per-handler files. Same mechanical shape as the App.jsx split Codex just landed → ideal Codex candidate. Brief = `agent-action.js` line ranges + dirty-WIP exclusion list + CODEX_NOTES.md as the report. (Fix #9 was closed-by-removal 2026-05-26 PM — the WIP files are no longer in the tree.)
+2. **#12** — Back OpsBoard with a DB-backed `tasks` table. ~1hr; small migration + UI rewrite. Schema sketch already in this file.
+3. **#13** — Per-user client assignments table (now unblocked by OAuth + `client_users`).
+4. **#14** — Decouple `seed.content.js` from VitalLyfe (or remove — DB is authoritative now).
 
 ---
 
@@ -39,8 +40,9 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 - **Out-of-band:** SQL run in Supabase by user before code push so prod doesn't 400 on the new column name.
 
 ### #4 — Split agent-action.js
-- **Where:** `netlify/functions/agent-action.js` (1,263 lines)
-- **Steps:** Move each handler into its own file (`netlify/functions/agent-action/handlers/muse_write_content.js`, etc.). Keep `agent-action.js` as a router only.
+- **Where:** `netlify/functions/agent-action.js` (1,317 lines, verified 2026-05-26 PM)
+- **Steps:** Move each of the 16 handlers into its own file (e.g. `netlify/functions/agent-action/handlers/muse_write_content.js`). Keep `agent-action.js` as a router only — preserves `requireUser` + rate-limit gates + `getBrandContext` + `logAgentEvent` wrappers at the top level.
+- **Pattern:** Mirror Codex's Fix #2 App.jsx split. Brief Codex with the line ranges for each handler block + dirty-WIP out-of-scope list + `CODEX_NOTES.md` as the report file. One commit per handler extraction; build passes after each.
 
 ### ✅ #5 — Caller auth on all functions — CLOSED 2026-05-25
 - **Where:** `netlify/functions/{chat,agent-action,notify,apify-scrape,unsplash}.js`
@@ -58,12 +60,10 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 ### ✅ #8 — Delete `src/agents/` dead code — CLOSED 2026-05-26
 - **What landed:** `rm -rf src/agents/`. 8 files / 96 lines removed. Build passed clean.
 
-### #9 — Ship or delete Higgsfield
-- **Files:** `netlify/functions/higgsfield.js`, `src/apps/higgsfield/HiggsfieldStudio.jsx`, modified `src/apps/apps.config.js` + `src/utils/constants.js`
-- **Two options:**
-  - **Ship in ONE commit:** Both new files + the apps.config + constants edits + the import + `<HiggsfieldStudio />` render in App.jsx + `HIGGSFIELD_ACCESS_TOKEN` env in Netlify. Test live before pushing.
-  - **Delete:** `rm` both files + revert dirty edits to `constants.js` + `apps.config.js`.
-- **Don't split-commit** — broke CI last time when files landed before/after their import.
+### ✅ #9 — Ship or delete Higgsfield — CLOSED 2026-05-26 PM (by removal)
+- **Where:** `src/apps/higgsfield/HiggsfieldStudio.jsx` + `netlify/functions/higgsfield.js` (both removed); `src/apps/apps.config.js` + `src/utils/constants.js` (verified clean — no CREATIVE section, no Higgsfield nav entry).
+- **What landed:** Files removed from the working tree; never were in git on `main` (verified via `git ls-tree -r origin/main | grep higgs` → empty). Local HEAD = origin/main at `19e7f02`.
+- **If Higgsfield ships later:** treat it as a fresh feature commit. All five touchpoints (UI + function + `apps.config.js` entry + `constants.js` CREATIVE section + App.jsx import/render) must land in one commit, plus the `HIGGSFIELD_ACCESS_TOKEN` env in Netlify. Don't reconstitute the WIP.
 
 ### ✅ #10 — Write `content_items` migration — CLOSED 2026-05-26
 - **Where:** `supabase/migrations/20260526_content_items_baseline.sql`

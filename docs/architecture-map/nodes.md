@@ -16,15 +16,16 @@ Every significant file, function, table, and external service in Vantus — grou
 - **Plain English:** The very first line of code that runs when you open the site. Connects React to the page.
 
 ### ★ `App.jsx` — root + state + auth gate
-- **Path:** `src/App.jsx` (1,646 lines)
+- **Path:** `src/App.jsx` (1,342 lines, post Fix #2 route extraction)
 - **Role:** Root React tree: 4-way auth gate (admin / approved client / pending invite / unknown), `currentClient` state, content/notifications/clients fetch + realtime subs, layout shell, every nav route handler.
 - **Plain English:** The big brain of the frontend. Checks who is logged in, picks the active client, loads all the data, decides which page to show based on the sidebar item you clicked.
 - **Notes:**
   - L51: `ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"]`
   - L72: `setupSession` — branches on @cloudscenic.com (admin) vs `client_users` allowlist (external)
   - PendingApprovalScreen renders when status='pending'; auto-unlocks via realtime when admin approves
-  - L204: 4s `stuckGuard` timeout forces `checking=false` to survive supabase-js auth-lock hangs
-  - L1200+: giant render switch (one block per nav id)
+  - L204: 4s `stuckGuard` with auto-recovery (Fix #15) — clears `sb-*-auth-token` localStorage keys + reloads
+  - 6 route blocks extracted to `src/ui/routes/` via Codex (Fix #2, 2026-05-26): Dashboard, Agents, Content, Tracker, Taskboard, Sops. App.jsx still owns all state — routes are dumb presentation receiving props.
+  - L1200+: render switch — now mostly one-liners delegating to route components
 
 ### `LoginScreen.jsx` — Google OAuth button
 - **Path:** `src/ui/layout/LoginScreen.jsx`
@@ -91,10 +92,14 @@ Every significant file, function, table, and external service in Vantus — grou
 - **Plain English:** Drop a PDF brief and Muse reads it, generates Reels + Stories, adds them to the tracker.
 - **Notes:** Uses `pdfjs-dist` (the 405KB bundle bloat — Fix #11 dynamic-imports it).
 
-### ✕ `HiggsfieldStudio.jsx` — WIP, untracked
-- **Path:** `src/apps/higgsfield/HiggsfieldStudio.jsx` (NOT IN GIT)
-- **Role:** Half-built Higgsfield AI image/video gen UI.
-- **Notes:** File exists on disk but never committed. Live `/api/higgsfield` returns 404. Must ship together with `netlify/functions/higgsfield.js` + the dirty `apps.config.js` + `constants.js` edits in one commit, or be deleted.
+### `src/ui/routes/` — 6 extracted route components
+- **Path:** `src/ui/routes/*.jsx` (6 files, ~454 lines total)
+- **Role:** `DashboardRoute`, `AgentsRoute`, `ContentRoute`, `TrackerRoute`, `TaskboardRoute`, `SopsRoute` — pure presentation; receive state/setters/derived values/handlers as props from App.jsx.
+- **Plain English:** Six files Codex carved out of App.jsx (Fix #2, 2026-05-26). Each is one nav route. App.jsx still owns all state — these are dumb components.
+- **Notes:**
+  - Highest prop count: TrackerRoute (13) — under the 15-smell threshold
+  - DashboardRoute 130 lines, ContentRoute 104, TrackerRoute 117, SopsRoute 85, TaskboardRoute 12, AgentsRoute 6
+  - Each landed in its own commit on `codex/grunt-2026-05-26`; build passed after every extraction
 
 ### Smaller pages (not detailed)
 `AppsPage`, `SettingsPage`, `ICPPage`, `TeamBroadcast`, `ReferencesPage`, `SkillsPage`, `AdROIHub`, `ArtgridScoutPage`, `HeroGeneratorPage`, `ShotRefScout`, `QuickActionsDashboard`, `AgentCard`, `AgentAvatar`, `MetricCard`, `Card`, `PlaceholderPage`, `TypingTask`, `AppPlaceholder`, `PendingApprovalScreen`.
@@ -104,8 +109,8 @@ Every significant file, function, table, and external service in Vantus — grou
 ## 🛣️ API Routes (`netlify/functions/`)
 
 ### ★ `/api/agent-action` — agent-action.js
-- **Path:** `netlify/functions/agent-action.js` (**1,302 lines — monolith**)
-- **Role:** 16-action switch over `POST {action,payload,client_id}`; routes to muse_/sean_/lacey_/sam_/overseer_/artgrid_/scrappy_/cid_ handlers, logs to `agent_events`, posts to Slack. Per-client brand voice loaded from `clients.brand_voice_md` at request time.
+- **Path:** `netlify/functions/agent-action.js` (**1,317 lines — monolith**)
+- **Role:** 16-action switch over `POST {action,payload,client_id}`; routes to muse_/sean_/lacey_/sam_/overseer_/artgrid_/scrappy_/cid_ handlers, logs to `agent_events`, posts to Slack. Per-client brand voice loaded from `clients.brand_voice_md` at request time. Gated by `requireUser` + rate-limited 60/min/user.
 - **Plain English:** The single endpoint every agent action goes through. The user clicks a button, Vantus POSTs `{action: "muse_write_content"}` here, and this file looks up the client's brand voice from Supabase, figures out what to do, calls Claude with the right voice baked into the prompt, writes the result to the database, tells Slack.
 - **Notes:**
   - L18: `SLACK_AGENT_LABELS` for per-action post formatting
@@ -113,8 +118,8 @@ Every significant file, function, table, and external service in Vantus — grou
   - L94: `getBrandContext(client_id)` — fetches `clients.name` + `clients.brand_voice_md`; falls back gracefully (Move 1, 2026-05-26)
   - L127: `model = claude-haiku-4-5-20251001` (upgraded from deprecated haiku-3)
   - 12 handler prompts interpolate `${brand.name}` + `${brand.voice}` (was hardcoded VitalLyfe before Move 1)
-  - L1198: `exports.handler` with `requireUser` gate + `getBrandContext` call + switch at L1227 + try/catch/finally for logging
-  - Holds 16 different handler functions inline — splitting deferred (Fix #4)
+  - L1198: `exports.handler` with `cors(event)` + `requireUser` + `rateLimit(60/min/user)` gates + `getBrandContext` call + switch at L1227 + try/catch/finally for logging
+  - Holds 16 handler functions inline — splitting deferred (Fix #4). Same mechanical shape as App.jsx Fix #2 → Codex candidate.
 
 ### `/api/chat` — chat.js
 - **Path:** `netlify/functions/chat.js`
@@ -147,19 +152,25 @@ Every significant file, function, table, and external service in Vantus — grou
 - **Role:** Proxy to Unsplash search API for stock image references. Now gated by `requireUser`.
 - **Plain English:** Lets you search Unsplash for reference photos. Called from the Shot Reference page.
 
-### ✕ `/api/higgsfield` — NOT DEPLOYED
-- **Path:** `netlify/functions/higgsfield.js` (UNTRACKED)
-- **Role:** Higgsfield AI proxy — file exists locally but is untracked.
-- **Notes:** Live `/api/higgsfield` → 404. UI references would fail if Higgsfield UI were ever wired.
-
-### ★ ⚙ NEW `_lib/requireUser.js` — shared auth gate
-- **Path:** `netlify/functions/_lib/requireUser.js` (100 lines)
-- **Role:** Shared helper used by `chat`, `agent-action`, `notify`, `apify-scrape`, `unsplash`. Validates Supabase JWT via `/auth/v1/user`. Allows @cloudscenic.com admins OR emails approved in `client_users`.
-- **Plain English:** The bouncer that every locked-down endpoint calls before doing any work. Either you are a Cloud Scenic admin, or your email has been approved in the invite list — otherwise the request gets a 401.
+### ★ ⚙ NEW `_lib/requireUser.js` — shared auth gate + CORS
+- **Path:** `netlify/functions/_lib/requireUser.js` (124 lines)
+- **Role:** Shared helper used by `chat`, `agent-action`, `notify`, `apify-scrape`, `unsplash` (+ `cid-scrape` for CORS only). Validates Supabase JWT via `/auth/v1/user`. Allows @cloudscenic.com admins OR emails approved in `client_users`. Also exports `cors(event)` + `unauthorized(reason, event)`.
+- **Plain English:** The bouncer that every locked-down endpoint calls before doing any work. Either you are a Cloud Scenic admin, or your email has been approved in the invite list — otherwise the request gets a 401. Also builds the right CORS headers per request.
 - **Notes:**
-  - Added 2026-05-25 for Fix #5 (commit `2a9c9c1`)
+  - Added 2026-05-25 for Fix #5 (commit `2a9c9c1`); `cors(event)` added 2026-05-26 security sweep
   - Returns `{ ok, user: { id, email, role, client_ids } }` or `{ ok:false, reason }`
   - Uses `SUPABASE_SERVICE_KEY` as `apikey` for both `/auth/v1/user` lookup and `client_users` SELECT
+  - `cors(event)` matches origin against allowlist regex covering usevantus.com + Netlify subdomain + deploy previews; includes `Vary: Origin`
+
+### ⚙ NEW `_lib/rateLimit.js` — in-memory sliding-window limiter
+- **Path:** `netlify/functions/_lib/rateLimit.js` (66 lines)
+- **Role:** `rateLimit(key, max, windowMs)` — per-instance Map of `(count, windowStart)`. Sweeps expired buckets once a minute to bound memory.
+- **Plain English:** Per-user request counter that lives in memory. When a user blows past the limit (e.g. 30 chat calls per minute), the next call gets a 429 with `Retry-After`. Cold starts reset the counter — acceptable for now; swap for Supabase-backed if we ever go distributed.
+- **Notes:**
+  - Added 2026-05-26 security sweep
+  - Defaults: 30 req/min, sliding window keyed on `user.id + endpoint`
+  - Wired into `chat.js` (30/min) and `agent-action.js` (60/min)
+  - `tooManyRequests(retryAfter, corsHeaders)` builds the 429 response
 
 ---
 
@@ -197,12 +208,12 @@ Every significant file, function, table, and external service in Vantus — grou
 ### `constants.js` — NAV + status colors
 - **Path:** `src/utils/constants.js` (37 lines)
 - **Role:** Sidebar NAV array, `STATUS_COLOR` map, `FORMATS`/`PILLARS`/`PLATFORMS` dropdown options.
-- **Note:** Dirty in working tree (Higgsfield CREATIVE entry uncommitted).
+- **Note:** Clean — no CREATIVE section, no Higgsfield nav entry (Fix #9 closed by removal 2026-05-26 PM).
 
 ### `apps.config.js` — toggleable Apps registry
 - **Path:** `src/apps/apps.config.js` (43 lines)
 - **Role:** `DEFAULT_APPS` list + localStorage persistence (`loadApps`/`saveApps`/`isAppEnabled`).
-- **Note:** Dirty in working tree (Higgsfield entry uncommitted).
+- **Note:** Clean — Higgsfield WIP entry never committed and no longer in working tree.
 
 ### `hooks.js` — useIsMobile + useInterval
 - **Path:** `src/utils/hooks.js` (32 lines)
