@@ -83,7 +83,7 @@ Every significant file, function, table, and external service in Vantus — grou
 
 ### `CIDPage.jsx` — Competitor Intel
 - **Path:** `src/apps/competitor-intel/CIDPage.jsx`
-- **Role:** Competitor Intel dashboard: search query → scrape via `/api/cid-scrape` + `/api/apify-scrape` → `cid_posts`.
+- **Role:** Competitor Intel dashboard: search query → scrape via `/api/apify-scrape` → writes to `cid_library` + `cid_performance`.
 - **Plain English:** Where you type a creator name and Vantus scrapes their recent posts to study what works.
 
 ### `BriefGenPage.jsx` — PDF brief → generated content
@@ -137,15 +137,15 @@ Every significant file, function, table, and external service in Vantus — grou
   - Per-client Slack + n8n routing: one Supabase fetch pulls both `slack_webhook_url` and `n8n_webhook_url` from the clients row; each falls back to its global env var (Fix #6 commit `702f867` for Slack; Fix #7 2026-05-26 added n8n in the same fetch)
   - `Prefer:resolution=ignore-duplicates` → unique index dedupes multi-tab POSTs
 
-### `/api/cid-scrape` — cid-scrape.js
-- **Path:** `netlify/functions/cid-scrape.js`
-- **Role:** Bearer-token-gated function: requires `CID_BEARER_TOKEN`; scrapes IG/TikTok/Reddit posts → `cid_posts`.
-- **Plain English:** Goes out to social platforms and pulls down competitor posts. Pre-existing bearer-token gate (not the new requireUser pattern).
+### ~~`/api/cid-scrape`~~ — REMOVED 2026-05-26 PM
+- **What was here:** Bearer-token-gated function that queried the nonexistent `cid_posts` table.
+- **Why removed:** Zero frontend callers (verified via grep), queried a table that never existed (verified via live SQL probe). Closed-by-removal.
+- **Orphaned env var:** `CID_BEARER_TOKEN` in Netlify — drop when convenient.
 
 ### `/api/apify-scrape` — apify-scrape.js
 - **Path:** `netlify/functions/apify-scrape.js`
-- **Role:** Calls Apify actors for scraping (alternate path to cid-scrape). Now gated by `requireUser`.
-- **Plain English:** Another scraping option using Apify (a scraping service).
+- **Role:** Calls Apify actors for scraping competitor posts. Gated by `requireUser`. Sole scraping path now that cid-scrape was removed.
+- **Plain English:** The scraping endpoint. Goes out via Apify (a scraping service) to pull competitor posts from social platforms.
 
 ### `/api/unsplash` — unsplash.js
 - **Path:** `netlify/functions/unsplash.js`
@@ -154,7 +154,7 @@ Every significant file, function, table, and external service in Vantus — grou
 
 ### ★ ⚙ NEW `_lib/requireUser.js` — shared auth gate + CORS
 - **Path:** `netlify/functions/_lib/requireUser.js` (124 lines)
-- **Role:** Shared helper used by `chat`, `agent-action`, `notify`, `apify-scrape`, `unsplash` (+ `cid-scrape` for CORS only). Validates Supabase JWT via `/auth/v1/user`. Allows @cloudscenic.com admins OR emails approved in `client_users`. Also exports `cors(event)` + `unauthorized(reason, event)`.
+- **Role:** Shared helper used by `chat`, `agent-action`, `notify`, `apify-scrape`, `unsplash`. Validates Supabase JWT via `/auth/v1/user`. Allows @cloudscenic.com admins OR emails approved in `client_users`. Also exports `cors(event)` + `unauthorized(reason, event)`.
 - **Plain English:** The bouncer that every locked-down endpoint calls before doing any work. Either you are a Cloud Scenic admin, or your email has been approved in the invite list — otherwise the request gets a 401. Also builds the right CORS headers per request.
 - **Notes:**
   - Added 2026-05-25 for Fix #5 (commit `2a9c9c1`); `cors(event)` added 2026-05-26 security sweep
@@ -269,9 +269,9 @@ _(Removed 2026-05-26 — Fix #8 deleted `src/agents/`. Real agent personas live 
 - **Plain English:** Tells the app which users are admins and which are clients.
 - **Note:** Active — referenced by App.jsx admin path. Admin email allowlist hardcoded at `App.jsx:51` `ADMIN_EMAILS` (cz/dv/ss @ cloudscenic.com).
 
-### `cid_posts` table — competitor intel scrapes
-- **Migration:** `supabase/migrations/003_cid_posts.sql`
-- **Columns:** Scraped competitor posts: `platform, post_url, creator, engagement, hook, trigger_type, variation, analysis`.
+### ~~`cid_posts` table~~ — NEVER EXISTED (closed-by-removal 2026-05-26 PM)
+- **What it was:** `supabase/migrations/003_cid_posts.sql` defined a table that was never applied. The actual CID schema is `cid_library` + `cid_performance` (both verified live, both with RLS on).
+- **Why removed:** Migration file deleted + `cid-scrape.js` (its only consumer) deleted in the same change. Map now reflects what actually exists.
 
 ### `client-logos` bucket — Supabase Storage
 - **Migration:** `supabase/migrations/20260524_client_logos_bucket.sql`

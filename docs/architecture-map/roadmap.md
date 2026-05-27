@@ -47,7 +47,7 @@ Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-refe
 ### ✅ #5 — Caller auth on all functions — CLOSED 2026-05-25
 - **Where:** `netlify/functions/{chat,agent-action,notify,apify-scrape,unsplash}.js`
 - **Closed by:** Commit `2a9c9c1` — shared helper `netlify/functions/_lib/requireUser.js` validates Supabase JWT. Either @cloudscenic.com admin OR approved `client_users` row required.
-- **Pattern landed:** Bearer-token + JWT lookup at `/auth/v1/user`, then client_users allowlist check. `cid-scrape.js` keeps its pre-existing CID_BEARER_TOKEN gate.
+- **Pattern landed:** Bearer-token + JWT lookup at `/auth/v1/user`, then client_users allowlist check. (Note: `cid-scrape.js` was later removed entirely 2026-05-26 PM — dead code.)
 
 ### ✅ #6 — Per-client Slack routing — CLOSED 2026-05-25
 - **Where:** `netlify/functions/notify.js` L157-162

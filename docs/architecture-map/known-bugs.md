@@ -21,6 +21,8 @@ Ranked by severity. Each entry cites the file (and line when possible) where the
 | Fix #2 — App.jsx 1,676-line monolith | Codex extracted 6 route components to `src/ui/routes/`; App.jsx down to 1,342 lines |
 | Security sweep — CORS `*`, rate limits, CSP/HSTS/Referrer-Policy | CORS allowlist via `_lib/requireUser.js cors(event)`; `_lib/rateLimit.js` wired into chat (30/min) + agent-action (60/min); `netlify.toml` adds HSTS + Referrer-Policy + Permissions-Policy + tight CSP |
 | Fix #9 — Higgsfield WIP files in inconsistent state | `HiggsfieldStudio.jsx` + `higgsfield.js` removed from working tree (closed by removal). `apps.config.js` + `constants.js` clean. Future Higgsfield ship is a fresh commit, not a recovered orphan. |
+| cid_posts table · 404 on REST probe | Closed-by-removal (2026-05-26 PM). Live SQL probe confirmed table never existed. `netlify/functions/cid-scrape.js` + `supabase/migrations/003_cid_posts.sql` deleted. Real CID data lives in `cid_library` + `cid_performance` (both RLS-on). `CID_BEARER_TOKEN` env now orphaned. |
+| Email/password auth still enabled (Cloudai25% leak in git history) | Email provider disabled in Supabase Auth → Providers. Leaked password from git history is now genuinely inert. Only Google OAuth path remains for cz/dv/ss admin sign-in. Magic-link fallback also gone (acceptable since Google is the intended path). |
 
 Test: Muse caption generation against VitalLyfe produces correct voice/structure verified in dev + prod 2026-05-26. Auth-lock recovery verified by manual reproduction.
 
@@ -65,8 +67,7 @@ Refresh resets the board. Multi-user can't share a task list. Needs a DB table. 
 
 ## 🟢 LOW — track, no urgency
 
-### cid_posts table · 404 on REST count probe
-Table may exist but with stricter RLS than other tables. Verify in Supabase dashboard.
+_None open as of 2026-05-26 PM. The `cid_posts` 404 was closed-by-removal (dead chain deleted — see Closed section above)._
 
 ---
 
@@ -77,4 +78,3 @@ Table may exist but with stricter RLS than other tables. Verify in Supabase dash
 | App.jsx | MED | 1,342-line state owner (route split shipped) |
 | agent-action.js | MED | 1,317-line monolith — Fix #4 (Codex candidate) |
 | OpsBoard.jsx | MED | In-memory tasks — Fix #12 |
-| cid_posts | LOW | RLS probe returns 404 |

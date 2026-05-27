@@ -3,20 +3,22 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-05-26 PM (clean working tree · Higgsfield WIP cleared · post Move 1 · #15 · #10/10.1 · #7 · #8 · #11 · #3.1 · #2 App.jsx split · security sweep · #9 closed by removal)
+**Snapshot:** 2026-05-26 PM (cid_posts dead chain removed · email/password auth disabled · INITIAL_CONTENT cleanup · Higgsfield WIP cleared · post Move 1 · #15 · #10/10.1 · #7 · #8 · #11 · #3.1 · #2 App.jsx split · security sweep · #9 closed by removal)
 
-**Open work:** 3 MED bugs · 4 LOW track-only · 4 numbered fixes (#4, #12, #13, #14 — #4 and #12 overlap MED bugs).
+**Open work:** 3 MED bugs · 2 LOW track-only · 4 numbered fixes (#4, #12, #13, #14 — #4 and #12 overlap MED bugs).
 
 ```
-🔴 High:   0    │   ✅ Done:  19  (Fix #1 OAuth, Fix #2 App.jsx split (Codex),
+🔴 High:   0    │   ✅ Done:  21  (Fix #1 OAuth, Fix #2 App.jsx split (Codex),
 🟡 Med:    3    │                  Fix #3 Move 1, Fix #3.1 cid_library rename,
-🟢 Low:    4    │                  Fix #5 caller auth, Fix #6 per-client Slack,
+🟢 Low:    2    │                  Fix #5 caller auth, Fix #6 per-client Slack,
                 │                  Fix #7 per-client n8n, Fix #8 delete dead src/agents/,
                 │                  Fix #9 Higgsfield closed-by-removal, Fix #10
                 │                  baseline + #10.1 scoped RLS, Fix #11 pdfjs dynamic,
                 │                  Fix #15 auth-lock recovery, security hardening sweep
                 │                  (CORS + rate limits + CSP/HSTS/Permissions/Referrer),
-                │                  5 temp anon RLS policies, Google secret rotation)
+                │                  5 temp anon RLS policies, Google secret rotation,
+                │                  cid_posts dead chain closed-by-removal,
+                │                  email/password auth disabled in Supabase)
                 │   📋 Fixes:  4 open (13 closed)
 ```
 
@@ -50,13 +52,9 @@ _None open as of 2026-05-26 PM. Last HIGH-severity batch closed 2026-05-25 (auth
   Right now Claude MCP posts as the signed-in user. Set up a real "Vantus" Slack app with bot token → `SLACK_BOT_TOKEN` env → switch `notify.js` + future agent posts to `chat.postMessage`. Would also unlock channel-id routing (re-using the dormant `slack_channel_id` column).
   → Touches: new Slack app + `netlify/functions/notify.js`
 
-- [ ] **cid_posts table — 404 on REST count probe**
-  Table may exist with stricter RLS than other tables. Verify in Supabase dashboard.
-  → Touches: `supabase/migrations/003_cid_posts.sql` (verify policies)
+- [x] ~~**cid_posts table — 404 on REST count probe**~~ ✅ 2026-05-26 PM (closed-by-removal — live SQL probe confirmed table never existed; `cid-scrape.js` + `003_cid_posts.sql` deleted; real CID data lives in `cid_library` + `cid_performance`)
 
-- [ ] **Rotate Supabase admin passwords**
-  `Cloudai25%` still in git history. Lower urgency now that Google OAuth is the only login path used in practice — but the password path technically still works.
-  → Accounts: `cz@`, `dv@`, `ss@` cloudscenic.com
+- [x] ~~**Rotate Supabase admin passwords**~~ ✅ 2026-05-26 PM (better close — email/password auth provider disabled entirely in Supabase Auth → Providers. `Cloudai25%` leak in git history is now inert without needing per-user rotation. Only Google OAuth remains.)
 
 - [ ] **Tighten `style-src 'unsafe-inline'` in CSP**
   Required by current inline-style React patterns. When inline styles get factored out, drop `'unsafe-inline'` from `style-src` in `netlify.toml`.
@@ -87,6 +85,17 @@ Cross-references map node badges + the items above.
 - [x] ~~**#15** — Auto-recover from supabase-js auth-lock errors~~ ✅ 2026-05-26 (App.jsx stuckGuard now clears `sb-*-auth-token` keys + reloads; one-shot sessionStorage flag prevents reload loops; commit `2b43364`)
 
 ---
+
+## ✅ Closed 2026-05-26 PM (cid_posts dead chain + email/password disable + INITIAL_CONTENT cleanup)
+
+- [x] ~~**cid_posts table never existed — 404 was real**~~
+  Live SQL probe (`SELECT tablename, rowsecurity FROM pg_tables WHERE tablename LIKE 'cid_%'`) returned only `cid_library` + `cid_performance` (both with RLS on), no `cid_posts`. Confirmed `netlify/functions/cid-scrape.js` had ZERO frontend callers (verified via grep). Both `cid-scrape.js` and `supabase/migrations/003_cid_posts.sql` deleted via `git rm`. Build green after. `CID_BEARER_TOKEN` env in Netlify is now orphaned — drop when convenient (purely housekeeping, no functional impact).
+
+- [x] ~~**Email/password auth still enabled (Cloudai25% leak risk)**~~
+  Supabase Auth → Providers → Email toggle flipped off in the dashboard. Leaked `Cloudai25%` password from git history is now genuinely inert — only Google OAuth path remains for cz/dv/ss admin sign-in. Magic-link fallback also disabled (acceptable since Google is the only intended path). If Google ever has an outage, the workaround is to temporarily re-enable this toggle.
+
+- [x] ~~**Dead INITIAL_CONTENT fallback in seed.content.js**~~
+  Counsel shipped commit `90beaa6` — removed dead `INITIAL_CONTENT` import from `App.jsx` + dropped the 33-line VitalLyfe-hardcoded export from `seed.content.js`. `VITAL_LYFE_SOP` kept (actively rendered by SopsRoute + ClientView; per-client SOP migration is a future bigger fix). Build clean, -34 lines.
 
 ## ✅ Closed 2026-05-26 PM (Higgsfield WIP cleanup)
 
@@ -147,10 +156,10 @@ Cross-references map node badges + the items above.
 
 ## Cross-cutting work (still open)
 
-### When fully off password login → rotate Supabase admin passwords
-- `cz@cloudscenic.com`, `dv@cloudscenic.com`, `ss@cloudscenic.com`
-- `Cloudai25%` is in git history forever — becomes irrelevant once password login is dead
-- Where: Supabase dashboard → Authentication → Users → "Send password recovery"
+### Drop orphaned `CID_BEARER_TOKEN` from Netlify env (housekeeping)
+- Netlify dashboard → Site settings → Environment variables → delete `CID_BEARER_TOKEN`
+- Function that used it (`cid-scrape.js`) was deleted 2026-05-26 PM — env var is dead weight
+- Zero functional impact either way; just removes a stale secret
 
 ### When inline-style React patterns get factored out → tighten CSP
 - Drop `'unsafe-inline'` from `style-src` in `netlify.toml`

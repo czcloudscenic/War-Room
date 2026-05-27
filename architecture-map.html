@@ -119,7 +119,7 @@
 
 <header>
   <h1>Vantus</h1>
-  <span class="subtitle">project dashboard · 2026-05-26 PM (clean working tree · Higgsfield WIP cleared · post Move 1 · #15 · #10/10.1 · #7 · #3.1 · #8 · #11 · #2 App.jsx split · security sweep)</span>
+  <span class="subtitle">project dashboard · 2026-05-26 PM (cid_posts dead chain removed · email/password auth disabled · INITIAL_CONTENT cleanup · Higgsfield WIP cleared · post Move 1 · #15 · #10/10.1 · #7 · #3.1 · #8 · #11 · #2 App.jsx split · security sweep)</span>
   <div class="tabs">
     <button class="tab active" data-tab="map">Map</button>
     <button class="tab" data-tab="bugs">Bugs &amp; Roadmap <span class="count" id="tab-bug-count">0</span></button>
@@ -211,6 +211,12 @@
       </div>
       <div class="finding">
         <b>Working tree fully clean — local HEAD = <code style="font-family:'SF Mono',Menlo,monospace">origin/main</code> at <code style="font-family:'SF Mono',Menlo,monospace">19e7f02</code>.</b> The Higgsfield WIP files (<code style="font-family:'SF Mono',Menlo,monospace">HiggsfieldStudio.jsx</code> + <code style="font-family:'SF Mono',Menlo,monospace">higgsfield.js</code>) and the dormant <code style="font-family:'SF Mono',Menlo,monospace">PasswordGate.jsx</code> that the previous map flagged are no longer in the tree. <code style="font-family:'SF Mono',Menlo,monospace">apps.config.js</code> and <code style="font-family:'SF Mono',Menlo,monospace">constants.js</code> are clean. Whatever happens next is a real new commit on a real branch, not a recovered orphan.
+      </div>
+      <div class="finding">
+        <b><code style="font-family:'SF Mono',Menlo,monospace">cid_posts</code> dead chain removed (2026-05-26 PM).</b> Live SQL probe confirmed the table never existed — the 404 finding from the previous map was real, not a stale RLS issue. <code style="font-family:'SF Mono',Menlo,monospace">netlify/functions/cid-scrape.js</code> + <code style="font-family:'SF Mono',Menlo,monospace">supabase/migrations/003_cid_posts.sql</code> deleted (zero frontend callers, queried a nonexistent table — would have 500'd if hit). Real CID data lives in <code style="font-family:'SF Mono',Menlo,monospace">cid_library</code> + <code style="font-family:'SF Mono',Menlo,monospace">cid_performance</code> (both RLS-on, verified live). <code style="font-family:'SF Mono',Menlo,monospace">CID_BEARER_TOKEN</code> env in Netlify is now orphaned — drop when convenient.
+      </div>
+      <div class="finding">
+        <b>Email/password sign-in disabled in Supabase (2026-05-26 PM).</b> Provider toggle flipped off — the leaked <code style="font-family:'SF Mono',Menlo,monospace">Cloudai25%</code> password sitting in git history is now genuinely inert. Only Google OAuth remains as a sign-in path for admins. If Google ever goes down, the workaround is to flip the toggle back on temporarily.
       </div>
       <h3>Map stats</h3>
       <p class="muted" id="map-stats"></p>
@@ -326,10 +332,10 @@ const nodes = [
     tag: ['content','all'],
   }),
   N('cidpage', 'client', 'CIDPage.jsx', 'Competitor Intel', 40, 850, 240, 50, 'client', {
-    role: 'Competitor Intel dashboard: search query → scrape via /api/cid-scrape + /api/apify-scrape → cid_posts.',
+    role: 'Competitor Intel dashboard: search query → scrape via /api/apify-scrape → cid_library + cid_performance.',
     plain: 'The Competitor Intel page where you type a creator name and Vantus scrapes their recent posts to study what works.',
     path: 'src/apps/competitor-intel/CIDPage.jsx',
-    notes: ['Calls /api/agent-action for cid_build_brief + cid_ab_variations','Reads/writes cid_posts table','Mock data fallback if scraper fails'],
+    notes: ['Calls /api/agent-action for cid_build_brief + cid_ab_variations','Writes scraped data to cid_library + cid_performance tables','Mock data fallback if scraper fails'],
     tag: ['cid','all'],
   }),
   N('briefgen', 'client', 'BriefGenPage.jsx', 'PDF brief → generated content', 40, 915, 240, 50, 'client', {
@@ -395,21 +401,15 @@ const nodes = [
     ],
     tag: ['notifications','content','all'],
   }),
-  N('cid-scrape', 'routes', '/api/cid-scrape', 'authed scraper', 340, 415, 200, 50, 'route', {
-    role: 'Only auth-gated function: requires Bearer token; scrapes IG/TikTok/Reddit posts → cid_posts.',
-    plain: 'Goes out to Instagram, TikTok, and Reddit and pulls down posts for competitor research. The only endpoint that requires a password.',
-    path: 'netlify/functions/cid-scrape.js',
-    notes: ['Bearer token check via CID_BEARER_TOKEN env var','Writes to cid_posts table'],
-    tag: ['cid','all'],
-  }),
-  N('apify-scrape', 'routes', '/api/apify-scrape', 'Apify integration', 340, 480, 200, 50, 'route', {
-    role: 'Calls Apify actors for scraping (alternate path to cid-scrape).',
-    plain: 'Another scraping option that uses Apify (a scraping service) instead of direct API calls.',
+  // cid-scrape node removed 2026-05-26 PM — closed-by-removal (zero callers, queried nonexistent cid_posts table; CID_BEARER_TOKEN env now orphaned).
+  N('apify-scrape', 'routes', '/api/apify-scrape', 'Apify integration', 340, 415, 200, 50, 'route', {
+    role: 'Calls Apify actors for scraping competitor posts.',
+    plain: 'The scraping endpoint. Goes out via Apify (a scraping service) to pull competitor posts from social platforms.',
     path: 'netlify/functions/apify-scrape.js',
-    notes: ['Called only from CIDPage','Uses APIFY_API_KEY env var'],
+    notes: ['Called only from CIDPage','Uses APIFY_API_KEY env var','Sole scraping path now that cid-scrape was removed (2026-05-26 PM)'],
     tag: ['cid','all'],
   }),
-  N('unsplash', 'routes', '/api/unsplash', 'image search', 340, 545, 200, 50, 'route', {
+  N('unsplash', 'routes', '/api/unsplash', 'image search', 340, 480, 200, 50, 'route', {
     role: 'Proxy to Unsplash search API for stock image references.',
     plain: 'Lets you search Unsplash for reference photos. Called from the Shot Reference page.',
     path: 'netlify/functions/unsplash.js',
@@ -417,8 +417,8 @@ const nodes = [
     tag: ['all'],
   }),
   // higgsfield-fn node removed 2026-05-26 PM — file no longer in tree; never deployed.
-  N('require-user', 'routes', '_lib/requireUser.js', 'auth gate + cors', 340, 610, 200, 60, 'route', {
-    role: 'Shared helper: requireUser(event) + cors(event) + unauthorized(reason, event). Validates Supabase JWT, returns user. Used by chat/agent-action/notify/apify-scrape/unsplash (+cid-scrape for cors only).',
+  N('require-user', 'routes', '_lib/requireUser.js', 'auth gate + cors', 340, 545, 200, 60, 'route', {
+    role: 'Shared helper: requireUser(event) + cors(event) + unauthorized(reason, event). Validates Supabase JWT, returns user. Used by chat/agent-action/notify/apify-scrape/unsplash.',
     plain: 'The bouncer that every locked-down endpoint calls before doing any work. Either you are a Cloud Scenic admin, or your email has been approved in the invite list — otherwise the request gets a 401.',
     path: 'netlify/functions/_lib/requireUser.js',
     notes: [
@@ -430,7 +430,7 @@ const nodes = [
     tag: ['auth','all'],
     critical: true,
   }),
-  N('rate-limit', 'routes', '_lib/rateLimit.js', 'in-mem sliding window', 340, 680, 200, 60, 'route', {
+  N('rate-limit', 'routes', '_lib/rateLimit.js', 'in-mem sliding window', 340, 615, 200, 60, 'route', {
     role: 'rateLimit(key, max, windowMs) — per-instance Map of (count, windowStart). Sweeps expired buckets once a minute to bound memory.',
     plain: 'Per-user request counter that lives in memory. When a user blows past the limit (e.g. 30 chat calls per minute), the next call gets a 429 with Retry-After. Cold starts reset the counter — acceptable for now; swap for Supabase-backed if we ever go distributed.',
     path: 'netlify/functions/_lib/rateLimit.js',
@@ -579,21 +579,17 @@ const nodes = [
     notes: ['Active — referenced by App.jsx admin path','Admin email allowlist hardcoded at App.jsx:51 ADMIN_EMAILS (cz/dv/ss @ cloudscenic.com)','Client-side role lookup happens after setupSession admin/client branching'],
     tag: ['auth','all'],
   }),
-  N('cid-posts-tbl', 'data', 'cid_posts table', 'competitor intel scrapes', 860, 480, 200, 60, 'db', {
-    role: 'Scraped competitor posts: platform, post_url, creator, engagement, hook, trigger_type, variation, analysis.',
-    plain: 'Where scraped competitor posts get stored after the CID page hits the scrape endpoints.',
-    path: 'supabase/migrations/003_cid_posts.sql',
-    notes: ['Currently returns 404 on anon REST count probe — table may exist with stricter RLS','RLS: anon SELECT allowed; service-role full access'],
-    tag: ['cid','all'],
-  }),
-  N('logos-bucket', 'data', 'client-logos bucket', 'Supabase Storage', 860, 555, 200, 55, 'db', {
+  // cid-posts-tbl node removed 2026-05-26 PM — closed-by-removal. The 404 finding was real: table never existed.
+  // Real CID data lives in cid_library + cid_performance (both have RLS on, verified live 2026-05-26 PM).
+  // Future: add cid_library + cid_performance nodes if we want them in the map.
+  N('logos-bucket', 'data', 'client-logos bucket', 'Supabase Storage', 860, 480, 200, 55, 'db', {
     role: 'Public storage bucket for client logo uploads from AddClientModal.',
     plain: 'A folder in Supabase Storage where client logo files live. Public-read so logos render in the picker.',
     path: 'supabase/migrations/20260524_client_logos_bucket.sql',
     notes: ['public:true','Anon write policies dropped 2026-05-25 (commit 852d915); admin-only via 20260525_admin_rls_for_oauth.sql'],
     tag: ['multi-tenant','all'],
   }),
-  N('client-users-tbl', 'data', 'client_users table', 'invite/allowlist', 860, 625, 200, 60, 'db', {
+  N('client-users-tbl', 'data', 'client_users table', 'invite/allowlist', 860, 545, 200, 60, 'db', {
     role: 'External-client login allowlist. Rows: (email, client_id, status, invited_at, first_login_at, approved_at). Status: pending/approved/rejected.',
     plain: 'List of external client teammates (like Natalia at VitalLyfe) who can log in. Admins invite them, they get a "pending" row, admin clicks Approve, status flips to "approved" and they can use the app.',
     path: 'supabase/migrations/20260525_client_users_allowlist.sql',
@@ -718,12 +714,10 @@ const edges = [
   { from:'briefgen',     to:'agent-action',   kind:'normal', label:'muse_from_brief', tag:['content','agents','all'] },
 
   // ── CID scrape ──
-  { from:'cidpage',      to:'cid-scrape',     kind:'normal', label:'POST · scrape', tag:['cid','all'] },
   { from:'cidpage',      to:'apify-scrape',   kind:'normal', label:'POST · scrape', tag:['cid','all'] },
   { from:'cidpage',      to:'agent-action',   kind:'normal', label:'cid_build_brief / ab_variations', tag:['cid','all'] },
-  { from:'cid-scrape',   to:'cid-posts-tbl',  kind:'db', label:'INSERT', tag:['cid','all'] },
   { from:'apify-scrape', to:'apify',          kind:'api', label:'run actor', tag:['cid','all'] },
-  { from:'apify-scrape', to:'cid-posts-tbl',  kind:'db', label:'INSERT', tag:['cid','all'] },
+  // cidpage→cid-scrape, cid-scrape→cid-posts-tbl, apify-scrape→cid-posts-tbl edges removed 2026-05-26 PM (closed-by-removal).
 
   // ── Agent layer wiring ──
   { from:'agentchat',    to:'memory',         kind:'normal', label:'getMemory / setMemory', tag:['agents','all'] },
@@ -774,8 +768,8 @@ const edges = [
   { from:'netlify-ext',  to:'agent-action',   kind:'mount', label:'/api/agent-action', tag:['overview','all'] },
   { from:'netlify-ext',  to:'chat',           kind:'mount', label:'/api/chat', tag:['all'] },
   { from:'netlify-ext',  to:'notify',         kind:'mount', label:'/api/notify', tag:['all'] },
-  { from:'netlify-ext',  to:'cid-scrape',     kind:'mount', label:'/api/cid-scrape', tag:['all'] },
   { from:'netlify-ext',  to:'apify-scrape',   kind:'mount', label:'/api/apify-scrape', tag:['all'] },
+  // netlify-ext→cid-scrape mount removed 2026-05-26 PM (closed-by-removal).
   { from:'netlify-ext',  to:'unsplash',       kind:'mount', label:'/api/unsplash', tag:['all'] },
 
   // higgsfield-ui → higgsfield-fn edge removed 2026-05-26 PM — both nodes deleted.
@@ -853,6 +847,19 @@ const FIXES = {
                                             utils/constants.js are clean. Future
                                             ship is a fresh commit, not a recovered
                                             orphan.
+     cid_posts dead chain cleared        → cid-scrape.js + 003_cid_posts.sql
+                                            deleted. Live probe confirmed cid_posts
+                                            table never existed; zero frontend
+                                            callers of /api/cid-scrape. Real CID
+                                            data lives in cid_library +
+                                            cid_performance (both RLS-on, verified
+                                            live). Drop CID_BEARER_TOKEN env in
+                                            Netlify when convenient.
+     Email/password auth disabled        → Supabase Auth provider toggle flipped
+                                            off. Leaked Cloudai25% password from
+                                            git history is now inert — only Google
+                                            OAuth path remains for cz/dv/ss admin
+                                            sign-in.
    ──────────────────────────────────────────────────────────────────── */
 
 const KNOWN_BUGS = {
@@ -862,9 +869,7 @@ const KNOWN_BUGS = {
   'agent-action': [
     { sev:'med',  ref:'L1317',   t:'Monolith: 1,317 lines, 16 action handlers + Anthropic wrapper + Supabase helpers + Slack notifier + agent_events logger all in one file. Same shape as the App.jsx split — perfect Codex candidate. Fix #4.' },
   ],
-  'cid-posts-tbl': [
-    { sev:'low',  t:'REST count probe returns 404 — table may exist but with stricter RLS than other tables. Verify in Supabase dashboard.' },
-  ],
+  // cid-posts-tbl bug removed 2026-05-26 PM — closed-by-removal. 404 was real (table never existed); real CID data lives in cid_library + cid_performance.
   'opsboard': [
     { sev:'med',  t:'Tasks stored in in-memory state only. Refresh resets the board. Multi-user can\'t share a task list.' },
   ],

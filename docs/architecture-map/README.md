@@ -4,7 +4,7 @@
 > Mirrors the interactive `architecture-map.html` at the repo root.
 > Drop this entire folder into any wiki / knowledge base — no rendering deps.
 
-**Snapshot date:** 2026-05-26 PM (clean working tree · Higgsfield WIP cleared · post Move 1 · #15 · #10/10.1 · #7 · #3.1 · #8 · #11 · #2 App.jsx split · security sweep)
+**Snapshot date:** 2026-05-26 PM (cid_posts dead chain removed · email/password auth disabled · INITIAL_CONTENT cleanup · Higgsfield WIP cleared · post Move 1 · #15 · #10/10.1 · #7 · #3.1 · #8 · #11 · #2 App.jsx split · security sweep)
 **Live URL:** https://usevantus.com
 **Repo:** https://github.com/czcloudscenic/War-Room (auto-deploys on push to `main`)
 
@@ -13,7 +13,7 @@
 Five days of session work shipped these in production:
 
 - **Auth restored end-to-end** (commits `307b64f`, `8e5095e`, `d0acec3`). Google OAuth working. `App.jsx` `setupSession` (L72) branches four ways: admin (@cloudscenic.com) → full Vantus · approved external client → ClientView scoped to their `client_id` · pending invite → `PendingApprovalScreen` (realtime unlock when admin approves) · unknown email → blocked.
-- **Caller auth on every protected function** (commit `2a9c9c1`). Shared helper at `netlify/functions/_lib/requireUser.js` validates Supabase JWT for `chat`, `agent-action`, `notify`, `apify-scrape`, `unsplash`. `cid-scrape` keeps its pre-existing bearer-token gate.
+- **Caller auth on every protected function** (commit `2a9c9c1`). Shared helper at `netlify/functions/_lib/requireUser.js` validates Supabase JWT for `chat`, `agent-action`, `notify`, `apify-scrape`, `unsplash`. (Note: `cid-scrape.js` was deleted 2026-05-26 PM in the closed-by-removal cleanup — was dead code querying a nonexistent table.)
 - **Auth header injection client-side** (commit `2a9c9c1`). `src/services/apiFetch.js` wraps `fetch()` and stamps `Authorization: Bearer <access_token>` from the live session. 26 call sites across 11 files now use it.
 - **External-client invite flow** (commit `19b6235`). New `client_users` allowlist table + `ClientTeamPanel.jsx` inside Edit Client modal. Admins invite → realtime status flip → external user unlocked without refresh.
 - **Per-client Slack routing** (commit `702f867`). New `clients.slack_webhook_url` column. `notify.js` prefers it when `client_id` is in the payload; falls back to global `SLACK_WEBHOOK_URL`. n8n still uses the global webhook for every client (Fix #7).
@@ -88,14 +88,14 @@ The Higgsfield WIP files (`HiggsfieldStudio.jsx` + `higgsfield.js`) and the dorm
 │ App.jsx ★   │  │  action ★   │  │  Client ★   │  │ content_    │  │ Supabase ★  │
 │ LoginScreen │  │ chat        │  │ apiFetch ★  │  │  items ★    │  │ Resend      │
 │ AddClient   │  │ notify      │  │ memory      │  │ agent_      │  │ Slack       │
-│ AgentChat ★ │  │ cid-scrape  │  │ routeTask   │  │  events ★   │  │ n8n         │
-│ Activity-   │  │ apify-      │  │ agent-      │  │ notifs      │  │ Tavily      │
-│  Feed ★     │  │  scrape     │  │  Registry   │  │ profiles    │  │ Google OAuth│
-│ OpsBoard    │  │ unsplash    │  │ constants   │  │ cid_posts   │  │ Apify       │
-│ PipelineBd  │  │ require-    │  │ apps-config │  │ logos       │  │ Netlify     │
-│ EditModal   │  │  User ★     │  │ hooks       │  │  bucket     │  │             │
-│ ClientView  │  │ rate-limit  │  │ seed.*      │  │ client_     │  │             │
-│ CIDPage     │  │             │  │             │  │  users      │  │             │
+│ AgentChat ★ │  │ apify-      │  │ routeTask   │  │  events ★   │  │ n8n         │
+│ Activity-   │  │  scrape     │  │ agent-      │  │ notifs      │  │ Tavily      │
+│  Feed ★     │  │ unsplash    │  │  Registry   │  │ profiles    │  │ Google OAuth│
+│ OpsBoard    │  │ require-    │  │ constants   │  │ logos       │  │ Apify       │
+│ PipelineBd  │  │  User ★     │  │ apps-config │  │  bucket     │  │ Netlify     │
+│ EditModal   │  │ rate-limit  │  │ hooks       │  │ client_     │  │             │
+│ ClientView  │  │             │  │ seed.*      │  │  users      │  │             │
+│ CIDPage     │  │             │  │             │  │             │  │             │
 │ BriefGen    │  │             │  │             │  │             │  │             │
 │ routes/ (6) │  │             │  │             │  │             │  │             │
 └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
