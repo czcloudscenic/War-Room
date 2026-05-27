@@ -66,17 +66,27 @@ Every invocation writes one row to `agent_events` via SERVICE_KEY (success/error
 - **n8n:** `clients.n8n_webhook_url` column. `notify.js` reads it in the same Supabase fetch as Slack (one roundtrip pulls both); falls back to global env. (Fix #7, commit `2bb8958`)
 - **Brand voice:** `clients.brand_voice_md` column. `agent-action.js getBrandContext(client_id)` reads it per request, passes to every handler. Per-request override via `payload.voiceOverride`. (Move 1 / Fix #3, commit `767cb93`)
 
-## Dirty / Uncommitted WIP (intentional)
+## Dirty / Stashed WIP (intentional)
+
+**All Higgsfield + sync-cortex WIP lives in `stash@{0}` (label: "pre-codex-fix2 wip").** Stashed before Codex ran the App.jsx split so Codex would refactor against a clean tree; never popped back. Working tree is clean apart from anything new this session.
+
+Inspect with `git stash show -u stash@{0}`. Contents:
 - `src/apps/higgsfield/HiggsfieldStudio.jsx` (untracked) — Higgsfield Studio frontend, half-built
 - `netlify/functions/higgsfield.js` (untracked) — Higgsfield backend
 - `src/apps/apps.config.js` (M) — Higgsfield added to DEFAULT_APPS
 - `src/utils/constants.js` (M) — CREATIVE/Higgsfield section in nav
 - `public/portal.html` (M) — 1,920-line WIP diff
-- `scripts/sync-cortex.mjs` (untracked) — Counsel's Move 1 stub
-- `src/ui/layout/PasswordGate.jsx` (untracked) — dormant temporary access gate, not imported
-- `.claude/` (untracked) — local dev config
+- `scripts/sync-cortex.mjs` (untracked) — Counsel's Move 1 sync stub
+- `.claude/commands/*.md` + `.claude/settings.json` (untracked) — local dev config
+- `.netlify/` function zips + `netlify.toml` snapshot + `logo/vantus_icon_*.png` (untracked) — incidental build/asset noise, not feature work
 
-When Higgsfield ships: commit `HiggsfieldStudio.jsx` + `higgsfield.js` + the apps.config.js / constants.js modifications + the import + render in `src/App.jsx` ALL IN ONE COMMIT.
+`src/ui/layout/PasswordGate.jsx` from earlier HANDOFFs was never created (no git history, not in stash). Drop the mention if it comes up again.
+
+When resuming Higgsfield:
+1. `git stash pop` — expect conflicts on `src/utils/constants.js` and `src/apps/apps.config.js` if Codex's split touched them; resolve manually.
+2. Re-evaluate `public/portal.html` (1,920-line diff predates the React-side hardening; may be partly stale).
+3. Ship Higgsfield as one commit: `HiggsfieldStudio.jsx` + `higgsfield.js` + `apps.config.js` edit + `constants.js` edit + the import + render in `src/App.jsx`.
+4. `sync-cortex.mjs` can ship separately once the wiki schema is signed off (see [[project_cortex_vantus_bridge]]).
 
 ## Session log
 
@@ -97,6 +107,7 @@ Massive session. Closed half the open punch-list in one afternoon.
 | `183d53f` | `chore(cleanup)`: cid_library column rename `vitallyfe_adaptation` → `client_adaptation` (Fix #3.1) + close Fix #11 (pdfjs already dynamic) + arch map sync |
 | Codex on `codex/grunt-2026-05-26` | `refactor(App)`: extract 6 route components to `src/ui/routes/` (Fix #2). App.jsx 1,676 → 1,342 lines. 7 commits (`4ee755b` Dashboard, `6589b78` Agents, `bee8946` Content, `f2d384c` Tracker, `94eae54` Taskboard, `c4f2cc5` Sops, `e57e951` notes) |
 | `8e59968` | `security`: CORS allowlist + per-user rate limits + CSP/HSTS/Permissions/Referrer (security hardening sweep) |
+| `90beaa6` | `chore(cleanup)`: drop unused INITIAL_CONTENT seed array (Fix #14 partial) + drop matching App.jsx import + regenerate arch map docs |
 
 **What unlocked:** brain trilogy complete. Multi-tenancy is real end-to-end — adding a new client via AddClient modal + filling `brand_voice_md` gets them their own agent voice automatically. Security posture moved from "auth gate only" to "auth + RLS + CORS + rate limits + CSP". App.jsx finally splittable. Three migrations applied to live Supabase by founder (brand voice seed, content_items baseline, content_items client_rls, cid_library rename) — all verified before code push.
 
@@ -129,17 +140,17 @@ Repo tidy, component extraction, security audit, Move 2 + Move 3 deployed, custo
 - **Fix #13** — Per-user client assignments table (now unblocked by OAuth).
 
 **Decision-bound:**
-- **Fix #9** — Ship or delete Higgsfield. UI + function still untracked; must commit all 5 files together (UI + backend + apps.config edit + constants edit + App.jsx import/render) or `rm` them all. Decision is the work; code change is small either way.
+- **Fix #9** — Ship or delete Higgsfield. UI + function are stashed in `stash@{0}` (not in working tree — see Dirty / Stashed WIP). To ship: pop stash, resolve conflicts on `apps.config.js`/`constants.js`, commit all 5 files together (UI + backend + apps.config edit + constants edit + App.jsx import/render). To abandon: `git stash drop stash@{0}` (deletes the Higgsfield WIP permanently — confirm first). Decision is the work; code change is small either way.
 
 **Polish:**
 - **Vantus-bot Slack app** for agent-attributed messages (currently posts as signed-in user via MCP).
-- **Fix #14** — Decouple `seed.content.js` from VitalLyfe (or remove — DB is authoritative now).
+- **Fix #14** — INITIAL_CONTENT seed array removed 2026-05-26 (commit `90beaa6`). `seed.content.js` now only exports `VITAL_LYFE_SOP`, still rendered by `SopsRoute` + `ClientView`. Per-client SOP schema decision is the remaining work before this constant can move into the DB.
 - **External tracker → n8n trigger** (SharePoint/Airtable side).
 - Rotate Supabase admin passwords (very low urgency — OAuth is sole path used).
 - Tighten `style-src 'unsafe-inline'` in CSP when inline-style React patterns get factored out.
 
 **Cortex bridge (forward design — not built):**
-- `wiki/clients/<slug>/brand-voice.md` → `clients.brand_voice_md` push pipeline via `scripts/sync-cortex.mjs` (stub already exists in working tree). DO NOT create `wiki/clients/` until founder signs off on the schema. See `~/.claude/projects/-Users-chrisz/memory/project_cortex_vantus_bridge.md`.
+- `wiki/clients/<slug>/brand-voice.md` → `clients.brand_voice_md` push pipeline via `scripts/sync-cortex.mjs` (stub lives in `stash@{0}`, not in working tree). DO NOT create `wiki/clients/` until founder signs off on the schema. See `~/.claude/projects/-Users-chrisz/memory/project_cortex_vantus_bridge.md`.
 
 ## Strategic Context
 - **Client:** VitalLyfe (Natalia = approver, Jon = JC, Danny = Cloud Scenic ops)
