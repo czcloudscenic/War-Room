@@ -4,12 +4,7 @@ import { PILLARS_LIST } from '../../utils/constants.js';
 import Card from '../../ui/shared/Card.jsx';
 
 const REF_TYPES = ["Hook", "Caption", "CTA", "Brand Voice", "Campaign Brief", "Script Sample"];
-const INITIAL_REFS = [
-  { id:"ref-1", title:"Drip Campaign — Hook Bank", type:"Hook", pillar:"Abundance", platform:"IG/TT", content:"Every drop holds potential.\n\nFreedom isn't given, it's built.\n\nNothing changes until water moves. Then everything does.\n\nProgress doesn't stop where comfort ends.\n\nWhat if abundance was never the problem? What if it's been here all along.\n\n70% of our planet is covered in water, yet most remains out of reach.", notes:"These hooks work because they're poetic but grounded. Lead with the metaphor — let the product follow. Never open with the brand name." },
-  { id:"ref-2", title:"Vital Lyfe — Brand Voice", type:"Brand Voice", pillar:"Access", platform:"All", content:"Tone: Cinematic, calm, purposeful. Never corporate. Never hype.\n\nWe speak like a documentary director, not a sales team. The visuals do the selling — the copy creates the feeling.\n\nKey phrases: 'abundance', 'access', 'built for beyond', 'the distance between', 'water moves', 'closes the distance'\n\nAvoid: 'revolutionary', 'game-changing', 'disrupting', 'best-in-class', tech jargon, exclamation points.\n\nEvery caption should feel like it could be a line in a film. Short. Weighted. Intentional.", notes:"North star for Muse on all copy. When in doubt — read it out loud. If it sounds like an ad, rewrite it." },
-  { id:"ref-3", title:"Caption Structure — Drip Campaign", type:"Caption", pillar:"Abundance", platform:"IG", content:"Structure that works for Vital Lyfe:\n\nLine 1: Poetic statement (not a question — statements land harder for this brand)\nBlank line\nLine 2-3: Expand the metaphor\nBlank line\nLine 4: Bridge to the brand/mission\nBlank line\nCTA: Soft. Community. 'Join us (Link in bio)'\n\nExample:\nEvery drop holds potential.\n\nRipples expand outward — from a single origin to an ocean of movement.\n\nThis is how abundance becomes access.\n\nJoin us (Link in bio)", notes:"Line breaks are non-negotiable. No walls of text. The white space IS the tone." },
-  { id:"ref-4", title:"Drip Campaign — Full Brief", type:"Campaign Brief", pillar:"Abundance", platform:"IG/TT/X", content:"Campaign: Drip Campaign\nGoal: Brand awareness and community building. Top-of-funnel storytelling.\n\nConcept: Water as metaphor for abundance, access, and transformation. Every piece connects Vital Lyfe's mission to a universal human experience of water.\n\nContent pillars covered: Abundance, Access, Innovation, Startup Diaries, Product Launch\n\nVisual direction: Cinematic. Slow motion. Macro water shots. Wide landscapes. Clean, minimal environments. No stock photo energy — everything should feel like it was shot for a documentary or luxury brand.\n\nApproved pieces (9): The Source, Access is Freedom, Nothing Changes Until Water Moves, Built for Beyond, Water is Everything, Looped Motion, The Source (Graphic), The Turning Point, plus 2 threads.\n\nPending: The Distance Between (needs copy), What We're Surrounded By (needs content approval).\n\nCTAs: Always 'Join us (Link in bio)' — never 'Shop now', 'Buy', or pushy conversion language.", notes:"Reference this before generating any new Drip Campaign copy. The tone is earned — don't let individual pieces break it." },
-];
+const INITIAL_REFS = [];
 
 export default function ReferencesPage() {
   const isMobile = useIsMobile();
@@ -38,7 +33,7 @@ setAdding(false);
   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:24 }}>
     <div>
       <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 24 : 32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>References</h1>
-      <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>Drop campaign examples, hooks, captions, and brand voice notes here. Muse + Overseer read from this folder.</p>
+      <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>Drop campaign examples, hooks, captions, and brand voice notes here. Muse reads from this folder.</p>
     </div>
     <button onClick={() => setAdding(true)} style={{ background:"#0f0f1a", border:"none", borderRadius:12, color:"#fff", fontSize:13, fontWeight:600, padding:"10px 20px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>+ Add Reference</button>
   </div>
@@ -62,7 +57,7 @@ setAdding(false);
         <div><label style={labelStyle}>Platform</label><input style={inp} value={form.platform} onChange={e=>setF("platform",e.target.value)} placeholder="IG, TT, All..." /></div>
       </div>
       <div style={{ marginBottom:12 }}><label style={labelStyle}>Content</label><textarea style={{ ...inp, minHeight:140, resize:"vertical", lineHeight:1.7 }} value={form.content} onChange={e=>setF("content",e.target.value)} placeholder="Paste hooks, captions, brand voice notes, campaign brief, or script samples here..." /></div>
-      <div style={{ marginBottom:20 }}><label style={labelStyle}>Agent Notes</label><textarea style={{ ...inp, minHeight:56, resize:"vertical", lineHeight:1.6 }} value={form.notes} onChange={e=>setF("notes",e.target.value)} placeholder="Context for Muse / Overseer on how to use this reference..." /></div>
+      <div style={{ marginBottom:20 }}><label style={labelStyle}>Agent Notes</label><textarea style={{ ...inp, minHeight:56, resize:"vertical", lineHeight:1.6 }} value={form.notes} onChange={e=>setF("notes",e.target.value)} placeholder="Context for Muse on how to use this reference..." /></div>
       <div style={{ display:"flex", gap:10 }}>
         <button onClick={saveRef} style={{ background:"#0f0f1a", border:"none", borderRadius:10, color:"#fff", fontSize:13, fontWeight:600, padding:"11px 24px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Save</button>
         <button onClick={() => setAdding(false)} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.5)", fontSize:13, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>Cancel</button>

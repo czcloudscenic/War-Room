@@ -127,7 +127,7 @@ export default function LoginScreen() {
           </div>
           <div style={{ fontSize:9, color:"rgba(255,255,255,0.38)", letterSpacing:3, textTransform:"uppercase", fontWeight:600, marginBottom:7 }}>Cloud Scenic</div>
           <h1 style={{ fontSize:24, fontWeight:500, color:"#fff", margin:"0 0 5px", letterSpacing:-0.5 }}>Vantus</h1>
-          <p style={{ fontSize:11, color:"rgba(255,255,255,0.35)", margin:0 }}>VitalLyfe Content Operations</p>
+          <p style={{ fontSize:11, color:"rgba(255,255,255,0.35)", margin:0 }}>Content Operations Dashboard</p>
         </div>
 
         <button onClick={handleGoogleSignIn} disabled={loading} className="lg-google-btn">

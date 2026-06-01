@@ -99,7 +99,7 @@ export default function ClientTeamPanel({ clientId, clientName, currentUserId })
         <input
           value={inviteEmail}
           onChange={e => setInviteEmail(e.target.value)}
-          placeholder="natalia@vitallyfe.com"
+          placeholder="teammate@example.com"
           style={{ ...inputStyle, flex:1 }}
           type="email"
         />

@@ -14,12 +14,8 @@ export default function TeamBroadcast({ agents }) {
 
   const AGENT_SYSTEM = {
 Sean: "You are Sean, Commander Agent. Decisive, calm, short sentences. When you receive a brief or update from the team lead, acknowledge it, note implications for your pipeline coordination, and state your immediate action. Under 80 words.",
-Lacey: "You are Lacey, Runner Agent. Fast, pragmatic, loves checklists. When you receive a brief, identify what workflows, automations, or SOPs need to be updated or triggered. Under 80 words.",
-Ali: "You are Ali, Developer Agent. Precise, technical. When you receive a brief, flag any technical changes needed to the system. Under 80 words.",
-Sam: "You are Sam, Monitor Agent. Methodical, data-driven. When you receive a brief, note what metrics or signals you'll be watching. Under 80 words.",
 Artgrid: "You are Artgrid, Footage Scout. Visual, cinematic. When you receive a brief, note how it affects your footage scouting strategy. Under 80 words.",
 Muse: "You are Muse, Content Ideation Agent. Creative, on-brand. When you receive a brief, surface 2-3 content angles it suggests. Under 80 words.",
-Overseer: "You are Overseer, SOP Guardian. Rigorous, precise. When you receive a brief, flag any SOP compliance considerations. Under 80 words.",
 Scrappy: "You are Scrappy, Trend Scout. Sharp, fast, a bit chaotic. When you receive a brief, immediately think about what trends or research angles to pursue. Under 80 words.",
   };
 
@@ -32,14 +28,14 @@ const id = Date.now();
 const broadcast = { id, message: text, ts: Date.now(), responses: {}, loading: true };
 setBroadcasts(prev => [...prev, broadcast]);
 
-// Fire all 8 agents in parallel
+// Fire all agents in parallel
 const agentPromises = agents.map(async (agent) => {
   try {
     const res = await apiFetch("/api/chat", {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
         model:"claude-sonnet-4-6", max_tokens:200,
-        system: AGENT_SYSTEM[agent.name] || `You are ${agent.name}, an agent in the VitalLyfe Vantus. Respond to the brief concisely.`,
+        system: AGENT_SYSTEM[agent.name] || `You are ${agent.name}, an agent in Vantus. Respond to the brief concisely.`,
         messages:[{role:"user",content:text}]
       })
     });
@@ -59,9 +55,9 @@ setTimeout(()=>{ if(inputRef.current) inputRef.current.focus(); }, 80);
   };
 
   const QUICK_BRIEFS = [
-"New campaign brief: we're shifting focus to Tierra Bomba content for the next 3 weeks. Prioritize community and access angles.",
-"Client approved all Drip Campaign reels. We're moving to scheduling phase — all hands on Week 5 Product Launch prep.",
-"Budget update: $500 freed up for paid ads this month. Optimize for highest-converting content.",
+"New campaign brief: we're shifting creative focus for the next 3 weeks. Prioritize community and access angles.",
+"Client approved current reels. Moving to scheduling phase — all hands on next launch prep.",
+"Budget update: more freed up for paid ads this month. Optimize for highest-converting content.",
 "New platform strategy: doubling down on TikTok. All reels should be adapted for TT-first hook structure.",
   ];
 
@@ -69,7 +65,7 @@ setTimeout(()=>{ if(inputRef.current) inputRef.current.focus(); }, 80);
 <div style={{animation:"fadeIn 0.4s ease",display:"flex",flexDirection:"column",height: isMobile ? "auto" : "calc(100vh - 80px)"}}>
   <div style={{marginBottom: isMobile ? 12 : 20}}>
     <h1 style={{fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 24 : 32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1}}>Team Broadcast</h1>
-    <p style={{fontSize:12,color:"rgba(255,255,255,0.5)",margin:0}}>Send a brief to all 8 agents — each responds in their own voice.</p>
+    <p style={{fontSize:12,color:"rgba(255,255,255,0.5)",margin:0}}>Send a brief to all agents — each responds in their own voice.</p>
   </div>
 
   <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:20,paddingBottom:20}}>
@@ -146,7 +142,7 @@ setTimeout(()=>{ if(inputRef.current) inputRef.current.focus(); }, 80);
   )}
   <div style={{display:"flex",gap:10,paddingTop:12,borderTop:"1px solid rgba(0,0,0,0.07)",flexWrap: isMobile ? "wrap" : "nowrap"}}>
     <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendBroadcast();}}}
-      placeholder="Send a brief to all 8 agents…" disabled={sending}
+      placeholder="Send a brief to all agents…" disabled={sending}
       style={{flex:1, width: isMobile ? "100%" : "auto", background:"rgba(255,255,255,0.05)",border:`1px solid ${input?"rgba(48,209,88,0.4)":"rgba(0,0,0,0.1)"}`,borderRadius:12,padding:"12px 16px",color:"#f5f5f7",fontSize: isMobile ? 16 : 13,outline:"none",fontFamily:"Inter,sans-serif"}}/>
     <button onClick={sendBroadcast} disabled={!input.trim()||sending}
       style={{background:input.trim()&&!sending?"#2AABFF":"rgba(255,255,255,0.07)",border:"none",borderRadius:12,color:input.trim()&&!sending?"#fff":"rgba(255,255,255,0.3)",cursor:input.trim()&&!sending?"pointer":"default",padding:"12px 22px",fontSize:17,transition:"all 0.2s",fontFamily:"Inter,sans-serif", width: isMobile ? "100%" : "auto"}}>

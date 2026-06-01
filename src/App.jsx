@@ -24,14 +24,10 @@ import SkillsPage from './apps/skills/SkillsPage.jsx';
 import AdROIHub from './apps/ad-roi/AdROIHub.jsx';
 import TeamBroadcast from './ui/agents/TeamBroadcast.jsx';
 import ArtgridScoutPage from './apps/artgrid/ArtgridScoutPage.jsx';
-import ShotRefScout from './apps/shot-ref/ShotRefScout.jsx';
-import HeroGeneratorPage from './apps/hero-gen/HeroGeneratorPage.jsx';
 import EditContentModal from './ui/pipeline/EditContentModal.jsx';
 import CIDPage from './apps/competitor-intel/CIDPage.jsx';
 import ICPPage from './ui/command/ICPPage.jsx';
-import BriefGenPage from './apps/brief-gen/BriefGenPage.jsx';
 import LoginScreen from './ui/layout/LoginScreen.jsx';
-import ClientView from './ui/client/ClientView.jsx';
 import SettingsPage from './ui/settings/SettingsPage.jsx';
 import TypingTask from './ui/shared/TypingTask.jsx';
 import PlaceholderPage from './ui/shared/PlaceholderPage.jsx';
@@ -39,9 +35,6 @@ import AddClientModal from './ui/clients/AddClientModal.jsx';
 import DashboardRoute from './ui/routes/DashboardRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
-import TrackerRoute from './ui/routes/TrackerRoute.jsx';
-import TaskboardRoute from './ui/routes/TaskboardRoute.jsx';
-import SopsRoute from './ui/routes/SopsRoute.jsx';
 
 //  ROOT APP WRAPPER
 const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
@@ -204,7 +197,7 @@ function App() {
     // an infinite reload loop if the second attempt also hangs.
     const RECOVERY_FLAG = "vantus_auth_recovery_attempted";
 
-    const stuckGuard = setTimeout(() => {
+    let stuckGuard = setTimeout(() => {
       if (cancelled) return;
       const alreadyTried = (() => { try { return sessionStorage.getItem(RECOVERY_FLAG); } catch { return null; } })();
       if (alreadyTried) {
@@ -230,12 +223,21 @@ function App() {
       }
       // Reload — fastest path back to a working session
       location.reload();
-    }, 4000);
+    }, 8000);
+
+    // Cancel the guard the moment auth resolves — success OR confirmed signed-out.
+    // Without this, opening Vantus in a second tab would race the 8s timer:
+    // tab 2 resolves its session in ~5s (second-tab navigator.locks is slower),
+    // but the guard still fired and wiped tokens for BOTH tabs.
+    const clearStuckGuard = () => {
+      if (stuckGuard) { clearTimeout(stuckGuard); stuckGuard = null; }
+    };
 
     // Initial session check (handles OAuth redirect-back: supabase-js reads
     // the auth fragment from the URL before getSession resolves)
     sb.auth.getSession().then(async ({ data: { session: s } }) => {
       if (cancelled) return;
+      clearStuckGuard();
       console.log("[auth] getSession initial", { hasSession: !!s, email: s?.user?.email });
       setChecking(false);
       if (s) {
@@ -246,6 +248,7 @@ function App() {
     // Handle subsequent auth events (SIGNED_IN, SIGNED_OUT, INITIAL_SESSION, TOKEN_REFRESHED)
     const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, s) => {
       console.log("[auth] onAuthStateChange", event, { hasSession: !!s, email: s?.user?.email });
+      clearStuckGuard();
       // Always flip checking off as soon as we hear from auth — even if getSession is still hung
       setChecking(false);
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && s) {
@@ -264,7 +267,7 @@ function App() {
     });
     return () => {
       cancelled = true;
-      clearTimeout(stuckGuard);
+      clearStuckGuard();
       subscription?.unsubscribe();
     };
   }, []);
@@ -304,7 +307,9 @@ function App() {
   if (!session) return <LoginScreen />;
   // External-client invite still pending admin approval (Fix #2.6c, 2026-05-25)
   if (pendingInvite) return <PendingApprovalScreen email={pendingInvite.email} onSignOut={handleSignOut} />;
-  if (role === "client") return <ClientView user={session.user} content={content} setContent={setContent} onSignOut={handleSignOut} clientIds={clientIds} />;
+  // External-client portal (ClientView) was ripped 2026-06-01 ahead of the
+  // self-serve IG-analyzer pivot. Approved external clients now see the main
+  // Vantus app — RLS on content_items already scopes them to their own rows.
   return <Vantus onSignOut={handleSignOut} userEmail={session.user.email} userId={session.user.id} content={content} setContent={setContent} />;
 }
 
@@ -360,9 +365,7 @@ function Vantus({ onSignOut, userEmail, userId, content: contentProp, setContent
   // feed state removed — ActivityFeed self-manages from agent_events table
   const [agents] = useState(AGENTS_BASE);
   const [liveCount, setLiveCount] = useState(6);
-  const [previewMode, setPreviewMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [trackerSearch, setTrackerSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterPillar, setFilterPillar] = useState("");
   const [filterPlatform, setFilterPlatform] = useState("");
@@ -408,14 +411,15 @@ return apiFetch(url, opts);
   //  SUPABASE REALTIME SUBSCRIPTION 
   // App-level already handles initial load. Vantus only handles realtime sync + fallback.
   useEffect(() => {
-// Pre-seed Muse memory
+// Pre-seed Muse memory only if not already set. Brand-specific values come from
+// the active client (clients.brand_voice_md). This is a neutral placeholder.
 if (!getMemory('Muse').brand) {
   setMemory('Muse', {
-    brand: 'VitalLyfe',
-    niche: 'hydration wellness water autonomy',
-    tone: 'cinematic calm purposeful never corporate',
-    campaigns: ['Drip Campaign', 'Meet the Makers', 'Product Launch'],
-    pillars: ['Abundance', 'Access', 'Innovation', 'Tierra Bomba', 'Startup Diaries'],
+    brand: '',
+    niche: '',
+    tone: '',
+    campaigns: [],
+    pillars: [],
   });
 }
 if (!sb) return;
@@ -560,14 +564,14 @@ return () => sb.removeChannel(channel);
   const [isNewItem, setIsNewItem] = useState(false);
 
   const getNewItemTemplate = () => ({
-id: `vl-${Date.now()}`,
+id: `${currentClient?.slug || "item"}-${Date.now()}`,
 platform: "instagram",
 type: "reel",
 stage: "Ready For Copy Creation",
-campaign: "Drip Campaign",
+campaign: "",
 status: "Ready For Copy Creation",
 format: "Reel",
-pillar: "Abundance",
+pillar: "",
 platforms: ["IG"],
 title: "",
 description: "",
@@ -707,7 +711,7 @@ if (sb) {
       const res = await safeAgentFetch("/api/agent-action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "muse_ig_ideas", payload: { campaign: "Drip Campaign" }, client_id: currentClient?.id }),
+        body: JSON.stringify({ action: "muse_ig_ideas", payload: {}, client_id: currentClient?.id }),
       });
       const d = await res.json();
       if (d.error || !d.success) throw new Error(d.error || d.message || "Unknown error");
@@ -753,27 +757,6 @@ try {
   const igItems = clientContent.filter(x => x.platform === "instagram");
   const ttItems = clientContent.filter(x => x.platform === "tiktok");
   const ytItems = clientContent.filter(x => x.platform === "youtube");
-
-  //  PREVIEW MODE — renders ClientView inside an overlay 
-  if (previewMode) {
-return (
-  <div style={{ position:"relative", minHeight:"100vh" }}>
-    <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999, background:"#0f0f1a", borderBottom:"2px solid #2AABFF", padding:"0 20px", height:44, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-        <div style={{ width:8, height:8, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2s infinite" }} />
-        <span style={{ fontSize:12, fontWeight:700, color:"#2AABFF", letterSpacing:0.3 }}>PREVIEW MODE</span>
-        <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)" }}>— You're seeing exactly what the client sees</span>
-      </div>
-      <button onClick={() => setPreviewMode(false)} style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:8, color:"#fff", fontSize:12, fontWeight:600, padding:"6px 16px", cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
-        ← Exit Preview
-      </button>
-    </div>
-    <div style={{ paddingTop:44 }}>
-      <ClientView user={{ email: userEmail || "client@vitallyfe.com" }} content={content} setContent={setContent} onSignOut={() => setPreviewMode(false)} isPreview={true} />
-    </div>
-  </div>
-);
-  }
 
   return (
 <div className="vantus-grid-bg" style={{ display:"flex", height: isMobile ? "100dvh" : "100vh", background:"#0d0907", color:"#f5f5f7", fontFamily:"-apple-system, 'SF Pro Display', Inter, sans-serif", overflow:"hidden", flexDirection: isMobile ? "column" : "row", position:"relative" }}>
@@ -969,8 +952,7 @@ return (
           </div>
         ))}
         <div style={{ padding:"12px 20px", borderTop:"1px solid rgba(255,255,255,0.06)", display:"flex", gap:10 }}>
-          <button onClick={() => { setPreviewMode(true); setMobileNavOpen(false); }} style={{ flex:1, fontSize:12, color:"rgba(255,255,255,0.6)", background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}> Client View</button>
-          <button onClick={onSignOut} style={{ fontSize:12, color:"rgba(255,255,255,0.4)", background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"10px 16px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>Sign Out</button>
+          <button onClick={onSignOut} style={{ flex:1, fontSize:12, color:"rgba(255,255,255,0.4)", background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"10px 16px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>Sign Out</button>
         </div>
         <div style={{ height:"env(safe-area-inset-bottom,16px)", minHeight:16 }} />
       </div>
@@ -1017,7 +999,6 @@ return (
 
           {/* Row 2: action buttons */}
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-            <button onClick={() => setPreviewMode(true)} style={{ flex:1, fontSize:10, color:"rgba(255,255,255,0.75)", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"5px 0", cursor:"pointer", fontFamily:"Inter, sans-serif", fontWeight:500, textAlign:"center" }}>Client View</button>
             <div style={{ position:"relative" }}>
               <button onClick={(e) => {
                 if (!notifOpen) {
@@ -1255,31 +1236,8 @@ return (
         handleAddNew={handleAddNew}
         setEditingItem={setEditingItem}
         handleMuseWrite={handleMuseWrite}
+        currentClient={currentClient}
       />
-    )}
-
-    {/* CONTENT TRACKER */}
-    {activeNav === "tracker" && (
-      <TrackerRoute
-        clientContent={clientContent}
-        filterStatus={filterStatus}
-        filterPillar={filterPillar}
-        filterPlatform={filterPlatform}
-        trackerSearch={trackerSearch}
-        setTrackerSearch={setTrackerSearch}
-        setFilterStatus={setFilterStatus}
-        setFilterPillar={setFilterPillar}
-        setFilterPlatform={setFilterPlatform}
-        isMobile={isMobile}
-        handleAddNew={handleAddNew}
-        setEditingItem={setEditingItem}
-        handleMuseWrite={handleMuseWrite}
-      />
-    )}
-
-    {/* TASK BOARD */}
-    {activeNav === "taskboard" && (
-      <TaskboardRoute />
     )}
 
     {activeNav === "cid" && React.createElement(CIDPage, null)}
@@ -1287,9 +1245,6 @@ return (
     {(activeNav === "sales" || activeNav === "adroihub") && <AdROIHub />}
     {(activeNav === "chat" || activeNav === "broadcast") && <TeamBroadcast agents={agents} />}
     {activeNav === "artgrid" && <ArtgridScoutPage content={content} />}
-    {activeNav === "briefgen" && <BriefGenPage onContentAdded={(items) => setContent(prev => [...prev, ...items])} />}
-    {activeNav === "shotref" && <ShotRefScout />}
-    {activeNav === "herogen" && <HeroGeneratorPage />}
     {activeNav === "references" && <ReferencesPage />}
 
     {/* SKILLS */}
@@ -1303,11 +1258,6 @@ return (
     {activeNav === "costs" && <AppPlaceholder label="Cost Governance" desc="API spend tracking, agent budget controls, and cost optimization." icon="$" />}
     {activeNav === "automation" && <AppPlaceholder label="Automation Center" desc="Scheduled agent workflows, n8n triggers, and pipeline automation." icon="⚡" />}
 
-    {/* SOPs */}
-    {activeNav === "sops" && (
-      <SopsRoute isMobile={isMobile} />
-    )}
-
   </div>
 
   {/*  MOBILE BOTTOM NAV  */}
@@ -1318,7 +1268,7 @@ return (
         { id:"content", label:"Pipeline" },
         { id:"agents", label:"Agents" },
         { id:"adroihub", label:"ROI" },
-        { id:"taskboard", label:"Tasks" },
+        { id:"cid", label:"Intel" },
       ].map(tab => {
         const active = activeNav === tab.id;
         return (

@@ -26,10 +26,8 @@ document.head.appendChild(s);
   const ACTIONS = [
 { label: "Morning Briefing", action: "sean_briefing", agent: "Sean", color: "#2AABFF" },
 { label: "Generate Captions", action: "muse_generate_calendar", agent: "Muse", color: "#2AABFF" },
-{ label: "SOP Scan", action: "overseer_scan", agent: "Overseer", color: "#2AABFF" },
-{ label: "Advance Pipeline", action: "lacey_advance", agent: "Lacey", color: "#2AABFF" },
-{ label: "Health Check", action: "sam_health", agent: "Sam", color: "#2AABFF" },
-{ label: "Trigger n8n", action: "lacey_trigger_n8n", agent: "Lacey", color: "#2AABFF", payload: { workflow: "vitallyfe-pipeline", message: "Triggered from Vantus Quick Actions", triggeredBy: "Vantus" } },
+{ label: "5 IG Ideas", action: "muse_ig_ideas", agent: "Muse", color: "#2AABFF" },
+{ label: "Research Trends", action: "scrappy_research", agent: "Scrappy", color: "#2AABFF" },
   ];
 
   const run = async (action, agent, color, label, payload = {}) => {

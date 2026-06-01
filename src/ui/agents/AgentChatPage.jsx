@@ -36,33 +36,21 @@ export default function AgentChatPage({ agents, content, currentClient }) {
   const isMobile = useIsMobile();
   const [mobileAgentList, setMobileAgentList] = useState(false);
   const PROMPTS = {
-Sean: "You are Sean, Commander Agent for the VitalLyfe Vantus by Cloud Scenic. Orchestrate all 7 agents, own the content pipeline. VitalLyfe is a wellness/hydration brand. Campaigns: Drip Campaign, Meet the Makers, Product Launch. Platforms: Instagram, TikTok, YouTube. Pipeline: Ready For Copy Creation, Need Copy Approval, Ready For Content Creation, Need Content Approval, Needs Revisions, Approved, Ready For Schedule, Scheduled. Team: Lacey (Runner), Ali (Developer), Sam (Monitor), Artgrid (Footage Scout), Muse (Content Ideation), Overseer (SOP Guardian). Personality: decisive, calm, short punchy sentences.",
-Lacey: "You are Lacey, Runner Agent for the VitalLyfe Vantus by Cloud Scenic. Execute tasks: n8n and Zapier workflows, deliverable batches, SOPs, Drive sync. Personality: fast, pragmatic, loves checklists, dry humor when things break.",
-Ali: "You are Ali, Developer Agent for the VitalLyfe Vantus by Cloud Scenic. Tech stack: single HTML file React CDN plus Babel around 1700 lines, Supabase, Google Drive API, Netlify. Surgical edits only. Personality: precise, technical, ships clean code.",
-Sam: "You are Sam, Monitor Agent for the VitalLyfe Vantus by Cloud Scenic. Watch: system health, API spend, security, anomalies, pipeline metrics. Personality: methodical, data-driven, flags anything off immediately.",
-Artgrid: "You are Artgrid, Footage Scout for the VitalLyfe Vantus by Cloud Scenic. Source B-roll from Artgrid.io. VitalLyfe visuals: warm neutrals, soft light, water in motion, wide landscapes. Never corporate or fake stock. Personality: visual, cinematic, precise search terms.",
-Muse: "You are Muse, Content Ideation Agent for the VitalLyfe Vantus by Cloud Scenic. Write hooks, captions, scripts, calendars. Brand voice: cinematic, calm, purposeful. Key phrases: abundance, access, built for beyond. AVOID: revolutionary, game-changing, exclamation points. Caption structure: poetic statement then blank line then expand metaphor then blank line then bridge to brand then blank line then soft CTA like Join us (Link in bio). Always write real copy not descriptions.",
-Overseer: "You are Overseer, SOP Guardian for the VitalLyfe Vantus by Cloud Scenic. Enforce 7-step SOP: Step 01 Discovery, Step 02 Copy Creation, Step 03 Footage Scouting, Step 04 Content Creation, Step 05 Client Review, Step 06 Revisions max 2 rounds, Step 07 Scheduling. Flag violations, cite step numbers. Rigorous but never alarmist.",
-Scrappy: "You are Scrappy, Trend Scout for the VitalLyfe Vantus by Cloud Scenic. You scour the internet for content trends, viral hooks, competitor moves, and fresh angles — then hand the gems to Muse. You pull from Reddit, Hacker News, TikTok trends, and the wider wellness/tech space. VitalLyfe content pillars: Abundance, Access, Innovation, Startup Diaries, Tierra Bomba, Product Launch, Meet the Makers. Personality: sharp, fast, a little chaotic in a good way. You find things others miss. Short punchy reports. Lead with what's hot. Never vague — always specific signals with real context.",
+Sean: "You are Sean, Commander Agent. Orchestrate the team, own the content pipeline. Platforms: Instagram, TikTok, YouTube. Pipeline: Ready For Copy Creation, Need Copy Approval, Ready For Content Creation, Need Content Approval, Needs Revisions, Approved, Ready For Schedule, Scheduled. Team: Artgrid (Footage Scout), Muse (Content Ideation), Scrappy (Trend Scout). Personality: decisive, calm, short punchy sentences.",
+Artgrid: "You are Artgrid, Footage Scout. Source B-roll from Artgrid.io. Match visuals to the brand voice and pillars provided in context. Never corporate or fake stock. Personality: visual, cinematic, precise search terms.",
+Muse: "You are Muse, Content Ideation Agent. Write hooks, captions, scripts, calendars. Caption structure: poetic statement then blank line then expand metaphor then blank line then bridge to brand then blank line then soft CTA. Voice and pillars are provided per-request — adapt to them. Always write real copy not descriptions.",
+Scrappy: "You are Scrappy, Trend Scout. You scour the internet for content trends, viral hooks, competitor moves, and fresh angles — then hand the gems to Muse. You pull from Reddit, Hacker News, TikTok trends, and the platform-specific space relevant to the brand. Personality: sharp, fast, a little chaotic in a good way. Short punchy reports. Lead with what's hot. Never vague — always specific signals with real context.",
   };
   const QUICK = {
 Sean:     ["Pipeline Status", "Today's Priorities", "Delegate a Task", "Morning Briefing"],
-Lacey:    ["Build a Workflow", "Draft an SOP", "Execution Plan", "EOD Checklist"],
-Ali:      ["Debug an Issue", "Integration Plan", "Schema Review", "Code Review"],
-Sam:      ["System Health Check", "Cost Report", "Security Audit", "Pipeline Metrics"],
 Artgrid:  ["Scout Footage", "Mood Board Brief", "Review Clip Selections", "Build Shot List"],
 Muse:     ["Write Hooks", "Draft Caption", "Content Calendar", "New Concept Ideas"],
-Overseer: ["Full SOP Audit", "Compliance Check", "Brand Voice Review", "Approval Gate"],
 Scrappy: ["What's trending this week?", "Competitor analysis", "Fresh hook ideas", "Muse collab brief"],
   };
   const DESC = {
 Sean: "Orchestrates agents, owns pipeline priorities",
-Lacey: "Automation workflows, deliverable execution, SOPs",
-Ali: "Technical infrastructure, API integrations, builds",
-Sam: "System monitoring, security, metrics, cost tracking",
 Artgrid: "Cinematic footage sourcing, visual briefs, Artgrid.io",
 Muse: "Copy, hooks, captions, content calendars, ideation",
-Overseer: "SOP enforcement, brand voice compliance, audit",
 Scrappy: "Live internet research, trend scouting, Muse monthly collab",
   };
 
@@ -122,14 +110,6 @@ try {
   if (d.content) display += "\n\n" + d.content;
   if (d.flagged && d.flagged.length > 0) {
     display += "\n\n**Flagged Items:**\n" + d.flagged.map(f => `• "${f.title}" — ${f.violation} [${f.severity}]`).join("\n");
-  }
-  if (d.items && d.items.length > 0 && action === "lacey_advance") {
-    display += "\n\n**Advanced:**\n" + d.items.map(i => `• ${i.title}`).join("\n");
-  }
-  if (d.metrics) {
-    const m = d.metrics;
-    display += `\n\n**Metrics:** ${m.total} total · ${m.missingCopy} missing captions · ${m.missingScript} missing scripts`;
-    if (m.byStatus) display += "\n" + Object.entries(m.byStatus).map(([s,n]) => `${s}: ${n}`).join(" · ");
   }
   if (d.results && d.results.length > 0) {
     display += "\n\n" + d.results.map(r =>
@@ -271,7 +251,7 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
     </div>
 
     {/*  VOICE OVERRIDE (per-request)  */}
-    {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Overseer" || sel.name === "Lacey" || sel.name === "Sam" || sel.name === "Artgrid" || sel.name === "Scrappy") && (
+    {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Artgrid" || sel.name === "Scrappy") && (
       <div style={{ padding:"6px 16px 4px", borderBottom: voiceOpen ? "1px solid rgba(255,255,255,0.07)" : "none", background:"rgba(0,0,0,0.015)", flexShrink:0 }}>
         <button onClick={() => setVoiceOpen(v => !v)}
           style={{ background:"none", border:"none", padding:0, color:"rgba(255,255,255,0.4)", fontSize:10, fontWeight:600, letterSpacing:0.6, textTransform:"uppercase", cursor:"pointer", fontFamily:"Inter,sans-serif", display:"flex", alignItems:"center", gap:5 }}>
@@ -305,7 +285,7 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
     )}
 
     {/*  AGENT ACTION BUTTONS  */}
-    {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Overseer" || sel.name === "Lacey" || sel.name === "Sam" || sel.name === "Artgrid" || sel.name === "Scrappy") && (
+    {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Artgrid" || sel.name === "Scrappy") && (
       <div style={{ padding:"8px 16px", borderBottom:"1px solid rgba(255,255,255,0.1)", display:"flex", gap:7, flexWrap:"wrap", background:"rgba(0,0,0,0.015)", flexShrink:0 }}>
         {sel.name === "Sean" && (
           <button onClick={() => runAgentAction("sean_briefing")} disabled={actionBusy}
@@ -317,28 +297,6 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
           <button onClick={() => runAgentAction("muse_generate_calendar")} disabled={actionBusy}
             style={{ fontSize:11, fontWeight:600, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
             {actionBusy ? "⏳ Running…" : " Generate Calendar"}
-          </button>
-        )}
-        {sel.name === "Overseer" && (
-          <button onClick={() => runAgentAction("overseer_scan")} disabled={actionBusy}
-            style={{ fontSize:11, fontWeight:600, color:"#64d2ff", background:"rgba(100,210,255,0.08)", border:"1px solid rgba(100,210,255,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-            {actionBusy ? "⏳ Running…" : " SOP Scan"}
-          </button>
-        )}
-        {sel.name === "Lacey" && (<>
-          <button onClick={() => runAgentAction("lacey_advance")} disabled={actionBusy}
-            style={{ fontSize:11, fontWeight:600, color:"#ff9f0a", background:"rgba(255,159,10,0.08)", border:"1px solid rgba(255,159,10,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-            {actionBusy ? "⏳ Running…" : " Advance Pipeline"}
-          </button>
-          <button onClick={() => runAgentAction("lacey_trigger_n8n", { workflow: "vitallyfe-pipeline", message: "Triggered from Vantus", triggeredBy: "Lacey" })} disabled={actionBusy}
-            style={{ fontSize:11, fontWeight:600, color:"#2AABFF", background:"rgba(48,209,88,0.08)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1, marginLeft:8 }}>
-            {actionBusy ? "⏳ Running…" : " Trigger n8n"}
-          </button>
-        </>)}
-        {sel.name === "Sam" && (
-          <button onClick={() => runAgentAction("sam_health")} disabled={actionBusy}
-            style={{ fontSize:11, fontWeight:600, color:"#ffd60a", background:"rgba(255,214,10,0.08)", border:"1px solid rgba(255,214,10,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-            {actionBusy ? "⏳ Running…" : " Health Check"}
           </button>
         )}
         {sel.name === "Artgrid" && (
@@ -365,7 +323,7 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
         <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
           <div style={{ width:56, height:56, borderRadius:17, background:sel.grad, border:"2px solid " + sel.color + "40", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, fontWeight:700, color:sel.color, marginBottom:14 }}>{sel.name[0]}</div>
           <div style={{ fontSize:16, fontWeight:600, color:"#f5f5f7", marginBottom:5 }}>Chat with {sel.name}</div>
-          <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", marginBottom:24, textAlign:"center", maxWidth:280, lineHeight:1.6 }}>Loaded with full VitalLyfe context and SOP knowledge.</div>
+          <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", marginBottom:24, textAlign:"center", maxWidth:280, lineHeight:1.6 }}>Loaded with the active client's brand voice + pillars.</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, width:"100%", maxWidth:420 }}>
             {caps.map((cap, i) => (
               <button key={i} onClick={() => sendMsg(cap)} style={{ background:sel.color + "08", border:"1px solid " + sel.color + "25", borderRadius:11, padding:"11px 13px", cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>

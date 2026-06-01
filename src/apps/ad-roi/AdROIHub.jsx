@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../services/apiFetch.js';
 import { useIsMobile } from '../../utils/hooks.js';
 import Card from '../../ui/shared/Card.jsx';
 
 export default function AdROIHub() {
   const isMobile = useIsMobile();
-  const [campaigns, setCampaigns] = useState([
-{ id:"c1", name:"Drip Campaign — IG Reels", platform:"Instagram", spend:320, leads:18, conversions:4, revenue:1200, status:"Active" },
-{ id:"c2", name:"Access is Freedom — TikTok", platform:"TikTok", spend:150, leads:34, conversions:7, revenue:2100, status:"Active" },
-{ id:"c3", name:"Product Launch — Multi-Platform", platform:"Meta/TikTok", spend:800, leads:62, conversions:11, revenue:4400, status:"Active" },
-{ id:"c4", name:"Meet the Makers — IG Stories", platform:"Instagram", spend:90, leads:9, conversions:1, revenue:350, status:"Paused" },
-  ]);
+  const [campaigns, setCampaigns] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("vantus_adroi_campaigns") || "null");
+      if (Array.isArray(saved)) return saved;
+    } catch {}
+    return [];
+  });
+  useEffect(() => { try { localStorage.setItem("vantus_adroi_campaigns", JSON.stringify(campaigns)); } catch {} }, [campaigns]);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ name:"", platform:"Instagram", spend:"", leads:"", conversions:"", revenue:"", status:"Active" });
   const [aiInsight, setAiInsight] = useState(null);
@@ -40,7 +42,7 @@ try {
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
       model:"claude-sonnet-4-6", max_tokens:800,
-      system:"You are Sam, Ad Performance Analyst for VitalLyfe's Vantus. Analyze ad campaign data and give sharp, actionable ROI insights. Brand: wellness/hydration tech. Be specific, data-driven, direct. Max 200 words. Lead with what needs to change NOW.",
+      system:"You are an Ad Performance Analyst inside Vantus. Analyze ad campaign data and give sharp, actionable ROI insights for the brand context provided per request. Be specific, data-driven, direct. Max 200 words. Lead with what needs to change NOW.",
       messages:[{role:"user",content:`Analyze these ad campaigns:\n${summary}\n\nTotal: Spend $${totalSpend}, Revenue $${totalRevenue}, ROAS ${overallROAS}x, ${totalLeads} leads, ${totalConversions} conversions\n\nGive: (1) What's performing, (2) What's bleeding money, (3) 3 specific optimizations to run this week.`}]
     })
   });
@@ -107,7 +109,7 @@ setAdding(false);
         <button onClick={()=>setAdding(false)} style={{background:"none",border:"none",fontSize:18,color:"rgba(255,255,255,0.35)",cursor:"pointer"}}></button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:12,marginBottom:12}}>
-        <div><label style={labelStyle}>Campaign Name</label><input style={inp} value={form.name} onChange={e=>setF("name",e.target.value)} placeholder="Drip Campaign — IG Reels"/></div>
+        <div><label style={labelStyle}>Campaign Name</label><input style={inp} value={form.name} onChange={e=>setF("name",e.target.value)} placeholder="e.g. Spring Launch — IG Reels"/></div>
         <div><label style={labelStyle}>Platform</label><select style={{...inp,appearance:"none",cursor:"pointer"}} value={form.platform} onChange={e=>setF("platform",e.target.value)}>{PLATFORMS.map(p=><option key={p}>{p}</option>)}</select></div>
         <div><label style={labelStyle}>Status</label><select style={{...inp,appearance:"none",cursor:"pointer"}} value={form.status} onChange={e=>setF("status",e.target.value)}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
       </div>

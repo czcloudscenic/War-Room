@@ -13,13 +13,16 @@ export default function ContentRoute({
   handleAddNew,
   setEditingItem,
   handleMuseWrite,
+  currentClient,
 }) {
   const STAGES = ["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"];
   const STAGE_COLORS = ["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#2AABFF","#8b5cf6","#64d2ff"];
+  const handle = currentClient?.ig_handle || currentClient?.slug || currentClient?.name || "no client selected";
+  const ytLabel = currentClient?.name || "Account";
   const platforms = [
-    { id:"instagram", label:"Instagram", dot:"#dc2743", items: igItems, subtitle:`@vitallyfe · ${igItems.length} pieces in pipeline` },
-    { id:"tiktok",    label:"TikTok",    dot:"#ff0050", items: ttItems, subtitle:`@vitallyfe · ${ttItems.length} pieces in pipeline` },
-    { id:"youtube",   label:"YouTube",   dot:"#ff0000", items: ytItems, subtitle:`VitalLyfe · ${ytItems.length} pieces · Long-form & Shorts` },
+    { id:"instagram", label:"Instagram", dot:"#dc2743", items: igItems, subtitle:`@${handle} · ${igItems.length} pieces in pipeline` },
+    { id:"tiktok",    label:"TikTok",    dot:"#ff0050", items: ttItems, subtitle:`@${handle} · ${ttItems.length} pieces in pipeline` },
+    { id:"youtube",   label:"YouTube",   dot:"#ff0000", items: ytItems, subtitle:`${ytLabel} · ${ytItems.length} pieces · Long-form & Shorts` },
   ];
   const active = platforms.find(p => p.id === activePlatform) || platforms[0];
   return (

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Card from '../../ui/shared/Card.jsx';
 
 export default function SkillsPage({ agents }) {
-  const AGENT_COLORS = { Sean:"#2AABFF", Lacey:"#ff9f0a", Ali:"#0a84ff", Sam:"#ffd60a", Artgrid:"#2AABFF", Muse:"#ff375f", Overseer:"#64d2ff", Scrappy:"#5e5ce6" };
+  const AGENT_COLORS = { Sean:"#2AABFF", Artgrid:"#2AABFF", Muse:"#ff375f", Scrappy:"#5e5ce6" };
   const [briefs, setBriefs] = useState(() => {
 try { return JSON.parse(localStorage.getItem("vantus_skill_briefs") || "[]"); } catch { return []; }
   });
@@ -72,7 +72,7 @@ try { localStorage.setItem("vantus_skill_briefs", JSON.stringify(updated)); } ca
     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 }}>
       <div>
         <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:6, display:"block" }}>Skill Name</label>
-        <input style={inp} value={form.title} onChange={e=>setF("title",e.target.value)} placeholder="e.g. Tierra Bomba Context, Hook Mastery v2" />
+        <input style={inp} value={form.title} onChange={e=>setF("title",e.target.value)} placeholder="e.g. Campaign Context, Hook Mastery v2" />
       </div>
       <div>
         <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:6, display:"block" }}>Short Description</label>
@@ -84,7 +84,7 @@ try { localStorage.setItem("vantus_skill_briefs", JSON.stringify(updated)); } ca
       <label style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:6, display:"block" }}>Skill Content / Instructions</label>
       <textarea style={{ ...inp, minHeight:160, resize:"vertical", lineHeight:1.75 }}
         value={form.content} onChange={e=>setF("content",e.target.value)}
-        placeholder={"Write the full skill brief here — context, rules, examples, and constraints.\n\nAgents will use this as a hardware update when you deploy.\n\nExample:\n• Tierra Bomba is an island off Cartagena, Colombia\n• Community partner: Amigos del Mar\n• Tone for this pillar: documentary, grounded, human\n• Always open with geography before introducing the mission"} />
+        placeholder={"Write the full skill brief here — context, rules, examples, and constraints.\n\nAgents will use this as a hardware update when you deploy.\n\nExample:\n• Campaign name + market context\n• Partners or collaborators\n• Tone for this pillar (documentary / playful / authoritative)\n• Anything else the agent should always reference"} />
     </div>
 
     <div style={{ display:"flex", alignItems:"center", gap:14 }}>

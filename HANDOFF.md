@@ -1,4 +1,60 @@
-# Vantus Handoff Brief — 2026-05-26 (post Move 1 sprint)
+# Vantus Handoff Brief — 2026-06-01 (post-rip pass + IG-analyzer pivot prep)
+
+## 2026-06-01 session — Major rip + de-hardcoding pass
+
+**Why:** The original Vantus premise was "log in to your IG/TT/YT/LinkedIn accounts, have AI analyze your analytics and generate better content ideas." The actual built app drifted into a VitalLyfe-specific content-ops dashboard. This session ripped the agency-shaped weight and de-VitalLyfe'd everything so the codebase is ready for the self-serve IG OAuth pivot.
+
+### Ripped (preserved under `ripped out features/`)
+- **Apps:** Brief → Content (brief-gen), Shot Reference, Hero Generator
+- **Agents:** Lacey (Runner), Ali (Developer), Sam (Monitor), Overseer (SOP Guardian) — kept Sean, Muse, Scrappy, Artgrid
+- **Routes:** TrackerRoute (redundant), TaskboardRoute (empty ops theater), SopsRoute (VitalLyfe 7-step SOP)
+- **External-client portal:** `ClientView.jsx` (1,298 lines) + preview-mode overlay + 2 "Client View" trigger buttons + `seed.content.js` (VITAL_LYFE_SOP). Approved external clients now route to the main app — RLS already scopes them per `client_id`.
+
+Backups: `ripped out features/{apps,agents,routes,client-view}/` + `working ripped out features/` (full pre-rip production build snapshot for fallback).
+
+### De-hardcoded
+Anything VitalLyfe-specific now flows through `clients.brand_voice_md` at request time, parsed into a `brand.pillars` array via new `parsePillars()` helper in `agent-action.js`:
+- `muse_ig_ideas` + `muse_generate_calendar` + `scrappy_research` — pillars/voice come from client context, not hardcoded
+- `notify.js` email + Slack branding — pulls `clients.name` per call ("Cloud Scenic × {client}" / "{client} Vantus"), falls back to "Vantus"
+- `ContentRoute` IG/TT/YT subtitles — pull `currentClient.ig_handle / slug / name`
+- `LoginScreen` tagline — "VitalLyfe Content Operations" → "Content Operations Dashboard"
+- `CIDPage` AI prompt + ~10 UI labels — "VitalLyfe Adaptation/Version/Ready" → "Brand Adaptation/Version/Ready"
+- `ArtgridScout` AI prompt — brand-agnostic, takes voice from context
+- `AdROIHub` AI persona — generic Ad Analyst (was "Sam"). Seed campaigns + placeholder also generic.
+- `constants.js` — `PILLARS_LIST` is generic placeholders, `CAMPAIGNS = []`
+- `App.jsx` — Muse memory seed neutered, new-item template uses client slug
+- `ICPPage` — `DEFAULT_CLIENTS = []` (was hardcoded VitalLyfe profile)
+- `ReferencesPage` — `INITIAL_REFS = []` (was 4 Drip Campaign seeds)
+- `seed.ops.js` — dead-agent task entries (Lacey/Ali/Overseer) stripped
+- Various placeholders (`teammate@example.com`, `e.g. your brand name`, generic campaign examples)
+
+Only residue: a single historical comment in `src/core/memory.js` about the long-removed `seedMuseMemory()`. Not live.
+
+### Auth-lock fix (stuckGuard tightening)
+**Bug:** Opening Vantus in a second tab kicked the user out of both. Cause: `stuckGuard` setTimeout in `App.jsx` fired unconditionally at 4s — even if `getSession()` resolved at 3.9s, the guard still wiped tokens and reloaded.
+**Fix:** Cancel the guard the moment auth resolves (both `getSession().then()` and `onAuthStateChange`). Bumped timeout 4s → 8s for slow networks. Recovery still runs if auth genuinely hangs.
+
+### Build delta
+- Modules: 103 → 93
+- JS bundle: 798KB → 628KB (~21% lighter)
+- pdf-worker chunk (1.2MB): GONE (was used by ripped brief-gen)
+
+### What still uses VitalLyfe as data (not behavior)
+- The `clients` row for VitalLyfe in Supabase — still has `brand_voice_md` seeded from migration `20260526_seed_vitallyfe_brand_voice.sql`. Useful as the working test client.
+- HANDOFF.md (this doc) still references it as the historical client.
+
+### What the new "user" model looks like (next sprint)
+Replace agency-style `clients` rows + invite allowlist with:
+- IG/TT/YT/LinkedIn OAuth-per-user
+- New `ig_accounts` (and sibling `tt_accounts`, etc.) tables: `user_id`, `account_id`, `access_token`, `handle`, `meta`
+- Worker that pulls recent posts + insights (top performers, engagement, hashtags, themes)
+- Retarget `muse_ig_ideas` to read user's top posts + caption themes, generate 5 ideas grounded in their actual account
+- Add Higgsfield account linking (already stashed)
+- Self-serve sign-up — kill the "pending approval" gate
+
+---
+
+# Vantus Handoff Brief — 2026-05-26 PM (evening — post 3-agent collab session)
 
 ## Project
 Cloud Scenic × VitalLyfe "Vantus" — content operations dashboard.
@@ -9,13 +65,15 @@ Cloud Scenic × VitalLyfe "Vantus" — content operations dashboard.
 
 ## Stack
 - **Frontend:** React 19 + Vite 8 (Node 22 pinned via `.nvmrc` and `netlify.toml`). `src/App.jsx` now 1,342 lines (was 1,676 — Codex split out 6 route components into `src/ui/routes/` as Fix #2).
-- **Backend:** Supabase (`wjcstqqihtebkpyuacop`) — tables: `content_items` (now versioned!), `profiles`, `cid_posts`, `cid_library` (column renamed Fix #3.1), `agent_events`, `notifications`, `clients`, `client_users`
-- **Netlify Functions:** `/api/chat`, `/api/agent-action`, `/api/notify`, `/api/cid-scrape`, `/api/apify-scrape`, `/api/unsplash`, `/api/higgsfield` (untracked) — plus shared helpers `_lib/requireUser.js` (auth + cors) and `_lib/rateLimit.js` (NEW 2026-05-26 — in-memory sliding window)
+- **Backend:** Supabase (`wjcstqqihtebkpyuacop`) — tables: `content_items` (versioned), `profiles`, `cid_library` + `cid_performance` (real CID tables), `agent_events`, `notifications`, `clients`, `client_users`. (`cid_posts` was a phantom — never existed; migration + caller deleted 2026-05-26 PM.)
+- **Netlify Functions:** `/api/chat`, `/api/agent-action`, `/api/notify`, `/api/apify-scrape`, `/api/unsplash` — plus shared helpers `_lib/requireUser.js` (auth + cors) and `_lib/rateLimit.js` (in-memory sliding window). (`/api/cid-scrape` removed 2026-05-26 PM — zero callers + queried phantom table. Higgsfield function is stashed.)
 - **Anthropic models:** `claude-haiku-4-5-20251001` (server-side functions) + `claude-sonnet-4-6` (frontend /api/chat callers — bumped from retired `claude-sonnet-4-20250514` on 2026-05-26)
 - **Workflows:** n8n cloud at `https://cloudscenic.app.n8n.cloud`, workflow "VitalLyfe Vantus — Content Sync" (ID `3WXHHEiMz9rMnBEn`) — published + live. Per-client routing via `clients.n8n_webhook_url` (Fix #7).
 
 ## Env Vars (Netlify, all set)
-`ANTHROPIC_API_KEY` · `SUPABASE_SERVICE_KEY` · `SUPABASE_URL` · `VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY` · `TAVILY_API_KEY` · `N8N_WEBHOOK_URL` · `SLACK_WEBHOOK_URL` (global fallback) · `SLACK_BOT_TOKEN` · `CID_BEARER_TOKEN` · `RESEND_API_KEY`
+`ANTHROPIC_API_KEY` · `SUPABASE_SERVICE_KEY` · `SUPABASE_URL` · `VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY` · `TAVILY_API_KEY` · `N8N_WEBHOOK_URL` · `SLACK_WEBHOOK_URL` (global fallback) · `SLACK_BOT_TOKEN` · `RESEND_API_KEY`
+
+(`CID_BEARER_TOKEN` deleted 2026-05-26 PM — orphaned after cid-scrape removal.)
 
 ## Current Nav (UI sidebar)
 - **COMMAND:** Dashboard, Task Board, Agents, Competitor Intel, Ideal Customer
@@ -42,7 +100,9 @@ Every invocation writes one row to `agent_events` via SERVICE_KEY (success/error
 
 **Auth: live.** Four-way branch in `App.jsx setupSession()` (L72) — admin / approved external client / pending invite (realtime unlock) / unknown blocked.
 
-**Function-level auth: live.** All 5 protected functions reject anon callers via `_lib/requireUser.js`. `cid-scrape.js` keeps its pre-existing bearer gate.
+**Function-level auth: live.** All 5 protected functions reject anon callers via `_lib/requireUser.js`. (cid-scrape.js was deleted 2026-05-26 PM in the closed-by-removal cleanup — was the only function on the legacy bearer-token pattern.)
+
+**Email/password auth: DISABLED 2026-05-26 PM.** Supabase Auth → Providers → Email toggle flipped off. Leaked `Cloudai25%` password from git history is now genuinely inert — only Google OAuth remains for cz/dv/ss admin sign-in. Magic-link fallback also disabled (acceptable since Google is the intended path).
 
 **Client-side auth injection: live.** `src/services/apiFetch.js` attaches the access token on every protected call (26 sites). `AgentChatPage` now also passes `currentClient.id` as `client_id` so the backend resolves brand voice correctly (fixed 2026-05-26 — Move 1 was silently using fallback before this prop wiring).
 
@@ -58,8 +118,9 @@ Every invocation writes one row to `agent_events` via SERVICE_KEY (success/error
 - **Auth-lock contention** auto-recovers now (Fix #15). On stuckGuard fire: clears `sb-*-auth-token` localStorage keys, sets one-shot `sessionStorage` flag to prevent reload loops, then `location.reload()`. Manual `localStorage.clear() + reload` workaround retired.
 
 **Remaining open security debt (low urgency):**
-- Supabase admin passwords (`Cloudai25%` in git history) not rotated — pure password login isn't used in practice; rotate when convenient.
-- `style-src 'unsafe-inline'` in CSP — required by current inline-style patterns.
+- `style-src 'unsafe-inline'` in CSP — required by current inline-style patterns. Tighten when inline styles get factored out.
+
+(Password rotation debt closed 2026-05-26 PM — better fix than rotation: email/password auth provider disabled entirely. Password leak in git history is now inert.)
 
 ## Per-client Routing (all live as of 2026-05-26)
 - **Slack:** `clients.slack_webhook_url` column. `notify.js` prefers it; falls back to global `SLACK_WEBHOOK_URL`. (Fix #6, commit `702f867`)
@@ -113,6 +174,26 @@ Massive session. Closed half the open punch-list in one afternoon.
 
 **Codex workflow established:** I work main, Codex grinds on `codex/grunt-<date>` feature branches. Brief Codex with exact line numbers + dirty-WIP out-of-scope list + CODEX_NOTES.md as the report. Use `git push origin HEAD:main` to dodge stale local main refs.
 
+### 2026-05-26 PM (evening) — 3 closed-by-removal cleanups + Codex Fix #4 grind + 3-agent collab pattern proven
+
+| Commit | What |
+| --- | --- |
+| `a22df04` | `chore(cleanup)`: close cid_posts dead chain + document email/password auth disable. Live SQL probe confirmed `cid_posts` table never existed; `cid-scrape.js` + `003_cid_posts.sql` deleted; arch map + 5 markdown bundle files synced; +88/-171 lines |
+| (out-of-band) | **Supabase Auth → Providers → Email** toggle flipped off in dashboard. Cloudai25% leak in git history now inert. Only Google OAuth path remains. |
+| (out-of-band) | **Netlify env var `CID_BEARER_TOKEN`** deleted — orphaned after cid-scrape removal. |
+| Codex on `codex/grunt-2026-05-27` | `refactor(agent-action)`: Fix #4 — split 1,317-line monolith into 16 handler files under `netlify/functions/agent-action/handlers/`. agent-action.js now 309-line router. 19 commits, build green after each. CODEX_NOTES.md has full report. **Awaiting founder review + merge.** |
+
+**3-agent collab pattern proven at scale:** Main Claude (this tab) drove diagnostics + briefs + arch-map updates. Counsel Claude (parallel tab) shipped `90beaa6` (INITIAL_CONTENT cleanup, caught dead import before I did) + `9955cd3` (HANDOFF rewrite to fix stale "Dirty WIP" claim). Codex GPT-5.5 ground through Fix #4 on its own branch. Zero conflicts across all three. See [[project_vantus_counsel_workflow]] for the workflow notes.
+
+**Codex burst budget behavior:** 5h burst limit (gpt-5.5 quality) caps Codex on big refactors. When exhausted, auto-downgrades to gpt-5.4-mini. Weekly limit is separate (much more generous). Resets are timed per-window (today's was 01:51). Plan big Codex jobs around burst windows.
+
+**Codex standing contract:** "use `codex/grunt-YYYY-MM-DD` today's date, NEVER push to remote, founder reviews + merges manually." My initial Fix #4 brief overrode both (asked for a specific branch name + push) — Codex correctly refused both via CODEX_NOTES.md and asked for confirmation. Briefs should respect the contract; only override when explicitly needed.
+
+**Next session queue (briefs already drafted at `/tmp/`):**
+- `/tmp/codex-brief-deadcode.md` — dead code sweep across `src/`. Ready to fire when Codex burst returns.
+- `/tmp/codex-brief-app-state.md` — App.jsx state extraction into custom hooks (skeleton; needs parallel Claude tab to produce state map at `/tmp/app-state-map.md` first, paste into brief).
+- `/tmp/other-claude-prompt.md` — prompt for a parallel Claude tab to do the state mapping prep.
+
 ### 2026-05-25 — Auth restore + invite flow + per-client Slack
 Eight commits, four high-severity bugs closed, full external-client invite flow shipped.
 
@@ -134,10 +215,11 @@ Repo tidy, component extraction, security audit, Move 2 + Move 3 deployed, custo
 
 ## What's NOT Built / Open Items
 
-**Sprint-scale (queue to Codex when ready):**
-- **Fix #4** — Split `agent-action.js` (1,317 lines) into per-handler files. Same shape as Codex's Fix #2 App.jsx split — clear mechanical refactor, no judgment calls, perfect Codex candidate. Brief would look just like the App.jsx one.
-- **Fix #12** — Back OpsBoard with a DB-backed `tasks` table (new migration + UI rewrite). ~1 hr.
-- **Fix #13** — Per-user client assignments table (now unblocked by OAuth).
+**Sprint-scale:**
+- **Fix #4** — ✅ **DONE on `codex/grunt-2026-05-27`, awaiting founder merge.** 1,317-line agent-action.js → 309-line router + 16 handler files under `netlify/functions/agent-action/handlers/`. 19 commits, build green after each. Reviewed safe by main Claude. Merge with `git checkout main && git merge codex/grunt-2026-05-27 && git push origin main`.
+- **App.jsx state extraction** — next big Codex job (~12 hooks under `src/hooks/`). Brief skeleton drafted at `/tmp/codex-brief-app-state.md`; needs the state-cluster mapping section filled in by a parallel Claude tab first (prompt at `/tmp/other-claude-prompt.md`).
+- **Fix #12** — Back OpsBoard with a DB-backed `tasks` table (new migration + UI rewrite). ~1 hr. Not Codex-shaped (needs UI browser testing).
+- **Fix #13** — Per-user client assignments. Counsel + main both flagged as ambiguous: could mean access (already done via `client_users.status='approved'`), role-per-client (add `assignment_role` column), or primary-contact-per-client (different concept). **Defer until the actual pain forces the question** — small team + one flagship client doesn't surface this yet.
 
 **Decision-bound:**
 - **Fix #9** — Ship or delete Higgsfield. UI + function are stashed in `stash@{0}` (not in working tree — see Dirty / Stashed WIP). To ship: pop stash, resolve conflicts on `apps.config.js`/`constants.js`, commit all 5 files together (UI + backend + apps.config edit + constants edit + App.jsx import/render). To abandon: `git stash drop stash@{0}` (deletes the Higgsfield WIP permanently — confirm first). Decision is the work; code change is small either way.
@@ -145,8 +227,8 @@ Repo tidy, component extraction, security audit, Move 2 + Move 3 deployed, custo
 **Polish:**
 - **Vantus-bot Slack app** for agent-attributed messages (currently posts as signed-in user via MCP).
 - **Fix #14** — INITIAL_CONTENT seed array removed 2026-05-26 (commit `90beaa6`). `seed.content.js` now only exports `VITAL_LYFE_SOP`, still rendered by `SopsRoute` + `ClientView`. Per-client SOP schema decision is the remaining work before this constant can move into the DB.
+- **Dead code sweep across `src/`** — brief drafted at `/tmp/codex-brief-deadcode.md`. Fire when Codex burst returns.
 - **External tracker → n8n trigger** (SharePoint/Airtable side).
-- Rotate Supabase admin passwords (very low urgency — OAuth is sole path used).
 - Tighten `style-src 'unsafe-inline'` in CSP when inline-style React patterns get factored out.
 
 **Cortex bridge (forward design — not built):**
@@ -172,7 +254,8 @@ Cloud Scenic OS lives at `~/Desktop/Software builds/Cloud Scenic OS/` — separa
 - `src/ui/agents/AgentChatPage.jsx` — chat panel. Passes `currentClient.id` as `client_id` for brand voice resolution. Voice-override textarea above quick actions.
 - `netlify/functions/_lib/requireUser.js` — shared auth gate + per-request `cors(event)` (allowlist regex).
 - `netlify/functions/_lib/rateLimit.js` — NEW 2026-05-26. In-memory sliding-window per-user rate limit.
-- `netlify/functions/agent-action.js` — 16 agent actions (1,317 lines — Fix #4 to split). `getBrandContext` at L94. Rate-limit 60/min/user.
+- `netlify/functions/agent-action.js` — **On `main`:** 1,317-line monolith. **On `codex/grunt-2026-05-27` (awaiting merge):** 309-line router that imports 16 handlers from `netlify/functions/agent-action/handlers/`. Once merged, this becomes the post-Fix #4 shape.
+- `netlify/functions/agent-action/handlers/` — **Codex branch only, awaiting merge.** 16 per-handler files (one per agent action). See CODEX_NOTES.md on the branch for the full list + extraction commits.
 - `netlify/functions/chat.js` — Anthropic proxy. Rate-limit 30/min/user.
 - `netlify/functions/notify.js` — client notifications + per-client Slack + per-client n8n (single consolidated Supabase fetch).
 - `supabase/migrations/20260526_seed_vitallyfe_brand_voice.sql` — VitalLyfe brand voice seed (Move 1).
@@ -183,7 +266,8 @@ Cloud Scenic OS lives at `~/Desktop/Software builds/Cloud Scenic OS/` — separa
 - `netlify.toml` — security headers (HSTS, CSP, Referrer-Policy, Permissions-Policy) added 2026-05-26.
 - `architecture-map.html` — interactive system map (regenerated 2026-05-26 with all today's changes).
 - `docs/architecture-map/` — portable markdown export (README · critical-path · nodes · known-bugs · roadmap · open-items).
-- `docs/architecture-map/open-items.md` — checkbox punch-list. Current open count: 1 bug + 3 fixes = 4 items.
+- `docs/architecture-map/open-items.md` — checkbox punch-list. Current open count: 3 MED bugs + 2 LOW track-only + 4 numbered fixes. (#4 closed on codex branch awaiting merge; cid_posts LOW closed-by-removal; rotate-passwords closed-by-auth-disable.)
+- `sprint-recap.html` — **NEW 2026-05-26 PM evening (untracked).** Single-page animated dashboard summarizing the day's work — 4 ticker counters, before/after agent-action.js shrinking bar, 3-agent collab cards, commit timeline, live ticker. Built as a video prop; keep or delete. Open at `http://localhost:4747/sprint-recap.html` if `python3 -m http.server 4747` is running from repo root.
 - `docs/REFACTOR_PLAN.md` — pre-existing refactor roadmap.
 - `START HERE.md` — quick-orient nav for cold opens.
 - `CODEX_NOTES.md` — Codex's report from the Fix #2 split run (2026-05-26).

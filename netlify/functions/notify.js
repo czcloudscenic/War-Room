@@ -92,6 +92,30 @@ exports.handler = async (event) => {
   const dbResult = await insertNotification({ type, item, message: payload.message, client_id });
   results.push({ channel: "supabase", ...dbResult });
 
+  // ── Per-client lookup: webhook URLs + name (one roundtrip) ─────────────────
+  let SLACK = process.env.SLACK_WEBHOOK_URL;
+  let N8N   = process.env.N8N_NOTIFY_URL || process.env.N8N_WEBHOOK_URL;
+  let clientName = null;
+  if (client_id) {
+    try {
+      const cRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/clients?id=eq.${client_id}&select=name,slack_webhook_url,n8n_webhook_url`,
+        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      );
+      if (cRes.ok) {
+        const row = (await cRes.json())?.[0];
+        if (row?.slack_webhook_url) SLACK = row.slack_webhook_url;
+        if (row?.n8n_webhook_url)   N8N   = row.n8n_webhook_url;
+        if (row?.name)              clientName = row.name;
+      }
+    } catch (e) {
+      console.warn("[notify] client lookup failed:", e.message);
+    }
+  }
+  const brandLabel = clientName ? `Cloud Scenic × ${clientName}` : "Vantus";
+  const footerLabel = clientName ? `${clientName} Vantus` : "Vantus";
+  const fromLabel = clientName ? `${clientName} Vantus` : "Vantus";
+
   // ── EMAIL VIA RESEND ────────────────────────────────────────────────────────
   const RESEND_KEY = process.env.RESEND_API_KEY;
   if (RESEND_KEY) {
@@ -106,7 +130,7 @@ exports.handler = async (event) => {
 <body style="margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,Inter,sans-serif;">
   <div style="max-width:520px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
     <div style="background:${isApproved ? "linear-gradient(135deg,#0d2018,#0d4028)" : "linear-gradient(135deg,#1a0d00,#2e1a00)"};padding:32px 32px 28px;">
-      <div style="font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;">Cloud Scenic × VitalLyfe</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;">${brandLabel}</div>
       <div style="font-size:28px;font-weight:700;color:#fff;letter-spacing:-1px;line-height:1.1;">${emoji} ${isApproved ? "Content Approved" : "Revisions Requested"}</div>
     </div>
     <div style="padding:28px 32px;">
@@ -119,7 +143,7 @@ exports.handler = async (event) => {
       </table>
       ${clientNoteHtml}
       <div style="margin-top:28px;padding-top:20px;border-top:1px solid rgba(0,0,0,0.07);font-size:11px;color:rgba(0,0,0,0.35);">
-        VitalLyfe Vantus · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}
+        ${footerLabel} · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}
       </div>
     </div>
   </div>
@@ -134,7 +158,7 @@ exports.handler = async (event) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "VitalLyfe Vantus <notifications@cloudscenic.com>",
+          from: `${fromLabel} <notifications@cloudscenic.com>`,
           to: ADMIN_EMAILS,
           subject,
           html,
@@ -147,28 +171,6 @@ exports.handler = async (event) => {
     }
   } else {
     results.push({ channel: "email", ok: false, error: "RESEND_API_KEY not set" });
-  }
-
-  // ── Per-client webhook lookup (one roundtrip, both URLs) ────────────────────
-  // Slack + n8n live on the same clients row; fetch them together so notify
-  // doesn't double-hit Supabase. Each falls back to the global env var when
-  // the client has no override (or the lookup fails).
-  let SLACK = process.env.SLACK_WEBHOOK_URL;
-  let N8N   = process.env.N8N_NOTIFY_URL || process.env.N8N_WEBHOOK_URL;
-  if (client_id) {
-    try {
-      const cRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/clients?id=eq.${client_id}&select=slack_webhook_url,n8n_webhook_url`,
-        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
-      );
-      if (cRes.ok) {
-        const row = (await cRes.json())?.[0];
-        if (row?.slack_webhook_url) SLACK = row.slack_webhook_url;
-        if (row?.n8n_webhook_url)   N8N   = row.n8n_webhook_url;
-      }
-    } catch (e) {
-      console.warn("[notify] client webhook lookup failed:", e.message);
-    }
   }
 
   // ── SLACK ───────────────────────────────────────────────────────────────────
@@ -194,7 +196,7 @@ exports.handler = async (event) => {
         }] : []),
         {
           type: "context",
-          elements: [{ type: "mrkdwn", text: `VitalLyfe Vantus · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}` }]
+          elements: [{ type: "mrkdwn", text: `${footerLabel} · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}` }]
         }
       ]
     };

@@ -14,7 +14,7 @@ export default function ArtgridScoutPage({ content }) {
   const [activeId, setActiveId] = useState(null);
   const [scoutingAll, setScoutingAll] = useState(false);
   const [allScoutResult, setAllScoutResult] = useState(null);
-  const PILLAR_COLOR = { Education:"#3b82f6", Entertainment:"#10b981", Inspiration:"#8b5cf6", Promotion:"#ff375f", Community:"#f59e0b", Access:"#06b6d4", Abundance:"#8b5cf6", Innovation:"#0a84ff", "Tierra Bomba":"#2AABFF", "Startup Diaries":"#ff9f0a", "Product Launch":"#ff375f", "Meet the Makers":"#64d2ff" };
+  const PILLAR_COLOR = { Education:"#3b82f6", Entertainment:"#10b981", Inspiration:"#8b5cf6", Promotion:"#ff375f", Community:"#f59e0b" };
   const PRIORITY_COLOR = { HIGH:"#ff375f", MED:"#f59e0b", LOW:"rgba(0,0,0,0.3)" };
 
   //  SCOUT ALL via backend action
@@ -49,13 +49,7 @@ setScoutingAll(false);
 setScouts(prev => ({ ...prev, [item.id]: { loading:true, brief:null } }));
 setActiveId(item.id);
 try {
-  const systemPrompt = `You are Artgrid — VitalLyfe's AI footage scout for Cloud Scenic's Vantus. Expert at finding cinematic stock footage on Artgrid.io.
-
-VitalLyfe visual identity:
-- Brand: wellness/hydration technology. Cinematic, calm, purposeful. NEVER corporate.
-- Look: warm neutrals, soft light, water in motion, wide open landscapes, macro nature shots
-- Emotion: quiet ambition, calm confidence, real human moments — not perfomative
-- AVOID: people pointing at whiteboards, fake stock photo smiles, overly corporate setups, cheesy motion graphics, green screen
+  const systemPrompt = `You are Artgrid — an AI footage scout inside Vantus. Expert at finding cinematic stock footage on Artgrid.io. Match the visual direction implied by the content item's pillar, format, and description. Default tone: cinematic, calm, purposeful. NEVER corporate. AVOID: people pointing at whiteboards, fake stock photo smiles, overly corporate setups, cheesy motion graphics, green screen.
 
 Artgrid.io search tip: SHORT queries (2-4 words MAX) return results. Long phrases return nothing.
 GOOD: "slow motion water", "sunrise landscape", "woman walking nature", "water droplet macro"

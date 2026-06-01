@@ -35,13 +35,13 @@ export default function CIDPage() {
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 2000,
-          system: `You are a content strategist for VitalLyfe — a wellness/hydration technology brand by Cloud Scenic. VitalLyfe makes portable water purification units. The brand voice is: calm, capable, authentic, cinematic. NOT corporate, NOT salesy. Think founder-led content, lifestyle integration, and real human stories.
+          system: `You are a content strategist. The active brand context (voice, product, pillars) is passed below in the user message. If no brand context is provided, write generic adaptations that any brand could refine.
 
-Given competitor posts that are performing well, generate a VitalLyfe adaptation for each one. Return ONLY a JSON array:
-[{"index":1,"variation":"The VitalLyfe hook/script adaptation","analysis":"Why the original works and how VitalLyfe should adapt it","trigger":"The psychological trigger (curiosity, fear, transformation, etc.)"}]
+Given competitor posts that are performing well, generate a brand adaptation for each one. Return ONLY a JSON array:
+[{"index":1,"variation":"The brand's hook/script adaptation","analysis":"Why the original works and how to adapt it","trigger":"The psychological trigger (curiosity, fear, transformation, etc.)"}]
 
-Be specific to VitalLyfe's product and brand. Make hooks that could actually go viral.`,
-          messages: [{ role: "user", content: `Generate VitalLyfe variations for these top-performing competitor posts:\n\n${postSummaries}` }],
+Make hooks that could actually go viral. Match the brand's tone if provided.`,
+          messages: [{ role: "user", content: `Generate adaptations for these top-performing competitor posts:\n\n${postSummaries}` }],
         }),
       });
       const data = await res.json();
@@ -133,12 +133,12 @@ setPerfSaved(false);
   }, [variationView]);
 
   const MOCK_POSTS = [
-{ id:1, platform:"instagram", creator:"@drinklmnt", title:"Why I stopped drinking plain water", thumbnail:"https://picsum.photos/seed/lmnt1/400/600", views:"2.4M", engagement:"8.2%", hook:"Stop drinking plain water (here's why)", voiceHook:"\"Stop drinking plain water. Here's why this changes everything.\"", textHook:"STOP DRINKING PLAIN WATER", voiceBody:"\"Most water strips out the minerals your body actually needs. I switched to mineral-enhanced water and the difference in my energy was immediate.\"", textBody:"YOUR BODY NEEDS MORE THAN H2O", voiceCta:"\"Link in bio to try what I drink every morning.\"", textCta:"LINK IN BIO ", trigger:"Fear / Pattern interrupt", format:"Reel", url:"https://www.instagram.com", analysis:"Hook creates instant curiosity gap. 'Stop doing X' format works because it challenges default behavior. First 2 seconds show the product without saying it's an ad.", variation:"\"Stop drinking just water\" → VitalLyfe angle: 'You're hydrating wrong — here's what your water is missing'" },
-{ id:2, platform:"tiktok", creator:"@hydrationcoach", title:"Hydrogen water changed my sleep", thumbnail:"https://picsum.photos/seed/hydro1/400/600", views:"4.1M", engagement:"11.4%", hook:"I tried hydrogen water for 30 days", voiceHook:"\"I tried hydrogen water every single day for 30 days. Here's what happened to my sleep.\"", textHook:"30 DAYS OF HYDROGEN WATER ", voiceBody:"\"By day 7 my sleep score went up 12 points. By day 30 I was averaging 85 on Oura. The hydrogen reduces oxidative stress while you sleep.\"", textBody:"DAY 7: +12 SLEEP SCORE ", voiceCta:"\"Follow for my full 30-day breakdown dropping this week.\"", textCta:"FOLLOW FOR THE FULL RESULTS →", trigger:"Transformation / Curiosity", format:"Talking head + B-roll", url:"https://www.tiktok.com", analysis:"30-day challenge format = high completion rate. Personal transformation story builds trust. Simple before/after structure with sleep metrics makes it verifiable.", variation:"'I drank VitalLyfe water for 30 days — here's what my sleep tracker showed'" },
-{ id:3, platform:"youtube", creator:"@WellnessTech", title:"Smart water bottles are getting insane", thumbnail:"https://picsum.photos/seed/smart1/400/600", views:"890K", engagement:"5.7%", hook:"Water bottles now have AI?", voiceHook:"\"Wait — water bottles now have AI built in? Let me show you what's happening.\"", textHook:"AI WATER BOTTLES ARE HERE ", voiceBody:"\"This one tracks your hydration in real time, syncs with your Apple Watch, and tells you what minerals you're missing. It's wild.\"", textBody:"REAL-TIME HYDRATION TRACKING", voiceCta:"\"I'll link everything I tested in the description below.\"", textCta:"ALL LINKS IN DESCRIPTION ", trigger:"Novelty / Tech excitement", format:"Review + Demo", url:"https://www.youtube.com", analysis:"Tech curiosity angle is huge in wellness right now. Product demo in real environments builds credibility. 'Getting insane' language signals the space is evolving fast.", variation:"'VitalLyfe's water tech just changed everything — here's how it works'" },
-{ id:4, platform:"instagram", creator:"@functionalwellness", title:"The water hack no one talks about", thumbnail:"https://picsum.photos/seed/well1/400/600", views:"1.8M", engagement:"9.1%", hook:"The water hack no one talks about", voiceHook:"\"There's a water hack that literally no one talks about and it's been hiding in plain sight.\"", textHook:"THE WATER HACK NO ONE TELLS YOU ", voiceBody:"\"Adding a pinch of sea salt and a squeeze of lemon to your morning water activates the electrolyte pathway before caffeine hits. Your cortisol response is completely different.\"", textBody:"SEA SALT + LEMON = ELECTROLYTE RESET", voiceCta:"\"Save this — you'll want it tomorrow morning.\"", textCta:"SAVE THIS POST ", trigger:"Secret / Insider knowledge", format:"Reel + Text overlay", url:"https://www.instagram.com", analysis:"'No one talks about' creates exclusivity. Simple text overlay keeps production cost low but engagement high. Health hack format drives saves.", variation:"'The hydration secret VitalLyfe built their whole product around'" },
-{ id:5, platform:"tiktok", creator:"@startupfounder_", title:"Building a water company from scratch", thumbnail:"https://picsum.photos/seed/startup1/400/600", views:"3.2M", engagement:"13.2%", hook:"We almost shut down 3 times", voiceHook:"\"We almost shut this company down. Three times. Here's the honest truth.\"", textHook:"WE ALMOST QUIT 3 TIMES", voiceBody:"\"First time: we ran out of money in month 4. Second time: our manufacturer ghosted us. Third time: I didn't believe in myself. Here's what changed.\"", textBody:"3 TIMES WE ALMOST QUIT", voiceCta:"\"Follow us — we're documenting the whole journey raw and unfiltered.\"", textCta:"FOLLOW THE JOURNEY ", trigger:"Vulnerability / Authenticity", format:"Founder story / Talking head", url:"https://www.tiktok.com", analysis:"Founder vulnerability content outperforms polished ads 3:1 on TikTok. Authentic struggle narrative builds parasocial connection. 'Almost failed' arc creates emotional investment.", variation:"'The real story behind building VitalLyfe — we almost quit'" },
-{ id:6, platform:"youtube", creator:"@drinkbetter", title:"We tested 12 smart water bottles", thumbnail:"https://picsum.photos/seed/test1/400/600", views:"1.2M", engagement:"6.3%", hook:"I wasted $800 so you don't have to", voiceHook:"\"I spent $800 testing every smart water bottle on the market so you don't have to make the same mistake.\"", textHook:"$800 WASTED SO YOU DON'T HAVE TO ", voiceBody:"\"11 of them were gimmicks. One actually worked — and it's not the most expensive one. I'll show you exactly what to look for and what to avoid.\"", textBody:"11 GIMMICKS. 1 WINNER.", voiceCta:"\"Subscribe — I'm testing hydrogen water systems next month.\"", textCta:"SUBSCRIBE FOR PART 2 ", trigger:"Value / Saves money", format:"Comparison review", url:"https://www.youtube.com", analysis:"'I wasted X so you don't have to' is one of the highest CTR hooks on YouTube. Comparison format drives search intent traffic. Position as trusted advisor, not promoter.", variation:"'We compared every hydrogen water system — here's why VitalLyfe won'" },
+{ id:1, platform:"instagram", creator:"@drinklmnt", title:"Why I stopped drinking plain water", thumbnail:"https://picsum.photos/seed/lmnt1/400/600", views:"2.4M", engagement:"8.2%", hook:"Stop drinking plain water (here's why)", voiceHook:"\"Stop drinking plain water. Here's why this changes everything.\"", textHook:"STOP DRINKING PLAIN WATER", voiceBody:"\"Most water strips out the minerals your body actually needs. I switched to mineral-enhanced water and the difference in my energy was immediate.\"", textBody:"YOUR BODY NEEDS MORE THAN H2O", voiceCta:"\"Link in bio to try what I drink every morning.\"", textCta:"LINK IN BIO ", trigger:"Fear / Pattern interrupt", format:"Reel", url:"https://www.instagram.com", analysis:"Hook creates instant curiosity gap. 'Stop doing X' format works because it challenges default behavior. First 2 seconds show the product without saying it's an ad.", variation:"\"Stop drinking just water\" → your brand's angle: 'You're hydrating wrong — here's what your water is missing'" },
+{ id:2, platform:"tiktok", creator:"@hydrationcoach", title:"Hydrogen water changed my sleep", thumbnail:"https://picsum.photos/seed/hydro1/400/600", views:"4.1M", engagement:"11.4%", hook:"I tried hydrogen water for 30 days", voiceHook:"\"I tried hydrogen water every single day for 30 days. Here's what happened to my sleep.\"", textHook:"30 DAYS OF HYDROGEN WATER ", voiceBody:"\"By day 7 my sleep score went up 12 points. By day 30 I was averaging 85 on Oura. The hydrogen reduces oxidative stress while you sleep.\"", textBody:"DAY 7: +12 SLEEP SCORE ", voiceCta:"\"Follow for my full 30-day breakdown dropping this week.\"", textCta:"FOLLOW FOR THE FULL RESULTS →", trigger:"Transformation / Curiosity", format:"Talking head + B-roll", url:"https://www.tiktok.com", analysis:"30-day challenge format = high completion rate. Personal transformation story builds trust. Simple before/after structure with sleep metrics makes it verifiable.", variation:"'I drank [your brand] water for 30 days — here's what my sleep tracker showed'" },
+{ id:3, platform:"youtube", creator:"@WellnessTech", title:"Smart water bottles are getting insane", thumbnail:"https://picsum.photos/seed/smart1/400/600", views:"890K", engagement:"5.7%", hook:"Water bottles now have AI?", voiceHook:"\"Wait — water bottles now have AI built in? Let me show you what's happening.\"", textHook:"AI WATER BOTTLES ARE HERE ", voiceBody:"\"This one tracks your hydration in real time, syncs with your Apple Watch, and tells you what minerals you're missing. It's wild.\"", textBody:"REAL-TIME HYDRATION TRACKING", voiceCta:"\"I'll link everything I tested in the description below.\"", textCta:"ALL LINKS IN DESCRIPTION ", trigger:"Novelty / Tech excitement", format:"Review + Demo", url:"https://www.youtube.com", analysis:"Tech curiosity angle is huge in wellness right now. Product demo in real environments builds credibility. 'Getting insane' language signals the space is evolving fast.", variation:"'[Your brand]'s water tech just changed everything — here's how it works'" },
+{ id:4, platform:"instagram", creator:"@functionalwellness", title:"The water hack no one talks about", thumbnail:"https://picsum.photos/seed/well1/400/600", views:"1.8M", engagement:"9.1%", hook:"The water hack no one talks about", voiceHook:"\"There's a water hack that literally no one talks about and it's been hiding in plain sight.\"", textHook:"THE WATER HACK NO ONE TELLS YOU ", voiceBody:"\"Adding a pinch of sea salt and a squeeze of lemon to your morning water activates the electrolyte pathway before caffeine hits. Your cortisol response is completely different.\"", textBody:"SEA SALT + LEMON = ELECTROLYTE RESET", voiceCta:"\"Save this — you'll want it tomorrow morning.\"", textCta:"SAVE THIS POST ", trigger:"Secret / Insider knowledge", format:"Reel + Text overlay", url:"https://www.instagram.com", analysis:"'No one talks about' creates exclusivity. Simple text overlay keeps production cost low but engagement high. Health hack format drives saves.", variation:"'The hydration secret [your brand] built their whole product around'" },
+{ id:5, platform:"tiktok", creator:"@startupfounder_", title:"Building a water company from scratch", thumbnail:"https://picsum.photos/seed/startup1/400/600", views:"3.2M", engagement:"13.2%", hook:"We almost shut down 3 times", voiceHook:"\"We almost shut this company down. Three times. Here's the honest truth.\"", textHook:"WE ALMOST QUIT 3 TIMES", voiceBody:"\"First time: we ran out of money in month 4. Second time: our manufacturer ghosted us. Third time: I didn't believe in myself. Here's what changed.\"", textBody:"3 TIMES WE ALMOST QUIT", voiceCta:"\"Follow us — we're documenting the whole journey raw and unfiltered.\"", textCta:"FOLLOW THE JOURNEY ", trigger:"Vulnerability / Authenticity", format:"Founder story / Talking head", url:"https://www.tiktok.com", analysis:"Founder vulnerability content outperforms polished ads 3:1 on TikTok. Authentic struggle narrative builds parasocial connection. 'Almost failed' arc creates emotional investment.", variation:"'The real story behind building [your brand] — we almost quit'" },
+{ id:6, platform:"youtube", creator:"@drinkbetter", title:"We tested 12 smart water bottles", thumbnail:"https://picsum.photos/seed/test1/400/600", views:"1.2M", engagement:"6.3%", hook:"I wasted $800 so you don't have to", voiceHook:"\"I spent $800 testing every smart water bottle on the market so you don't have to make the same mistake.\"", textHook:"$800 WASTED SO YOU DON'T HAVE TO ", voiceBody:"\"11 of them were gimmicks. One actually worked — and it's not the most expensive one. I'll show you exactly what to look for and what to avoid.\"", textBody:"11 GIMMICKS. 1 WINNER.", voiceCta:"\"Subscribe — I'm testing hydrogen water systems next month.\"", textCta:"SUBSCRIBE FOR PART 2 ", trigger:"Value / Saves money", format:"Comparison review", url:"https://www.youtube.com", analysis:"'I wasted X so you don't have to' is one of the highest CTR hooks on YouTube. Comparison format drives search intent traffic. Position as trusted advisor, not promoter.", variation:"'We compared every hydrogen water system — here's why [your brand] won'" },
   ];
 
   const allPosts = [...scrapedPosts, ...MOCK_POSTS];
@@ -161,7 +161,7 @@ setPerfSaved(false);
         <div style={{ fontSize:14, fontWeight:700, color:"#f5f5f7", fontFamily:"Inter, sans-serif" }}>{variationView.title}</div>
       </div>
       <div style={{ fontSize:10, background:"rgba(48,209,88,0.1)", color:"#2AABFF", borderRadius:20, padding:"5px 14px", fontWeight:700, fontFamily:"Inter, sans-serif" }}>
-         VitalLyfe Ready
+         Brand Ready
       </div>
     </div>
 
@@ -176,7 +176,7 @@ setPerfSaved(false);
           <div style={{ marginTop:8, fontSize:11, color:"rgba(255,255,255,0.4)", fontFamily:"Inter, sans-serif" }}>{variationView.creator} · {variationView.views} views</div>
         </div>
         <div style={{ background:"rgba(48,209,88,0.05)", border:"2px solid rgba(48,209,88,0.25)", borderRadius:14, padding:"20px" }}>
-          <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>VitalLyfe Version</div>
+          <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 }}>Brand Version</div>
           <div style={{ fontSize:13, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontWeight:600 }}>"{variationView.variation}"</div>
           <div style={{ marginTop:8, fontSize:11, color:"#2AABFF", fontFamily:"Inter, sans-serif", fontWeight:600 }}>← Use this</div>
         </div>
@@ -203,7 +203,7 @@ setPerfSaved(false);
             </div>
           </div>
           <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontFamily:"Inter, sans-serif", lineHeight:1.6 }}>
-            Pattern: <strong style={{color:"#f5f5f7"}}>{variationView.trigger}</strong> — opens with an immediate pattern interrupt that stops the scroll and creates a curiosity gap specific to VitalLyfe's audience.
+            Pattern: <strong style={{color:"#f5f5f7"}}>{variationView.trigger}</strong> — opens with an immediate pattern interrupt that stops the scroll and creates a curiosity gap specific to your audience.
           </div>
         </div>
 
@@ -237,7 +237,7 @@ setPerfSaved(false);
           <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:10 }}>
             <div>
               <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}> Voice</div>
-              <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>{variationView.voiceCta || "\"Follow for more on how VitalLyfe is redefining what water can do. Link in bio.\""}</div>
+              <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#f5f5f7", fontFamily:"Inter, sans-serif", lineHeight:1.5, fontStyle:"italic" }}>{variationView.voiceCta || "\"Follow for more. Link in bio.\""}</div>
             </div>
             <div>
               <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.35)", letterSpacing:1, textTransform:"uppercase", marginBottom:4, fontFamily:"Inter, sans-serif" }}> Text on Screen</div>
@@ -555,9 +555,9 @@ setPerfSaved(false);
             </div>
           ))}
         </div>
-        {/* VitalLyfe Adaptation */}
+        {/* Brand Adaptation */}
         <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:12, padding:"14px 16px" }}>
-          <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}> VitalLyfe Adaptation</div>
+          <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}> Brand Adaptation</div>
           <div style={{ fontSize:12, color:"#f5f5f7", lineHeight:1.6, fontStyle:"italic", fontFamily:"Inter, sans-serif" }}>"{selected.variation}"</div>
           <div style={{ marginTop:10, display:"flex", gap:6, justifyContent:"space-between", alignItems:"center" }}>
             <div style={{ display:"flex", gap:6 }}>
@@ -738,7 +738,7 @@ setPerfSaved(false);
                 ))}
               </div>
               <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.15)", borderRadius:8, padding:"8px 12px" }}>
-                <span style={{ fontSize:10, fontWeight:700, color:"#2AABFF", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:1 }}> VitalLyfe Version: </span>
+                <span style={{ fontSize:10, fontWeight:700, color:"#2AABFF", fontFamily:"Inter, sans-serif", textTransform:"uppercase", letterSpacing:1 }}> Brand Version: </span>
                 <span style={{ fontSize:11, color:"#f5f5f7", fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>{item.adaptation}</span>
               </div>
             </div>
@@ -822,9 +822,9 @@ setPerfSaved(false);
           ))}
         </div>
 
-        {/* VitalLyfe Variation */}
+        {/* Brand Variation */}
         <div style={{ background:"rgba(48,209,88,0.06)", border:"1px solid rgba(48,209,88,0.2)", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}> VitalLyfe Adaptation</div>
+          <div style={{ fontSize:10, fontWeight:700, color:"#2AABFF", letterSpacing:1.1, textTransform:"uppercase", marginBottom:8, fontFamily:"Inter, sans-serif" }}> Brand Adaptation</div>
           <div style={{ fontSize:12, color:"#f5f5f7", lineHeight:1.6, fontFamily:"Inter, sans-serif", fontStyle:"italic" }}>"{selected.variation}"</div>
           <div style={{ marginTop:10, display:"flex", gap:6, alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", gap:6 }}>

@@ -64,49 +64,10 @@ const EXAMPLE_USES = [
   'Build lead qualification forms \u2014 Typeform questions map directly to these',
   'Write VSL talking points \u2014 each section gives a story beat',
   'Guide sales calls \u2014 every question helps identify if they\u2019re fit',
-  'Inject into agent prompts \u2014 all 8 agents understand the audience',
+  'Inject into agent prompts \u2014 every agent understands the audience',
 ];
 
-const DEFAULT_CLIENTS = [
-  {
-    id: 'client_vitallyfe',
-    name: 'VitalLyfe',
-    active: true,
-    sections: {
-      demographics: {
-        businessType: '',
-        revenueRange: '',
-        marketingHandler: '',
-        postingFrequency: '',
-        onlinePresence: '',
-        visualAspirations: '',
-      },
-      goals: {
-        successVision: '',
-        motivation: '',
-        idealBrandLook: '',
-        emotionalResponse: '',
-        visibilityLevel: '',
-      },
-      painPoints: {
-        whatsNotWorking: '',
-        pastExperience: '',
-        postingConsistency: '',
-        contentPlan: '',
-        biggestFrustration: '',
-        holdingBack: '',
-      },
-      beliefs: {
-        contentNotConverting: '',
-        retainerReaction: '',
-        hesitations: '',
-        burnedBefore: '',
-        trustRequirements: '',
-        decisionInfluencers: '',
-      },
-    },
-  },
-];
+const DEFAULT_CLIENTS = [];
 
 const loadClients = () => {
   try {

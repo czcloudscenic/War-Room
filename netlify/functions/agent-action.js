@@ -26,10 +26,6 @@ const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
 const SLACK_AGENT_LABELS = {
   sean_briefing:          "📋 *Sean* — Morning Briefing",
-  lacey_advance:          "⚡ *Lacey* — Pipeline Update",
-  lacey_trigger_n8n:      "⚡ *Lacey* — n8n Trigger",
-  sam_health:             "💊 *Sam* — Health Check",
-  overseer_scan:          "🔍 *Overseer* — SOP Scan",
   muse_generate_calendar: "✍️ *Muse* — Content Calendar",
   muse_save_calendar:     "✍️ *Muse* — Calendar Saved",
   muse_write_content:     "✍️ *Muse* — Content Written",
@@ -50,8 +46,8 @@ const SB_HEADERS = () => ({
 // Every handler invocation writes one row so we have real history of what
 // agents actually did (replaces fake ACTIVITY_POOL theater).
 const AGENT_PREFIX_MAP = {
-  muse: "Muse", sean: "Sean", lacey: "Lacey", sam: "Sam",
-  overseer: "Overseer", artgrid: "Artgrid", scrappy: "Scrappy",
+  muse: "Muse", sean: "Sean",
+  artgrid: "Artgrid", scrappy: "Scrappy",
   cid: "Scrappy",  // CID actions are Scrappy's domain
 };
 function deriveAgentName(actionKey) {
@@ -104,17 +100,38 @@ async function sbGet(table, params = "") {
 // Move 1 — read client's brand voice from DB instead of hardcoding it inline.
 // Falls back to a generic context if client_id is missing or brand_voice_md is empty,
 // so prompts still work for orphaned requests (e.g. before a client is selected).
+//
+// Pillars are parsed from brand_voice_md if present (look for a "Pillars:" line or
+// a "## Pillars" / "### Pillars" markdown block). Otherwise empty — handlers
+// instruct Claude to derive them from the voice text directly.
+function parsePillars(voiceMd) {
+  if (!voiceMd) return [];
+  // 1) Try "Pillars: a, b, c" or "Content pillars: a, b, c" inline form
+  const inline = voiceMd.match(/(?:content\s+)?pillars?:\s*([^\n]+)/i);
+  if (inline) {
+    return inline[1].split(/[,|·•]/).map(s => s.trim()).filter(Boolean).slice(0, 12);
+  }
+  // 2) Try "## Pillars" or "### Pillars" block — collect bullets until next header
+  const block = voiceMd.match(/#{2,3}\s*pillars?\s*\n([\s\S]*?)(?:\n#{1,3}|\n*$)/i);
+  if (block) {
+    return block[1].split("\n").map(line => line.replace(/^\s*[-*•]\s*/, "").trim()).filter(Boolean).slice(0, 12);
+  }
+  return [];
+}
+
 async function getBrandContext(client_id) {
-  const fallback = { name: "the brand", slug: null, voice: "", clientId: null };
+  const fallback = { name: "the brand", slug: null, voice: "", pillars: [], clientId: null };
   if (!client_id) return fallback;
   try {
     const rows = await sbGet("clients", `?id=eq.${client_id}&select=name,slug,brand_voice_md`);
     const r = rows?.[0];
     if (!r) return { ...fallback, clientId: client_id };
+    const voice = r.brand_voice_md || "";
     return {
       name: r.name || "the brand",
       slug: r.slug || null,
-      voice: r.brand_voice_md || "",
+      voice,
+      pillars: parsePillars(voice),
       clientId: client_id,
     };
   } catch (e) {
@@ -208,58 +225,6 @@ Write only the ${fieldToUpdate} content, nothing else.`;
   };
 }
 
-async function overseer_scan(brand) {
-  const items = await sbGet("content_items", "?order=id");
-
-  const SOP_STEPS = [
-    "Step 01 — Discovery: Ideation & Concept Alignment",
-    "Step 02 — Planning: Content Tracker Build & Approval",
-    "Step 03 — Pre-Production: Footage Scouting via Art Grid",
-    "Step 04 — Production: Content Development & Post-Production",
-    "Step 05 — Review: Content Review & Client Approval",
-    "Step 06 — Distribution: Content Scheduling Across All Platforms",
-    "Step 07 — Final Sign-Off: Scheduler Review & Final Confirmation",
-  ];
-
-  const summary = items.map(i => `ID:${i.id} | "${i.title}" | Status:${i.status} | Pillar:${i.pillar} | Format:${i.format} | Caption:${i.caption ? "YES" : "NO"} | Script:${i.script ? "YES" : "NO"}`).join("\n");
-
-  const systemPrompt = `You are Overseer, SOP Guardian for ${brand.name} via Cloud Scenic Vantus.
-Enforce this 7-step SOP:
-${SOP_STEPS.join("\n")}
-
-Review the content pipeline and identify items that may be violating or skipping SOP steps.
-Flag items that: are stuck in wrong stages, missing copy when needed, not following proper approval flow.
-Be precise, cite step numbers, be rigorous but not alarmist. Return JSON array.`;
-
-  const userPrompt = `Review this content pipeline (${items.length} items) and return a JSON array of flagged items:
-${summary}
-
-Return JSON array like: [{"itemId":"vl-X","title":"...","violation":"Step 02 — missing caption before copy approval","severity":"high|medium|low"}]
-Return empty array [] if everything looks compliant. Only return the JSON array, nothing else.`;
-
-  const rawResult = await ai(systemPrompt, userPrompt, 1000);
-
-  let flagged = [];
-  try {
-    const jsonMatch = rawResult.match(/\[[\s\S]*\]/);
-    flagged = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-  } catch (e) {
-    flagged = [];
-  }
-
-  return {
-    success: true,
-    agent: "Overseer",
-    action: "overseer_scan",
-    totalItems: items.length,
-    flaggedCount: flagged.length,
-    flagged,
-    message: flagged.length === 0
-      ? `✅ SOP compliance check complete — all ${items.length} items in order`
-      : `🔍 SOP scan complete — ${flagged.length} item(s) flagged across ${items.length} total`,
-  };
-}
-
 async function sean_briefing(brand) {
   const items = await sbGet("content_items", "?order=id");
 
@@ -309,87 +274,6 @@ Write a tight morning briefing: priorities, what's blocked, what needs immediate
   };
 }
 
-async function lacey_advance() {
-  const readyItems = await sbGet("content_items", "?status=eq.Ready For Schedule");
-
-  if (readyItems.length === 0) {
-    return {
-      success: true,
-      agent: "Lacey",
-      action: "lacey_advance",
-      advancedCount: 0,
-      items: [],
-      message: "⚡ No items ready to advance — pipeline is clean",
-    };
-  }
-
-  const advanced = [];
-  for (const item of readyItems) {
-    await sbPatch("content_items", `id=eq.${item.id}`, {
-      status: "Scheduled",
-      stage: "Scheduled",
-    });
-    advanced.push({ id: item.id, title: item.title });
-  }
-
-  return {
-    success: true,
-    agent: "Lacey",
-    action: "lacey_advance",
-    advancedCount: advanced.length,
-    items: advanced,
-    message: `⚡ Advanced ${advanced.length} item(s) from "Ready For Schedule" → "Scheduled": ${advanced.map(i => i.title).join(", ")}`,
-  };
-}
-
-async function sam_health(brand) {
-  const items = await sbGet("content_items", "?order=id");
-
-  const statusCounts = {};
-  for (const item of items) {
-    const s = item.status || "Unknown";
-    statusCounts[s] = (statusCounts[s] || 0) + 1;
-  }
-
-  // Items that might be "stuck" (no caption and past copy creation stage)
-  const missingCopy = items.filter(i =>
-    ["Ready For Content Creation", "Need Content Approval", "Approved", "Ready For Schedule", "Scheduled"].includes(i.status)
-    && !i.caption && i.format !== "Reel"
-  );
-
-  const missingScript = items.filter(i =>
-    ["Ready For Content Creation", "Need Content Approval", "Approved", "Ready For Schedule", "Scheduled"].includes(i.status)
-    && !i.script && i.format === "Reel"
-  );
-
-  const systemPrompt = `You are Sam, Monitor Agent for ${brand.name} via Cloud Scenic Vantus. You watch system health, pipeline metrics, and flag anomalies. Methodical, data-driven, brief.`;
-
-  const userPrompt = `Generate a pipeline health report:
-
-Total items: ${items.length}
-Status breakdown: ${Object.entries(statusCounts).map(([s,n]) => `${s}: ${n}`).join(" | ")}
-Items missing captions (past copy stage): ${missingCopy.length}
-Reels missing scripts (past copy stage): ${missingScript.length}
-
-Give a concise health report with: overall score (0-100), key risks, recommended actions. Under 150 words.`;
-
-  const report = await ai(systemPrompt, userPrompt, 300);
-
-  return {
-    success: true,
-    agent: "Sam",
-    action: "sam_health",
-    metrics: {
-      total: items.length,
-      byStatus: statusCounts,
-      missingCopy: missingCopy.length,
-      missingScript: missingScript.length,
-    },
-    report,
-    message: `💊 Health check complete — ${items.length} items analyzed`,
-  };
-}
-
 // ─── SCRAPPY: TREND SCOUT ─────────────────────────────────────────────────────
 
 async function tavilySearch(query, searchDepth = "advanced", maxResults = 8) {
@@ -411,7 +295,8 @@ async function tavilySearch(query, searchDepth = "advanced", maxResults = 8) {
 }
 
 async function scrappy_research(payload, brand) {
-  const { topic = "wellness hydration water technology" } = payload;
+  const { topic = "" } = payload;
+  const brandTopic = topic || brand.name || "content trends";
 
   if (!TAVILY_KEY) {
     return {
@@ -424,11 +309,11 @@ async function scrappy_research(payload, brand) {
 
   // ── Run parallel Tavily searches across key angles ──────────────────────
   const queries = [
-    `${topic} trends 2025 2026`,
-    `hydration wellness content marketing trends`,
-    `water technology startup viral content`,
-    `wellness lifestyle TikTok Instagram trends this month`,
-    `clean water access innovation news`,
+    `${brandTopic} trends 2025 2026`,
+    `${brandTopic} content marketing trends`,
+    `${brandTopic} viral content`,
+    `${brandTopic} TikTok Instagram trends this month`,
+    `${brandTopic} news`,
   ];
 
   const searchResults = await Promise.allSettled(
@@ -487,7 +372,7 @@ Return a structured JSON object:
   "contentAngles": [
     { "angle": "fresh specific angle or idea", "format": "Reel|Carousel|Thread|Short", "platform": "IG|TT|YT|X", "urgency": "high|medium|low" }
   ],
-  "competitorMoves": "what's working in the wellness/hydration space right now",
+  "competitorMoves": "what's working in ${brand.name}'s space right now",
   "avoidZones": ["oversaturated or off-brand topics to skip"],
   "museHandoff": "direct brief to Muse — what to create this month based on this research"
 }
@@ -686,34 +571,40 @@ Return ONLY a JSON array: [{ "itemId": "vl-X", "title": "...", "keywords": ["2-4
 
 async function muse_generate_calendar(brand) {
   const items = await sbGet("content_items", "?order=id&limit=10");
-  const pillars = ["Abundance", "Access", "Innovation", "Tierra Bomba", "Startup Diaries", "Product Launch", "Meet the Makers"];
+  const pillars = brand.pillars && brand.pillars.length ? brand.pillars : [];
   const existing = items.map(i => i.title).join(", ");
   const brandHashtag = "#" + (brand.name || "").replace(/\s+/g, "");
+  const pillarLine = pillars.length
+    ? `Content pillars: ${pillars.join(", ")}.`
+    : `Content pillars: derive 5-7 pillars from the brand voice above and use them consistently across the calendar.`;
+  const pillarConstraint = pillars.length
+    ? `one of: ${pillars.join(" | ")}`
+    : `derive from the brand voice`;
 
-  const systemPrompt = `You are Muse, Content Ideation Agent for ${brand.name} via Cloud Scenic Vantus.
+  const systemPrompt = `You are Muse, Content Ideation Agent for ${brand.name}.
 Generate content calendar ideas.
 
-${brand.voice}
+${brand.voice || "(No brand voice configured — keep tone neutral and on-trend.)"}
 
-Content pillars: ${pillars.join(", ")}.
+${pillarLine}
 Platforms: Instagram (Reels, Graphics, Carousels), TikTok (Reels), YouTube (Shorts, Long-form), X/Threads.
 
 Return a JSON array of content items only (no markdown, no backticks):
 [
   {
-    "title": "cinematic content title",
-    "pillar": "one of the 7 pillars",
+    "title": "evocative content title",
+    "pillar": "${pillarConstraint}",
     "format": "Reel|Carousel|Graphics (IMG)|Thread|Short|YouTube",
     "platforms": ["IG"],
     "platform": "instagram|tiktok|youtube",
     "type": "reel|carousel|graphic|thread|short|youtube",
-    "campaign": "Drip Campaign",
+    "campaign": "",
     "status": "Ready For Copy Creation",
     "stage": "Ready For Copy Creation",
     "description": "one sentence description",
     "caption": "",
     "script": "",
-    "cta": "Join us (Link in bio)",
+    "cta": "",
     "seoKeywords": "",
     "hashtags": "${brandHashtag}",
     "startWeek": 1,
@@ -721,7 +612,7 @@ Return a JSON array of content items only (no markdown, no backticks):
     "notes": ""
   }
 ]
-Generate 12-16 items covering all 7 pillars across 4 weeks. Vary formats and platforms. Return ONLY the JSON array.`;
+Generate 12-16 items across 4 weeks, covering all pillars evenly. Vary formats and platforms. Return ONLY the JSON array.`;
 
   const rawResult = await ai(systemPrompt, `Existing content (don't repeat): ${existing}\n\nGenerate the 4-week calendar now.`, 2800);
 
@@ -737,7 +628,7 @@ Generate 12-16 items covering all 7 pillars across 4 weeks. Vary formats and pla
     action: "muse_generate_calendar",
     items: calendarItems,
     itemCount: calendarItems.length,
-    message: `✍️ ${calendarItems.length}-piece content calendar generated — ${pillars.length} pillars covered`,
+    message: `✍️ ${calendarItems.length}-piece content calendar generated`,
     preview: calendarItems.map(i => `• [${i.pillar}] "${i.title}" — ${i.format}`).join("\n"),
   };
 }
@@ -863,46 +754,6 @@ Return ONLY a valid JSON array (no markdown, no backticks, no explanation):
 }
 
 // ─── N8N WEBHOOK TRIGGER ──────────────────────────────────────────────────────
-
-async function lacey_trigger_n8n(payload) {
-  const {
-    workflow = "general",
-    data = {},
-    message = "",
-    triggeredBy = "Vantus",
-  } = payload;
-
-  if (!N8N_WEBHOOK_URL) throw new Error("N8N_WEBHOOK_URL not configured");
-
-  const body = {
-    workflow,
-    triggeredBy,
-    message,
-    timestamp: new Date().toISOString(),
-    ...data,
-  };
-
-  const res = await fetch(N8N_WEBHOOK_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  const responseText = await res.text();
-  let responseData = {};
-  try { responseData = JSON.parse(responseText); } catch {}
-
-  if (!res.ok) throw new Error(`n8n webhook failed: ${res.status} ${responseText}`);
-
-  return {
-    success: true,
-    agent: "Lacey",
-    workflow,
-    message: `✅ Triggered n8n workflow "${workflow}" successfully`,
-    n8nResponse: responseData,
-    timestamp: new Date().toISOString(),
-  };
-}
 
 // ─── SCRAPPY: HOOK ANALYSIS ───────────────────────────────────────────────────
 // NOTE: Requires cid_library table in Supabase with columns:
@@ -1128,25 +979,31 @@ Return ONLY valid JSON:
 // ─── MAIN HANDLER ─────────────────────────────────────────────────────────────
 
 async function muse_ig_ideas(payload = {}, brand) {
-  const { campaign = "Drip Campaign" } = payload;
-  const pillars = ["Abundance", "Access", "Innovation", "Tierra Bomba", "Startup Diaries", "Product Launch", "Meet the Makers"];
+  const { campaign = "" } = payload;
+  const pillars = brand.pillars && brand.pillars.length ? brand.pillars : [];
   const existing = await sbGet("content_items", "?platform=eq.instagram&order=id.desc&limit=20");
   const existingTitles = existing.map(i => i.title).join(", ");
   const brandHashtag = "#" + (brand.name || "").replace(/\s+/g, "");
+  const pillarLine = pillars.length
+    ? `Content pillars: ${pillars.join(", ")}.`
+    : `Content pillars: derive 3-5 from the brand voice above and use them consistently.`;
+  const pillarConstraint = pillars.length
+    ? `one of: ${pillars.join(" | ")}`
+    : `derive from the brand voice`;
 
-  const systemPrompt = `You are Muse, Content Ideation Agent for ${brand.name} via Cloud Scenic Vantus.
+  const systemPrompt = `You are Muse, Content Ideation Agent for ${brand.name}.
 Generate exactly 5 Instagram content ideas.
 
-${brand.voice}
+${brand.voice || "(No brand voice configured — keep tone neutral and on-trend.)"}
 
-Content pillars: ${pillars.join(", ")}.
+${pillarLine}
 Instagram formats: Reel, Carousel, Graphics (IMG).
 
 Return a JSON array of exactly 5 items only (no markdown, no backticks):
 [
   {
-    "title": "cinematic content title",
-    "pillar": "one of the 7 pillars",
+    "title": "evocative content title",
+    "pillar": "${pillarConstraint}",
     "format": "Reel|Carousel|Graphics (IMG)",
     "platform": "instagram",
     "type": "reel|carousel|graphic",
@@ -1156,7 +1013,7 @@ Return a JSON array of exactly 5 items only (no markdown, no backticks):
     "description": "one sentence visual description",
     "caption": "",
     "script": "",
-    "cta": "Join us (Link in bio)",
+    "cta": "",
     "seoKeywords": "",
     "hashtags": "${brandHashtag}",
     "platforms": ["IG"],
@@ -1180,9 +1037,10 @@ Return ONLY the JSON array. Vary the 5 ideas across different pillars and format
   }
 
   // Save to Supabase
+  const slug = brand.slug || "ig";
   const toInsert = ideas.map((item, idx) => ({
     ...item,
-    id: `vl-ig-${Date.now()}-${idx}`,
+    id: `${slug}-ig-${Date.now()}-${idx}`,
   }));
 
   const res = await fetch(`${REST}/content_items`, {
@@ -1242,10 +1100,7 @@ exports.handler = async (event) => {
     let result;
     switch (action) {
       case "muse_write_content":     result = await muse_write_content(payload, brand); break;
-      case "overseer_scan":          result = await overseer_scan(brand); break;
       case "sean_briefing":          result = await sean_briefing(brand); break;
-      case "lacey_advance":          result = await lacey_advance(); break;
-      case "sam_health":             result = await sam_health(brand); break;
       case "muse_from_brief":        result = await muse_from_brief(payload, brand); break;
       case "muse_generate_calendar": result = await muse_generate_calendar(brand); break;
       case "muse_save_calendar":     result = await muse_save_calendar(payload); break;
@@ -1253,7 +1108,6 @@ exports.handler = async (event) => {
       case "scrappy_research":       result = await scrappy_research(payload, brand); break;
       case "scrappy_muse_collab":    result = await scrappy_muse_collab(payload, brand); break;
       case "scrappy_hook_analysis":  result = await scrappy_hook_analysis(brand); break;
-      case "lacey_trigger_n8n":      result = await lacey_trigger_n8n(payload); break;
       case "cid_build_brief":        result = await cid_build_brief(payload, brand); break;
       case "cid_ab_variations":      result = await cid_ab_variations(payload, brand); break;
       case "muse_ig_ideas":          result = await muse_ig_ideas(payload, brand); break;

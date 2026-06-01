@@ -220,7 +220,7 @@ export default function SettingsPage() {
             <h3 style={S.cardTitle}>Workspace</h3>
             <div style={S.cardSub}>Brand identity & webhook configuration</div>
             <div style={{ marginTop: 18 }}>
-              <Field label="Brand" value={config.brand} onChange={updateField('brand')} placeholder="e.g. Vital Lyfe" />
+              <Field label="Brand" value={config.brand} onChange={updateField('brand')} placeholder="e.g. your brand name" />
               <Field label="Niche" value={config.niche} onChange={updateField('niche')} placeholder="e.g. Health & Wellness" />
               <Field label="Default Duration" value={config.defaultDuration} onChange={updateField('defaultDuration')} placeholder="e.g. 30 days" />
               <Field label="n8n Webhook" value={config.n8nWebhook} onChange={updateField('n8nWebhook')} placeholder="https://n8n.example.com/webhook/..." />
