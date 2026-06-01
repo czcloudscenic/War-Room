@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '../../utils/hooks.js';
+import ConnectedAccountsCard from './ConnectedAccountsCard.jsx';
 
 const STORAGE_KEY = 'vantus_settings';
 
@@ -250,8 +251,11 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* ── RIGHT COL: AI Engine + Team ── */}
+        {/* ── RIGHT COL: Connected Accounts + AI Engine + Team ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+
+          {/* Connected Accounts Card (Instagram / TikTok / YouTube / LinkedIn) */}
+          <ConnectedAccountsCard S={S} />
 
           {/* AI Engine Card */}
           <div style={S.card}>

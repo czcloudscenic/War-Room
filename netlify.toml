@@ -27,18 +27,29 @@
   status = 200
 
 [[redirects]]
-  from = "/api/cid-scrape"
-  to = "/.netlify/functions/cid-scrape"
-  status = 200
-
-[[redirects]]
   from = "/api/unsplash"
   to = "/.netlify/functions/unsplash"
   status = 200
 
+# Instagram OAuth flow (Meta's Instagram Business Login)
 [[redirects]]
-  from = "/api/higgsfield"
-  to = "/.netlify/functions/higgsfield"
+  from = "/api/oauth/instagram/start"
+  to = "/.netlify/functions/oauth-instagram-start"
+  status = 200
+
+[[redirects]]
+  from = "/api/oauth/instagram/callback"
+  to = "/.netlify/functions/oauth-instagram-callback"
+  status = 200
+
+[[redirects]]
+  from = "/api/oauth/instagram/deauthorize"
+  to = "/.netlify/functions/oauth-instagram-deauthorize"
+  status = 200
+
+[[redirects]]
+  from = "/api/oauth/instagram/data-deletion"
+  to = "/.netlify/functions/oauth-instagram-data-deletion"
   status = 200
 
 [functions]
