@@ -9,7 +9,6 @@ export const DEFAULT_APPS = [
   { id: "references", label: "References",          desc: "Store hooks, captions, CTAs, and brand voice docs",  enabled: true  },
   { id: "skills",     label: "Skills",              desc: "Deploy skill briefs and directives to agents",        enabled: true  },
   { id: "scrappy",    label: "Scraping Ops",        desc: "Live trend scraping from TikTok, IG, Reddit",        enabled: false },
-  { id: "analytics",  label: "Analytics",           desc: "Pipeline heatmaps and performance breakdowns",       enabled: false },
   { id: "costs",      label: "Cost Governance",     desc: "API spend tracking and agent budget controls",       enabled: false },
   { id: "automation", label: "Automation Center",   desc: "Scheduled agent workflows and n8n triggers",         enabled: false },
 ];

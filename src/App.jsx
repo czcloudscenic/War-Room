@@ -1266,7 +1266,6 @@ try {
     {activeNav === "apps" && <AppsPage apps={apps} toggleApp={toggleApp} />}
     {activeNav === "settings" && <SettingsPage />}
     {activeNav === "scrappy" && <AppPlaceholder label="Scraping Ops" desc="Live trend scraping from TikTok, IG, Reddit — powered by Scrappy." icon="◉" />}
-    {activeNav === "analytics" && <AppPlaceholder label="Analytics" desc="Pipeline heatmaps, performance breakdowns, and content velocity." icon="◐" />}
     {activeNav === "costs" && <AppPlaceholder label="Cost Governance" desc="API spend tracking, agent budget controls, and cost optimization." icon="$" />}
     {activeNav === "automation" && <AppPlaceholder label="Automation Center" desc="Scheduled agent workflows, n8n triggers, and pipeline automation." icon="⚡" />}
 

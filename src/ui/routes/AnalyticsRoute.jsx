@@ -375,11 +375,11 @@ export default function AnalyticsRoute() {
         {/* Area chart */}
         <div style={{
           background: 'linear-gradient(135deg,#131013 0%,#0d0b0f 100%)',
-          border: '1px solid rgba(139,92,246,0.15)', borderRadius: 14, padding: 20,
+          border: '1px solid rgba(125,211,252,0.15)', borderRadius: 14, padding: 20,
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
             <div>
-              <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(139,92,246,0.7)', fontFamily: "'Geist Mono', monospace", fontWeight: 700 }}>All platforms · {CHART_METRICS.find(m => m.id === chartMetric)?.label}</div>
+              <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(125,211,252,0.7)', fontFamily: "'Geist Mono', monospace", fontWeight: 700 }}>All platforms · {CHART_METRICS.find(m => m.id === chartMetric)?.label}</div>
               <div style={{ fontSize: 24, fontWeight: 700, color: '#fff', marginTop: 6 }}>
                 {chartMetric === 'engagement_rate'
                   ? fmtRate(stats.avgRate)
@@ -393,8 +393,8 @@ export default function AnalyticsRoute() {
                 <button key={m.id} onClick={() => setChartMetric(m.id)}
                   style={{
                     fontSize: 10, fontWeight: 600, fontFamily: 'Inter, sans-serif',
-                    background: chartMetric === m.id ? 'rgba(168,85,247,0.15)' : 'transparent',
-                    color: chartMetric === m.id ? '#a855f7' : 'rgba(255,255,255,0.5)',
+                    background: chartMetric === m.id ? 'rgba(125,211,252,0.15)' : 'transparent',
+                    color: chartMetric === m.id ? '#7DD3FC' : 'rgba(255,255,255,0.5)',
                     border: 'none', borderRadius: 6, padding: '5px 10px',
                     cursor: 'pointer',
                   }}>{m.label}</button>
@@ -404,13 +404,13 @@ export default function AnalyticsRoute() {
 
           <svg viewBox="0 0 800 120" preserveAspectRatio="none" style={{ width: '100%', height: 120, display: 'block' }}>
             <defs>
-              <linearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.55"/>
-                <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.02"/>
+              <linearGradient id="babyBlueGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#7DD3FC" stopOpacity="0.55"/>
+                <stop offset="100%" stopColor="#7DD3FC" stopOpacity="0.02"/>
               </linearGradient>
             </defs>
-            {chartPath.area && <path d={chartPath.area} fill="url(#purpleGrad)" />}
-            {chartPath.line && <path d={chartPath.line} fill="none" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
+            {chartPath.area && <path d={chartPath.area} fill="url(#babyBlueGrad)" />}
+            {chartPath.line && <path d={chartPath.line} fill="none" stroke="#7DD3FC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
           </svg>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
@@ -426,9 +426,9 @@ export default function AnalyticsRoute() {
         {/* Platform breakdown */}
         <div style={{
           background: 'linear-gradient(135deg,#131013 0%,#0d0b0f 100%)',
-          border: '1px solid rgba(139,92,246,0.15)', borderRadius: 14, padding: 20,
+          border: '1px solid rgba(125,211,252,0.15)', borderRadius: 14, padding: 20,
         }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(139,92,246,0.7)', fontFamily: "'Geist Mono', monospace", fontWeight: 700, marginBottom: 16 }}>Reach by Platform</div>
+          <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(125,211,252,0.7)', fontFamily: "'Geist Mono', monospace", fontWeight: 700, marginBottom: 16 }}>Reach by Platform</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {Object.entries(PLATFORM_META).map(([id, meta]) => {
               const v = stats.byPlatform[id];
