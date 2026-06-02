@@ -364,7 +364,9 @@ function Vantus({ onSignOut, userEmail, userId, content: contentProp, setContent
   const [selectedAgent, setSelectedAgent] = useState(null);
   // feed state removed — ActivityFeed self-manages from agent_events table
   const [agents] = useState(AGENTS_BASE);
-  const [liveCount, setLiveCount] = useState(6);
+  // Initialized to agents.length on mount + jitters to (n-1 | n) every 15s for a "live" feel.
+  // Reflects actual agent roster, not a hardcoded number.
+  const [liveCount, setLiveCount] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
   const [filterPillar, setFilterPillar] = useState("");
@@ -638,7 +640,11 @@ return () => {
   document.removeEventListener("touchend", onUp);
 };
   }, []);
-  useInterval(() => setLiveCount(Math.floor(Math.random()*2)+6), aiEnabled ? 15000 : null);
+  useEffect(() => {
+    // Sync the live count to the active agent roster whenever it changes.
+    setLiveCount(agents.length);
+  }, [agents.length]);
+  useInterval(() => setLiveCount(agents.length - (Math.random() < 0.5 ? 0 : 1)), aiEnabled ? 15000 : null);
 
   const handleSave = (updated) => {
 // Derive platform (singular) and type from platforms array + format
