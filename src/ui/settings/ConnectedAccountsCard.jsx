@@ -5,8 +5,8 @@ import { apiFetch } from '../../services/apiFetch.js';
 // One row per platform. Add to PLATFORMS as we wire each integration.
 const PLATFORMS = [
   { id: 'instagram', label: 'Instagram', dot: '#dc2743', startEndpoint: '/api/oauth/instagram/start', syncEndpoint: '/api/sync/instagram' },
-  { id: 'tiktok',    label: 'TikTok',    dot: '#ff0050', startEndpoint: null,   comingSoon: true },
-  { id: 'youtube',   label: 'YouTube',   dot: '#ff0000', startEndpoint: null,   comingSoon: true },
+  { id: 'tiktok',    label: 'TikTok',    dot: '#ff0050', startEndpoint: '/api/oauth/tiktok/start',    syncEndpoint: '/api/sync/tiktok' },
+  { id: 'youtube',   label: 'YouTube',   dot: '#ff0000', startEndpoint: '/api/oauth/youtube/start',   syncEndpoint: '/api/sync/youtube' },
   { id: 'linkedin',  label: 'LinkedIn',  dot: '#0a66c2', startEndpoint: null,   comingSoon: true },
 ];
 
