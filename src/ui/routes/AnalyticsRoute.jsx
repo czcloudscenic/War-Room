@@ -6,11 +6,13 @@ import { sb } from '../../services/supabaseClient.js';
 // Adapted to show CONTENT metrics across all connected platforms
 // (Instagram live; TikTok / YouTube / LinkedIn slot in when wired).
 
+// Baby-blue family — varied shades so platforms are still distinguishable
+// but the whole page stays cohesive on one color.
 const PLATFORM_META = {
-  instagram: { label: 'Instagram', dot: '#dc2743', short: 'IG' },
-  tiktok:    { label: 'TikTok',    dot: '#ff0050', short: 'TT' },
-  youtube:   { label: 'YouTube',   dot: '#ff0000', short: 'YT' },
-  linkedin:  { label: 'LinkedIn',  dot: '#0a66c2', short: 'LI' },
+  instagram: { label: 'Instagram', dot: '#7DD3FC', short: 'IG' },  // sky-300
+  tiktok:    { label: 'TikTok',    dot: '#38BDF8', short: 'TT' },  // sky-400
+  youtube:   { label: 'YouTube',   dot: '#0EA5E9', short: 'YT' },  // sky-500
+  linkedin:  { label: 'LinkedIn',  dot: '#0284C7', short: 'LI' },  // sky-600
 };
 
 const CHART_METRICS = [
@@ -248,15 +250,16 @@ export default function AnalyticsRoute() {
 
   // ── render ────────────────────────────────────────────────────────────────
 
-  const GOLD = '#d4a84a';
-  const GOLD_DIM = 'rgba(212,168,74,0.7)';
-  const GOLD_BG = 'rgba(212,168,74,0.12)';
-  const GOLD_BORDER = 'rgba(212,168,74,0.25)';
+  // Single accent palette — baby blue. Page is monochrome on this color.
+  const BLUE = '#7DD3FC';
+  const BLUE_DIM = 'rgba(125,211,252,0.7)';
+  const BLUE_BG = 'rgba(125,211,252,0.12)';
+  const BLUE_BORDER = 'rgba(125,211,252,0.25)';
 
-  const statCard = (label, value, delta, accent = GOLD) => (
+  const statCard = (label, value, delta, accent = BLUE) => (
     <div style={{
-      background: 'linear-gradient(135deg,#131210 0%,#0e0c0b 100%)',
-      border: `1px solid rgba(212,168,74,0.15)`,
+      background: 'linear-gradient(135deg,#0e1416 0%,#0a1014 100%)',
+      border: `1px solid rgba(125,211,252,0.15)`,
       borderRadius: 14, padding: 18,
       position: 'relative', overflow: 'hidden',
     }}>
@@ -308,7 +311,7 @@ export default function AnalyticsRoute() {
         <div>
           <div style={{
             fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase',
-            color: GOLD_DIM, fontFamily: "'Geist Mono', monospace", fontWeight: 700, marginBottom: 8,
+            color: BLUE_DIM, fontFamily: "'Geist Mono', monospace", fontWeight: 700, marginBottom: 8,
           }}>Vantus · Content Analytics</div>
           <h1 style={{
             fontFamily: "'Instrument Serif', Georgia, serif", fontSize: 32, fontWeight: 700,
@@ -349,8 +352,8 @@ export default function AnalyticsRoute() {
           </div>
           <button onClick={syncAll} disabled={Object.values(syncBusy).some(Boolean)}
             style={{
-              background: GOLD_BG, border: `1px solid ${GOLD_BORDER}`, borderRadius: 8,
-              padding: '7px 16px', fontSize: 12, color: GOLD, cursor: 'pointer',
+              background: BLUE_BG, border: `1px solid ${BLUE_BORDER}`, borderRadius: 8,
+              padding: '7px 16px', fontSize: 12, color: BLUE, cursor: 'pointer',
               fontFamily: 'Inter, sans-serif', fontWeight: 600,
               opacity: Object.values(syncBusy).some(Boolean) ? 0.5 : 1,
             }}>
@@ -359,13 +362,13 @@ export default function AnalyticsRoute() {
         </div>
       </div>
 
-      {/* GOLD STAT CARDS — 5 across on desktop, wraps on mobile */}
+      {/* STAT CARDS — 5 across on desktop, wraps on mobile */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24,
       }}>
         {statCard('Total Reach',     fmtNumber(stats.reach),     stats.reach > 0 ? `↑ ${stats.posts} posts` : null)}
         {statCard('Engagement',      fmtNumber(stats.engagement), `${fmtNumber(stats.likes)} likes`)}
-        {statCard('Avg Engagement',  fmtRate(stats.avgRate),     (stats.avgRate || 0) > 0.05 ? 'above benchmark' : 'below benchmark', (stats.avgRate || 0) > 0.05 ? '#4ade80' : '#d4a84a')}
+        {statCard('Avg Engagement',  fmtRate(stats.avgRate),     (stats.avgRate || 0) > 0.05 ? 'above benchmark' : 'below benchmark', BLUE)}
         {statCard('Posts Published', String(stats.posts),         accounts.length > 0 ? `${accounts.length} account${accounts.length > 1 ? 's' : ''}` : null)}
         {statCard('Top Platform',    stats.topPlatform ? (PLATFORM_META[stats.topPlatform]?.label || stats.topPlatform) : '—', stats.topPlatform ? `${fmtNumber(stats.byPlatform[stats.topPlatform]?.reach)} reach` : null)}
       </div>
@@ -496,7 +499,7 @@ export default function AnalyticsRoute() {
                     </div>
                     <div style={{
                       position: 'absolute', top: 8, right: 8,
-                      background: 'rgba(212,168,74,0.85)', color: '#000',
+                      background: 'rgba(125,211,252,0.9)', color: '#000',
                       fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 5,
                     }}>#{i + 1}</div>
                   </div>
@@ -507,7 +510,7 @@ export default function AnalyticsRoute() {
                       minHeight: 30,
                     }}>{p.caption?.slice(0, 80) || ''}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                      <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 700 }}>{fmtRate(p.metrics?.engagement_rate)}</span>
+                      <span style={{ fontSize: 11, color: '#7DD3FC', fontWeight: 700 }}>{fmtRate(p.metrics?.engagement_rate)}</span>
                       <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{fmtNumber(p.metrics?.reach)} reach</span>
                     </div>
                   </div>
@@ -521,7 +524,7 @@ export default function AnalyticsRoute() {
       {/* ALL POSTS TABLE */}
       <div style={{
         background: 'linear-gradient(135deg,#131210 0%,#0e0c0b 100%)',
-        border: `1px solid ${GOLD_BORDER}`, borderRadius: 14, overflow: 'hidden',
+        border: `1px solid ${BLUE_BORDER}`, borderRadius: 14, overflow: 'hidden',
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -582,7 +585,7 @@ export default function AnalyticsRoute() {
                 <span style={{ fontSize: 12, color: '#fff', fontFamily: "'Geist Mono', monospace", fontWeight: 600 }}>{fmtNumber(p.metrics?.reach)}</span>
                 <span style={{
                   fontSize: 12, fontFamily: "'Geist Mono', monospace", fontWeight: 600,
-                  color: rate != null && rate > 0.05 ? '#4ade80' : '#fff',
+                  color: rate != null && rate > 0.05 ? '#7DD3FC' : '#fff',
                 }}>{fmtRate(rate)}</span>
                 <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', textAlign: 'right' }}>↗</span>
               </div>
