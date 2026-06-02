@@ -35,7 +35,7 @@ import AddClientModal from './ui/clients/AddClientModal.jsx';
 import DashboardRoute from './ui/routes/DashboardRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
-import InsightsRoute from './ui/routes/InsightsRoute.jsx';
+import AnalyticsRoute from './ui/routes/AnalyticsRoute.jsx';
 
 //  ROOT APP WRAPPER
 const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
@@ -1251,7 +1251,7 @@ try {
       />
     )}
 
-    {activeNav === "insights" && <InsightsRoute />}
+    {activeNav === "analytics" && <AnalyticsRoute />}
     {activeNav === "cid" && React.createElement(CIDPage, null)}
     {activeNav === "icp" && <ICPPage />}
     {(activeNav === "sales" || activeNav === "adroihub") && <AdROIHub />}
