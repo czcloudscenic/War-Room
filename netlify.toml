@@ -57,6 +57,32 @@
   to = "/.netlify/functions/sync-instagram"
   status = 200
 
+# TikTok OAuth flow
+[[redirects]]
+  from = "/api/oauth/tiktok/start"
+  to = "/.netlify/functions/oauth-tiktok-start"
+  status = 200
+
+[[redirects]]
+  from = "/api/oauth/tiktok/callback"
+  to = "/.netlify/functions/oauth-tiktok-callback"
+  status = 200
+
+[[redirects]]
+  from = "/api/oauth/tiktok/deauthorize"
+  to = "/.netlify/functions/oauth-tiktok-deauthorize"
+  status = 200
+
+[[redirects]]
+  from = "/api/oauth/tiktok/data-deletion"
+  to = "/.netlify/functions/oauth-tiktok-data-deletion"
+  status = 200
+
+[[redirects]]
+  from = "/api/sync/tiktok"
+  to = "/.netlify/functions/sync-tiktok"
+  status = 200
+
 [functions]
   external_node_modules = ["node-fetch"]
 
@@ -67,6 +93,9 @@
   timeout = 26
 
 [functions."sync-instagram"]
+  timeout = 26
+
+[functions."sync-tiktok"]
   timeout = 26
 
 [[headers]]
