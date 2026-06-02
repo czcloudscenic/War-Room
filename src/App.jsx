@@ -70,6 +70,48 @@ function App() {
     const email = (s?.user?.email || "").toLowerCase();
     console.log("[auth] setupSession start", { email, userId: s?.user?.id });
 
+    // ── HEALTH CHECK ─────────────────────────────────────────────────────────
+    // After supabase-js says the session is valid, verify the token actually
+    // works server-side by hitting /auth/v1/user (sb.auth.getUser). The recurring
+    // "page down after deploy" pattern was: localStorage held a token that
+    // supabase-js trusted (so onAuthStateChange + getSession both fired SIGNED_IN)
+    // but the server had since rotated/invalidated it. Queries silently returned
+    // 401/403, the UI rendered empty, and the user had to nuke localStorage by
+    // hand. This check catches that case and auto-recovers once.
+    const HEALTH_FLAG = "vantus_session_health_recovered";
+    try {
+      const { data: userData, error: userErr } = await sb.auth.getUser();
+      const healthy = !userErr && userData?.user?.id;
+      if (!healthy) {
+        const alreadyTried = (() => { try { return sessionStorage.getItem(HEALTH_FLAG); } catch { return null; } })();
+        if (alreadyTried) {
+          // Recovery already ran this tab and we're still broken. Don't loop —
+          // surface the bad state by signing out so the user lands on LoginScreen.
+          console.warn("[auth health] still unhealthy after recovery, forcing sign-out");
+          await sb.auth.signOut();
+          setSession(null); setRole(null);
+          return;
+        }
+        console.warn("[auth health] server rejected stored session — auto-recovering", { userErr });
+        try { sessionStorage.setItem(HEALTH_FLAG, "1"); } catch {}
+        try {
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && (/^sb-.*-auth-token/.test(k) || k.startsWith("supabase.auth"))) {
+              localStorage.removeItem(k);
+            }
+          }
+        } catch {}
+        location.reload();
+        return;
+      }
+      // Health check passed — clear the recovery flag so it can fire again next time
+      try { sessionStorage.removeItem(HEALTH_FLAG); } catch {}
+    } catch (e) {
+      // Network error or similar — proceed, the existing query try/catches will surface real issues
+      console.warn("[auth health] check threw, proceeding anyway", e);
+    }
+
     // Admin path: @cloudscenic.com → full agency access
     if (email.endsWith(`@${ALLOWED_DOMAIN}`)) {
       let detectedRole = ADMIN_EMAILS.includes(email) ? "admin" : "client";
