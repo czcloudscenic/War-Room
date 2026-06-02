@@ -83,6 +83,32 @@
   to = "/.netlify/functions/sync-tiktok"
   status = 200
 
+# YouTube OAuth flow (Google OAuth + YouTube Data API)
+[[redirects]]
+  from = "/api/oauth/youtube/start"
+  to = "/.netlify/functions/oauth-youtube-start"
+  status = 200
+
+[[redirects]]
+  from = "/api/oauth/youtube/callback"
+  to = "/.netlify/functions/oauth-youtube-callback"
+  status = 200
+
+[[redirects]]
+  from = "/api/oauth/youtube/deauthorize"
+  to = "/.netlify/functions/oauth-youtube-deauthorize"
+  status = 200
+
+[[redirects]]
+  from = "/api/oauth/youtube/data-deletion"
+  to = "/.netlify/functions/oauth-youtube-data-deletion"
+  status = 200
+
+[[redirects]]
+  from = "/api/sync/youtube"
+  to = "/.netlify/functions/sync-youtube"
+  status = 200
+
 [functions]
   external_node_modules = ["node-fetch"]
 
@@ -96,6 +122,9 @@
   timeout = 26
 
 [functions."sync-tiktok"]
+  timeout = 26
+
+[functions."sync-youtube"]
   timeout = 26
 
 [[headers]]
