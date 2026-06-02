@@ -4,7 +4,7 @@ import { apiFetch } from '../../services/apiFetch.js';
 
 // One row per platform. Add to PLATFORMS as we wire each integration.
 const PLATFORMS = [
-  { id: 'instagram', label: 'Instagram', dot: '#dc2743', startEndpoint: '/api/oauth/instagram/start' },
+  { id: 'instagram', label: 'Instagram', dot: '#dc2743', startEndpoint: '/api/oauth/instagram/start', syncEndpoint: '/api/sync/instagram' },
   { id: 'tiktok',    label: 'TikTok',    dot: '#ff0050', startEndpoint: null,   comingSoon: true },
   { id: 'youtube',   label: 'YouTube',   dot: '#ff0000', startEndpoint: null,   comingSoon: true },
   { id: 'linkedin',  label: 'LinkedIn',  dot: '#0a66c2', startEndpoint: null,   comingSoon: true },
@@ -87,6 +87,28 @@ export default function ConnectedAccountsCard({ S }) {
     }
   };
 
+  const syncNow = async (accountId, platform) => {
+    const def = PLATFORMS.find(p => p.id === platform);
+    if (!def?.syncEndpoint) return;
+    setBusy(b => ({ ...b, [`${platform}_sync`]: true }));
+    setToast(null);
+    try {
+      const res = await apiFetch(def.syncEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || `sync returned ${res.status}`);
+      setToast({ ok: true, msg: `✅ Synced ${data.synced} ${platform} posts` });
+      load();
+    } catch (e) {
+      setToast({ ok: false, msg: `Sync failed: ${e.message}` });
+    } finally {
+      setBusy(b => ({ ...b, [`${platform}_sync`]: false }));
+    }
+  };
+
   return (
     <div style={S.card}>
       <h3 style={S.cardTitle}>Connected Accounts</h3>
@@ -162,17 +184,32 @@ export default function ConnectedAccountsCard({ S }) {
                   {isBusy ? 'Opening…' : 'Connect'}
                 </button>
               ) : (
-                <button
-                  onClick={() => disconnect(linked[0].id, p.id)}
-                  disabled={isBusy}
-                  style={{
-                    fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.55)',
-                    background: 'transparent', border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: 8, padding: '6px 12px', cursor: isBusy ? 'default' : 'pointer',
-                    opacity: isBusy ? 0.5 : 1, fontFamily: 'Inter, sans-serif',
-                  }}>
-                  {isBusy ? '…' : 'Disconnect'}
-                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {p.syncEndpoint && (
+                    <button
+                      onClick={() => syncNow(linked[0].id, p.id)}
+                      disabled={!!busy[`${p.id}_sync`]}
+                      style={{
+                        fontSize: 11, fontWeight: 600, color: '#fff',
+                        background: '#2AABFF', border: 'none', borderRadius: 8,
+                        padding: '6px 12px', cursor: busy[`${p.id}_sync`] ? 'default' : 'pointer',
+                        opacity: busy[`${p.id}_sync`] ? 0.5 : 1, fontFamily: 'Inter, sans-serif',
+                      }}>
+                      {busy[`${p.id}_sync`] ? 'Syncing…' : 'Sync now'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => disconnect(linked[0].id, p.id)}
+                    disabled={isBusy}
+                    style={{
+                      fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.55)',
+                      background: 'transparent', border: '1px solid rgba(255,255,255,0.12)',
+                      borderRadius: 8, padding: '6px 12px', cursor: isBusy ? 'default' : 'pointer',
+                      opacity: isBusy ? 0.5 : 1, fontFamily: 'Inter, sans-serif',
+                    }}>
+                    {isBusy ? '…' : 'Disconnect'}
+                  </button>
+                </div>
               )}
             </div>
           );

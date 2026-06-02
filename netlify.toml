@@ -52,6 +52,11 @@
   to = "/.netlify/functions/oauth-instagram-data-deletion"
   status = 200
 
+[[redirects]]
+  from = "/api/sync/instagram"
+  to = "/.netlify/functions/sync-instagram"
+  status = 200
+
 [functions]
   external_node_modules = ["node-fetch"]
 
@@ -59,6 +64,9 @@
   timeout = 26
 
 [functions."apify-scrape"]
+  timeout = 26
+
+[functions."sync-instagram"]
   timeout = 26
 
 [[headers]]
