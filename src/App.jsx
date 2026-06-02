@@ -35,6 +35,7 @@ import AddClientModal from './ui/clients/AddClientModal.jsx';
 import DashboardRoute from './ui/routes/DashboardRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
+import InsightsRoute from './ui/routes/InsightsRoute.jsx';
 
 //  ROOT APP WRAPPER
 const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
@@ -485,6 +486,10 @@ return () => sb.removeChannel(channel);
     if (!sb) return;
     let cancelled = false;
     (async () => {
+      // Wait for supabase-js to finish restoring auth from localStorage before
+      // querying. Without this, the fetch can race the auth restore on hard
+      // refresh / new deploy → RLS returns empty → "No clients yet".
+      await sb.auth.getSession();
       const { data, error } = await sb
         .from("clients")
         .select("id, slug, name, brand_voice_md, brand_color, logo_url, primary_email, slack_channel_id, n8n_webhook_url, status")
@@ -1246,6 +1251,7 @@ try {
       />
     )}
 
+    {activeNav === "insights" && <InsightsRoute />}
     {activeNav === "cid" && React.createElement(CIDPage, null)}
     {activeNav === "icp" && <ICPPage />}
     {(activeNav === "sales" || activeNav === "adroihub") && <AdROIHub />}

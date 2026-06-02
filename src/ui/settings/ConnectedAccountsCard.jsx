@@ -19,6 +19,10 @@ export default function ConnectedAccountsCard({ S }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      // Wait for supabase-js to finish restoring auth before querying.
+      // Without this, the fetch on mount can race the auth restore →
+      // RLS returns empty → "Not connected" even when account exists.
+      await sb.auth.getSession();
       const { data, error } = await sb
         .from('connected_accounts')
         .select('id,platform,handle,display_name,avatar_url,fetched_at,meta,created_at')
