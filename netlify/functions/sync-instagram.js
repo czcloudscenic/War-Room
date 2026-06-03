@@ -9,6 +9,7 @@
 // We don't expose tokens — they're read service-side from connected_account_tokens.
 
 const { requireUser, unauthorized, cors: makeCors } = require("./_lib/requireUser");
+const { rateLimit, tooManyRequests } = require("./_lib/rateLimit");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -16,6 +17,8 @@ const REST = `${SUPABASE_URL}/rest/v1`;
 
 const MEDIA_LIMIT = 30;          // most recent N posts per sync
 const INSIGHTS_TIMEOUT_MS = 8000; // bail out per-media if Meta is slow
+const SYNC_INSTAGRAM_RATE_LIMIT_MAX = 10;
+const SYNC_INSTAGRAM_RATE_LIMIT_WINDOW_MS = 60_000;
 
 function sb() {
   return {
@@ -114,6 +117,9 @@ exports.handler = async (event) => {
 
   const auth = await requireUser(event);
   if (!auth.ok) return unauthorized(auth.reason, event);
+
+  const rl = rateLimit("sync-instagram:" + auth.user.id, SYNC_INSTAGRAM_RATE_LIMIT_MAX, SYNC_INSTAGRAM_RATE_LIMIT_WINDOW_MS);
+  if (!rl.ok) return tooManyRequests(rl.retryAfter, cors);
 
   let payload = {};
   try { payload = JSON.parse(event.body || "{}"); } catch {}
