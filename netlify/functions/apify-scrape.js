@@ -6,6 +6,10 @@
 // Requires a valid @cloudscenic.com Supabase session (Authorization: Bearer <access_token>).
 
 const { requireUser, unauthorized, cors } = require("./_lib/requireUser");
+const { rateLimit, tooManyRequests } = require("./_lib/rateLimit");
+
+const APIFY_SCRAPE_RATE_LIMIT_MAX = 20;
+const APIFY_SCRAPE_RATE_LIMIT_WINDOW_MS = 60_000;
 
 exports.handler = async (event) => {
   const headers = cors(event);
@@ -15,6 +19,9 @@ exports.handler = async (event) => {
 
   const auth = await requireUser(event);
   if (!auth.ok) return unauthorized(auth.reason, event);
+
+  const rl = rateLimit("apify-scrape:" + auth.user.id, APIFY_SCRAPE_RATE_LIMIT_MAX, APIFY_SCRAPE_RATE_LIMIT_WINDOW_MS);
+  if (!rl.ok) return tooManyRequests(rl.retryAfter, headers);
 
   const APIFY_TOKEN = process.env.APIFY_API_TOKEN;
   if (!APIFY_TOKEN) return { statusCode: 500, headers, body: JSON.stringify({ error: "APIFY_API_TOKEN not configured" }) };
