@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { sb } from '../../services/supabaseClient.js';
+import { apiFetch } from '../../services/apiFetch.js';
 
 // Visual language carried from Cloud Scenic OS analytics page:
 // gold accent stat cards, purple area chart, dark gradient cards.
@@ -87,6 +88,9 @@ export default function AnalyticsRoute() {
   const [loading, setLoading] = useState(true);
   const [syncBusy, setSyncBusy] = useState({});
   const [error, setError] = useState(null);
+  const [insights, setInsights] = useState(null);   // { instagram: { patterns, sampleSize, ... }, ... }
+  const [reasons, setReasons] = useState({});        // { <post_id>: "why it won" }
+  const [analyzing, setAnalyzing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -155,6 +159,28 @@ export default function AnalyticsRoute() {
       setError(e.message || 'Sync failed');
     } finally {
       setSyncBusy({});
+    }
+  };
+
+  // Ask Scrappy why the top content outperformed — per-post reasons + patterns
+  const runAnalysis = async () => {
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const client_id = localStorage.getItem('vantus_current_client_id') || null;
+      const res = await apiFetch('/api/agent-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'scrappy_analyze_performance', client_id, payload: {} }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Analysis failed');
+      setInsights(data.insights || {});
+      setReasons(data.reasons || {});
+    } catch (e) {
+      setError(e.message || 'Analysis failed');
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -350,6 +376,19 @@ export default function AnalyticsRoute() {
               );
             })}
           </div>
+          <button onClick={runAnalysis} disabled={analyzing || !posts.length}
+            style={{
+              background: analyzing ? 'rgba(167,139,250,0.18)' : 'rgba(167,139,250,0.12)',
+              border: '1px solid rgba(167,139,250,0.35)', borderRadius: 8,
+              padding: '7px 16px', fontSize: 12, color: '#c4b5fd', cursor: (analyzing || !posts.length) ? 'default' : 'pointer',
+              fontFamily: 'Inter, sans-serif', fontWeight: 600,
+              opacity: (analyzing || !posts.length) ? 0.5 : 1,
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+            {analyzing
+              ? <><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#c4b5fd', display: 'inline-block', animation: 'livePulse 1s infinite' }} /> Analyzing…</>
+              : '✨ Why these won'}
+          </button>
           <button onClick={syncAll} disabled={Object.values(syncBusy).some(Boolean)}
             style={{
               background: BLUE_BG, border: `1px solid ${BLUE_BORDER}`, borderRadius: 8,
@@ -459,6 +498,47 @@ export default function AnalyticsRoute() {
         </div>
       </div>
 
+      {/* PERFORMANCE INSIGHTS — why the top content wins (per platform) */}
+      {insights && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: -0.2 }}>Performance Insights</div>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: "'Geist Mono', monospace" }}>Why your top content wins</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+            {Object.entries(insights).map(([plat, ins]) => {
+              const meta = PLATFORM_META[plat] || { label: plat, dot: '#c4b5fd' };
+              return (
+                <div key={plat} style={{
+                  background: 'linear-gradient(135deg,#100e16 0%,#0b0a10 100%)',
+                  border: '1px solid rgba(167,139,250,0.18)', borderRadius: 14, padding: 18,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 4, background: meta.dot }} />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{meta.label}</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: "'Geist Mono', monospace", marginLeft: 'auto' }}>{ins.sampleSize} posts</span>
+                  </div>
+                  {ins.insufficient ? (
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Need at least 3 synced posts to analyze this platform.</div>
+                  ) : ins.patterns?.length ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+                      {ins.patterns.map((pat, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 9, fontSize: 12.5, color: 'rgba(255,255,255,0.82)', lineHeight: 1.5 }}>
+                          <span style={{ color: '#c4b5fd', flexShrink: 0, fontWeight: 700 }}>›</span>
+                          <span>{pat}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>No clear patterns surfaced — try again after more posts sync.</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* TOP PERFORMERS */}
       {topPerformers.length > 0 && (
         <div style={{ marginBottom: 24 }}>
@@ -513,6 +593,14 @@ export default function AnalyticsRoute() {
                       <span style={{ fontSize: 14, color: '#7DD3FC', fontWeight: 700 }}>{fmtRate(p.metrics?.engagement_rate)}</span>
                       <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>{fmtNumber(p.metrics?.reach)} reach</span>
                     </div>
+                    {reasons[p.id] && (
+                      <div style={{
+                        marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)',
+                        fontSize: 12.5, color: 'rgba(196,181,253,0.92)', lineHeight: 1.5,
+                      }}>
+                        <span style={{ fontWeight: 700, color: '#c4b5fd' }}>Why it won — </span>{reasons[p.id]}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

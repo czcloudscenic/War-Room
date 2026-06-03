@@ -1065,6 +1065,104 @@ Return ONLY the JSON array. Vary the 5 ideas across different pillars and format
   };
 }
 
+// ── Performance "why" analysis ────────────────────────────────────────────────
+// Reads synced account_posts, compares each platform's top performers against
+// that platform's baseline, and asks Claude to explain WHY the winners won —
+// per-post reasons + aggregate patterns. Per-platform, because the drivers
+// differ (a YouTube thumbnail/title game ≠ an Instagram hook game).
+function _median(nums) {
+  const a = nums.filter(n => typeof n === "number" && !isNaN(n)).sort((x, y) => x - y);
+  if (!a.length) return 0;
+  const mid = Math.floor(a.length / 2);
+  return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
+}
+function _engagementScore(m) {
+  if (!m) return 0;
+  if (typeof m.engagement_rate === "number") return m.engagement_rate;
+  const eng = (m.likes || 0) + (m.comments || 0) + (m.shares || 0) + (m.saved || 0);
+  const base = m.reach || m.views || 0;
+  return base > 0 ? eng / base : eng;
+}
+
+async function scrappy_analyze_performance(payload = {}, brand) {
+  const [accounts, posts] = await Promise.all([
+    sbGet("connected_accounts", "?select=id,platform,handle"),
+    sbGet("account_posts", "?select=id,account_id,posted_at,media_type,caption,metrics&order=posted_at.desc&limit=500"),
+  ]);
+  const platformOf = {};
+  for (const a of accounts) platformOf[a.id] = a.platform;
+
+  const byPlatform = {};
+  for (const p of posts) {
+    const plat = platformOf[p.account_id];
+    if (!plat) continue;
+    (byPlatform[plat] ||= []).push(p);
+  }
+
+  const PLATFORM_LABEL = { instagram: "Instagram", tiktok: "TikTok", youtube: "YouTube", linkedin: "LinkedIn" };
+  const insights = {};
+  const reasons = {};
+  let analyzedCount = 0;
+
+  await Promise.all(Object.entries(byPlatform).map(async ([plat, plist]) => {
+    if (plist.length < 3) {
+      insights[plat] = { insufficient: true, sampleSize: plist.length, patterns: [] };
+      return;
+    }
+    const scored = plist.map(p => ({ ...p, _score: _engagementScore(p.metrics) }));
+    const baseline = _median(scored.map(s => s._score));
+    const top = [...scored].sort((a, b) => b._score - a._score).slice(0, 6);
+
+    const digest = top.map(p => {
+      const m = p.metrics || {};
+      const er = typeof m.engagement_rate === "number" ? (m.engagement_rate * 100).toFixed(1) + "%" : "n/a";
+      const headline = m.reach != null ? `${m.reach} reach` : m.views != null ? `${m.views} views` : "—";
+      return `[${p.id}] ${p.media_type || "post"} · ER ${er} · ${headline} · ${m.likes ?? 0} likes / ${m.comments ?? 0} comments\n  caption: ${(p.caption || "(no caption)").slice(0, 160).replace(/\s+/g, " ")}`;
+    }).join("\n\n");
+
+    const label = PLATFORM_LABEL[plat] || plat;
+    const system = `You are Scrappy, ${brand.name || "the brand"}'s performance analyst. You explain WHY social content wins — concretely and specifically, never with generic advice.
+${brand.voice ? "Brand voice context:\n" + brand.voice + "\n" : ""}You are analyzing ${label}. The platform median engagement rate is ${(baseline * 100).toFixed(1)}%. The posts below are the top performers — each beat that baseline.`;
+
+    const user = `Top ${label} posts:\n\n${digest}\n\nReturn ONLY JSON (no markdown, no backticks):
+{
+  "patterns": ["3-5 concrete patterns separating these winners from average posts — name the specific hook style, format, topic, length, posting cadence, or CTA you actually see"],
+  "posts": [{ "id": "the number inside the [brackets]", "reason": "one specific sentence: why THIS post beat the rest, citing the concrete lever (hook, format, topic, length, timing, CTA)" }]
+}
+Include one posts entry per top post above. Reference what's actually in the captions/metrics — no boilerplate.`;
+
+    let parsed = { patterns: [], posts: [] };
+    try {
+      const raw = await ai(system, user, 1400);
+      const m = raw.match(/\{[\s\S]*\}/);
+      if (m) parsed = JSON.parse(m[0]);
+    } catch (e) {
+      parsed = { patterns: [], posts: [] };
+    }
+    for (const pr of (parsed.posts || [])) {
+      if (pr && pr.id != null && pr.reason) reasons[String(pr.id)] = String(pr.reason);
+    }
+    insights[plat] = {
+      sampleSize: plist.length,
+      baselineEngagementRate: baseline,
+      patterns: Array.isArray(parsed.patterns) ? parsed.patterns.slice(0, 5) : [],
+    };
+    analyzedCount += top.length;
+  }));
+
+  const analyzed = Object.keys(insights).filter(p => !insights[p].insufficient);
+  return {
+    success: true,
+    agent: "Scrappy",
+    action: "scrappy_analyze_performance",
+    insights,
+    reasons,
+    message: analyzed.length
+      ? `📊 Scrappy analyzed ${analyzedCount} top posts across ${analyzed.map(p => PLATFORM_LABEL[p] || p).join(", ")}`
+      : "Not enough synced posts to analyze yet — sync more content first.",
+  };
+}
+
 exports.handler = async (event) => {
   const cors = makeCors(event);
 
@@ -1111,6 +1209,7 @@ exports.handler = async (event) => {
       case "cid_build_brief":        result = await cid_build_brief(payload, brand); break;
       case "cid_ab_variations":      result = await cid_ab_variations(payload, brand); break;
       case "muse_ig_ideas":          result = await muse_ig_ideas(payload, brand); break;
+      case "scrappy_analyze_performance": result = await scrappy_analyze_performance(payload, brand); break;
       default:
         await logAgentEvent({
           agent_name: "Unknown",
