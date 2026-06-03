@@ -1,5 +1,6 @@
 import React from 'react';
 import { apiFetch } from '../../services/apiFetch.js';
+import { sb } from '../../services/supabaseClient.js';
 import ReactDOM from 'react-dom';
 
 export default function CIDPage() {
@@ -365,7 +366,6 @@ setPerfSaved(false);
               if (!briefData) return;
               try {
                 const item = {
-                  id: Date.now(),
                   title: briefData.title,
                   format: briefData.format,
                   platform: briefData.platform?.toLowerCase() || "instagram",
@@ -378,16 +378,8 @@ setPerfSaved(false);
                   script: [briefData.hook?.voice, briefData.body?.voice, briefData.cta?.voice].filter(Boolean).join("\n\n"),
                   notes: `Shot list: ${(briefData.shot_list||[]).join(' | ')} | Music: ${briefData.music} | Editing: ${briefData.editing_notes}`,
                 };
-                await fetch(SUPABASE_URL + "/rest/v1/content_items", {
-                  method: "POST",
-                  headers: {
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": "Bearer " + SUPABASE_KEY,
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal"
-                  },
-                  body: JSON.stringify(item)
-                });
+                const { error } = await sb.from("content_items").insert(item);
+                if (error) throw error;
                 alert(" Added to Content Tracker!");
               } catch(e) { alert("Error: " + e.message); }
             }} style={{ width:"100%", padding:"14px", background:"rgba(48,209,88,0.1)", color:"#2AABFF", border:"2px solid rgba(48,209,88,0.3)", borderRadius:14, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
@@ -439,15 +431,9 @@ setPerfSaved(false);
           style={{ width:"100%", padding:"8px 10px", borderRadius:8, border:"1px solid rgba(255,255,255,0.08)", fontSize:12, fontFamily:"Inter, sans-serif", boxSizing:"border-box", outline:"none", marginBottom:10 }} />
         <button onClick={async () => {
           try {
-            await fetch(SUPABASE_URL + "/rest/v1/cid_performance", {
-              method: "POST",
-              headers: {
-                "apikey": SUPABASE_KEY,
-                "Authorization": "Bearer " + SUPABASE_KEY,
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal"
-              },
-              body: JSON.stringify({
+            const { error } = await sb
+              .from("cid_performance")
+              .insert({
                 content_title: variationView?.title,
                 variation: variationView?.variation,
                 predicted_score: briefData?.predicted_score || null,
@@ -455,8 +441,8 @@ setPerfSaved(false);
                 actual_engagement: perfLog.engagement,
                 actual_saves: perfLog.saves,
                 notes: perfLog.notes,
-              })
-            });
+              });
+            if (error) throw error;
             setPerfSaved(true);
           } catch(e) { console.error(e); }
         }} style={{ padding:"10px 20px", background:"#1d1d1f", color:"#fff", border:"none", borderRadius:10, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif" }}>
