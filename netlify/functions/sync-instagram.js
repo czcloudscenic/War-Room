@@ -17,6 +17,7 @@ const REST = `${SUPABASE_URL}/rest/v1`;
 
 const MEDIA_LIMIT = 30;          // most recent N posts per sync
 const INSIGHTS_TIMEOUT_MS = 8000; // bail out per-media if Meta is slow
+const INSIGHTS_CONCURRENCY = 5;
 const SYNC_INSTAGRAM_RATE_LIMIT_MAX = 10;
 const SYNC_INSTAGRAM_RATE_LIMIT_WINDOW_MS = 60_000;
 
@@ -59,11 +60,11 @@ async function sbUpsertPosts(rows) {
 
 // ── Meta Graph API helpers ──────────────────────────────────────────────────
 
-async function graphGet(path, accessToken, extraParams = {}) {
+async function graphGet(path, accessToken, extraParams = {}, fetchOptions = {}) {
   const url = new URL(`https://graph.instagram.com${path}`);
   for (const [k, v] of Object.entries(extraParams)) url.searchParams.set(k, v);
   url.searchParams.set("access_token", accessToken);
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), fetchOptions);
   const data = await res.json();
   if (!res.ok) {
     const code = data?.error?.code;
@@ -90,9 +91,11 @@ function metricsForType(mediaType) {
 }
 
 async function fetchInsights(mediaId, mediaType, accessToken) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), INSIGHTS_TIMEOUT_MS);
   try {
     const metrics = metricsForType(mediaType).join(",");
-    const data = await graphGet(`/${mediaId}/insights`, accessToken, { metric: metrics });
+    const data = await graphGet(`/${mediaId}/insights`, accessToken, { metric: metrics }, { signal: controller.signal });
     const out = {};
     for (const m of data.data || []) {
       // Meta returns shape: { name, period, values: [{ value, end_time }] }
@@ -103,7 +106,22 @@ async function fetchInsights(mediaId, mediaType, accessToken) {
   } catch (e) {
     console.warn(`[sync-ig] insights failed for ${mediaId} (${mediaType}):`, e.message);
     return {};
+  } finally {
+    clearTimeout(timeout);
   }
+}
+
+async function mapWithConcurrency(items, limit, mapper) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await mapper(items[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 // ── Handler ─────────────────────────────────────────────────────────────────
@@ -199,8 +217,7 @@ exports.handler = async (event) => {
   }
 
   // 4. Per-media insights, then build upsert rows
-  const rows = [];
-  for (const m of mediaList) {
+  const rows = await mapWithConcurrency(mediaList, INSIGHTS_CONCURRENCY, async (m) => {
     const insights = await fetchInsights(m.id, m.media_type, token);
     const metrics = {
       reach: insights.reach ?? null,
@@ -217,7 +234,7 @@ exports.handler = async (event) => {
       metrics.engagement_rate = +(interactions / metrics.reach).toFixed(4);
     }
 
-    rows.push({
+    return {
       account_id: accountId,
       platform_post_id: String(m.id),
       posted_at: m.timestamp || null,
@@ -228,8 +245,8 @@ exports.handler = async (event) => {
       metrics,
       raw: m,
       fetched_at: new Date().toISOString(),
-    });
-  }
+    };
+  });
 
   // 5. Upsert
   try {
