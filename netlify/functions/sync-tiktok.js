@@ -9,6 +9,7 @@
 // We don't expose tokens — they're read service-side from connected_account_tokens.
 
 const { requireUser, unauthorized, cors: makeCors } = require("./_lib/requireUser");
+const { rateLimit, tooManyRequests } = require("./_lib/rateLimit");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -18,6 +19,8 @@ const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY;
 const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET;
 
 const VIDEO_LIMIT = 20;
+const SYNC_TIKTOK_RATE_LIMIT_MAX = 10;
+const SYNC_TIKTOK_RATE_LIMIT_WINDOW_MS = 60_000;
 
 function sb() {
   return {
@@ -129,6 +132,9 @@ exports.handler = async (event) => {
 
   const auth = await requireUser(event);
   if (!auth.ok) return unauthorized(auth.reason, event);
+
+  const rl = rateLimit("sync-tiktok:" + auth.user.id, SYNC_TIKTOK_RATE_LIMIT_MAX, SYNC_TIKTOK_RATE_LIMIT_WINDOW_MS);
+  if (!rl.ok) return tooManyRequests(rl.retryAfter, cors);
 
   let payload = {};
   try { payload = JSON.parse(event.body || "{}"); } catch {}
