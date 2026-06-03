@@ -121,7 +121,7 @@ exports.handler = async (event) => {
       accessToken: token.access_token,
       refreshToken: token.refresh_token || null,
       expiresAt: token.expires_in ? new Date(Date.now() + Number(token.expires_in) * 1000).toISOString() : null,
-      scopes: "user.info.basic,user.info.profile,user.info.stats,video.list",
+      scopes: "user.info.profile,user.info.stats,video.list",
     });
   } catch (e) {
     console.error("[oauth-tiktok-callback] storage failed", e);

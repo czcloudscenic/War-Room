@@ -10,8 +10,11 @@ const { createOAuthState } = require("./_lib/oauth");
 const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY;
 const TIKTOK_REDIRECT_URI = process.env.TIKTOK_REDIRECT_URI;
 
+// TikTok deprecated user.info.basic in their V2 scope catalog — its fields
+// (username + avatar + display_name) rolled into user.info.profile. Dropping
+// the dead scope here so TikTok doesn't reject the OAuth request with
+// invalid_scope. The TT app dashboard only shows the 3 below as available.
 const TIKTOK_SCOPES = [
-  "user.info.basic",
   "user.info.profile",
   "user.info.stats",
   "video.list",
