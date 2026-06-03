@@ -21,6 +21,16 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
 const NOTIFY_RATE_LIMIT_MAX = 20;
 const NOTIFY_RATE_LIMIT_WINDOW_MS = 60_000;
 
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  }[ch]));
+}
+
 // CORS headers are built per-request from event.origin (tightened 2026-05-26 sweep).
 // We compose them inside the handler so each response respects the calling origin
 // against the allowlist in _lib/requireUser.js.
@@ -121,12 +131,19 @@ exports.handler = async (event) => {
   const brandLabel = clientName ? `Cloud Scenic × ${clientName}` : "Vantus";
   const footerLabel = clientName ? `${clientName} Vantus` : "Vantus";
   const fromLabel = clientName ? `${clientName} Vantus` : "Vantus";
+  const safeBrandLabel = escapeHtml(brandLabel);
+  const safeFooterLabel = escapeHtml(footerLabel);
+  const safeTitle = escapeHtml(item.title);
+  const safeCampaign = escapeHtml(item.campaign || "—");
+  const safePlatform = escapeHtml(item.platform || "—");
+  const safePillar = escapeHtml(item.pillar || "—");
+  const safeClientNote = escapeHtml(item.client_note || "");
 
   // ── EMAIL VIA RESEND ────────────────────────────────────────────────────────
   const RESEND_KEY = process.env.RESEND_API_KEY;
   if (RESEND_KEY) {
     const clientNoteHtml = item.client_note
-      ? `<div style="margin-top:16px;padding:14px 16px;background:#fff3f3;border-left:3px solid #ff453a;border-radius:6px;font-size:13px;color:#cc0000;font-style:italic;">"${item.client_note}"</div>`
+      ? `<div style="margin-top:16px;padding:14px 16px;background:#fff3f3;border-left:3px solid #ff453a;border-radius:6px;font-size:13px;color:#cc0000;font-style:italic;">"${safeClientNote}"</div>`
       : "";
 
     const html = `
@@ -136,20 +153,20 @@ exports.handler = async (event) => {
 <body style="margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,Inter,sans-serif;">
   <div style="max-width:520px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
     <div style="background:${isApproved ? "linear-gradient(135deg,#0d2018,#0d4028)" : "linear-gradient(135deg,#1a0d00,#2e1a00)"};padding:32px 32px 28px;">
-      <div style="font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;">${brandLabel}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;">${safeBrandLabel}</div>
       <div style="font-size:28px;font-weight:700;color:#fff;letter-spacing:-1px;line-height:1.1;">${emoji} ${isApproved ? "Content Approved" : "Revisions Requested"}</div>
     </div>
     <div style="padding:28px 32px;">
       <table style="width:100%;border-collapse:collapse;">
-        <tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;width:90px;">Title</td><td style="padding:8px 0;font-size:14px;font-weight:600;color:#1d1d1f;">${item.title}</td></tr>
-        <tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;">Campaign</td><td style="padding:8px 0;font-size:13px;color:rgba(0,0,0,0.65);">${item.campaign || "—"}</td></tr>
-        <tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;">Platform</td><td style="padding:8px 0;font-size:13px;color:rgba(0,0,0,0.65);">${item.platform || "—"}</td></tr>
-        <tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;">Pillar</td><td style="padding:8px 0;font-size:13px;color:rgba(0,0,0,0.65);">${item.pillar || "—"}</td></tr>
+        <tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;width:90px;">Title</td><td style="padding:8px 0;font-size:14px;font-weight:600;color:#1d1d1f;">${safeTitle}</td></tr>
+        <tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;">Campaign</td><td style="padding:8px 0;font-size:13px;color:rgba(0,0,0,0.65);">${safeCampaign}</td></tr>
+        <tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;">Platform</td><td style="padding:8px 0;font-size:13px;color:rgba(0,0,0,0.65);">${safePlatform}</td></tr>
+        <tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;">Pillar</td><td style="padding:8px 0;font-size:13px;color:rgba(0,0,0,0.65);">${safePillar}</td></tr>
         <tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;">Status</td><td style="padding:8px 0;"><span style="font-size:11px;font-weight:700;color:${isApproved ? "#30d158" : "#ff9f0a"};background:${isApproved ? "rgba(48,209,88,0.1)" : "rgba(255,159,10,0.1)"};padding:3px 10px;border-radius:20px;">${isApproved ? "Approved" : "Needs Revisions"}</span></td></tr>
       </table>
       ${clientNoteHtml}
       <div style="margin-top:28px;padding-top:20px;border-top:1px solid rgba(0,0,0,0.07);font-size:11px;color:rgba(0,0,0,0.35);">
-        ${footerLabel} · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}
+        ${safeFooterLabel} · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}
       </div>
     </div>
   </div>
@@ -190,19 +207,19 @@ exports.handler = async (event) => {
         {
           type: "section",
           fields: [
-            { type: "mrkdwn", text: `*Title*\n${item.title}` },
+            { type: "mrkdwn", text: `*Title*\n${safeTitle}` },
             { type: "mrkdwn", text: `*Status*\n${isApproved ? "✅ Approved" : "🔄 Needs Revisions"}` },
-            { type: "mrkdwn", text: `*Campaign*\n${item.campaign || "—"}` },
-            { type: "mrkdwn", text: `*Platform*\n${item.platform || "—"}` },
+            { type: "mrkdwn", text: `*Campaign*\n${safeCampaign}` },
+            { type: "mrkdwn", text: `*Platform*\n${safePlatform}` },
           ]
         },
         ...(item.client_note ? [{
           type: "section",
-          text: { type: "mrkdwn", text: `*Client Note*\n_"${item.client_note}"_` }
+          text: { type: "mrkdwn", text: `*Client Note*\n_"${safeClientNote}"_` }
         }] : []),
         {
           type: "context",
-          elements: [{ type: "mrkdwn", text: `${footerLabel} · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}` }]
+          elements: [{ type: "mrkdwn", text: `${safeFooterLabel} · ${new Date().toLocaleString("en-US", { weekday:"long", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" })}` }]
         }
       ]
     };
