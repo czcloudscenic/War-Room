@@ -39,18 +39,27 @@ export default function ConnectedAccountsCard({ S }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Read ?ig_connected=1 / ?ig_oauth_error=... from URL on mount (callback redirect)
+  // Read ?<platform>_connected=1 / ?<platform>_oauth_error=... from URL on mount
+  // (callback redirect). Each platform's callback uses its own param prefix —
+  // instagram→ig_, tiktok→tiktok_, youtube→youtube_.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('ig_connected') === '1') {
-      setToast({ ok: true, msg: '✅ Instagram connected' });
-      // Clean up the URL
-      window.history.replaceState({}, '', window.location.pathname);
-      load();
-    } else if (params.get('ig_oauth_error')) {
-      const reason = params.get('ig_oauth_error');
-      setToast({ ok: false, msg: `❌ Instagram connect failed: ${reason}` });
-      window.history.replaceState({}, '', window.location.pathname);
+    const PARAM_PREFIX = { instagram: 'ig', tiktok: 'tiktok', youtube: 'youtube' };
+    for (const p of PLATFORMS) {
+      const prefix = PARAM_PREFIX[p.id];
+      if (!prefix) continue;
+      if (params.get(`${prefix}_connected`) === '1') {
+        setToast({ ok: true, msg: `✅ ${p.label} connected` });
+        window.history.replaceState({}, '', window.location.pathname);
+        load();
+        return;
+      }
+      const err = params.get(`${prefix}_oauth_error`);
+      if (err) {
+        setToast({ ok: false, msg: `❌ ${p.label} connect failed: ${err}` });
+        window.history.replaceState({}, '', window.location.pathname);
+        return;
+      }
     }
   }, [load]);
 

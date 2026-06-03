@@ -482,7 +482,7 @@ export default function AnalyticsRoute() {
                     cursor: p.permalink ? 'pointer' : 'default',
                   }}>
                   <div style={{
-                    width: '100%', aspectRatio: '1 / 1',
+                    width: '100%', aspectRatio: platform === 'youtube' ? '16 / 9' : platform === 'tiktok' ? '9 / 16' : '1 / 1',
                     background: '#1a1a1a', position: 'relative', overflow: 'hidden',
                   }}>
                     {p.thumbnail_url && (
