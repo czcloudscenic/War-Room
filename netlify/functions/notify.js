@@ -8,6 +8,7 @@
 // requireUser allows @cloudscenic.com admins OR approved client_users.
 
 const { requireUser, unauthorized, cors: makeCors } = require("./_lib/requireUser");
+const { rateLimit, tooManyRequests } = require("./_lib/rateLimit");
 
 const ADMIN_EMAILS = [
   "cz@cloudscenic.com",
@@ -17,6 +18,8 @@ const ADMIN_EMAILS = [
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
+const NOTIFY_RATE_LIMIT_MAX = 20;
+const NOTIFY_RATE_LIMIT_WINDOW_MS = 60_000;
 
 // CORS headers are built per-request from event.origin (tightened 2026-05-26 sweep).
 // We compose them inside the handler so each response respects the calling origin
@@ -60,6 +63,9 @@ exports.handler = async (event) => {
 
   const auth = await requireUser(event);
   if (!auth.ok) return unauthorized(auth.reason, event);
+
+  const rl = rateLimit("notify:" + auth.user.id, NOTIFY_RATE_LIMIT_MAX, NOTIFY_RATE_LIMIT_WINDOW_MS);
+  if (!rl.ok) return tooManyRequests(rl.retryAfter, cors);
 
   let body;
   try { body = JSON.parse(event.body); } catch { return { statusCode: 400, headers: cors, body: "Bad JSON" }; }
