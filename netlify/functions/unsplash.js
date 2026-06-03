@@ -3,6 +3,10 @@
 // Requires a valid @cloudscenic.com Supabase session (Authorization: Bearer <access_token>).
 
 const { requireUser, unauthorized, cors } = require("./_lib/requireUser");
+const { rateLimit, tooManyRequests } = require("./_lib/rateLimit");
+
+const UNSPLASH_RATE_LIMIT_MAX = 60;
+const UNSPLASH_RATE_LIMIT_WINDOW_MS = 60_000;
 
 exports.handler = async (event) => {
   const headers = cors(event);
@@ -12,6 +16,9 @@ exports.handler = async (event) => {
 
   const auth = await requireUser(event);
   if (!auth.ok) return unauthorized(auth.reason, event);
+
+  const rl = rateLimit("unsplash:" + auth.user.id, UNSPLASH_RATE_LIMIT_MAX, UNSPLASH_RATE_LIMIT_WINDOW_MS);
+  if (!rl.ok) return tooManyRequests(rl.retryAfter, headers);
 
   const UNSPLASH_KEY = process.env.UNSPLASH_ACCESS_KEY;
   if (!UNSPLASH_KEY) {
