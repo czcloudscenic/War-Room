@@ -1,80 +1,82 @@
 # Known Bugs & Risks
 
-Ranked by severity. Each entry cites the file (and line when possible) where the issue lives.
+> Regenerated 2026-06-03. Every entry cites `file:line`. Cross-references numbered fixes in [roadmap.md](roadmap.md) and checkboxes in [open-items.md](open-items.md).
 
-## ✅ Closed 2026-05-26 (Move 1 + Fix #15)
+## 🔴 HIGH
 
-| Bug | Closed by |
-|---|---|
-| agent-action.js — 12 hardcoded VitalLyfe brand prompts | `getBrandContext()` + `clients.brand_voice_md` reads per request (Move 1) |
-| memory.js — hardcoded Muse pre-seed | `seedMuseMemory()` removed entirely (zero callers) |
-| `#VitalLyfe` hashtag templates in 3 JSON schemas | Dynamic `#${brand.name}` interpolation |
-| AgentChatPage missing `currentClient` prop | `client_id` now reaches `/api/agent-action`; chat path also gets brand voice injected |
-| 9 frontend call sites on retired model IDs | `claude-sonnet-4-20250514` → `claude-sonnet-4-6` (8 sites) and `claude-3-haiku-20240307` → `claude-haiku-4-5-20251001` (1 site) |
-| supabase-js auth-lock deadlock | stuckGuard now clears `sb-*-auth-token` keys + reloads (Fix #15); one-shot `sessionStorage` flag prevents reload loops |
-| content_items had no migration file (Fix #10) | `20260526_content_items_baseline.sql` captures 25 cols + RLS |
-| content_items wide-open `"Allow all for now"` anon policy (Fix #10.1) | Scoped SELECT+UPDATE for `client_users` added; legacy policy dropped via `20260526_content_items_client_rls.sql` |
-| notify.js per-client n8n routing missing (Fix #7) | `notify.js` pulls `slack_webhook_url` + `n8n_webhook_url` together in one Supabase fetch; each falls back to global env |
-| src/agents/ 8-file dead code folder (Fix #8) | `rm -rf src/agents/` — confirmed zero importers, build passed |
-| pdfjs-dist eager-loaded bundle bloat (Fix #11) | Already shipped — `BriefGenPage.jsx:7` does `await import('pdfjs-dist')`; pdfjs lives in its own 405 KB chunk |
-| cid_library.vitallyfe_adaptation last hardcoded VL reference (Fix #3.1) | Column renamed → `client_adaptation` via `20260526_cid_library_rename_adaptation.sql`; 3 code sites updated |
-| Fix #2 — App.jsx 1,676-line monolith | Codex extracted 6 route components to `src/ui/routes/`; App.jsx down to 1,342 lines |
-| Security sweep — CORS `*`, rate limits, CSP/HSTS/Referrer-Policy | CORS allowlist via `_lib/requireUser.js cors(event)`; `_lib/rateLimit.js` wired into chat (30/min) + agent-action (60/min); `netlify.toml` adds HSTS + Referrer-Policy + Permissions-Policy + tight CSP |
-| Fix #9 — Higgsfield WIP files in inconsistent state | `HiggsfieldStudio.jsx` + `higgsfield.js` removed from working tree (closed by removal). `apps.config.js` + `constants.js` clean. Future Higgsfield ship is a fresh commit, not a recovered orphan. |
-| cid_posts table · 404 on REST probe | Closed-by-removal (2026-05-26 PM). Live SQL probe confirmed table never existed. `netlify/functions/cid-scrape.js` + `supabase/migrations/003_cid_posts.sql` deleted. Real CID data lives in `cid_library` + `cid_performance` (both RLS-on). `CID_BEARER_TOKEN` env now orphaned. |
-| Email/password auth still enabled (Cloudai25% leak in git history) | Email provider disabled in Supabase Auth → Providers. Leaked password from git history is now genuinely inert. Only Google OAuth path remains for cz/dv/ss admin sign-in. Magic-link fallback also gone (acceptable since Google is the intended path). |
+### H1 — CID write path throws `ReferenceError` (and writes via anon key)
+`src/apps/competitor-intel/CIDPage.jsx:381,442` reference `SUPABASE_URL` / `SUPABASE_KEY`, but the file only imports `apiFetch` and `ReactDOM` (`:1-3`). Clicking **"Send to Content Tracker"** or **"Log Results"** throws `ReferenceError: SUPABASE_URL is not defined` — both the content-tracker insert and the performance-log save fail (only surfaced via `alert`/`console.error`). Even if imported, the write uses the browser anon key directly instead of the user's authenticated session. → **Fix #1.**
 
-Test: Muse caption generation against VitalLyfe produces correct voice/structure verified in dev + prod 2026-05-26. Auth-lock recovery verified by manual reproduction.
+### H2 — `cid_library` has no CREATE TABLE migration
+`netlify/functions/agent-action.js:822` POSTs to `cid_library`, but the only migration referencing it (`20260526_cid_library_rename_adaptation.sql:17`) merely renames a column. The table's schema exists solely as a code comment (`agent-action.js:759-763`). Live prod has it; the repo can't recreate it. → **Fix #2.**
 
-Open leftover: `cid_library.vitallyfe_adaptation` column name (Fix #3.1).
-
-## ✅ Closed 2026-05-25 (kept for history)
-
-The full week-of-work shipped 2026-05-25. These HIGH-severity bugs all closed:
-
-| Bug | Closed by |
-|---|---|
-| App.jsx — AUTH BYPASS | Commit `8e5095e` (gate restored) + hotfix `d0acec3` (stuckGuard) + `307b64f` (dedupe setupSession) |
-| agent-action.js — no caller auth | Commit `2a9c9c1` (`_lib/requireUser.js` gate) |
-| chat.js — no caller auth | Commit `2a9c9c1` |
-| notify.js — no caller auth | Commit `2a9c9c1` |
-| apify-scrape.js — no caller auth | Commit `2a9c9c1` |
-| unsplash.js — no caller auth | Commit `2a9c9c1` |
-| google-oauth — exchange fails | Client_secret rotated in Supabase + Google Console in lockstep |
-
-MED-severity closures: `notify.js` global Slack only → per-client routing (commit `702f867`).
-
-LOW-severity closures: 5 temp anon RLS policies on `agent_events` / `notifications` / `clients` / `client-logos` bucket — all dropped (commit `852d915`, file `20260525_drop_temp_anon_policies.sql`). Replaced with admin-only via `auth.jwt()->>'email' like '%@cloudscenic.com'`.
-
-## 🔴 HIGH — fix soon
-
-_(none open as of 2026-05-26)_
+### H3 — `cid_performance` has no migration + is written from the browser
+`src/apps/competitor-intel/CIDPage.jsx:442-459` inserts using the anon key as both `apikey` and `Bearer`. For this to ever succeed live, an **unmanaged anon-writable RLS policy** must exist off-repo — an unauthenticated write surface with no schema in version control. → **Fixes #1, #2.**
 
 ---
 
-## 🟡 MED — fix when planning the next refactor
+## 🟡 MED
 
-### App.jsx · L1342 · still owns all state
-1,342 lines after the Fix #2 route split (Codex, 2026-05-26). Six route components now live in `src/ui/routes/` — they're pure presentation receiving state/setters/handlers as props. App.jsx remains the single owner of every piece of state in the app. Deeper extraction (state hooks, context providers) is the next refactor, lower urgency than the agent-action.js split.
+### M1 — "Why these won" analysis scope/ranking (operator-flagged)
+`scrappy_analyze_performance` (`agent-action.js:1087`) returns reasons for the top 6 posts per platform; `AnalyticsRoute.jsx:262` independently ranks the displayed top set by `engagement_rate`. The result: reasons surface across multiple cards and the highlighted "winner" tracks raw views rather than one consistent metric. Should be scoped to the true top performer(s) with a single agreed ranking metric shared by front and back end. → **Fix #3.**
 
-### agent-action.js · L1317 · monolith
-1,317 lines, 16 action handlers + Anthropic wrapper + Supabase helpers + Slack notifier + agent_events logger + `getBrandContext` helper + rate-limit gate all in one file. Editing one action means scrolling past walls of unrelated code. Same shape as the App.jsx split Codex just landed — perfect Codex candidate. Fix #4.
+### M2 — Rate-limit gap on credit-spending / fanout functions
+`apify-scrape.js:16`, `unsplash.js:13`, `sync-instagram.js:115`, `sync-tiktok.js:130`, `sync-youtube.js:115`, `notify.js:61` all call `requireUser` but never `rateLimit` (only `chat.js` and `agent-action.js` do). Any authenticated user — including an approved external client — can loop these freely: `apify-scrape` burns Apify credits, sync hammers paid platform APIs, notify fans out email/Slack/n8n. → **Fix #4.**
 
-### OpsBoard.jsx · tasks in memory only
-Refresh resets the board. Multi-user can't share a task list. Needs a DB table. Fix #12.
+### M3 — OAuth deauthorize/data-deletion webhooks are unverified no-ops
+All six stubs (e.g. `oauth-instagram-deauthorize.js:11`, `oauth-instagram-data-deletion.js:13`) accept any POST, verify no `signed_request` signature, and never delete tokens or account rows. A user who revokes access on the platform leaves their (plaintext) token live in `connected_account_tokens` indefinitely; data-deletion returns a fabricated confirmation code (compliance gap). → **Fix #5.**
+
+### M4 — OAuth tokens stored in plaintext
+`_lib/oauth.js:122-135` writes `access_token`/`refresh_token` unencrypted into `connected_account_tokens`; sync functions read them back raw. Combined with M3 (never deleted on revoke), this widens blast radius if the DB or service key leaks. (The table's service-role-only RLS is correct — the issue is at-rest encryption.) → **Fix #6.**
+
+### M5 — Stored/email HTML injection in notify.js
+`notify.js:138-144` interpolates `item.title`, `item.campaign`, `item.platform`, `item.pillar`, and `item.client_note` straight into the Resend email HTML with no escaping (`:123` likewise). These fields are client-editable, so a crafted `client_note` renders arbitrary HTML/links in admins' inboxes (phishing/spoof vector). → **Fix #7.**
+
+### M6 — `content_items` realtime + initial load are not client-scoped
+`App.jsx:134` (admin initial load) and `:489` (realtime subscription) pull all `content_items` with `event:"*"`; scoping happens only at render (`:807`). Every browser holds the full multi-tenant set in memory and receives realtime events for clients not on screen — fine for admins, but a leak risk if an external client role reaches the main shell (the comment at `:353` notes approved external clients now land there). → **Fix #9.**
+
+### M7 — `profiles` "Service role full access" is wide open
+`002_profiles.sql:20` is `FOR ALL USING(true)` with no role restriction, so it applies to `public`/anon too (service role already bypasses RLS and doesn't need it). → **Fix #10.**
+
+### M8 — CORS fail-open on writes for unknown origins
+`_lib/requireUser.js:26` returns a fallback origin for non-allowlisted callers but the function still executes and writes. The browser blocks the response read, but a token-bearing non-browser caller is unaffected — CORS provides no real write protection (auth + RLS are the actual gate). → **Fix #17.**
 
 ---
 
-## 🟢 LOW — track, no urgency
+## 🟢 LOW
 
-_None open as of 2026-05-26 PM. The `cid_posts` 404 was closed-by-removal (dead chain deleted — see Closed section above)._
+### L1 — `chat.js` forwards an unvalidated client body
+`chat.js:43-52` passes the parsed body straight to Anthropic with no `max_tokens` cap or model allowlist; the 30/min limit bounds call count but not per-call cost. → **Fix #8.**
 
----
+### L2 — Dead handler `muse_from_brief`
+`agent-action.js:669` is fully wired into the switch (`:1202`) but has zero frontend callers — appears only as a display label in `ActivityFeed.jsx:27`. → **Fix #11.**
 
-## Summary by node (post 2026-05-26 PM)
+### L3 — Dead components / imports
+`QuickActionsDashboard` (`App.jsx:20`), `TypingTask` (`:32`), `PlaceholderPage` (`:33`) imported but never rendered; `OPS_INIT` imported (`:12`) but unused in App. → **Fix #11.**
 
-| Node | Severity | Issue |
-|---|---|---|
-| App.jsx | MED | 1,342-line state owner (route split shipped) |
-| agent-action.js | MED | 1,317-line monolith — Fix #4 (Codex candidate) |
-| OpsBoard.jsx | MED | In-memory tasks — Fix #12 |
+### L4 — sync-instagram serial loop + unused timeout
+`sync-instagram.js:18` declares `INSIGHTS_TIMEOUT_MS=8000` but never uses it; the handler awaits up to 30 per-media insight calls **serially** (`:197`), risking the 26s function timeout for full accounts. → **Fix #12.**
+
+### L5 — stuckGuard comment/value drift
+`App.jsx:238` comment says the guard fires at 4s, but the actual timeout is 8000ms (`:269`) — anyone tuning the recovery window trusts a stale number. → **Fix #13.**
+
+### L6 — `oauth_states` has no expiry cleanup
+`20260601_connected_accounts.sql:124` sets `expires_at` but nothing deletes expired rows. → **Fix #14.**
+
+### L7 — SettingsPage toggles/invite are display-only
+`SettingsPage.jsx:154-157,297` — AI toggles + "Invite Team Member" have no persistence/backend (invite just toasts); misleading UI. → **Fix #15.**
+
+### L8 — `content_items` PK is text with no default
+`20260526_content_items_baseline.sql:25` — app-supplied string IDs, no DB generation/format constraint; drift vs UUID/bigserial tables. Combined with `CIDPage.jsx:368` using `id:Date.now()`.
+
+### L9 — VitalLyfe seeded into canonical migrations
+`20260523_clients_multitenant.sql:53` + `20260526_seed_vitallyfe_brand_voice.sql:13` hardcode one tenant's voice/email into the migration set. → **Fix #16.**
+
+### L10 — `DB_CONNECTED` hardcoded true
+`supabaseClient.js:14` — the UI's offline indicator (`App.jsx:454`) can never show. Design quirk, not a defect.
+
+### L11 — Agent-count copy inconsistency
+`TeamBroadcast.jsx:76` says "all 8 agents", `AgentChatPage.jsx:216` shows "7 Agents", `SkillsPage.jsx:44` "8 agents" — only 4 agent personas exist. → **Fix #17 (cosmetic bucket).**
+
+### L12 — `vite.config.js:12` dev proxy hardcoded
+Dev `/api` proxy points at `majestic-cassata-aa16e9.netlify.app`; renaming the site silently breaks local dev. → **Fix #16.**

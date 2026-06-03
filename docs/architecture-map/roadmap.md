@@ -1,139 +1,91 @@
 # Roadmap — Numbered Fixes
 
-Numbered punch-list. Each fix may touch multiple files/nodes; numbers cross-reference the badges in the interactive HTML map.
+> Regenerated 2026-06-03. Numbering matches the FIXES badges in `architecture-map.html` and the references in [known-bugs.md](known-bugs.md) / [open-items.md](open-items.md).
 
-## Order to attack (recommended)
+### #1 — Repair the CID write path
+**Touches:** `src/apps/competitor-intel/CIDPage.jsx:368,381,442`
+- Stop writing `content_items` / `cid_performance` with bare `SUPABASE_URL`/`SUPABASE_KEY` (undefined → ReferenceError).
+- Route both writes through `sb.from(...).insert(...)` so RLS + the user's auth token apply, OR add a service-role Netlify function and POST through `apiFetch`.
+- Drop the client-set `id: Date.now()` and let Postgres generate it.
+- **Unblocks:** the entire "Send to Content Tracker" + "Log Results" feature (currently dead on click).
 
-1. **#4** — Split agent-action.js (1,317 lines) into per-handler files. Same mechanical shape as the App.jsx split Codex just landed → ideal Codex candidate. Brief = `agent-action.js` line ranges + dirty-WIP exclusion list + CODEX_NOTES.md as the report. (Fix #9 was closed-by-removal 2026-05-26 PM — the WIP files are no longer in the tree.)
-2. **#12** — Back OpsBoard with a DB-backed `tasks` table. ~1hr; small migration + UI rewrite. Schema sketch already in this file.
-3. **#13** — Per-user client assignments table (now unblocked by OAuth + `client_users`).
-4. **#14** — Decouple `seed.content.js` from VitalLyfe (or remove — DB is authoritative now).
+### #2 — Add baseline migrations for `cid_library` + `cid_performance`
+**Touches:** `supabase/migrations/`, `agent-action.js:822`, `CIDPage.jsx:442`
+- Write `CREATE TABLE IF NOT EXISTS` migrations mirroring the `content_items` baseline pattern, with admin + scoped-user RLS.
+- Capture the column shapes documented in `agent-action.js:759-763` and the `cid_performance` insert body.
+- **Unblocks:** removes the two HIGH schema-drift risks; makes the CID feature reproducible from the repo.
 
----
+### #3 — Scope "Why these won" to true top performers + unify ranking
+**Touches:** `src/ui/routes/AnalyticsRoute.jsx:262`, `netlify/functions/agent-action.js:1087`
+- Agree one ranking metric (engagement_rate, not raw views) and use it in both the backend `top` selection and the frontend `topPerformers` sort.
+- Limit per-post "why it won" reasons to the genuine top N (e.g. top 3), not a broad set across many cards.
+- Confirm `reasons[p.id]` keys line up with the displayed cards.
+- **Operator-flagged this morning. Highest-visibility quick win.**
 
-## All fixes
+### #4 — Add rate limiting to ungated functions
+**Touches:** `apify-scrape.js`, `unsplash.js`, `sync-instagram.js`, `sync-tiktok.js`, `sync-youtube.js`, `notify.js`, `_lib/rateLimit.js`
+- Import `rateLimit`/`tooManyRequests` and gate each with a sensible per-user cap (e.g. apify 20/min, sync 10/min, notify 20/min).
+- **Unblocks:** bounds Apify spend, paid-API hammering, and email/Slack/n8n fanout abuse.
 
-### ✅ #1 — Re-enable Google OAuth + auth gate — CLOSED 2026-05-25
-- **Where:** `src/App.jsx` (setupSession + render branches)
-- **Closed by:** `8e5095e` (gate + admin RLS) + `307b64f` (dedupe setupSession) + `d0acec3` (4s stuckGuard hotfix)
-- **What landed:** Four-way branch — admin / approved external client / pending invite (realtime unlock) / unknown blocked. Google OAuth verified end-to-end.
+### #5 — Implement OAuth deauthorize + data-deletion
+**Touches:** the 6 `oauth-*-deauthorize.js` / `oauth-*-data-deletion.js`, `_lib/oauth.js`
+- Verify the platform `signed_request`/signature, resolve the platform account id, and delete the matching `connected_accounts` + `connected_account_tokens` rows.
+- Return a real, persisted confirmation code for data-deletion.
+- **Unblocks:** platform App Review compliance; closes the "revoked token persists" gap.
 
-### ✅ #2 — Split App.jsx into smaller components — CLOSED 2026-05-26 (Codex)
-- **Where:** `src/App.jsx` (1,676 → 1,342 lines) + new `src/ui/routes/`
-- **What landed:** Six route components extracted (DashboardRoute, AgentsRoute, ContentRoute, TrackerRoute, TaskboardRoute, SopsRoute) on branch `codex/grunt-2026-05-26`, then merged onto main. App.jsx still owns state — routes are dumb presentation taking props. Highest prop count: TrackerRoute at 13. Build passed after each of the 7 commits (one per route + a notes summary).
+### #6 — Encrypt OAuth tokens at rest
+**Touches:** `_lib/oauth.js:122`, `connected_account_tokens`, `sync-*.js`
+- Encrypt `access_token`/`refresh_token` (pgcrypto or app-level envelope encryption / Supabase Vault); decrypt only inside the sync/refresh functions.
+- **Depends on:** nothing; pairs naturally with #5.
 
-### ✅ #3 — Brain Move 1: Cortex wiring (per-client agent voice) — CLOSED 2026-05-26
-- **Where:** `netlify/functions/agent-action.js` + `src/core/memory.js` + `supabase/migrations/20260526_seed_vitallyfe_brand_voice.sql`
-- **What landed:**
-  1. `getBrandContext(client_id)` helper at `agent-action.js:94` fetches `clients.name` + `clients.brand_voice_md` via Supabase REST, falls back gracefully when client_id is null or brand_voice_md is empty.
-  2. `exports.handler` calls it once per request, passes `brand` to every handler.
-  3. 12 prompt sites refactored to interpolate `${brand.name}` and `${brand.voice}` — was 5 in the original audit, expanded to all of: muse_write_content, overseer_scan, sean_briefing, sam_health, scrappy_research, scrappy_muse_collab, artgrid_scout, muse_generate_calendar, muse_from_brief, scrappy_hook_analysis, cid_build_brief, cid_ab_variations, muse_ig_ideas.
-  4. Dynamic `#${brand.name}` hashtag templates replace `#VitalLyfe` in 3 JSON-schema example strings.
-  5. Dead `seedMuseMemory()` in `memory.js` removed entirely (zero callers).
-  6. VitalLyfe seeded via SQL migration so behavior is identical pre/post for the existing client.
-- **Verified:** Muse generated on-brand caption against VitalLyfe in dev — cinematic, calm, purposeful structure intact.
-- **Follow-up:** Fix #3.1 below — `cid_library.vitallyfe_adaptation` column name still references VitalLyfe.
+### #7 — Escape user input in notify.js email/Slack
+**Touches:** `notify.js:123,138-144`
+- HTML-escape `title`, `campaign`, `platform`, `pillar`, `client_note` before interpolating into the email body; sanitize Slack text too.
 
-### ✅ #3.1 — Rename cid_library.vitallyfe_adaptation → client_adaptation — CLOSED 2026-05-26
-- **Where:** `supabase/migrations/20260526_cid_library_rename_adaptation.sql` + `netlify/functions/agent-action.js:959-961`
-- **What landed:** Idempotent `do $$ ... end $$` block that checks `information_schema.columns` before renaming. Three insert sites in `scrappy_hook_analysis` updated. Header comment refreshed.
-- **Out-of-band:** SQL run in Supabase by user before code push so prod doesn't 400 on the new column name.
+### #8 — Validate the chat.js forward
+**Touches:** `chat.js:43-52`
+- Allowlist `model`, clamp `max_tokens`, reject oversized bodies before forwarding to Anthropic.
 
-### #4 — Split agent-action.js
-- **Where:** `netlify/functions/agent-action.js` (1,317 lines, verified 2026-05-26 PM)
-- **Steps:** Move each of the 16 handlers into its own file (e.g. `netlify/functions/agent-action/handlers/muse_write_content.js`). Keep `agent-action.js` as a router only — preserves `requireUser` + rate-limit gates + `getBrandContext` + `logAgentEvent` wrappers at the top level.
-- **Pattern:** Mirror Codex's Fix #2 App.jsx split. Brief Codex with the line ranges for each handler block + dirty-WIP out-of-scope list + `CODEX_NOTES.md` as the report file. One commit per handler extraction; build passes after each.
+### #9 — Scope `content_items` realtime + initial load by client
+**Touches:** `App.jsx:134,489`
+- Add `filter: client_id=eq.<id>` to the content channel (re-subscribe on `currentClient.id` change) and scope the initial select — mirror the notifications subscription pattern (`:586`).
+- **Unblocks:** removes the multi-tenant realtime leak if an external client role ever reaches the main shell.
 
-### ✅ #5 — Caller auth on all functions — CLOSED 2026-05-25
-- **Where:** `netlify/functions/{chat,agent-action,notify,apify-scrape,unsplash}.js`
-- **Closed by:** Commit `2a9c9c1` — shared helper `netlify/functions/_lib/requireUser.js` validates Supabase JWT. Either @cloudscenic.com admin OR approved `client_users` row required.
-- **Pattern landed:** Bearer-token + JWT lookup at `/auth/v1/user`, then client_users allowlist check. (Note: `cid-scrape.js` was later removed entirely 2026-05-26 PM — dead code.)
+### #10 — Tighten `profiles` RLS
+**Touches:** `002_profiles.sql:20`
+- Drop the `FOR ALL USING(true)` policy (service role bypasses RLS anyway); keep self-read + admins-read-all.
 
-### ✅ #6 — Per-client Slack routing — CLOSED 2026-05-25
-- **Where:** `netlify/functions/notify.js` L157-162
-- **Closed by:** Commit `702f867`. New `clients.slack_webhook_url` column. `notify.js` prefers it when `client_id` is on the payload; falls back to global `SLACK_WEBHOOK_URL`. Edit Client modal exposes the field under "Optional integrations".
+### #11 — Remove dead code
+**Touches:** `agent-action.js:669` (`muse_from_brief`), `App.jsx:12,20,32,33` (OPS_INIT, QuickActionsDashboard, TypingTask, PlaceholderPage)
+- Delete the unused handler and imports; optionally delete the orphaned component files.
 
-### ✅ #7 — Per-client n8n webhook routing — CLOSED 2026-05-26
-- **Where:** `netlify/functions/notify.js`
-- **What landed:** Single Supabase fetch pulls both `slack_webhook_url` and `n8n_webhook_url` from the client row (was two roundtrips after Fix #6). Each falls back to its global env var when the client has no override. Pattern matches commit `702f867` plus the consolidation.
+### #12 — Fix sync-instagram insight fetching
+**Touches:** `sync-instagram.js:18,89,197`
+- Wire the declared `INSIGHTS_TIMEOUT_MS` into an `AbortController` in `fetchInsights`; parallelize the per-media loop with `Promise.all` + a concurrency cap to stay under the 26s function timeout.
 
-### ✅ #8 — Delete `src/agents/` dead code — CLOSED 2026-05-26
-- **What landed:** `rm -rf src/agents/`. 8 files / 96 lines removed. Build passed clean.
+### #13 — Fix stuckGuard comment drift
+**Touches:** `App.jsx:238`
+- Update the comment to 8s, or lower the timeout to the documented intent (cancel-on-resolve guard makes ~4-5s safe UX).
 
-### ✅ #9 — Ship or delete Higgsfield — CLOSED 2026-05-26 PM (by removal)
-- **Where:** `src/apps/higgsfield/HiggsfieldStudio.jsx` + `netlify/functions/higgsfield.js` (both removed); `src/apps/apps.config.js` + `src/utils/constants.js` (verified clean — no CREATIVE section, no Higgsfield nav entry).
-- **What landed:** Files removed from the working tree; never were in git on `main` (verified via `git ls-tree -r origin/main | grep higgs` → empty). Local HEAD = origin/main at `19e7f02`.
-- **If Higgsfield ships later:** treat it as a fresh feature commit. All five touchpoints (UI + function + `apps.config.js` entry + `constants.js` CREATIVE section + App.jsx import/render) must land in one commit, plus the `HIGGSFIELD_ACCESS_TOKEN` env in Netlify. Don't reconstitute the WIP.
+### #14 — Clean up expired `oauth_states`
+**Touches:** `supabase/migrations/`, scheduled function
+- Add a pg_cron job or scheduled Netlify function deleting `where expires_at < now()`.
 
-### ✅ #10 — Write `content_items` migration — CLOSED 2026-05-26
-- **Where:** `supabase/migrations/20260526_content_items_baseline.sql`
-- **What landed:** Full 25-column schema, FK to `clients(id) ON DELETE CASCADE`, `content_items_client_idx`, RLS enabled, 3 policies captured faithfully (2 admin + 1 wide-open temp). Idempotent: `CREATE TABLE IF NOT EXISTS` + `DROP POLICY IF EXISTS` + `CREATE POLICY` so it can be applied against the existing prod DB or a fresh dev DB without error.
-- **Surfaced security debt:** the legacy `"Allow all for now"` policy survived the 2026-05-25 anon cleanup. Migration header flags it loudly; DROP statement teed up at bottom for Fix #10.1.
+### #15 — Make SettingsPage toggles real (or honest)
+**Touches:** `SettingsPage.jsx:154-157,297`
+- Persist the AI toggles + invite to a settings table, or relabel as "coming soon" / disable.
 
-### ✅ #10.1 — Drop content_items wide-open policy — CLOSED 2026-05-26 (code shipped)
-- **Where:** `supabase/migrations/20260526_content_items_client_rls.sql`
-- **What landed:** Two scoped policies for `client_users`:
-  - `clients read scoped content_items` (SELECT) — using an `exists` subquery against `client_users` with `lower(email)` match + `status='approved'` + `client_id` equality
-  - `clients update scoped content_items` (UPDATE) — same row qualifier, plus `with check` that prevents re-parenting a row to a different client_id
-  - INSERT and DELETE remain admin-only
-- **Then drops** the legacy `"Allow all for now"` policy.
-- **Apply against live DB:** run `20260526_content_items_client_rls.sql` in Supabase SQL Editor. Anon callers should return 0 content_items rows after. Test admin + Natalia paths before considering it verified.
+### #16 — De-couple tenant seed + parameterize dev proxy
+**Touches:** migrations, `vite.config.js:12`
+- Move the VitalLyfe seed out of the canonical migration set into a dev-only seed file; pull the dev proxy target from an env var.
 
-### ✅ #11 — Dynamic-import pdfjs-dist — ALREADY SHIPPED (pre-2026-05-26)
-- **Where:** `src/apps/brief-gen/BriefGenPage.jsx:7`
-- **What's there:** `const pdfjsLib = await import('pdfjs-dist')` inside `extractPdfText`. Vite output confirms pdfjs is in its own 405 KB chunk (`pdf-*.js`), not bundled into the main index. Closed in docs 2026-05-26 — the stale "main bundle is 777 KB, bulk is pdfjs" arch-map finding was wrong.
-
-### #12 — Back OpsBoard with a DB table
-- **Where:** `src/ui/dashboard/OpsBoard.jsx` + new `supabase/migrations/<date>_tasks.sql`
-- **Schema sketch:**
-  ```sql
-  create table tasks (
-    id bigserial primary key,
-    client_id uuid references clients(id) on delete cascade,
-    title text not null,
-    assignee text,
-    column text check (column in ('backlog','in_progress','completed')),
-    position int,
-    created_at timestamptz default now()
-  );
-  ```
-
-### #13 — Per-user client assignments
-- **Where:** New `supabase/migrations/<date>_user_clients.sql`
-- **When:** Now unblocked (OAuth is live + `client_users` table exists). Could be folded into `client_users` as a multi-row pattern instead of a new table.
-- **Schema:** `(user_id, client_id, role)` — controls which clients each Cloud Scenic team member sees.
-
-### #14 — Decouple seed.content.js from VitalLyfe
-- **Where:** `src/data/seed.content.js`
-- **Options:**
-  - Per-client seedable (read `seed.content.<slug>.js` based on currentClient)
-  - Or just remove it — data lives in DB now, fallback is obsolete.
-
-### ✅ #15 — Auto-recover from supabase-js auth-lock errors — CLOSED 2026-05-26
-- **Where:** `src/App.jsx` stuckGuard callback
-- **What landed:** When the 4s stuckGuard fires, the callback now:
-  1. Sets a one-shot `sessionStorage["vantus_auth_recovery_attempted"]` flag to prevent reload loops.
-  2. Iterates `localStorage` and removes only keys matching `/^sb-.*-auth-token/` or `^supabase\.auth` — preserves `vantus_agent_hists`, `vantus_current_client_id`, apps prefs, etc.
-  3. Calls `location.reload()` to break any in-flight `navigator.locks` mutexes.
-  4. On the reloaded tab, the `SIGNED_IN`/`INITIAL_SESSION` handler clears the recovery flag so the mechanism can fire again next time.
-  5. If stuckGuard fires a second time (recovery flag already set), falls through to login screen cleanly.
-- **Manual workaround retired:** `localStorage.clear(); location.reload()` no longer needed for this class of failure.
+### #17 — Harden CORS + reconcile agent-count copy
+**Touches:** `_lib/requireUser.js:26`; `TeamBroadcast.jsx:76`, `AgentChatPage.jsx:216`, `SkillsPage.jsx:44`
+- Reject (403) state-changing requests from non-allowlisted origins instead of fail-open.
+- Reconcile the "8 agents" / "7 Agents" strings to the real count (4).
 
 ---
 
-## Cross-cutting work
+## Suggested attack order
 
-### ✅ Drop temporary anon RLS policies — DONE 2026-05-25
-All 5 temp anon policies dropped in `supabase/migrations/20260525_drop_temp_anon_policies.sql` (commit `852d915`). Admin-only RLS enforced across `agent_events`, `notifications`, `clients`, and the `client-logos` storage bucket via `auth.jwt()->>'email' like '%@cloudscenic.com'`.
-
-### Rotate Supabase admin passwords (when convenient)
-- **Why:** `Cloudai25%` (former SETUP_PASSWORD) is in git history. Becomes irrelevant once Google OAuth is the only path in.
-- **Who:** `cz@cloudscenic.com`, `dv@cloudscenic.com`, `ss@cloudscenic.com`
-- **Where:** Supabase dashboard → Authentication → Users → "Send password recovery"
-- **Status:** Lower urgency now that OAuth is the only used login path — but password login technically still works.
-
-### ✅ Security headers + CORS + rate limits — CLOSED 2026-05-26
-- **What landed:**
-  - `_lib/requireUser.js` exports `cors(event)` — per-request origin matching against an allowlist regex (`usevantus\.com` + `(deploy-preview-*--)?majestic-cassata-aa16e9.netlify.app`). All 6 functions rewritten to use it. `Vary: Origin` header included.
-  - `_lib/rateLimit.js` — in-memory sliding window. Wired into `/api/chat` (30/min/user) and `/api/agent-action` (60/min/user). Cold starts reset — acceptable defense for now.
-  - `netlify.toml` adds HSTS preload, Referrer-Policy, Permissions-Policy, and a tight CSP whitelisting only the real external origins.
+See [open-items.md](open-items.md#suggested-attack-order) for the ranked plan — the short version: **#3 first** (operator-flagged, high visibility, contained), then **#1 + #2 paired** (broken CID write + its missing migrations), then the security batch **#4 + #5 + #6 + #7**.

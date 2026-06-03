@@ -1,337 +1,189 @@
 # Node Catalog
 
-Every significant file, function, table, and external service in Vantus — grouped by cluster.
+Every node from the map, grouped by cluster. `★` = on the critical path. `☠` = dead code / schema drift.
 
-★ = on the critical path
-✕ = dead code / not deployed
-⚙ NEW = added 2026-05-25 in the auth-restore session
-
----
-
-## ☁️ Client UI (`src/`)
-
-### ★ `main.jsx` — mount point
-- **Path:** `src/main.jsx` (1 line)
-- **Role:** React 19 `createRoot` mount; renders `<App />`.
-- **Plain English:** The very first line of code that runs when you open the site. Connects React to the page.
-
-### ★ `App.jsx` — root + state + auth gate
-- **Path:** `src/App.jsx` (1,342 lines, post Fix #2 route extraction)
-- **Role:** Root React tree: 4-way auth gate (admin / approved client / pending invite / unknown), `currentClient` state, content/notifications/clients fetch + realtime subs, layout shell, every nav route handler.
-- **Plain English:** The big brain of the frontend. Checks who is logged in, picks the active client, loads all the data, decides which page to show based on the sidebar item you clicked.
-- **Notes:**
-  - L51: `ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"]`
-  - L72: `setupSession` — branches on @cloudscenic.com (admin) vs `client_users` allowlist (external)
-  - PendingApprovalScreen renders when status='pending'; auto-unlocks via realtime when admin approves
-  - L204: 4s `stuckGuard` with auto-recovery (Fix #15) — clears `sb-*-auth-token` localStorage keys + reloads
-  - 6 route blocks extracted to `src/ui/routes/` via Codex (Fix #2, 2026-05-26): Dashboard, Agents, Content, Tracker, Taskboard, Sops. App.jsx still owns all state — routes are dumb presentation receiving props.
-  - L1200+: render switch — now mostly one-liners delegating to route components
-
-### `LoginScreen.jsx` — Google OAuth button
-- **Path:** `src/ui/layout/LoginScreen.jsx`
-- **Role:** "Continue with Google" button calling `sb.auth.signInWithOAuth` + URL-error display.
-- **Plain English:** The login page. Shown to anyone without a session. Admins (@cloudscenic.com) land on full Vantus; approved external clients land on ClientView; pending invites land on PendingApprovalScreen.
-- **Notes:** Renders `sb.auth.signInWithOAuth` with `hd: cloudscenic.com` hint for admin path. External clients sign in with the same Google button — gated by `client_users` allowlist. Parses URL `?error=` params for surfaced auth failures.
-
-### `AddClientModal.jsx` — create + edit + team
-- **Path:** `src/ui/clients/AddClientModal.jsx`
-- **Role:** Multi-purpose modal for client onboarding/edit/archive; embeds `ClientTeamPanel` in edit mode for invite/approve/reject flow; handles logo upload to Supabase Storage.
-- **Plain English:** The form to add a new client (or edit one). In edit mode it also shows the Team Access panel where admins invite client teammates and approve their login requests.
-- **Notes:**
-  - Edit mode embeds `ClientTeamPanel.jsx` (added 2026-05-25, commit `19b6235`)
-  - New `slack_webhook_url` field for per-client Slack routing (2026-05-25, commit `702f867`)
-  - Uploads to `client-logos` bucket via `sb.storage.from(...)`
-  - `fontSize:16` on inputs to dodge iOS auto-zoom
-
-### ⚙ NEW `ClientTeamPanel.jsx` — invite/approve/reject
-- **Path:** `src/ui/clients/ClientTeamPanel.jsx`
-- **Role:** Embedded inside Edit Client modal. Lets admins invite an external email, then approve or reject when that email signs in.
-- **Plain English:** The "Team Access" tab inside Edit Client. You type Natalia's email here, she logs in with Google, you click Approve, her dashboard unlocks without her refreshing.
-- **Notes:** Reads/writes `client_users` rows. Realtime channel keeps both sides in sync.
-
-### ★ `AgentChatPage.jsx` — chat UI for 7 agents
-- **Path:** `src/ui/agents/AgentChatPage.jsx`
-- **Role:** Per-agent chat panel: prompt builder, message thread, quick-action buttons, agent-action invoker.
-- **Plain English:** Where you click on an agent (Sean, Muse, etc.) and chat with them. Calls Claude through `/api/agent-action` for quick actions.
-- **Notes:** Holds the actual agent persona prompts inline (~L35-130). Stores chat history in localStorage.
-
-### ★ `ActivityFeed.jsx` — live agent_events feed
-- **Path:** `src/ui/dashboard/ActivityFeed.jsx`
-- **Role:** Self-fetches last 60 `agent_events` for `currentClient` + subscribes to INSERT realtime.
-- **Plain English:** The "Live Activity" panel on the Dashboard. Shows real agent events as they happen, not fake theater.
-- **Notes:** Filter: `client_id=eq.${clientId}`. Pre-Move-2 this used a fake 2.2s loop pulling random items.
-
-### `OpsBoard.jsx` — Task Board kanban
-- **Path:** `src/ui/dashboard/OpsBoard.jsx`
-- **Role:** In-memory kanban (Backlog/InProgress/Completed) with edit + delete + auto-advance intervals.
-- **Plain English:** The Task Board where you add and track tasks. Currently just lives in memory — refresh and tasks reset.
-
-### `ContentPipelineBoard.jsx` — kanban for content_items
-- **Path:** `src/ui/pipeline/ContentPipelineBoard.jsx`
-- **Role:** Stage-column kanban view rendering content_items by status.
-- **Plain English:** The horizontal kanban view where each content piece lives in a column based on its status.
-
-### `EditContentModal.jsx` — edit a content piece
-- **Path:** `src/ui/pipeline/EditContentModal.jsx`
-- **Role:** Drawer modal to edit a content_items row (title, status, caption, script, files, client_note).
-- **Plain English:** The form that opens when you click a content card. Lets you edit the piece end-to-end.
-
-### `ClientView.jsx` — client-facing portal
-- **Path:** `src/ui/client/ClientView.jsx`
-- **Role:** Read/approve view shown to clients (role=client) when they log in.
-- **Plain English:** The simpler version of the dashboard that the agency's clients see when they log in.
-
-### `CIDPage.jsx` — Competitor Intel
-- **Path:** `src/apps/competitor-intel/CIDPage.jsx`
-- **Role:** Competitor Intel dashboard: search query → scrape via `/api/apify-scrape` → writes to `cid_library` + `cid_performance`.
-- **Plain English:** Where you type a creator name and Vantus scrapes their recent posts to study what works.
-
-### `BriefGenPage.jsx` — PDF brief → generated content
-- **Path:** `src/apps/brief-gen/BriefGenPage.jsx`
-- **Role:** Drag-PDF zone → pdfjs extract text → `/api/agent-action muse_from_brief` → batch INSERT content_items.
-- **Plain English:** Drop a PDF brief and Muse reads it, generates Reels + Stories, adds them to the tracker.
-- **Notes:** Uses `pdfjs-dist` (the 405KB bundle bloat — Fix #11 dynamic-imports it).
-
-### `src/ui/routes/` — 6 extracted route components
-- **Path:** `src/ui/routes/*.jsx` (6 files, ~454 lines total)
-- **Role:** `DashboardRoute`, `AgentsRoute`, `ContentRoute`, `TrackerRoute`, `TaskboardRoute`, `SopsRoute` — pure presentation; receive state/setters/derived values/handlers as props from App.jsx.
-- **Plain English:** Six files Codex carved out of App.jsx (Fix #2, 2026-05-26). Each is one nav route. App.jsx still owns all state — these are dumb components.
-- **Notes:**
-  - Highest prop count: TrackerRoute (13) — under the 15-smell threshold
-  - DashboardRoute 130 lines, ContentRoute 104, TrackerRoute 117, SopsRoute 85, TaskboardRoute 12, AgentsRoute 6
-  - Each landed in its own commit on `codex/grunt-2026-05-26`; build passed after every extraction
-
-### Smaller pages (not detailed)
-`AppsPage`, `SettingsPage`, `ICPPage`, `TeamBroadcast`, `ReferencesPage`, `SkillsPage`, `AdROIHub`, `ArtgridScoutPage`, `HeroGeneratorPage`, `ShotRefScout`, `QuickActionsDashboard`, `AgentCard`, `AgentAvatar`, `MetricCard`, `Card`, `PlaceholderPage`, `TypingTask`, `AppPlaceholder`, `PendingApprovalScreen`.
+## Contents
+- [Client](#client)
+- [Routes](#routes)
+- [UI / Apps](#ui--apps)
+- [Core / Services](#core--services)
+- [Server (Netlify Functions)](#server-netlify-functions)
+- [Data (Supabase)](#data-supabase)
+- [External APIs](#external-apis)
 
 ---
 
-## 🛣️ API Routes (`netlify/functions/`)
+## Client
 
-### ★ `/api/agent-action` — agent-action.js
-- **Path:** `netlify/functions/agent-action.js` (**1,317 lines — monolith**)
-- **Role:** 16-action switch over `POST {action,payload,client_id}`; routes to muse_/sean_/lacey_/sam_/overseer_/artgrid_/scrappy_/cid_ handlers, logs to `agent_events`, posts to Slack. Per-client brand voice loaded from `clients.brand_voice_md` at request time. Gated by `requireUser` + rate-limited 60/min/user.
-- **Plain English:** The single endpoint every agent action goes through. The user clicks a button, Vantus POSTs `{action: "muse_write_content"}` here, and this file looks up the client's brand voice from Supabase, figures out what to do, calls Claude with the right voice baked into the prompt, writes the result to the database, tells Slack.
-- **Notes:**
-  - L18: `SLACK_AGENT_LABELS` for per-action post formatting
-  - L67: `logAgentEvent` wrapper for agent_events table
-  - L94: `getBrandContext(client_id)` — fetches `clients.name` + `clients.brand_voice_md`; falls back gracefully (Move 1, 2026-05-26)
-  - L127: `model = claude-haiku-4-5-20251001` (upgraded from deprecated haiku-3)
-  - 12 handler prompts interpolate `${brand.name}` + `${brand.voice}` (was hardcoded VitalLyfe before Move 1)
-  - L1198: `exports.handler` with `cors(event)` + `requireUser` + `rateLimit(60/min/user)` gates + `getBrandContext` call + switch at L1227 + try/catch/finally for logging
-  - Holds 16 handler functions inline — splitting deferred (Fix #4). Same mechanical shape as App.jsx Fix #2 → Codex candidate.
+### main.jsx
+`src/main.jsx:1` — Vite entry stub.
+- **Plain:** The app's front door; does almost nothing but hand off to the big main file.
+- Single line `import './App.jsx'`; the real ReactDOM mount is at the bottom of App.jsx (`:1342`) — unusual.
 
-### `/api/chat` — chat.js
-- **Path:** `netlify/functions/chat.js`
-- **Role:** Thin proxy: parses request body, forwards to Anthropic Messages API server-side. Now gated by `requireUser`.
-- **Plain English:** A pass-through that keeps the Anthropic API key on the server. The frontend never sees the key. Rejects anonymous callers.
-
-### `/api/notify` — notify.js
-- **Path:** `netlify/functions/notify.js` (227 lines)
-- **Role:** Fires when client UPDATEs `content_items` status to Approved/Needs Revisions: persists to `notifications` + email (Resend) + Slack + n8n.
-- **Plain English:** When a client approves or rejects a piece, this sends the email, posts to Slack, and saves the notification to the database so it survives a page refresh.
-- **Notes:**
-  - L8: `requireUser` import (loosened to accept any authenticated user with matching client_id)
-  - L28: `insertNotification` helper for notifications table (Move 3)
-  - L61: `requireUser(event)` gate
-  - Per-client Slack + n8n routing: one Supabase fetch pulls both `slack_webhook_url` and `n8n_webhook_url` from the clients row; each falls back to its global env var (Fix #6 commit `702f867` for Slack; Fix #7 2026-05-26 added n8n in the same fetch)
-  - `Prefer:resolution=ignore-duplicates` → unique index dedupes multi-tab POSTs
-
-### ~~`/api/cid-scrape`~~ — REMOVED 2026-05-26 PM
-- **What was here:** Bearer-token-gated function that queried the nonexistent `cid_posts` table.
-- **Why removed:** Zero frontend callers (verified via grep), queried a table that never existed (verified via live SQL probe). Closed-by-removal.
-- **Orphaned env var:** `CID_BEARER_TOKEN` in Netlify — drop when convenient.
-
-### `/api/apify-scrape` — apify-scrape.js
-- **Path:** `netlify/functions/apify-scrape.js`
-- **Role:** Calls Apify actors for scraping competitor posts. Gated by `requireUser`. Sole scraping path now that cid-scrape was removed.
-- **Plain English:** The scraping endpoint. Goes out via Apify (a scraping service) to pull competitor posts from social platforms.
-
-### `/api/unsplash` — unsplash.js
-- **Path:** `netlify/functions/unsplash.js`
-- **Role:** Proxy to Unsplash search API for stock image references. Now gated by `requireUser`.
-- **Plain English:** Lets you search Unsplash for reference photos. Called from the Shot Reference page.
-
-### ★ ⚙ NEW `_lib/requireUser.js` — shared auth gate + CORS
-- **Path:** `netlify/functions/_lib/requireUser.js` (124 lines)
-- **Role:** Shared helper used by `chat`, `agent-action`, `notify`, `apify-scrape`, `unsplash`. Validates Supabase JWT via `/auth/v1/user`. Allows @cloudscenic.com admins OR emails approved in `client_users`. Also exports `cors(event)` + `unauthorized(reason, event)`.
-- **Plain English:** The bouncer that every locked-down endpoint calls before doing any work. Either you are a Cloud Scenic admin, or your email has been approved in the invite list — otherwise the request gets a 401. Also builds the right CORS headers per request.
-- **Notes:**
-  - Added 2026-05-25 for Fix #5 (commit `2a9c9c1`); `cors(event)` added 2026-05-26 security sweep
-  - Returns `{ ok, user: { id, email, role, client_ids } }` or `{ ok:false, reason }`
-  - Uses `SUPABASE_SERVICE_KEY` as `apikey` for both `/auth/v1/user` lookup and `client_users` SELECT
-  - `cors(event)` matches origin against allowlist regex covering usevantus.com + Netlify subdomain + deploy previews; includes `Vary: Origin`
-
-### ⚙ NEW `_lib/rateLimit.js` — in-memory sliding-window limiter
-- **Path:** `netlify/functions/_lib/rateLimit.js` (66 lines)
-- **Role:** `rateLimit(key, max, windowMs)` — per-instance Map of `(count, windowStart)`. Sweeps expired buckets once a minute to bound memory.
-- **Plain English:** Per-user request counter that lives in memory. When a user blows past the limit (e.g. 30 chat calls per minute), the next call gets a 429 with `Retry-After`. Cold starts reset the counter — acceptable for now; swap for Supabase-backed if we ever go distributed.
-- **Notes:**
-  - Added 2026-05-26 security sweep
-  - Defaults: 30 req/min, sliding window keyed on `user.id + endpoint`
-  - Wired into `chat.js` (30/min) and `agent-action.js` (60/min)
-  - `tooManyRequests(retryAfter, corsHeaders)` builds the 429 response
+### ★ App.jsx
+`src/App.jsx:44` — Root: auth gate, session/role state, multi-tenant client roster, all realtime subscriptions, nav-based route switching.
+- **Plain:** The brain of the app — logs you in, decides what you can see, keeps the client list live, shows whichever screen the menu points at.
+- Two components in one file: `App` (gate, `:44`) + `Vantus` (shell, `:390`). `ADMIN_EMAILS` + `cloudscenic.com` allowlist `:41`.
+- Realtime on `content_items` / `clients` / `notifications` / `client_users`. stuckGuard auth-lock recovery `:241-277`.
 
 ---
 
-## ⚙️ Core Services (`src/core/`, `src/services/`, `src/utils/`, `src/data/`)
+## Routes
 
-### ★ `supabaseClient.js` — `sb` singleton
-- **Path:** `src/services/supabaseClient.js` (15 lines)
-- **Role:** Reads `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` from env, exports `sb` (createClient). Throws on missing env.
-- **Plain English:** The connection to Supabase that every database query uses on the frontend.
-- **⚠️** Throws at module-load if env vars missing — would crash the whole app.
+### DashboardRoute.jsx
+`src/ui/routes/DashboardRoute.jsx:56` — Composes the home dashboard (metrics, CommandInput, agent grid, ActivityFeed, OpsBoard). Presentational.
 
-### ★ ⚙ NEW `apiFetch.js` — auth header wrapper
-- **Path:** `src/services/apiFetch.js` (25 lines)
-- **Role:** Thin wrapper around `fetch()` that injects `Authorization: Bearer <access_token>` from the current Supabase session. Used by every call to the 5 gated functions.
-- **Plain English:** A helper that automatically adds your login token to every request to the protected endpoints. Without it, the server returns 401.
-- **Notes:**
-  - Added 2026-05-25 for Fix #5 — 26 call sites across 11 files now use it
-  - Calls `sb.auth.getSession()` inline; safe to call when not signed in (request goes out tokenless and the server returns 401)
+### ContentRoute.jsx
+`src/ui/routes/ContentRoute.jsx:18` — Platform-tabbed (IG/TikTok/YouTube) container rendering ContentPipelineBoard(s). 8-stage array `:18`; IG renders two boards. Data/handlers are props from App.
 
-### `memory.js` — agent memory store
-- **Path:** `src/core/memory.js` (79 lines)
-- **Role:** localStorage-backed per-agent memory + `buildSystemPrompt` composer + `updateAgentMemory` hook.
-- **Plain English:** Where each agent's "memory" is stored in the browser. Builds the prompt sent to Claude.
-- **Move 1 (2026-05-26):** Hardcoded VitalLyfe `seedMuseMemory()` removed (zero callers anyway). Per-client brand voice now flows server-side from `clients.brand_voice_md` via `agent-action.js:94 getBrandContext()`.
+### AgentsRoute.jsx
+`src/ui/routes/AgentsRoute.jsx:4` — 6-line pass-through to AgentChatPage.
 
-### `routeTask.js` — keyword → agent routing
-- **Path:** `src/core/routeTask.js` (51 lines)
-- **Role:** Dispatches command-input text to a specific agent via keyword match against `AGENT_KEYWORDS`.
+### ★ AnalyticsRoute.jsx
+`src/ui/routes/AnalyticsRoute.jsx:81` — Reads `connected_accounts` + `account_posts`, computes per-platform metrics/top performers, runs the AI "why these won" analysis.
+- **Plain:** The analytics page — how your posts performed and why the best ones did well.
+- account_posts limit 500 `:104`, realtime `:128`. "Why these won" → `scrappy_analyze_performance` `:171`. topPerformers ranks by engagement_rate `:262`. Per-card aspect ratio `:565`; Insights panel `:501`; per-card "Why it won" `:596`.
 
-### `agentRegistry.js` — agent prompts + keywords
-- **Path:** `src/core/agentRegistry.js` (36 lines)
-- **Role:** `AGENT_KEYWORDS` + `ROUTE_PROMPTS` — the actual agent persona seeds used in chat.
-- **Note:** THIS is where agent prompts live (NOT `src/agents/*.agent.js` which is dead code).
-
-### `constants.js` — NAV + status colors
-- **Path:** `src/utils/constants.js` (37 lines)
-- **Role:** Sidebar NAV array, `STATUS_COLOR` map, `FORMATS`/`PILLARS`/`PLATFORMS` dropdown options.
-- **Note:** Clean — no CREATIVE section, no Higgsfield nav entry (Fix #9 closed by removal 2026-05-26 PM).
-
-### `apps.config.js` — toggleable Apps registry
-- **Path:** `src/apps/apps.config.js` (43 lines)
-- **Role:** `DEFAULT_APPS` list + localStorage persistence (`loadApps`/`saveApps`/`isAppEnabled`).
-- **Note:** Clean — Higgsfield WIP entry never committed and no longer in working tree.
-
-### `hooks.js` — useIsMobile + useInterval
-- **Path:** `src/utils/hooks.js` (32 lines)
-- **Role:** Two shared hooks: `useIsMobile` (window.innerWidth<768 + resize listener), `useInterval` (setInterval ref-stable wrapper).
-- **Note:** Mobile breakpoint: <768px.
-
-### `seed.content.js` — static fallback content
-- **Path:** `src/data/seed.content.js` (53 lines)
-- **Role:** `INITIAL_CONTENT` + `VITAL_LYFE_SOP` — VitalLyfe-specific seed used as fallback when content_items is empty.
-- **Note:** Tightly coupled to VitalLyfe — needs replacement for multi-tenant (Fix #14).
-
-### `seed.agents.js` — agent identity + colors
-- **Path:** `src/data/seed.agents.js` (46 lines)
-- **Role:** `AGENTS_BASE` (8 agents) + `AGENT_TASKS` + `ACTION_COLORS`. Drives sidebar agent grid + activity feed colors.
-- **Note:** Agent prompts NOT here — those live in agentRegistry.js + agent-action.js. `ACTIVITY_POOL` export was removed in Move 2 (fake theater gone).
-
-### `seed.ops.js` — OpsBoard initial tasks
-- **Path:** `src/data/seed.ops.js` (18 lines)
-
-_(Removed 2026-05-26 — Fix #8 deleted `src/agents/`. Real agent personas live in `agentRegistry.js` + `agent-action.js`'s per-handler prompts.)_
+### SettingsPage.jsx
+`src/ui/settings/SettingsPage.jsx:5` — Workspace config (localStorage), display-only AI toggles, static team list; hosts ConnectedAccountsCard `:258`.
 
 ---
 
-## 🗄️ Data Layer (`supabase/migrations/`)
+## UI / Apps
 
-### ★ `clients` table — multi-tenant root
-- **Migration:** `supabase/migrations/20260523_clients_multitenant.sql` (+ `20260525_clients_slack_webhook.sql`)
-- **Columns:** `id, slug, name, brand_voice_md, brand_color, logo_url, primary_email, slack_channel_id, slack_webhook_url, n8n_webhook_url, status, archived_at`
-- **Plain English:** The list of all clients. Every other data table points back to a row here via `client_id`.
-- **Notes:** RLS: admin-only via `auth.jwt()->>'email' like '%@cloudscenic.com'`. Temp anon policies dropped 2026-05-25 (commit `852d915`). Public realtime via `supabase_realtime` publication. Seeded with VitalLyfe automatically.
+### CommandInput.jsx
+`src/ui/dashboard/CommandInput.jsx:23` — NL command box dispatching through `core/routeTask.js`.
 
-### ★ `content_items` table — pipeline rows
-- **Migration:** `supabase/migrations/20260526_content_items_baseline.sql` (Fix #10, 2026-05-26)
-- **Columns (25):** `id text pk, title text not null, description, campaign, platform, type, format, stage, status, pillar, platforms text[], script, caption, cta, hashtags, seo_keywords, notes, start_week int, duration int, created_at timestamptz default now(), updated_at timestamptz default now(), files jsonb default '[]', publish_date, client_note, client_id uuid FK clients(id) ON DELETE CASCADE`
-- **Indexes:** `content_items_pkey` (PK on id), `content_items_client_idx` (btree on client_id)
-- **RLS policies (post-Fix-#10.1):** `admins read content_items` (SELECT @cloudscenic.com), `admins write content_items` (ALL @cloudscenic.com), `clients read scoped content_items` (SELECT — approved client_users matching row's client_id), `clients update scoped content_items` (UPDATE — same row qualifier + with_check prevents re-parenting). Anon callers get zero rows.
-- **Note:** Stages: Ready For Copy Creation → Need Copy Approval → Ready For Content Creation → Need Content Approval → Needs Revisions → Approved → Ready For Schedule → Scheduled.
+### ActivityFeed.jsx
+`src/ui/dashboard/ActivityFeed.jsx:61` — Realtime feed of `agent_events` for the current client.
 
-### ★ `agent_events` table — brain Move 2
-- **Migration:** `supabase/migrations/20260523_agent_events.sql`
-- **Columns:** `agent_name, action_key, content_item_id, payload, result_status, result_summary, client_id`
-- **Plain English:** A real history of everything every agent has done. Powers the live Dashboard feed.
-- **Notes:** Indexes: `ts desc`, `agent_name`, `action_key`, `(client_id, ts desc)`. Written exclusively via SERVICE_KEY from agent-action.js. Admin-only RLS.
+### AgentChatPage.jsx
+`src/ui/agents/AgentChatPage.jsx:166` — Multi-agent chat; free chat → `/api/chat` (sonnet-4-6) `:171`; action buttons → `/api/agent-action` `:291-313`. History in `localStorage vantus_agent_hists`.
 
-### `notifications` table — brain Move 3
-- **Migration:** `supabase/migrations/20260523_notifications.sql`
-- **Columns:** Durable client-action notifications. `UNIQUE(type, content_item_id)` dedupes multi-tab fires.
-- **Plain English:** Bell-icon notifications that survive a page refresh.
+### ContentPipelineBoard.jsx
+`src/ui/pipeline/ContentPipelineBoard.jsx:16` — Stage-column kanban with Muse caption/script quick-buttons → `muse_write_content`.
 
-### `profiles` table — role per user
-- **Migration:** `supabase/migrations/002_profiles.sql`
-- **Columns:** `role (admin|client), email` — FK to `auth.users.id`.
-- **Plain English:** Tells the app which users are admins and which are clients.
-- **Note:** Active — referenced by App.jsx admin path. Admin email allowlist hardcoded at `App.jsx:51` `ADMIN_EMAILS` (cz/dv/ss @ cloudscenic.com).
+### EditContentModal.jsx
+`src/ui/pipeline/EditContentModal.jsx:11` — Content editor with SOP gates `:11-32` + a client-side Google Drive resumable upload (hardcoded `GDRIVE_CLIENT_ID` `:42`).
 
-### ~~`cid_posts` table~~ — NEVER EXISTED (closed-by-removal 2026-05-26 PM)
-- **What it was:** `supabase/migrations/003_cid_posts.sql` defined a table that was never applied. The actual CID schema is `cid_library` + `cid_performance` (both verified live, both with RLS on).
-- **Why removed:** Migration file deleted + `cid-scrape.js` (its only consumer) deleted in the same change. Map now reflects what actually exists.
+### ★ ConnectedAccountsCard.jsx
+`src/ui/settings/ConnectedAccountsCard.jsx:6` — Per-platform OAuth connect/sync/disconnect; generic `*_connected`/`*_oauth_error` toast handler `:45`. Connect → `/api/oauth/<p>/start` `:71`; Sync → `/api/sync/<p>` `:109`; disconnect deletes `connected_accounts` `:92`.
 
-### `client-logos` bucket — Supabase Storage
-- **Migration:** `supabase/migrations/20260524_client_logos_bucket.sql`
-- **Role:** Public storage bucket for client logo uploads from AddClientModal.
-- **Note:** `public:true`. Anon write policies dropped 2026-05-25 (commit `852d915`); admin-only via `20260525_admin_rls_for_oauth.sql`.
+### AddClientModal.jsx
+`src/ui/clients/AddClientModal.jsx:86` — Create/edit/archive a `clients` row; logo → Storage `client-logos`; embeds ClientTeamPanel.
 
-### ⚙ NEW `client_users` table — invite/allowlist
-- **Migration:** `supabase/migrations/20260525_client_users_allowlist.sql`
-- **Columns:** `(email, client_id, status, invited_at, first_login_at, approved_at)`. Status: `pending` / `approved` / `rejected`.
-- **Plain English:** List of external client teammates (like Natalia at VitalLyfe) who can log in. Admins invite them, they get a "pending" row, admin clicks Approve, status flips to "approved" and they can use the app.
-- **Notes:**
-  - Added 2026-05-25 for the invite flow (commits `2a9c9c1` + `19b6235`)
-  - RLS: admins full read/write; approved clients can read their own row(s)
-  - Realtime enabled — admin approving a row instantly unlocks the client's PendingApprovalScreen
+### ClientTeamPanel.jsx
+`src/ui/clients/ClientTeamPanel.jsx:24` — Invite/approve/reject/remove on `client_users` with realtime; approval unlocks the pending-invite screen.
+
+### CIDPage.jsx
+`src/apps/competitor-intel/CIDPage.jsx:73` — Competitor intel: Apify scrape `:73`, AI adaptation, briefs, A/B, hook lab. Actions `cid_build_brief` `:272`, `cid_ab_variations` `:287`, `scrappy_hook_analysis` `:688`. **BROKEN write path** at `:381,:442` (see bugs).
+
+### ArtgridScoutPage.jsx
+`src/apps/artgrid/ArtgridScoutPage.jsx:26` — Footage briefs: bulk → `artgrid_scout`; single → `/api/chat` (haiku-4-5) `:72`.
+
+### AdROIHub.jsx
+`src/apps/ad-roi/AdROIHub.jsx:41` — Local ad ROI tracker + AI analysis (`/api/chat` sonnet-4-6). localStorage only.
+
+### ☠ QuickActionsDashboard.jsx
+`src/ui/dashboard/QuickActionsDashboard.jsx:26` — **DEAD.** Imported `App.jsx:20`, zero JSX usages. Superseded by CommandInput.
+
+> Also dead (shared): `TypingTask.jsx`, `PlaceholderPage.jsx` (imported `App.jsx:32,33`, never rendered).
 
 ---
 
-## 🌍 External APIs
+## Core / Services
 
-### ★ Anthropic API — claude-haiku-4-5
-- **URL:** `https://api.anthropic.com/v1/messages`
-- **Model:** `claude-haiku-4-5-20251001`
-- **Plain English:** Claude AI. Every time Muse writes a caption or Sean does a briefing, it goes through here.
-- **Notes:** Model upgrade history: `haiku-20240307` → `5-haiku-20241022` (rejected) → `haiku-4-5-20251001` (works). Called from `agent-action.js` (4 sites) + `chat.js`. Key: `ANTHROPIC_API_KEY` Netlify env.
+### ★ apiFetch.js
+`src/services/apiFetch.js:17` — fetch() wrapper injecting `Authorization: Bearer` from the session. Calls `getSession()` per request `:18`.
 
-### ★ Supabase — DB + Auth + Storage + Realtime
-- **URL:** `https://wjcstqqihtebkpyuacop.supabase.co`
-- **Plain English:** Database, file storage, real-time pub/sub, and authentication — all in one external service.
-- **Notes:** Frontend uses anon key (`VITE_SUPABASE_ANON_KEY`). Server uses service key (bypasses RLS) from agent-action/notify. Realtime via `wss://...supabase.co/realtime/v1`.
+### supabaseClient.js
+`src/services/supabaseClient.js:15` — Singleton `sb` client from Vite env vars (throws at import if missing). `DB_CONNECTED` hardcoded `true` `:14`.
 
-### Resend — transactional email
-- **URL:** `api.resend.com/emails`
-- **Plain English:** The email-sending service. When a client approves/rejects content, this sends the email to the team.
-- **Notes:** Only called from notify.js. Falls through silently if `RESEND_API_KEY` missing.
+### routeTask.js
+`src/core/routeTask.js:9` — Keyword-scores agents, then sequentially calls `/api/chat` per agent (sonnet-4-6, max_tokens 400 `:34`). Serial await loop.
 
-### Slack — incoming webhook
-- **Webhook:** `SLACK_WEBHOOK_URL` (global) + per-client `clients.slack_webhook_url` (notify.js only)
-- **Plain English:** Slack notifications go here.
-- **Notes:** `notify.js` L157-162 prefers per-client webhook when `client_id` is on payload, falls back to global env (commit `702f867`). `agent-action.js` still uses the global webhook for every action — per-client routing TODO there too.
+### agentRegistry.js
+`src/core/agentRegistry.js:5` — Four agents (Sean, Muse, Scrappy, Artgrid) + routing keywords + short/full prompts. Brand voice injected per-request.
 
-### n8n cloud — automation webhook
-- **URL:** `cloudscenic.app.n8n.cloud` webhook (global fallback via `N8N_WEBHOOK_URL` env)
-- **Workflow:** "VitalLyfe Vantus — Content Sync"
-- **Notes:** Triggered by `lacey_trigger_n8n` action + notify.js. Per-client routing live (Fix #7, 2026-05-26): `notify.js` reads `clients.n8n_webhook_url` for the event's client, falls back to global env when unset.
+### memory.js
+`src/core/memory.js:51` — Per-agent localStorage memory (`vantus_mem_<agent>`, `vantus_icps`) folded into system prompts.
 
-### Tavily — web search API
-- **URL:** `api.tavily.com/search`
-- **Plain English:** A search API for fresh web data. Used by the Scrappy agent for trend research.
+### constants.js
+`src/utils/constants.js:3` — NAV structure, pipeline status colors, format/platform/pillar lists (placeholders).
 
-### Google OAuth — Workspace SSO
-- **URL:** `accounts.google.com`
-- **Audience:** Internal — for `@cloudscenic.com` Workspace
-- **Status:** LIVE as of 2026-05-25 after client_secret rotation. Admins (@cloudscenic.com) and approved external clients both sign in here.
-- **Notes:** Configured in Supabase Auth Providers + Google Cloud Console. To allow non-@cloudscenic.com Google accounts, would need to switch to External audience (Google verification required) — current workaround is the `client_users` allowlist on the same OAuth.
+---
 
-### Apify — scraping actors
-- **URL:** `api.apify.com`
-- **Notes:** Called from apify-scrape function. `APIFY_API_KEY` env var.
+## Server (Netlify Functions)
 
-### Netlify — hosting + Functions
-- **Site ID:** `6d97835e-1874-43d7-9465-f93afd68c6fb`
-- **URL:** `https://usevantus.com`
-- **Notes:** Auto-deploy on push to main. SSL via Let's Encrypt.
+### ★ requireUser.js
+`netlify/functions/_lib/requireUser.js:58` — JWT verify via `/auth/v1/user` `:70`; authorizes `@cloudscenic.com` admins (email-suffix, `:83`) or approved `client_users`. CORS allowlist regex `:26` (fail-open on write — bug).
+
+### rateLimit.js
+`netlify/functions/_lib/rateLimit.js:34` — In-memory sliding window (default 30/60s). Per-warm-Lambda; not distributed. Only `chat.js` + `agent-action.js` use it.
+
+### ★ agent-action.js
+`netlify/functions/agent-action.js:1199` — Single POST router for 13 AI actions; gated by requireUser + rateLimit(60/min), loads brand voice `:122`, dispatches, logs to `agent_events` `:72`, mirrors to Slack `:143`. `ai()` → `claude-haiku-4-5-20251001` `:166`. `scrappy_analyze_performance` `:1087`. **Dead handler:** `muse_from_brief` `:669`. Three handlers inline a duplicate Anthropic fetch (`:800,:902,:966`).
+
+### ★ chat.js
+`netlify/functions/chat.js:45` — Authenticated pass-through to Anthropic; forwards client body (model chosen client-side). rateLimit(30/min). No max_tokens/model validation (bug).
+
+### notify.js
+`netlify/functions/notify.js:56` — Writes `notifications`, fans out Resend + Slack + n8n (per-client URLs). No rateLimit; user fields unescaped into email HTML `:138-144` (bug).
+
+### apify-scrape.js
+`netlify/functions/apify-scrape.js:10` — Two-mode Apify proxy (start → poll). No rateLimit (burns credits). Returns 200 on errors.
+
+### unsplash.js
+`netlify/functions/unsplash.js:7` — GET proxy to Unsplash search. No rateLimit.
+
+### ★ _lib/oauth.js
+`netlify/functions/_lib/oauth.js:65` — CSRF state create/consume in `oauth_states`; upserts `connected_accounts` + `connected_account_tokens`. Tokens stored **plaintext** `:122` (bug).
+
+### oauth-*-start.js
+`netlify/functions/oauth-youtube-start.js:43` — Authenticated POST (IG/TikTok/YouTube): mint state, return authorize URL. YT adds `access_type=offline&prompt=consent` `:63`.
+
+### ★ oauth-*-callback.js
+`netlify/functions/oauth-youtube-callback.js:52` — GET callbacks (no bearer; state-secured): exchange code, fetch profile, upsert, 302. IG = 2-step, no refresh token; TT/YT = refresh tokens.
+
+### ☠ oauth-*-deauthorize / data-deletion (×6)
+`netlify/functions/oauth-instagram-data-deletion.js:13` — Unverified logging stubs; never verify signatures or delete data (bug).
+
+### ★ sync-{ig,tt,yt}.js
+`netlify/functions/sync-youtube.js:108` — Pull recent posts + metrics, upsert `account_posts` (conflict `account_id,platform_post_id`). TT/YT auto-refresh tokens; IG none. No rateLimit; sync-instagram serial 30-call loop + unused declared timeout (`sync-instagram.js:18`).
+
+---
+
+## Data (Supabase)
+
+| Table | Defined / referenced | Role | RLS posture |
+|---|---|---|---|
+| `clients` | `20260523_clients_multitenant.sql:13` | Tenant registry (brand voice, webhooks) | Admin r/w; VitalLyfe seeded (bug) |
+| `profiles` | `002_profiles.sql:4` | auth.users → role map | Self-read + admins-read-all + **wide-open `USING(true)`** `:20` (bug) |
+| `client_users` | `20260525_client_users_allowlist.sql:25` | External-login allowlist + approval | Admin r/w; approved self-read; realtime |
+| `content_items` | `20260526_content_items_baseline.sql:24` | Content pipeline rows | Scoped client SELECT/UPDATE; PK is **text** `:25` (drift) |
+| `agent_events` | `20260523_agent_events.sql:8` | Agent audit log | Admin read; service-role writes; realtime |
+| `notifications` | `20260523_notifications.sql:7` | Durable client alerts | Admin r/u; dedupe index; realtime |
+| ★ `connected_accounts` | `20260601_connected_accounts.sql:13` | Linked social metadata | Admin + user-self CRUD |
+| `connected_account_tokens` | `20260601_connected_accounts.sql:66` | OAuth secrets, 1:1 | **RLS enabled, zero policies → service-role only (correct)**; tokens plaintext (bug) |
+| ★ `account_posts` | `20260601_connected_accounts.sql:80` | Synced posts + metrics | Admin + user-own-account read; engagement_rate index |
+| `oauth_states` | `20260601_connected_accounts.sql:124` | CSRF state, 10-min | Service-role only; no cleanup job (bug) |
+| ☠ `cid_library` | ref `agent-action.js:822` | Hook/CTA library | **No CREATE TABLE migration** (drift) |
+| ☠ `cid_performance` | ref `CIDPage.jsx:442` | Post-publish perf log | **No migration + browser anon write** (drift/bug) |
+
+---
+
+## External APIs
+
+| Service | Used by | Notes |
+|---|---|---|
+| Anthropic | agent-action `:166`, chat | haiku-4-5 server-side; sonnet-4-6 client chat |
+| Tavily | agent-action `:297` | Scrappy research/collab |
+| Apify | apify-scrape `:34` | clockworks/free-tiktok-scraper + google-search-scraper |
+| Unsplash | unsplash `:7` | stock photo search |
+| Resend | notify `:12` | email to hardcoded ADMIN_EMAILS |
+| Slack | agent-action `:143`, notify | per-client webhook + global fallback |
+| n8n | notify `:56` | per-client webhook |
+| Meta / IG Graph | sync-instagram `:108` | 60-day token, no refresh |
+| TikTok | sync-tiktok `:123` | access + refresh tokens |
+| Google / YouTube | sync-youtube `:108` | separate from Supabase Google sign-in |
+| Google Drive | EditContentModal `:67` | client-side resumable upload |

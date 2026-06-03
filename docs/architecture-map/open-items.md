@@ -1,192 +1,159 @@
 # Open Items — Vantus Punch List
 
-> Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
+> Working doc. Mirrors the **Bugs & Roadmap** tab in `../../architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-05-26 PM (cid_posts dead chain removed · email/password auth disabled · INITIAL_CONTENT cleanup · Higgsfield WIP cleared · post Move 1 · #15 · #10/10.1 · #7 · #8 · #11 · #3.1 · #2 App.jsx split · security sweep · #9 closed by removal)
-
-**Open work:** 3 MED bugs · 2 LOW track-only · 4 numbered fixes (#4, #12, #13, #14 — #4 and #12 overlap MED bugs).
+**Snapshot:** 2026-06-03 · **Total open:** 23 bugs + 17 fixes
 
 ```
-🔴 High:   0    │   ✅ Done:  21  (Fix #1 OAuth, Fix #2 App.jsx split (Codex),
-🟡 Med:    3    │                  Fix #3 Move 1, Fix #3.1 cid_library rename,
-🟢 Low:    2    │                  Fix #5 caller auth, Fix #6 per-client Slack,
-                │                  Fix #7 per-client n8n, Fix #8 delete dead src/agents/,
-                │                  Fix #9 Higgsfield closed-by-removal, Fix #10
-                │                  baseline + #10.1 scoped RLS, Fix #11 pdfjs dynamic,
-                │                  Fix #15 auth-lock recovery, security hardening sweep
-                │                  (CORS + rate limits + CSP/HSTS/Permissions/Referrer),
-                │                  5 temp anon RLS policies, Google secret rotation,
-                │                  cid_posts dead chain closed-by-removal,
-                │                  email/password auth disabled in Supabase)
-                │   📋 Fixes:  4 open (13 closed)
+🔴 High:   3    │   ✅ Done:   0
+🟡 Med:    8    │
+🟢 Low:   12    │   📋 Fixes:  17
 ```
 
 ---
 
 ## 🔴 HIGH — fix this week
 
-_None open as of 2026-05-26 PM. Last HIGH-severity batch closed 2026-05-25 (auth restore)._
+- [ ] **CIDPage.jsx:381,442 — CID write path throws ReferenceError + uses anon key**
+  "Send to Content Tracker" and "Log Results" reference `SUPABASE_URL`/`SUPABASE_KEY` that the file never imports, so both throw on click; even fixed, they write with the browser anon key instead of the user's session.
+  → Touches: `src/apps/competitor-intel/CIDPage.jsx` · Fix #1
+
+- [ ] **agent-action.js:822 — `cid_library` has no CREATE TABLE migration**
+  Written in code; only a column-rename migration exists. Schema lives in comments. Repo can't recreate the table.
+  → Touches: `supabase/migrations/`, `netlify/functions/agent-action.js` · Fix #2
+
+- [ ] **CIDPage.jsx:442 — `cid_performance` has no migration + browser anon write**
+  Inserts from the browser with the anon key, implying an unmanaged anon-writable RLS policy off-repo.
+  → Touches: `supabase/migrations/`, `src/apps/competitor-intel/CIDPage.jsx` · Fix #1, #2
 
 ---
 
 ## 🟡 MED — fix when planning next refactor
 
-- [ ] **agent-action.js · L1317 — monolith**
-  1,317 lines, 16 action handlers + Anthropic wrapper + Supabase helpers + Slack notifier + agent_events logger + `getBrandContext` + rate-limit gate. Same mechanical shape as the App.jsx split Codex just landed → ideal Codex candidate. Brief = handler line ranges + dirty-WIP exclusion + `CODEX_NOTES.md` as the report.
-  → Touches: `netlify/functions/agent-action.js` · Fix #4
+- [ ] **AnalyticsRoute.jsx:262 / agent-action.js:1087 — "Why these won" scope + ranking** *(operator-flagged)*
+  Reasons surface across multiple cards and the top set ranks by raw views; scope to true top performer(s) with one shared metric.
+  → Touches: `AnalyticsRoute.jsx`, `agent-action.js` · Fix #3
 
-- [ ] **App.jsx · L1342 — still owns all state**
-  Down from 1,676 to 1,342 after Codex extracted 6 route components into `src/ui/routes/` (Fix #2 shipped 2026-05-26). Routes are pure presentation now, but App.jsx still owns every piece of state in the app — `currentClient`, content/notifications/clients fetch + realtime subs, modal state, the works. Deeper extraction (state hooks, context providers) is the next refactor — lower urgency than the agent-action.js split, no clean Codex pattern yet.
-  → Touches: `src/App.jsx` (state extraction TBD)
+- [ ] **apify-scrape/unsplash/sync-*/notify — no rate limit**
+  Six authenticated functions skip `rateLimit`; any user can loop them to burn Apify credits, hammer paid APIs, or spam email/Slack/n8n.
+  → Touches: `apify-scrape.js`, `unsplash.js`, `sync-instagram.js`, `sync-tiktok.js`, `sync-youtube.js`, `notify.js` · Fix #4
 
-- [ ] **OpsBoard.jsx — tasks in memory only**
-  Refresh resets the board. Multi-user can't share a task list. Needs a DB table — schema sketch in `roadmap.md` Fix #12.
-  → Touches: `src/ui/dashboard/OpsBoard.jsx`, new `supabase/migrations/<date>_tasks.sql` · Fix #12
+- [ ] **oauth-*-deauthorize/data-deletion (×6) — unverified no-op webhooks**
+  Never verify signatures or delete data; revoked tokens persist; data-deletion returns a fake code (compliance gap).
+  → Touches: 6 webhook files, `_lib/oauth.js` · Fix #5
+
+- [ ] **_lib/oauth.js:122 — OAuth tokens stored plaintext**
+  Access/refresh tokens unencrypted at rest; widens blast radius with the never-deleted-on-revoke gap.
+  → Touches: `_lib/oauth.js`, `connected_account_tokens`, `sync-*.js` · Fix #6
+
+- [ ] **notify.js:138 — stored/email HTML injection**
+  Client-editable fields (esp. `client_note`) interpolated into email HTML unescaped → phishing vector in admin inboxes.
+  → Touches: `netlify/functions/notify.js` · Fix #7
+
+- [ ] **App.jsx:134,489 — content_items realtime/load not client-scoped**
+  Every browser holds the full multi-tenant set and gets realtime events for off-screen clients; leak risk if an external role reaches the main shell.
+  → Touches: `src/App.jsx` · Fix #9
+
+- [ ] **002_profiles.sql:20 — wide-open "Service role full access" RLS**
+  `FOR ALL USING(true)` with no role restriction applies to anon/public too.
+  → Touches: `supabase/migrations/002_profiles.sql` · Fix #10
+
+- [ ] **requireUser.js:26 — CORS fail-open on writes**
+  Non-allowlisted origins still execute writes; CORS provides no real write protection.
+  → Touches: `netlify/functions/_lib/requireUser.js` · Fix #17
 
 ---
 
 ## 🟢 LOW — track, no urgency
 
-- [ ] **Vantus Slack bot — agent-attributed messages**
-  Right now Claude MCP posts as the signed-in user. Set up a real "Vantus" Slack app with bot token → `SLACK_BOT_TOKEN` env → switch `notify.js` + future agent posts to `chat.postMessage`. Would also unlock channel-id routing (re-using the dormant `slack_channel_id` column).
-  → Touches: new Slack app + `netlify/functions/notify.js`
-
-- [x] ~~**cid_posts table — 404 on REST count probe**~~ ✅ 2026-05-26 PM (closed-by-removal — live SQL probe confirmed table never existed; `cid-scrape.js` + `003_cid_posts.sql` deleted; real CID data lives in `cid_library` + `cid_performance`)
-
-- [x] ~~**Rotate Supabase admin passwords**~~ ✅ 2026-05-26 PM (better close — email/password auth provider disabled entirely in Supabase Auth → Providers. `Cloudai25%` leak in git history is now inert without needing per-user rotation. Only Google OAuth remains.)
-
-- [ ] **Tighten `style-src 'unsafe-inline'` in CSP**
-  Required by current inline-style React patterns. When inline styles get factored out, drop `'unsafe-inline'` from `style-src` in `netlify.toml`.
-  → Touches: `netlify.toml` (after inline-style refactor)
+- [ ] **chat.js:43 — forwards unvalidated body to Anthropic** (no max_tokens cap / model allowlist) · Fix #8
+- [ ] **agent-action.js:669 — dead handler `muse_from_brief`** (zero callers) · Fix #11
+- [ ] **App.jsx:12,20,32,33 — dead imports** (OPS_INIT, QuickActionsDashboard, TypingTask, PlaceholderPage) · Fix #11
+- [ ] **sync-instagram.js:18,197 — unused declared timeout + serial 30-call insight loop** (26s-timeout risk) · Fix #12
+- [ ] **App.jsx:238 — stuckGuard comment says 4s, timeout is 8000ms** · Fix #13
+- [ ] **connected_accounts.sql:124 — no cleanup of expired `oauth_states`** · Fix #14
+- [ ] **SettingsPage.jsx:154,297 — AI toggles + invite are display-only** (no persistence) · Fix #15
+- [ ] **content_items.sql:25 / CIDPage.jsx:368 — text PK, no default + `id:Date.now()`** · Fix #1, #2
+- [ ] **clients migrations — VitalLyfe seeded into canonical migration set** · Fix #16
+- [ ] **supabaseClient.js:14 — `DB_CONNECTED` hardcoded true** (offline indicator unreachable)
+- [ ] **TeamBroadcast.jsx:76 / AgentChatPage.jsx:216 — agent-count copy says 7/8, only 4 exist** · Fix #17
+- [ ] **vite.config.js:12 — dev proxy target hardcoded** · Fix #16
 
 ---
 
 ## 📋 Numbered Roadmap Fixes
 
-Cross-references map node badges + the items above.
-
-- [x] ~~**#1** — Re-enable Google OAuth + auth gate~~ ✅ commit `8e5095e` + hotfix `d0acec3`
-- [x] ~~**#2** — Split App.jsx into smaller components~~ ✅ 2026-05-26 (Codex extracted 6 route components to `src/ui/routes/`; App.jsx 1,676 → 1,342 lines; 7 commits: `4ee755b`/`6589b78`/`bee8946`/`f2d384c`/`94eae54`/`c4f2cc5`/`e57e951`)
-- [x] ~~**#3** — Brain Move 1: per-client agent voice from `clients.brand_voice_md`~~ ✅ 2026-05-26 (getBrandContext + 12 prompt sites + memory.js seed removal + VitalLyfe SQL seed; commit `767cb93`)
-- [x] ~~**#3.1** — Rename `cid_library.vitallyfe_adaptation` → `client_adaptation`~~ ✅ 2026-05-26 (idempotent SQL migration + 3 code sites; commit `183d53f`)
-- [ ] **#4** — Split `agent-action.js` into per-handler files → keep as router only
-- [x] ~~**#5** — Caller auth on all 5 functions~~ ✅ commit `2a9c9c1` (shared `_lib/requireUser.js`)
-- [x] ~~**#6** — Per-client Slack routing~~ ✅ commit `702f867` (`clients.slack_webhook_url`)
-- [x] ~~**#7** — Per-client n8n webhook routing in `notify.js`~~ ✅ 2026-05-26 (one combined Supabase fetch for slack+n8n URLs; each falls back to env; commit `2bb8958`)
-- [x] ~~**#8** — Delete `src/agents/` dead-code folder~~ ✅ 2026-05-26 (`rm -rf src/agents/`; 8 files, 96 lines; commit `4b54630`)
-- [x] ~~**#9** — Ship or delete Higgsfield~~ ✅ 2026-05-26 PM (closed by removal — both WIP files no longer in tree; never were in git on main; `apps.config.js` + `constants.js` clean. Future Higgsfield ship is a fresh atomic commit.)
-- [x] ~~**#10** — Write `content_items` migration~~ ✅ 2026-05-26 (`20260526_content_items_baseline.sql`; commit `ed46c31`)
-- [x] ~~**#10.1** — Drop wide-open `"Allow all for now"` policy on content_items~~ ✅ 2026-05-26 (`20260526_content_items_client_rls.sql` adds scoped client policies + drops the wide-open one; commit `5a51b00`)
-- [x] ~~**#11** — Dynamic-import `pdfjs-dist` in BriefGenPage~~ ✅ already shipped — `BriefGenPage.jsx:7` uses `await import('pdfjs-dist')`; pdfjs lives in its own 405 KB chunk
-- [ ] **#12** — Back OpsBoard with a `tasks` table in Supabase
-- [ ] **#13** — Per-user client assignments table (now that OAuth + `client_users` are live, this is unblocked)
-- [ ] **#14** — Decouple `seed.content.js` from VitalLyfe (or remove — DB is authoritative now)
-- [x] ~~**#15** — Auto-recover from supabase-js auth-lock errors~~ ✅ 2026-05-26 (App.jsx stuckGuard now clears `sb-*-auth-token` keys + reloads; one-shot sessionStorage flag prevents reload loops; commit `2b43364`)
+- [ ] **#1** — Repair CID write path → `CIDPage.jsx`
+- [ ] **#2** — Baseline migrations for `cid_library` + `cid_performance` → `supabase/migrations/`
+- [ ] **#3** — Scope "Why these won" + unify ranking metric → `AnalyticsRoute.jsx`, `agent-action.js`
+- [ ] **#4** — Rate-limit apify/unsplash/sync-*/notify → 6 functions + `_lib/rateLimit.js`
+- [ ] **#5** — Implement OAuth deauthorize + data-deletion → 6 webhook files, `_lib/oauth.js`
+- [ ] **#6** — Encrypt OAuth tokens at rest → `_lib/oauth.js`, `connected_account_tokens`
+- [ ] **#7** — Escape user input in notify email/Slack → `notify.js`
+- [ ] **#8** — Validate chat.js forward → `chat.js`
+- [ ] **#9** — Scope content_items realtime by client → `App.jsx`
+- [ ] **#10** — Drop wide-open profiles RLS policy → `002_profiles.sql`
+- [ ] **#11** — Remove dead code → `agent-action.js`, `App.jsx`
+- [ ] **#12** — Fix sync-instagram insight loop/timeout → `sync-instagram.js`
+- [ ] **#13** — Fix stuckGuard comment drift → `App.jsx`
+- [ ] **#14** — Clean up expired oauth_states → migration / scheduled fn
+- [ ] **#15** — Make SettingsPage toggles real or honest → `SettingsPage.jsx`
+- [ ] **#16** — De-couple tenant seed + parameterize dev proxy → migrations, `vite.config.js`
+- [ ] **#17** — Harden CORS + reconcile agent-count copy → `requireUser.js`, broadcast/chat/skills
 
 ---
 
-## ✅ Closed 2026-05-26 PM (cid_posts dead chain + email/password disable + INITIAL_CONTENT cleanup)
+## Cross-cutting work
 
-- [x] ~~**cid_posts table never existed — 404 was real**~~
-  Live SQL probe (`SELECT tablename, rowsecurity FROM pg_tables WHERE tablename LIKE 'cid_%'`) returned only `cid_library` + `cid_performance` (both with RLS on), no `cid_posts`. Confirmed `netlify/functions/cid-scrape.js` had ZERO frontend callers (verified via grep). Both `cid-scrape.js` and `supabase/migrations/003_cid_posts.sql` deleted via `git rm`. Build green after. `CID_BEARER_TOKEN` env in Netlify is now orphaned — drop when convenient (purely housekeeping, no functional impact).
+### When #2 lands → capture the drift tables in the repo
+```sql
+-- cid_library (shape from agent-action.js:759-763)
+create table if not exists public.cid_library (
+  id          bigserial primary key,
+  type        text, text text, score numeric, platform text,
+  views       bigint, engagement numeric,
+  why_it_works text, client_adaptation text,
+  created_at  timestamptz not null default now()
+);
+alter table public.cid_library enable row level security;
+create policy "admins manage cid_library" on public.cid_library
+  for all to authenticated
+  using (lower((auth.jwt()->>'email')) like '%@cloudscenic.com')
+  with check (lower((auth.jwt()->>'email')) like '%@cloudscenic.com');
+-- cid_performance: define from CIDPage.jsx:450-458 insert body, same RLS shape.
+```
 
-- [x] ~~**Email/password auth still enabled (Cloudai25% leak risk)**~~
-  Supabase Auth → Providers → Email toggle flipped off in the dashboard. Leaked `Cloudai25%` password from git history is now genuinely inert — only Google OAuth path remains for cz/dv/ss admin sign-in. Magic-link fallback also disabled (acceptable since Google is the only intended path). If Google ever has an outage, the workaround is to temporarily re-enable this toggle.
+### When #14 lands → expired-state cleanup
+```sql
+delete from public.oauth_states where expires_at < now();
+-- schedule via pg_cron (hourly) or a scheduled Netlify function.
+```
 
-- [x] ~~**Dead INITIAL_CONTENT fallback in seed.content.js**~~
-  Counsel shipped commit `90beaa6` — removed dead `INITIAL_CONTENT` import from `App.jsx` + dropped the 33-line VitalLyfe-hardcoded export from `seed.content.js`. `VITAL_LYFE_SOP` kept (actively rendered by SopsRoute + ClientView; per-client SOP migration is a future bigger fix). Build clean, -34 lines.
-
-## ✅ Closed 2026-05-26 PM (Higgsfield WIP cleanup)
-
-- [x] ~~**Fix #9 — Higgsfield WIP files in inconsistent state**~~
-  `src/apps/higgsfield/HiggsfieldStudio.jsx` + `netlify/functions/higgsfield.js` removed from working tree. Verified neither file exists on local HEAD or `origin/main` (`git ls-tree -r origin/main | grep higgs` → empty). `src/apps/apps.config.js` + `src/utils/constants.js` confirmed clean — no CREATIVE section, no Higgsfield DEFAULT_APPS entry. If Higgsfield ships later, it's a fresh atomic commit on a fresh branch, not a recovered orphan. Old broken-CI risk from `5d5300b` no longer applies.
-
-## ✅ Closed 2026-05-26 (Move 1 + leftovers)
-
-- [x] ~~**Fix #3 — Brain Move 1: per-client brand voice**~~
-  New `getBrandContext(client_id)` in `agent-action.js:94` fetches `clients.name` + `clients.brand_voice_md` per request. 12 prompt sites refactored to interpolate `${brand.name}` and `${brand.voice}` instead of hardcoded "VitalLyfe / cinematic, calm, purposeful". Dynamic `#${brand.name}` hashtag templates replace `#VitalLyfe` in 3 places. Dead `seedMuseMemory()` removed from `memory.js`. VitalLyfe seeded via `supabase/migrations/20260526_seed_vitallyfe_brand_voice.sql`.
-
-- [x] ~~**Per-request voice override**~~
-  `agent-action.js` accepts `payload.voiceOverride` and substitutes it for `brand.voice` for that call. `AgentChatPage.jsx` exposes a textarea above quick actions — useful for "try a punchier tone" runs without touching the client's saved brand_voice_md.
-
-- [x] ~~**Fix #3.1 — Rename cid_library.vitallyfe_adaptation → client_adaptation**~~
-  Last hardcoded VitalLyfe reference at the agent layer closed. SQL migration: `20260526_cid_library_rename_adaptation.sql` (idempotent — uses `information_schema` check). Three insert sites in `agent-action.js` updated. Header comment refreshed.
-
-- [x] ~~**Fix #8 — Delete dead src/agents/ folder**~~
-  `rm -rf src/agents/` — 8 files, 96 lines. Confirmed zero importers before delete. Build passed clean.
-
-- [x] ~~**Fix #11 — Dynamic-import pdfjs-dist**~~
-  Already shipped before this session. `BriefGenPage.jsx:7` does `await import('pdfjs-dist')` inside `extractPdfText`. Vite output confirms pdfjs is in its own 405 KB chunk (`pdf-*.js`), not bundled into the main index. Arch map finding ("main bundle is 777 KB, bulk is pdfjs") was stale — closed in docs only.
-
-- [x] ~~**Fix #2 — Split App.jsx into smaller components (Codex)**~~
-  6 route components extracted to `src/ui/routes/`: DashboardRoute (130), AgentsRoute (6), ContentRoute (104), TrackerRoute (117), TaskboardRoute (12), SopsRoute (85). App.jsx 1,676 → 1,342 lines. Build passed after every commit. Highest prop count: TrackerRoute at 13 (under 15-smell threshold). Commits: `4ee755b`, `6589b78`, `bee8946`, `f2d384c`, `94eae54`, `c4f2cc5`, `e57e951`.
-
-- [x] ~~**Security hardening sweep — CORS + rate limits + CSP/HSTS/Permissions/Referrer**~~
-  - `_lib/requireUser.js cors(event)` builds per-request CORS from an allowlist regex matching usevantus.com + the Netlify subdomain + deploy previews. All 6 functions rewritten (was `*` on every one).
-  - New `_lib/rateLimit.js`: in-memory sliding window keyed on `user.id:endpoint`. Wired into `/api/chat` (30/min) and `/api/agent-action` (60/min). Cold starts reset — acceptable since auth + RLS are primary defense.
-  - `netlify.toml` headers: HSTS preload (1y), Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo denied), and a tight CSP whitelisting only the real external origins (Anthropic, Supabase, Resend, Slack, n8n, Tavily, Apify, Unsplash).
-
-- [x] ~~**Fix #15 — Auto-recover from supabase-js auth-lock errors**~~
-  Auto-recovery now fires when stuckGuard hits 4s: clears just the `sb-*-auth-token` keys (preserves agent histories + apps prefs), sets a one-shot `sessionStorage` flag (prevents reload loops), then `location.reload()`. Manual `localStorage.clear()` workaround retired. Commit `2b43364`.
-
-## ✅ Closed 2026-05-25 (kept for history)
-
-- [x] ~~**Fix #1 — Auth bypass in App.jsx + Google OAuth fails**~~
-  Auth gate restored, OAuth flow verified. Four-way branch live: admin / approved client / pending invite (realtime unlock) / unknown blocked.
-  → Commits: `307b64f` (dedupe setupSession), `8e5095e` (gate + admin RLS), `d0acec3` (4s stuckGuard hotfix)
-
-- [x] ~~**Fix #5 — Caller auth on 5 functions**~~
-  Shared helper `netlify/functions/_lib/requireUser.js` validates Supabase JWT. Admin (@cloudscenic.com) OR approved `client_users` row required. Client side stamps every fetch via `src/services/apiFetch.js` (26 call sites).
-  → Commit: `2a9c9c1`
-
-- [x] ~~**Fix #6 — Per-client Slack routing**~~
-  `notify.js` reads `clients.slack_webhook_url` per client, falls back to global env. Edit Client modal exposes the field under "Optional integrations".
-  → Commit: `702f867`
-
-- [x] ~~**External-client invite/allowlist flow**~~
-  New `client_users` table + `ClientTeamPanel.jsx` inside Edit Client modal. Admin invites → status='pending' → email approver clicks "approve" → realtime flips status='approved' → external user's PendingApprovalScreen auto-unlocks without refresh.
-  → Commits: `2a9c9c1` (table + requireUser), `19b6235` (UI panel)
-
-- [x] ~~**5 temp anon RLS policies + 3 logo bucket anon policies**~~
-  All dropped in `20260525_drop_temp_anon_policies.sql`. Admin-only access enforced everywhere (`auth.jwt()->>'email' like '%@cloudscenic.com'`).
-  → Commit: `852d915`
-
----
-
-## Cross-cutting work (still open)
-
-### Drop orphaned `CID_BEARER_TOKEN` from Netlify env (housekeeping)
-- Netlify dashboard → Site settings → Environment variables → delete `CID_BEARER_TOKEN`
-- Function that used it (`cid-scrape.js`) was deleted 2026-05-26 PM — env var is dead weight
-- Zero functional impact either way; just removes a stale secret
-
-### When inline-style React patterns get factored out → tighten CSP
-- Drop `'unsafe-inline'` from `style-src` in `netlify.toml`
-- Currently required because several React components use inline style objects
+### OAuth token hardening (#5 + #6 together)
+- Encrypt `connected_account_tokens.access_token` / `refresh_token` at rest.
+- On platform revoke (deauthorize webhook), delete the `connected_accounts` + token rows.
+- Note: IG long-lived tokens have no refresh and expire at 60 days — a re-auth path is needed regardless.
 
 ---
 
 ## Suggested attack order
 
-1. **#4 (agent-action.js split)** — same mechanical shape as Codex's Fix #2 App.jsx split. Brief Codex with the handler line ranges and a dirty-WIP exclusion list, get a `CODEX_NOTES.md` report. Closing this unblocks per-handler iteration (currently every edit means scrolling past 16 unrelated handlers). Highest leverage open item.
-2. **#12 (OpsBoard DB-backed tasks)** — small migration + UI rewrite, ~1hr. Schema sketch already in `roadmap.md`. Closes a med-severity bug.
-3. **#13 (per-user client assignments)** — small, unlocks per-Cloud-Scenic-teammate client scoping. Could fold into `client_users` instead of a new table.
-4. **#14 (decouple seed.content.js from VitalLyfe)** — or just delete (DB is authoritative).
-5. **App.jsx state extraction** — no fix# yet, no clean Codex pattern. Defer until #4 lands and Codex pattern is proven a second time.
-6. **Slack bot + Supabase password rotation + CSP `style-src` tightening** — track-only, no deadline.
+1. **#3** — *operator-flagged, high-visibility, contained.* One ranking metric shared front/back, scope reasons to the true top performer(s). Unblocks trust in the headline feature.
+2. **#1 + #2** (paired — #1 is dead without #2's tables) — fixes the broken CID write path and the two HIGH schema-drift bugs in one sweep.
+3. **#4** — quick, bounds real money/abuse across six functions.
+4. **#5 + #6 + #7** (security batch) — OAuth revoke/deletion + token encryption + email escaping; do together while in the OAuth/notify code.
+5. **#9 + #10 + #17** — multi-tenant + RLS + CORS hardening before onboarding any non-cloudscenic user.
+6. **#8, #11–#16** — cleanup and polish; #11 (dead code) is a 10-minute win whenever.
 
 ---
 
 ## How to keep this current
 
 When you fix an item:
-1. Add `~~strikethrough~~` to the bullet OR check the box `[x]`
-2. Move the badge count at the top
-3. If the fix touched multiple items, mark each
-4. Commit alongside the code fix so the punch-list reflects reality
+1. Check the box `[x]` (and `~~strikethrough~~` if you like).
+2. Update the badge counts at the top.
+3. If a fix touched multiple items, mark each.
+4. Commit alongside the code fix so the punch-list reflects reality.
 
-If the architecture changes meaningfully (new tables, new functions, big refactor):
-- Regenerate `architecture-map.html` via the `/architecture-map` skill
-- The HTML's Bugs & Roadmap tab regenerates from the source data
-- Update this file by hand to match the new state
+If the architecture changes meaningfully (new tables/functions/big refactor), re-run `/architecture-map` to regenerate `architecture-map.html` + this bundle.
