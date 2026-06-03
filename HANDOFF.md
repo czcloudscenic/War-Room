@@ -1,3 +1,40 @@
+# Vantus Handoff Brief — 2026-06-02 (YouTube OAuth live + Scrappy performance analysis)
+
+## 2026-06-02 session — YouTube connected, analytics cards restyled, "why it won" analysis
+
+**Why:** First real step of the self-serve analyzer pivot — get a second platform (YouTube) syncing real account data, then start turning that synced data into insight. Connected **Cloud Scenic's own YouTube channel** as the working test account.
+
+### 🎥 YouTube OAuth — shipped & live
+- Created a Google Cloud OAuth client (Web app) **separate from Supabase's Google sign-in client** so the consent screen is YouTube-access, not login. Enabled **YouTube Data API v3** + **YouTube Analytics API**; scopes `youtube.readonly` + `yt-analytics.readonly`; redirect `https://usevantus.com/api/oauth/youtube/callback`.
+- Set the three Netlify env vars via CLI: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `YT_REDIRECT_URI`. (`SUPABASE_URL` / `SUPABASE_SERVICE_KEY` already present.)
+- Confirmed `20260601_connected_accounts.sql` was **already applied to prod** (a "policy already exists" error on re-run proved the tables/RLS exist).
+- **Connected Cloud Scenic's channel + synced** — videos flowing into `account_posts`.
+- ⚠️ OAuth consent screen is in **Testing** mode: only test-user accounts can connect, and refresh tokens expire after 7 days. Publish (and likely Google verification for the readonly scopes) before opening it to other users.
+- To connect a brand/business YouTube: sign in as the Google account that **manages** the channel, then pick it in the brand picker — `channels?mine=true` resolves to whatever the authorizing account selects.
+
+### 🎨 Analytics card display — restyled
+- Top Performer thumbnails now use **per-platform aspect ratios**: YouTube `16:9`, TikTok `9:16`, Instagram/other `1:1` (`AnalyticsRoute.jsx`, was hardcoded `1:1`).
+- Enlarged cards: grid min-width 180px → **280px** + scaled-up card text/metrics.
+- Generic connect-toast handler in `ConnectedAccountsCard.jsx` — `youtube_connected` / `tiktok_connected` (+ `*_oauth_error`) params now surface a toast and clean the URL, not just Instagram's.
+
+### 📊 Scrappy performance analysis — built (NEEDS TUNING)
+- New agent action **`scrappy_analyze_performance`** (`agent-action.js`): reads synced `account_posts`, groups by platform, computes each platform's **median engagement** as baseline, takes top 6, asks Claude (Haiku) for **per-post "why it won" reasons + 3–5 aggregate patterns**. Per-platform because drivers differ. Returns `{ insights, reasons }`.
+- `AnalyticsRoute.jsx`: **"✨ Why these won"** button, **Performance Insights** panel (patterns per platform), and a **"Why it won"** line on each Top Performer card (keyed by `reasons[post.id]`).
+- 🐛 **KNOWN BUG (tomorrow's first fix):** the analysis surfaces reasons across multiple posts and leans on raw view-count; it should be scoped to the true **top performer(s)** and rank by the right metric. Founder flagged it; output otherwise works.
+
+### 🚢 Deploy / git state
+- Founder authorized overriding the "agent never pushes" rule for this session. Deploys done via `netlify deploy --build --prod` (direct, not git-triggered). Pushes via one-shot GitHub PAT (this shell can't reach the keychain — see [[project_vantus_push_auth]]).
+- Pushed to `main`: `33516c4` (aspect ratios + toasts), `62afc21` (bigger cards).
+- ⚠️ **`44b55a5` (Scrappy analysis) is committed locally + live on prod, but NOT pushed to `main`.** Push it first thing tomorrow (fresh PAT) before any Counsel/Codex push rebuilds prod from git and drops it.
+
+### 📌 Tomorrow's queue
+1. **Push `44b55a5`** to sync git ← do before anything else
+2. **Fix "Why these won" scoping** (top performer(s) only; correct ranking metric)
+3. **Wire Muse to synced content** — `muse_ig_ideas` reads `account_posts` top performers + caption themes, generates grounded ideas + fills the `script` field (Instagram-first, on-demand button, daily n8n cron later). Deferred today.
+4. **Performance pages** — recommendations layer built on top of the Scrappy analysis.
+
+---
+
 # Vantus Handoff Brief — 2026-06-01 (post-rip pass + IG-analyzer pivot prep)
 
 ## 2026-06-01 session — Major rip + de-hardcoding pass
