@@ -84,8 +84,19 @@ async function refreshTikTokToken(refreshToken) {
   return token;
 }
 
-async function tiktokPost(path, accessToken, body) {
-  const res = await fetch(`https://open.tiktokapis.com${path}`, {
+async function tiktokPost(path, accessToken, body, queryParams = null) {
+  // TikTok's V2 list endpoints require `fields` as a query-string param while
+  // pagination args like `max_count` / `cursor` go in the JSON body. Codex's
+  // first pass put fields in the body — TT rejects with 400 invalid_params
+  // ("`fields` field is required but missed"). queryParams lets each caller
+  // pass the right shape.
+  const url = new URL(`https://open.tiktokapis.com${path}`);
+  if (queryParams) {
+    for (const [k, v] of Object.entries(queryParams)) {
+      if (v != null) url.searchParams.set(k, String(v));
+    }
+  }
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -196,22 +207,25 @@ exports.handler = async (event) => {
   // 3. Pull recent video list. TikTok returns metrics inline on each video.
   let videoList;
   try {
-    const data = await tiktokPost("/v2/video/list/", token, {
-      max_count: VIDEO_LIMIT,
-      fields: [
-        "id",
-        "title",
-        "video_description",
-        "duration",
-        "cover_image_url",
-        "share_url",
-        "create_time",
-        "view_count",
-        "like_count",
-        "comment_count",
-        "share_count",
-      ],
-    });
+    const FIELDS = [
+      "id",
+      "title",
+      "video_description",
+      "duration",
+      "cover_image_url",
+      "share_url",
+      "create_time",
+      "view_count",
+      "like_count",
+      "comment_count",
+      "share_count",
+    ].join(",");
+    const data = await tiktokPost(
+      "/v2/video/list/",
+      token,
+      { max_count: VIDEO_LIMIT },
+      { fields: FIELDS },
+    );
     videoList = data?.data?.videos || [];
   } catch (e) {
     return {
