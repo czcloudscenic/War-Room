@@ -12,6 +12,10 @@ const { rateLimit, tooManyRequests } = require("./_lib/rateLimit");
 // human chat use; the cap exists for budget protection, not normal-use throttling.
 const CHAT_RATE_LIMIT_MAX = 30;
 const CHAT_RATE_LIMIT_WINDOW_MS = 60_000;
+const CHAT_MAX_BODY_BYTES = 100 * 1024;
+const CHAT_ALLOWED_MODELS = new Set(["claude-sonnet-4-6", "claude-haiku-4-5-20251001"]);
+const CHAT_DEFAULT_MODEL = "claude-sonnet-4-6";
+const CHAT_MAX_TOKENS = 4096;
 
 exports.handler = async (event) => {
   const corsHeaders = cors(event);
@@ -40,7 +44,22 @@ exports.handler = async (event) => {
   }
 
   try {
-    const body = JSON.parse(event.body);
+    const rawBody = event.body || "";
+    if (Buffer.byteLength(rawBody, "utf8") > CHAT_MAX_BODY_BYTES) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Request body too large" }),
+      };
+    }
+
+    const body = JSON.parse(rawBody);
+    body.model = CHAT_ALLOWED_MODELS.has(body.model) ? body.model : CHAT_DEFAULT_MODEL;
+
+    const maxTokens = Number(body.max_tokens);
+    body.max_tokens = Number.isFinite(maxTokens) && maxTokens > 0
+      ? Math.min(Math.floor(maxTokens), CHAT_MAX_TOKENS)
+      : CHAT_MAX_TOKENS;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
