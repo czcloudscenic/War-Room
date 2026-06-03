@@ -467,7 +467,7 @@ export default function AnalyticsRoute() {
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: "'Geist Mono', monospace" }}>Ranked by engagement rate</span>
           </div>
           <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12,
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16,
           }}>
             {topPerformers.map((p, i) => {
               const platform = accountPlatform[p.account_id];
@@ -503,15 +503,15 @@ export default function AnalyticsRoute() {
                       fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 5,
                     }}>#{i + 1}</div>
                   </div>
-                  <div style={{ padding: '10px 12px' }}>
+                  <div style={{ padding: '14px 16px' }}>
                     <div style={{
-                      fontSize: 11, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4,
+                      fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.45,
                       display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                      minHeight: 30,
-                    }}>{p.caption?.slice(0, 80) || ''}</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                      <span style={{ fontSize: 11, color: '#7DD3FC', fontWeight: 700 }}>{fmtRate(p.metrics?.engagement_rate)}</span>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{fmtNumber(p.metrics?.reach)} reach</span>
+                      minHeight: 40,
+                    }}>{p.caption?.slice(0, 110) || ''}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
+                      <span style={{ fontSize: 14, color: '#7DD3FC', fontWeight: 700 }}>{fmtRate(p.metrics?.engagement_rate)}</span>
+                      <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>{fmtNumber(p.metrics?.reach)} reach</span>
                     </div>
                   </div>
                 </div>
