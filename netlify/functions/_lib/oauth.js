@@ -7,6 +7,7 @@
 //                 lookup state in oauth_states → verify user/platform/not-expired → delete the row → exchange code
 
 const crypto = require("crypto");
+const { encrypt } = require("./crypto");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -124,8 +125,8 @@ async function upsertAccountToken({ accountId, accessToken, refreshToken, expire
     "connected_account_tokens",
     {
       account_id: accountId,
-      access_token: accessToken,
-      refresh_token: refreshToken || null,
+      access_token: encrypt(accessToken),
+      refresh_token: encrypt(refreshToken),
       token_expires_at: expiresAt || null,
       scopes: scopes || null,
       updated_at: new Date().toISOString(),
