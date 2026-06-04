@@ -68,6 +68,7 @@ try {
   const [voiceOverride, setVoiceOverride] = useState("");
   const [voiceOpen, setVoiceOpen] = useState(false);
   const bottomRef = useRef(null);
+  const agentCount = agents.length;
   const inputRef = useRef(null);
   const msgs = hists[sel.id] || [];
 
@@ -213,7 +214,7 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
   {/* Desktop: sidebar agent list */}
   {!isMobile && (
   <div style={{ width:210, flexShrink:0, display:"flex", flexDirection:"column", gap:6 }}>
-    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>7 Agents</div>
+    <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>{agentCount} Agents</div>
     {agents.map(ag => {
       const active = sel.id === ag.id;
       const chatted = (hists[ag.id] || []).length > 0;
