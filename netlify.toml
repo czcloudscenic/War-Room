@@ -31,6 +31,11 @@
   to = "/.netlify/functions/unsplash"
   status = 200
 
+[[redirects]]
+  from = "/api/oauth/data-deletion-status"
+  to = "/.netlify/functions/oauth-data-deletion-status"
+  status = 200
+
 # Instagram OAuth flow (Meta's Instagram Business Login)
 [[redirects]]
   from = "/api/oauth/instagram/start"
