@@ -10,6 +10,7 @@
 
 const { requireUser, unauthorized, cors: makeCors } = require("./_lib/requireUser");
 const { rateLimit, tooManyRequests } = require("./_lib/rateLimit");
+const { decrypt } = require("./_lib/crypto");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -191,7 +192,7 @@ exports.handler = async (event) => {
       `account_id=eq.${accountId}&select=access_token,token_expires_at`
     );
     if (!row?.access_token) throw new Error("No access token stored");
-    token = row.access_token;
+    token = decrypt(row.access_token);
   } catch (e) {
     return {
       statusCode: 500,
