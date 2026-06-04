@@ -1204,18 +1204,16 @@ ${userIdea
 
 What separates a great idea here from a generic one: a hook that stops the scroll in the first 2 seconds, one real specific detail (a number, a moment, a name — never vague), and a genuine insight or tension the audience actually feels. Teach them something they didn't expect or make them feel something real. If an idea could've come from any brand or any AI, it's a miss — make each one unmistakably this person and genuinely worth posting.
 ${synced ? `\nTheir real top posts (this is the voice + what their audience already rewards — match the energy, don't copy):\n${synced.digest}\n` : ""}${research ? `\nCurrent patterns worth riffing on (take the mechanic, not the words):\n${research}\n` : ""}
-Return ONLY a JSON array of 6 (no markdown, no commentary):
+Return ONLY a JSON array of 6 (no markdown, no commentary). Keep each tile SHORT — the depth comes later when they open it:
 [{
+  "title":"short name, 3-6 words",
   "hook":"the literal first line / first 3 seconds — word for word, exactly what's said or on screen",
-  "angle":"2-3 sentences explaining the piece the way you'd pitch it to the creator: what it actually is, the insight or tension, and the payoff. Make this genuinely valuable, not a one-liner.",
-  "lever":"1-3 words in your OWN voice for why it grabs (e.g. open loop, status flip) — skip if forced",
-  "whyItWorks":"one sharp line on why it works",
-  "title":"short internal name",
+  "angle":"ONE tight sentence: what the piece is and why it's worth watching",
   "format":"${contentType}"
 }]
 Make the 6 genuinely different and genuinely good. Go.`;
 
-  const raw = await ai(system, userIdea ? `Make their idea great — 6 tight, ambitious executions (keep each angle to ~2 sentences). Go.` : `6 ideas. Bold, specific, unmistakable. Go.`, 2000, "claude-sonnet-4-6");
+  const raw = await ai(system, userIdea ? `Make their idea great — 6 tight, ambitious executions (hook + ~2 sentence angle each, no more). Go.` : `6 ideas. Bold, specific, unmistakable. Hook + 2 tight sentences each. Go.`, 1100, "claude-sonnet-4-6");
   let ideas = [];
   try { const m = raw.match(/\[[\s\S]*\]/); ideas = m ? JSON.parse(m[0]) : []; } catch (e) { ideas = []; }
   if (!ideas.length) return { success: false, agent: "Muse", action: "muse_idea_list", message: "❌ Muse couldn't generate concepts — try again" };
@@ -1263,7 +1261,7 @@ Return ONLY JSON (no markdown):
 }
 Write the real lines. No placeholders, nothing generic.`;
 
-  const raw = await ai(system, `The idea: "${title}"${hook ? `\nHook to open on: ${hook}` : ""}${concept ? `\nWhat it is: ${concept}` : ""}\nWrite the full ${format} brief now — real, specific, worth posting.`, 2800, "claude-sonnet-4-6");
+  const raw = await ai(system, `The idea: "${title}"${hook ? `\nHook to open on: ${hook}` : ""}${concept ? `\nWhat it is: ${concept}` : ""}\nWrite the full ${format} brief now — real, specific, worth posting. Keep it tight: 5-7 beats, no filler.`, 2000, "claude-sonnet-4-6");
   let brief = null;
   try { const m = raw.match(/\{[\s\S]*\}/); brief = m ? JSON.parse(m[0]) : null; } catch (e) { brief = null; }
   if (!brief) return { success: false, agent: "Muse", action: "muse_film_brief", message: "❌ Muse couldn't build the brief — try again" };
