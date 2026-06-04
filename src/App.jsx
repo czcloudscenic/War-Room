@@ -79,37 +79,28 @@ function App() {
     // but the server had since rotated/invalidated it. Queries silently returned
     // 401/403, the UI rendered empty, and the user had to nuke localStorage by
     // hand. This check catches that case and auto-recovers once.
-    const HEALTH_FLAG = "vantus_session_health_recovered";
+    // On a normal page reload the access token can be briefly expired-but-
+    // refreshable — so if the server check fails, try a REFRESH before doing
+    // anything destructive. Only a genuinely dead session (refresh also fails)
+    // signs the user out. (Previously this nuked localStorage + reloaded, which
+    // turned a hard refresh — Cmd-Shift-R — into a full sign-out.)
     try {
       const { data: userData, error: userErr } = await sb.auth.getUser();
-      const healthy = !userErr && userData?.user?.id;
+      let healthy = !userErr && userData?.user?.id;
       if (!healthy) {
-        const alreadyTried = (() => { try { return sessionStorage.getItem(HEALTH_FLAG); } catch { return null; } })();
-        if (alreadyTried) {
-          // Recovery already ran this tab and we're still broken. Don't loop —
-          // surface the bad state by signing out so the user lands on LoginScreen.
-          console.warn("[auth health] still unhealthy after recovery, forcing sign-out");
-          await sb.auth.signOut();
-          setSession(null); setRole(null);
-          return;
-        }
-        console.warn("[auth health] server rejected stored session — auto-recovering", { userErr });
-        try { sessionStorage.setItem(HEALTH_FLAG, "1"); } catch {}
         try {
-          for (let i = localStorage.length - 1; i >= 0; i--) {
-            const k = localStorage.key(i);
-            if (k && (/^sb-.*-auth-token/.test(k) || k.startsWith("supabase.auth"))) {
-              localStorage.removeItem(k);
-            }
-          }
-        } catch {}
-        location.reload();
+          const { data: refreshed, error: refreshErr } = await sb.auth.refreshSession();
+          if (!refreshErr && refreshed?.session?.user?.id) { healthy = true; s = refreshed.session; }
+        } catch (e) { /* fall through to sign-out */ }
+      }
+      if (!healthy) {
+        console.warn("[auth health] session unrecoverable, signing out", { userErr });
+        await sb.auth.signOut();
+        setSession(null); setRole(null);
         return;
       }
-      // Health check passed — clear the recovery flag so it can fire again next time
-      try { sessionStorage.removeItem(HEALTH_FLAG); } catch {}
     } catch (e) {
-      // Network error or similar — proceed, the existing query try/catches will surface real issues
+      // Network error talking to /auth/v1/user — keep the session; queries will surface real issues.
       console.warn("[auth health] check threw, proceeding anyway", e);
     }
 
@@ -243,30 +234,14 @@ function App() {
 
     let stuckGuard = setTimeout(() => {
       if (cancelled) return;
-      const alreadyTried = (() => { try { return sessionStorage.getItem(RECOVERY_FLAG); } catch { return null; } })();
-      if (alreadyTried) {
-        // Recovery already ran this tab; don't loop. Drop to login screen.
-        console.warn("[auth] stuckGuard fired again after recovery — falling through to login");
-        setChecking(false);
-        return;
-      }
-      console.warn("[auth] stuckGuard fired — auto-recovering (clearing sb auth keys + reload)");
-      try { sessionStorage.setItem(RECOVERY_FLAG, "1"); } catch {}
-      try {
-        // Clear only the supabase-js auth-token keys — preserve unrelated app state
-        // like vantus_agent_hists, vantus_current_client_id, apps prefs, etc.
-        const toRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if (k && (/^sb-.*-auth-token/.test(k) || k.startsWith("supabase.auth"))) toRemove.push(k);
-        }
-        toRemove.forEach(k => localStorage.removeItem(k));
-        console.log("[auth] recovery cleared", toRemove.length, "auth key(s):", toRemove);
-      } catch (e) {
-        console.warn("[auth] recovery localStorage clear failed", e);
-      }
-      // Reload — fastest path back to a working session
-      location.reload();
+      // NON-DESTRUCTIVE: if getSession() stalls (supabase-js navigator.locks can
+      // hang on some reloads), do NOT touch the stored token — just drop the
+      // checking spinner. The session stays intact in localStorage, and
+      // onAuthStateChange's INITIAL_SESSION/SIGNED_IN event will still deliver it
+      // and run setupSession. (Previously this wiped sb-*-auth-token + reloaded,
+      // which on a hard refresh — Cmd-Shift-R — signed the user out entirely.)
+      console.warn("[auth] stuckGuard fired — dropping spinner; session left intact");
+      setChecking(false);
     }, 8000);
 
     // Cancel the guard the moment auth resolves — success OR confirmed signed-out.
@@ -283,24 +258,24 @@ function App() {
       if (cancelled) return;
       clearStuckGuard();
       console.log("[auth] getSession initial", { hasSession: !!s, email: s?.user?.email });
-      setChecking(false);
       if (s) {
         try { await setupSession(s); }
         catch (e) { console.error("[auth] setupSession failed (initial)", e); }
       }
+      setChecking(false); // drop the spinner only after setup — never flash LoginScreen mid-auth
     });
     // Handle subsequent auth events (SIGNED_IN, SIGNED_OUT, INITIAL_SESSION, TOKEN_REFRESHED)
     const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, s) => {
       console.log("[auth] onAuthStateChange", event, { hasSession: !!s, email: s?.user?.email });
       clearStuckGuard();
-      // Always flip checking off as soon as we hear from auth — even if getSession is still hung
-      setChecking(false);
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && s) {
         // Clear recovery flag so the next time we get stuck, auto-recovery can fire again
         try { sessionStorage.removeItem(RECOVERY_FLAG); } catch {}
         try { await setupSession(s); }
         catch (e) { console.error("[auth] setupSession failed (event)", e); }
       }
+      // Drop the spinner only after setup ran (or it's a sign-out) — no LoginScreen flash mid-auth.
+      setChecking(false);
       if (event === "SIGNED_OUT") {
         setupRanForRef.current = null;
         setSession(null);
@@ -391,7 +366,8 @@ document.head.appendChild(fontLink);
 function Vantus({ onSignOut, userEmail, userId, content: contentProp, setContent: setContentProp }) {
   const isMobile = useIsMobile();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = useState(() => { try { return localStorage.getItem("vantus_active_nav") || "dashboard"; } catch { return "dashboard"; } });
+  useEffect(() => { try { localStorage.setItem("vantus_active_nav", activeNav); } catch {} }, [activeNav]);
   const [activePlatform, setActivePlatform] = useState("instagram");
 
   // ── Multi-tenant: client roster + currently-active client ──

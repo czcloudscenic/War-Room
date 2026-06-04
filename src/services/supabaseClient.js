@@ -12,4 +12,17 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 }
 
 export const DB_CONNECTED = true;
-export const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+export const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    // Pass-through lock: bypass supabase-js's default navigator.locks-based lock.
+    // That lock stalls getSession()/refresh on some reloads (notably hard refresh,
+    // Cmd-Shift-R) — which made apiFetch fail to attach a token ("token didn't
+    // work") and the session fail to restore (sign-out). This trades cross-tab
+    // refresh serialization (a rare race) for not deadlocking. Root-cause fix for
+    // the hard-refresh sign-out + API token failures.
+    lock: async (_name, _acquireTimeout, fn) => fn(),
+  },
+});
