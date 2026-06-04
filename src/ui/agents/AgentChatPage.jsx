@@ -3,6 +3,7 @@ import { useIsMobile } from '../../utils/hooks.js';
 import { buildSystemPrompt, updateAgentMemory } from '../../core/memory.js';
 import AgentAvatar from '../shared/AgentAvatar.jsx';
 import { apiFetch } from '../../services/apiFetch.js';
+import TeamBroadcast from './TeamBroadcast.jsx';
 
 function CalendarSaveButton({ items }) {
   const [status, setStatus] = React.useState("idle");
@@ -192,6 +193,9 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
 
   const caps = QUICK[sel.name] || [];
 
+  const [broadcast, setBroadcast] = useState(false);
+  const bcTab = (active) => ({ flex:1, fontSize:12, fontWeight:600, padding:"7px 10px", borderRadius:10, cursor:"pointer", fontFamily:"Inter,sans-serif", textAlign:"center", background: active ? "rgba(42,171,255,0.1)" : "transparent", border:`1px solid ${active ? "rgba(42,171,255,0.4)" : "rgba(255,255,255,0.12)"}`, color: active ? "#2AABFF" : "rgba(255,255,255,0.55)" });
+
   return (
 <div style={{ animation:"fadeIn 0.4s ease", display:"flex", flexDirection: isMobile ? "column" : "row", gap:16, height: isMobile ? "auto" : "calc(100vh - 80px)" }}>
 
@@ -208,6 +212,12 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
           </button>
         );
       })}
+    </div>
+  )}
+  {isMobile && (
+    <div style={{ display:"flex", gap:6 }}>
+      <button onClick={() => setBroadcast(false)} style={bcTab(!broadcast)}>Chat</button>
+      <button onClick={() => setBroadcast(true)} style={bcTab(broadcast)}>Broadcast</button>
     </div>
   )}
 
@@ -234,9 +244,18 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
         </div>
       );
     })}
+    <div style={{ display:"flex", gap:6, marginTop:10 }}>
+      <button onClick={() => setBroadcast(false)} style={bcTab(!broadcast)}>Chat</button>
+      <button onClick={() => setBroadcast(true)} style={bcTab(broadcast)}>Broadcast</button>
+    </div>
   </div>
   )}
 
+  {broadcast ? (
+  <div className="hover-card" style={{ flex:1, padding:18, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.13)", borderRadius:20, overflow:"auto", boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
+    <TeamBroadcast agents={agents} />
+  </div>
+  ) : (
   <div className="hover-card" style={{ flex:1, display:"flex", flexDirection:"column", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.13)", borderRadius:20, overflow:"hidden", boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
     <div style={{ padding:"16px 22px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", gap:13, flexShrink:0 }}>
       <AgentAvatar agent={sel} size={42} />
@@ -416,6 +435,7 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
       </button>
     </div>
   </div>
+  )}
 </div>
   );
 }

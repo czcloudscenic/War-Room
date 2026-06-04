@@ -5,7 +5,6 @@
 export const DEFAULT_APPS = [
   { id: "artgrid",    label: "ArtGrid Scout",      desc: "AI footage briefs + Artgrid.io search queries",      enabled: true  },
   { id: "sales",      label: "Ad ROI Hub",          desc: "Campaign spend tracking, ROAS, and ROI analysis",    enabled: true  },
-  { id: "chat",       label: "Team Broadcast",      desc: "Send briefs and updates to all agents at once",      enabled: true  },
   { id: "references", label: "References",          desc: "Store hooks, captions, CTAs, and brand voice docs",  enabled: true  },
   { id: "skills",     label: "Skills",              desc: "Deploy skill briefs and directives to agents",        enabled: true  },
   { id: "scrappy",    label: "Scraping Ops",        desc: "Live trend scraping from TikTok, IG, Reddit",        enabled: false },

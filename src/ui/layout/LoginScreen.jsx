@@ -105,8 +105,8 @@ export default function LoginScreen() {
   return (
     <div style={{ minHeight:"100vh", minHeight:"100dvh", background:"#000", position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter, sans-serif" }}>
 
-      {/* Static gradient background (replaced the waterfall video) */}
-      <div style={{ position:"absolute", inset:0, zIndex:0, background:"radial-gradient(ellipse 95% 70% at 50% 0%, #16213a 0%, #0c1020 45%, #08080c 100%)" }} />
+      {/* Aggressive orange haze background */}
+      <div style={{ position:"absolute", inset:0, zIndex:0, background:"radial-gradient(ellipse 95% 70% at 50% 0%, #4a2810 0%, #1e1207 45%, #0a0705 100%)" }} />
 
       {/* Radial gradient — focuses eye on center */}
       <div style={{ position:"absolute", inset:0, zIndex:2, background:"radial-gradient(ellipse 65% 75% at 50% 50%, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.30) 65%, rgba(0,0,0,0.70) 100%)", pointerEvents:"none" }} />
@@ -147,11 +147,6 @@ export default function LoginScreen() {
           <p style={{ fontSize:10, color:"rgba(255,255,255,0.28)", margin:0, lineHeight:1.6 }}>
             Sign in with your @cloudscenic.com Google account
           </p>
-        </div>
-
-        <div style={{ marginTop:18, display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
-          <div style={{ width:5, height:5, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 2s infinite" }} />
-          <span style={{ fontSize:10, color:"rgba(255,255,255,0.22)" }}>Live operations</span>
         </div>
       </div>
 

@@ -8,7 +8,7 @@ import { apiFetch } from '../../services/apiFetch.js';
 // the function timeout: the list is fast, each brief is built on open.
 
 const FMT_TYPE = { 'Reel/Video': 'reel', 'Story Sequence': 'story', 'Carousel': 'carousel' };
-const ACCENT = '#e8b84b';
+const ACCENT = '#2AABFF';
 
 export default function IdeaEngineRoute({ currentClient }) {
   const [inspiration, setInspiration] = useState('');
@@ -254,12 +254,12 @@ function Segmented({ options, value, onChange }) {
         return (
           <button key={o.value} onClick={() => onChange(o.value)} style={{
             flex: 1, textAlign: 'center', padding: '16px 10px', borderRadius: 11, cursor: 'pointer',
-            background: active ? 'rgba(232,184,75,0.1)' : 'rgba(255,255,255,0.03)',
-            border: `1px solid ${active ? 'rgba(232,184,75,0.45)' : 'rgba(255,255,255,0.1)'}`,
+            background: active ? 'rgba(42,171,255,0.1)' : 'rgba(255,255,255,0.03)',
+            border: `1px solid ${active ? 'rgba(42,171,255,0.45)' : 'rgba(255,255,255,0.1)'}`,
             color: active ? ACCENT : 'rgba(255,255,255,0.75)', fontFamily: 'Inter, sans-serif',
           }}>
             <div style={{ fontSize: 15.5, fontWeight: 600 }}>{o.label}</div>
-            {o.sub && <div style={{ fontSize: 11.5, color: active ? 'rgba(232,184,75,0.7)' : 'rgba(255,255,255,0.35)', marginTop: 3 }}>{o.sub}</div>}
+            {o.sub && <div style={{ fontSize: 11.5, color: active ? 'rgba(42,171,255,0.7)' : 'rgba(255,255,255,0.35)', marginTop: 3 }}>{o.sub}</div>}
           </button>
         );
       })}
