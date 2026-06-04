@@ -1159,7 +1159,7 @@ async function _researchDigest(insp) {
   if (!insp || !TAVILY_KEY) return "";
   try {
     const qs = [`${insp} best viral short-form video hooks and formats 2026`, `${insp} most viral content ideas and angles this year`];
-    const results = await Promise.allSettled(qs.map(q => tavilySearch(q, "advanced", 5)));
+    const results = await Promise.allSettled(qs.map(q => tavilySearch(q, "basic", 4)));
     const lines = [];
     results.forEach(r => {
       if (r.status === "fulfilled" && r.value) {
@@ -1189,51 +1189,33 @@ async function muse_idea_list(payload = {}, brand) {
   const userIdea = String(payload.userIdea || "").trim();
   const funnelLine = FUNNEL[funnel] || FUNNEL.TOF;
   const ctLine = CONTENT_TYPE[contentType] || CONTENT_TYPE["Reel/Video"];
-  const synced = await getSyncedDigest("instagram", 8);
-  const research = await _researchDigest(insp);
+  const [synced, research] = await Promise.all([getSyncedDigest("instagram", 8), _researchDigest(insp)]);
   const nicheLine = brand.voice ? `Niche/context: ${String(brand.voice).slice(0, 220).replace(/\s+/g, " ")}…` : `Niche: ${brand.name}.`;
 
-  const system = `You are Muse, a viral short-form strategist in the school of Alex Hormozi and Nik Setting. You do NOT write brand content or scripts. You ENGINEER ideas around explicit PSYCHOLOGICAL LEVERS that make people stop, feel, and share. Never salesy — pull on value, story, status, identity, and curiosity, never a pitch.
+  const funnelIntent = { TOF: "a cold stranger who's never heard of them — earn attention and a follow, sell nothing", MOF: "a warm viewer deciding whether to trust them — build belief and authority", BOF: "a ready-to-act viewer — convert with proof and outcomes, never salesy" }[funnel] || "earn attention";
 
-Generate exactly 6 short-form content concepts for ${brand.name}. ${nicheLine}
-Relevance to the niche matters. BRAND VOICE DOES NOT — if it's thin, ignore it and go bold. Quality and psychology over politeness.
+  const system = `You're the most in-demand short-form content strategist alive — the one top creators DM at 2am. You think in scroll-stopping, genuinely valuable ideas. Never templates, never filler, never AI-sounding. When someone reads one of your ideas they think "damn, I have to make that."
 
-FUNNEL STAGE — ${funnelLine}
-${ctLine}
-${userIdea ? `\nSTRUCTURE THE OPERATOR'S OWN IDEA — do NOT replace it. Their raw idea: "${userIdea}". All 6 concepts must be distinct executions/angles of THIS idea (different levers, hooks, entry points), shaped for the funnel stage and format above.` : ""}
+You're ideating ${contentType} content for ${brand.name}${brand.voice ? `, ${nicheLine}` : ""}.
+Stage: ${funnel} — talking to ${funnelIntent}.
+${userIdea
+  ? `The operator already has a raw idea and wants to RUN with it: "${userIdea}". Do NOT replace it, water it down, or wrap it in a template. Make it great — give 6 distinct, ambitious ways to execute THIS exact idea, each a sharper angle or entry point.`
+  : `Give 6 distinct, ambitious ideas — different angles, no two alike.`}
 
-${WINNING_FORMULA}
-
-Each concept MUST be engineered on ONE named psychological lever — use a DIFFERENT lever for each of the 6 (favor levers that fit the funnel stage above):
-• Curiosity gap / open loop — withhold the payoff so they HAVE to keep watching
-• Contrarian truth / pattern interrupt — say the thing nobody in the niche says out loud
-• Status & identity — make them want to be the kind of person who gets this
-• Loss aversion / FOMO — the real cost of not knowing this
-• Specificity & proof — exact numbers/details that make it undeniable
-• In-group / us-vs-them — call out the tribe, draw the line
-• Vulnerability → authority — admit the flaw/failure, earn the trust
-• Transformation / before→after — the gap they ache to close
-• Direct callout — name their exact situation back to them so they feel seen
-• Defensible hot take — a strong opinion worth arguing with in the comments
-
-${SLOP}
-${VOICE_RULES}
-${synced ? `\nWhat THIS audience already rewards (their top posts — proof of appetite, NOT a template to copy):\n${synced.digest}` : ""}
-${research ? `\nLIVE RESEARCH${insp ? " on " + insp : ""} (current viral patterns — steal the MECHANIC, not the words):\n${research}` : ""}
-
-Return ONLY a JSON array of exactly 6 (no markdown):
+What separates a great idea here from a generic one: a hook that stops the scroll in the first 2 seconds, one real specific detail (a number, a moment, a name — never vague), and a genuine insight or tension the audience actually feels. Teach them something they didn't expect or make them feel something real. If an idea could've come from any brand or any AI, it's a miss — make each one unmistakably this person and genuinely worth posting.
+${synced ? `\nTheir real top posts (this is the voice + what their audience already rewards — match the energy, don't copy):\n${synced.digest}\n` : ""}${research ? `\nCurrent patterns worth riffing on (take the mechanic, not the words):\n${research}\n` : ""}
+Return ONLY a JSON array of 6 (no markdown, no commentary):
 [{
-  "title":"short internal name for the idea",
-  "hook":"the LITERAL first line / first 3 seconds — exactly what is said or shown on screen",
-  "lever":"the named psychological lever from the list above",
-  "whyItWorks":"one blunt line on the psychology — what it makes the viewer feel or do",
-  "format":"${contentType}",
-  "pillar":"one theme/pillar",
-  "angle":"one line on the actual substance/payoff the piece delivers"
+  "hook":"the literal first line / first 3 seconds — word for word, exactly what's said or on screen",
+  "angle":"2-3 sentences explaining the piece the way you'd pitch it to the creator: what it actually is, the insight or tension, and the payoff. Make this genuinely valuable, not a one-liner.",
+  "lever":"1-3 words in your OWN voice for why it grabs (e.g. open loop, status flip) — skip if forced",
+  "whyItWorks":"one sharp line on why it works",
+  "title":"short internal name",
+  "format":"${contentType}"
 }]
-The 6 hooks must be bold, specific, and distinct. If a hook sounds like an ad, a brand, or AI, kill it and write a sharper one.`;
+Make the 6 genuinely different and genuinely good. Go.`;
 
-  const raw = await ai(system, `Engineer the 6 concepts now — ${funnel} stage, as a ${contentType}${userIdea ? ", all structuring the operator's idea" : ""}. Each on a DIFFERENT lever, hooks that genuinely stop the scroll, zero sales energy.`, 1900, "claude-opus-4-8");
+  const raw = await ai(system, userIdea ? `Make their idea great — 6 tight, ambitious executions (keep each angle to ~2 sentences). Go.` : `6 ideas. Bold, specific, unmistakable. Go.`, 2000, "claude-sonnet-4-6");
   let ideas = [];
   try { const m = raw.match(/\[[\s\S]*\]/); ideas = m ? JSON.parse(m[0]) : []; } catch (e) { ideas = []; }
   if (!ideas.length) return { success: false, agent: "Muse", action: "muse_idea_list", message: "❌ Muse couldn't generate concepts — try again" };
@@ -1260,33 +1242,28 @@ async function muse_film_brief(payload = {}, brand) {
     ? `Each shotBreakdown entry is a SLIDE: set "time" to "Slide 1", "Slide 2", … "shot" = the visual, "script" = the slide copy, "overlay" = headline or '-'.`
     : `Each shotBreakdown entry is a timestamped beat: set "time" to "0:00 — …", "0:03 — …" (5-7 beats). "shot" = camera/blocking, "script" = the line, "overlay" = on-screen text or '-'.`;
 
-  const system = `You are Muse, a viral short-form director in the school of Alex Hormozi and Nik Setting. Turn ONE concept into a complete, SHOOTABLE film brief that PULLS ITS PSYCHOLOGICAL LEVER the whole way through. Concrete, directable, specific. Never salesy — value/story/status/identity, not a pitch. ${SLOP}
+  const funnelIntent = { TOF: "a cold stranger — earn attention, sell nothing", MOF: "a warm viewer building trust in them", BOF: "a ready-to-act viewer — proof and outcomes, never salesy" };
 
-${VOICE_RULES}
-${synced && synced.voiceSamples ? `\nVoice reference — real lines from this account (match the energy, don't copy):\n${synced.voiceSamples}\n` : ""}
+  const system = `You're a world-class short-form director and writer — the one creators trust to turn a raw idea into something they can shoot today. You write real, specific, human lines. Never templates, never AI-sounding filler, never a pitch.
 
-${WINNING_FORMULA}
-
-Open ON the hook. Keep the lever${lever ? ` (${lever})` : ""} working in every beat — the curiosity/tension/status must not resolve until the payoff.
-${funnel && FUNNEL[funnel] ? `FUNNEL INTENT — ${FUNNEL[funnel]}` : ""}
-This is a ${format}. ${structHint}
+Turn the one idea below into a complete, shootable ${format} brief for ${brand.name}. Open on the hook and don't let the tension resolve until the payoff. Every line should be a real line they could actually say or put on screen — concrete details, real numbers, the kind of thing that's genuinely worth posting.
+${synced && synced.voiceSamples ? `\nMatch this person's actual voice — real lines from their posts (mirror the energy, don't copy):\n${synced.voiceSamples}\n` : ""}${funnel && funnelIntent[funnel] ? `Stage: ${funnel} — talking to ${funnelIntent[funnel]}.\n` : ""}
+${structHint}
 
 Return ONLY JSON (no markdown):
 {
   "title": "${title.replace(/"/g, "'")}",
   "filmLabel": "short label e.g. FILM 1",
-  "concept": "2-3 sentence concept description — what the video does and the feeling it creates",
+  "concept": "2-3 sentences: what it is and the feeling it creates",
   "message": "the single core message, one line",
-  "setting": "where it's shot — be specific",
-  "talent": "who is on camera and the exact energy they bring",
-  "shotBreakdown": [
-    {"time":"0:00 — Opening Image","shot":"camera/blocking direction","script":"the exact line spoken or shown","overlay":"on-screen text or '-'"}
-  ],
-  "script": "the full spoken/on-screen script written out in labeled sections"
+  "setting": "where it's shot — specific",
+  "talent": "who's on camera and the energy they bring",
+  "shotBreakdown": [ {"time":"...","shot":"...","script":"the exact line","overlay":"on-screen text or '-'"} ],
+  "script": "the full spoken/on-screen script in labeled sections"
 }
-${structHint} No placeholders — write the real lines.`;
+Write the real lines. No placeholders, nothing generic.`;
 
-  const raw = await ai(system, `Concept: "${title}"\nHOOK (open on this, word for word or sharper): ${hook || concept}\nPsychological lever to pull all the way through: ${lever || "(pick the strongest one for this idea)"}\nSubstance/payoff: ${concept}\nPillar: ${pillar} · Format: ${format}\nWrite the full film brief now — bold, specific, zero sales energy.`, 2600, "claude-opus-4-8");
+  const raw = await ai(system, `The idea: "${title}"${hook ? `\nHook to open on: ${hook}` : ""}${concept ? `\nWhat it is: ${concept}` : ""}\nWrite the full ${format} brief now — real, specific, worth posting.`, 2800, "claude-sonnet-4-6");
   let brief = null;
   try { const m = raw.match(/\{[\s\S]*\}/); brief = m ? JSON.parse(m[0]) : null; } catch (e) { brief = null; }
   if (!brief) return { success: false, agent: "Muse", action: "muse_film_brief", message: "❌ Muse couldn't build the brief — try again" };
