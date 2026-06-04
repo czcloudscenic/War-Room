@@ -199,6 +199,12 @@ function dataDeletionStatusUrl(code) {
 // ── State token: CSRF protection ────────────────────────────────────────────
 
 async function createOAuthState({ userId, platform, redirectTo }) {
+  try {
+    await sbDelete("oauth_states", `expires_at=lt.${encodeURIComponent(new Date().toISOString())}`);
+  } catch (e) {
+    console.warn("[oauth] expired state cleanup failed:", e.message);
+  }
+
   const state = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   await sbInsert("oauth_states", {
