@@ -15,6 +15,13 @@ const saveConfig = (cfg) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
 };
 
+const AI_DEFAULTS = {
+  aiEngine: true,
+  autoBriefs: true,
+  morningBriefing: false,
+  deepScans: false,
+};
+
 /* ── shared styles ── */
 const S = {
   card: {
@@ -150,11 +157,16 @@ export default function SettingsPage() {
     };
   });
 
-  /* AI toggles (display-only) */
-  const [aiEngine, setAiEngine] = useState(true);
-  const [autoBriefs, setAutoBriefs] = useState(true);
-  const [morningBriefing, setMorningBriefing] = useState(false);
-  const [deepScans, setDeepScans] = useState(false);
+  /* AI toggles (display preferences) */
+  const [aiPrefs, setAiPrefs] = useState(() => {
+    const saved = loadConfig();
+    return {
+      aiEngine: saved.aiEngine ?? AI_DEFAULTS.aiEngine,
+      autoBriefs: saved.autoBriefs ?? AI_DEFAULTS.autoBriefs,
+      morningBriefing: saved.morningBriefing ?? AI_DEFAULTS.morningBriefing,
+      deepScans: saved.deepScans ?? AI_DEFAULTS.deepScans,
+    };
+  });
 
   /* toast */
   const [toast, setToast] = useState('');
@@ -164,13 +176,17 @@ export default function SettingsPage() {
   };
 
   const handleSaveConfig = () => {
-    saveConfig(config);
+    saveConfig({ ...loadConfig(), ...config, ...aiPrefs });
     showToast('Workspace config saved');
   };
 
-  const handleToggle = (setter) => () => {
-    setter(prev => !prev);
-    showToast('Setting updated');
+  useEffect(() => {
+    saveConfig({ ...loadConfig(), ...aiPrefs });
+  }, [aiPrefs]);
+
+  const handleToggle = (key) => () => {
+    setAiPrefs(prev => ({ ...prev, [key]: !prev[key] }));
+    showToast('Display preference saved');
   };
 
   const handleCheckHealth = () => {
@@ -239,7 +255,7 @@ export default function SettingsPage() {
               {[
                 ['Version', 'Vantus v2.0.0'],
                 ['Stack', 'React + Vite + Supabase'],
-                ['Agents', '6 active'],
+                ['Agents', '4 active'],
                 ['Model', 'GPT-4o via OpenRouter'],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -262,10 +278,10 @@ export default function SettingsPage() {
             <h3 style={S.cardTitle}>AI Engine</h3>
             <div style={S.cardSub}>Agent behaviour & automation toggles</div>
             <div style={{ marginTop: 14 }}>
-              <ToggleRow label="AI Engine" on={aiEngine} onToggle={handleToggle(setAiEngine)} />
-              <ToggleRow label="Auto Briefs" on={autoBriefs} onToggle={handleToggle(setAutoBriefs)} />
-              <ToggleRow label="Morning Briefing" on={morningBriefing} onToggle={handleToggle(setMorningBriefing)} />
-              <ToggleRow label="Deep Scans" on={deepScans} onToggle={handleToggle(setDeepScans)} />
+              <ToggleRow label="AI Engine" on={aiPrefs.aiEngine} onToggle={handleToggle('aiEngine')} />
+              <ToggleRow label="Auto Briefs" on={aiPrefs.autoBriefs} onToggle={handleToggle('autoBriefs')} />
+              <ToggleRow label="Morning Briefing" on={aiPrefs.morningBriefing} onToggle={handleToggle('morningBriefing')} />
+              <ToggleRow label="Deep Scans" on={aiPrefs.deepScans} onToggle={handleToggle('deepScans')} />
             </div>
             <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
               <button style={S.btnPrimary} onClick={handleCheckHealth}>Check API Health</button>
@@ -294,8 +310,11 @@ export default function SettingsPage() {
               ))}
             </div>
             <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
-              <button style={S.btnPrimary} onClick={() => showToast('Invite flow coming soon')}>
-                + Invite Team Member
+              <button
+                style={{ ...S.btnPrimary, opacity: 0.45, cursor: 'not-allowed' }}
+                disabled
+              >
+                Invite Coming Soon
               </button>
             </div>
           </div>
