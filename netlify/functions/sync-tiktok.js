@@ -10,6 +10,7 @@
 
 const { requireUser, unauthorized, cors: makeCors } = require("./_lib/requireUser");
 const { rateLimit, tooManyRequests } = require("./_lib/rateLimit");
+const { decrypt, encrypt } = require("./_lib/crypto");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -188,13 +189,15 @@ exports.handler = async (event) => {
       `account_id=eq.${accountId}&select=access_token,refresh_token,token_expires_at`
     );
     if (!row?.access_token) throw new Error("No access token stored");
-    token = row.access_token;
+    token = decrypt(row.access_token);
+    const refreshToken = decrypt(row.refresh_token);
 
     if (row.token_expires_at && new Date(row.token_expires_at) <= new Date(Date.now() + 60_000)) {
-      const refreshed = await refreshTikTokToken(row.refresh_token);
+      const refreshed = await refreshTikTokToken(refreshToken);
+      const nextRefreshToken = refreshed.refresh_token || refreshToken;
       await sbPatch("connected_account_tokens", `account_id=eq.${accountId}`, {
-        access_token: refreshed.access_token,
-        refresh_token: refreshed.refresh_token || row.refresh_token,
+        access_token: encrypt(refreshed.access_token),
+        refresh_token: encrypt(nextRefreshToken),
         token_expires_at: refreshed.expires_in
           ? new Date(Date.now() + Number(refreshed.expires_in) * 1000).toISOString()
           : null,
