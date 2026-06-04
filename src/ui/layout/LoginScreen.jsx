@@ -105,15 +105,8 @@ export default function LoginScreen() {
   return (
     <div style={{ minHeight:"100vh", minHeight:"100dvh", background:"#000", position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter, sans-serif" }}>
 
-      {/*  FULL SCREEN WATERFALL VIDEO  */}
-      <video
-        autoPlay muted loop playsInline
-        style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", zIndex:0 }}
-        src="https://wjcstqqihtebkpyuacop.supabase.co/storage/v1/object/public/Video%20Assest/waterfall-loop.mp4"
-      />
-
-      {/* Dark overlay — preserves moody feel */}
-      <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.48)", zIndex:1 }} />
+      {/* Static gradient background (replaced the waterfall video) */}
+      <div style={{ position:"absolute", inset:0, zIndex:0, background:"radial-gradient(ellipse 95% 70% at 50% 0%, #16213a 0%, #0c1020 45%, #08080c 100%)" }} />
 
       {/* Radial gradient — focuses eye on center */}
       <div style={{ position:"absolute", inset:0, zIndex:2, background:"radial-gradient(ellipse 65% 75% at 50% 50%, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.30) 65%, rgba(0,0,0,0.70) 100%)", pointerEvents:"none" }} />
