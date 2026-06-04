@@ -1,32 +1,60 @@
 // /api/oauth/tiktok/data-deletion
 //
-// TikTok can call this when a user requests data deletion. We return a JSON
-// object with a URL the user can visit to confirm deletion status + a unique
-// confirmation_code.
-//
-// For now this is a stub. Proper deletion job tracking will land when we have
-// user activity to clean up for this platform.
+// Verifies TikTok-Signature when present, deletes matching account data by
+// user_openid when supplied, and persists a confirmation-code status row.
 
-const crypto = require("crypto");
+const {
+  confirmationCode,
+  dataDeletionStatusUrl,
+  deleteConnectedAccountByPlatformId,
+  extractPlatformAccountId,
+  parseRequestBody,
+  recordDataDeletionRequest,
+  verifyTikTokSignature,
+} = require("./_lib/oauth");
+
+const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET;
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  console.log("[oauth-tiktok-data-deletion] received", {
-    bodyLength: (event.body || "").length,
-  });
+  const verified = verifyTikTokSignature(event, TIKTOK_CLIENT_SECRET);
+  if (!verified.ok) {
+    return {
+      statusCode: 400,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: verified.reason }),
+    };
+  }
 
-  const confirmationCode = crypto.randomBytes(8).toString("hex");
-  const statusUrl = `https://usevantus.com/?data_deletion_status=${confirmationCode}`;
+  const payload = parseRequestBody(event);
+  const accountId = extractPlatformAccountId(payload);
 
-  return {
-    statusCode: 200,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url: statusUrl,
-      confirmation_code: confirmationCode,
-    }),
-  };
+  try {
+    if (accountId) await deleteConnectedAccountByPlatformId("tiktok", accountId);
+    const code = confirmationCode();
+    await recordDataDeletionRequest({
+      platform: "tiktok",
+      platformAccountId: accountId,
+      confirmationCode: code,
+      rawPayload: payload,
+    });
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: dataDeletionStatusUrl(code),
+        confirmation_code: code,
+      }),
+    };
+  } catch (e) {
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: e.message }),
+    };
+  }
 };
