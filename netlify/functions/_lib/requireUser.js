@@ -20,14 +20,28 @@ const ADMIN_DOMAIN = "cloudscenic.com";
 // Origin allowlist (was "*" — tightened 2026-05-26 as part of the security
 // hardening sweep). Production (usevantus.com), the original Netlify subdomain,
 // and Netlify deploy previews (deploy-preview-*--majestic-cassata-aa16e9.netlify.app)
-// are all matched. Anything else gets the production origin returned — which
-// means the browser will refuse to read the response cross-origin, but the
-// function still executes and writes data (RLS + requireUser still gate).
+// are all matched. OPTIONS preflight still gets a normal CORS response, but
+// authenticated state-changing calls from non-allowlisted browser origins are
+// rejected in requireUser before any write logic runs.
 const ALLOWED_ORIGIN_RE = /^https:\/\/(?:usevantus\.com|(?:[a-z0-9-]+--)?majestic-cassata-aa16e9\.netlify\.app)$/i;
 const FALLBACK_ORIGIN = "https://usevantus.com";
 
+function originFor(event) {
+  return event?.headers?.origin || event?.headers?.Origin || "";
+}
+
+function isStateChanging(event) {
+  const method = (event?.httpMethod || "").toUpperCase();
+  return method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
+}
+
+function isForbiddenOrigin(event) {
+  const origin = originFor(event);
+  return Boolean(origin && isStateChanging(event) && !ALLOWED_ORIGIN_RE.test(origin));
+}
+
 function cors(event) {
-  const origin = event?.headers?.origin || event?.headers?.Origin || "";
+  const origin = originFor(event);
   const allow = ALLOWED_ORIGIN_RE.test(origin) ? origin : FALLBACK_ORIGIN;
   return {
     "Access-Control-Allow-Origin": allow,
@@ -48,14 +62,17 @@ const corsHeaders = {
 };
 
 function unauthorized(reason = "Unauthorized", event) {
+  const statusCode = reason === "Forbidden origin" ? 403 : 401;
   return {
-    statusCode: 401,
+    statusCode,
     headers: { ...cors(event), "Content-Type": "application/json" },
     body: JSON.stringify({ error: reason }),
   };
 }
 
 async function requireUser(event) {
+  if (isForbiddenOrigin(event)) return { ok: false, reason: "Forbidden origin" };
+
   const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
   if (!SERVICE_KEY) return { ok: false, reason: "SUPABASE_SERVICE_KEY not configured server-side" };
