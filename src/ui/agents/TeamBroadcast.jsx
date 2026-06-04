@@ -11,6 +11,7 @@ export default function TeamBroadcast({ agents }) {
   const [expandedId, setExpandedId] = useState(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const agentCount = agents.length;
 
   const AGENT_SYSTEM = {
 Sean: "You are Sean, Commander Agent. Decisive, calm, short sentences. When you receive a brief or update from the team lead, acknowledge it, note implications for your pipeline coordination, and state your immediate action. Under 80 words.",
@@ -73,7 +74,7 @@ setTimeout(()=>{ if(inputRef.current) inputRef.current.focus(); }, 80);
       <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flex:1,paddingBottom:80}}>
         <div style={{width:48,height:48,borderRadius:14,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,marginBottom:16}}></div>
         <div style={{fontSize:15,fontWeight:600,color:"rgba(255,255,255,0.35)",marginBottom:6}}>No broadcasts yet</div>
-        <div style={{fontSize:12,color:"rgba(255,255,255,0.35)",marginBottom:24,textAlign:"center",maxWidth:320,lineHeight:1.6}}>Send a brief, update, or direction below. All 8 agents will respond simultaneously.</div>
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.35)",marginBottom:24,textAlign:"center",maxWidth:320,lineHeight:1.6}}>Send a brief, update, or direction below. All {agentCount} agents will respond simultaneously.</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,width:"100%",maxWidth:500}}>
           {QUICK_BRIEFS.map((b,i)=>(
             <button key={i} onClick={()=>setInput(b)} style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left",fontFamily:"Inter,sans-serif"}}>
@@ -98,7 +99,7 @@ setTimeout(()=>{ if(inputRef.current) inputRef.current.focus(); }, 80);
         {b.loading ? (
           <div style={{display:"flex",gap:8,alignItems:"center",padding:"12px 16px",background:"rgba(255,255,255,0.05)",borderRadius:12}}>
             {[0,0.2,0.4].map((d,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#2AABFF",animation:`livePulse 1.2s ${d}s infinite`}}/>)}
-            <span style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginLeft:6}}>All 8 agents responding…</span>
+            <span style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginLeft:6}}>All {agentCount} agents responding…</span>
           </div>
         ) : (
           <div>
