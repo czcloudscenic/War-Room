@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const apiProxyTarget = process.env.VITE_API_PROXY || 'https://majestic-cassata-aa16e9.netlify.app';
+
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -9,7 +11,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://majestic-cassata-aa16e9.netlify.app',
+        target: apiProxyTarget,
         changeOrigin: true,
       },
     },
