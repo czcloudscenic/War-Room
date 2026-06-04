@@ -19,8 +19,6 @@
   #stage{flex:1;position:relative;overflow:hidden}
   svg{width:100%;height:100%;display:block;cursor:grab}
   svg.grabbing{cursor:grabbing}
-
-  /* Top bar */
   #top{position:absolute;top:0;left:0;right:0;z-index:5;padding:12px 16px;
     display:flex;gap:8px;flex-wrap:wrap;align-items:center;
     background:linear-gradient(180deg,rgba(15,15,15,.96),rgba(15,15,15,.0))}
@@ -32,21 +30,15 @@
   .chip:hover{color:var(--text);border-color:#3a3a3a}
   .chip.active{background:var(--accent);color:#111;border-color:var(--accent);font-weight:700}
   .chip.bugs.active{background:var(--critical);color:#fff;border-color:var(--critical)}
-
-  /* Zoom controls */
   #zoom{position:absolute;left:14px;bottom:14px;z-index:5;display:flex;gap:6px}
   #zoom button{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
     background:var(--panel-2);color:var(--text);font-size:16px;cursor:pointer}
   #zoom button:hover{border-color:#3a3a3a}
   #zoom button.wide{width:auto;padding:0 10px;font-size:12px}
-
-  /* Legend */
   #legend{position:absolute;right:14px;bottom:14px;z-index:5;background:rgba(22,22,22,.9);
     border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:11px;color:var(--muted)}
   #legend .row{display:flex;align-items:center;gap:7px;margin:3px 0}
   #legend .ln{width:22px;height:0;border-top-width:2.5px;border-top-style:solid}
-
-  /* Sidebar */
   #side{width:380px;min-width:380px;background:var(--panel);border-left:1px solid var(--border);
     padding:18px 18px 40px;overflow-y:auto}
   #side h2{font-size:15px;margin:0 0 2px}
@@ -74,8 +66,6 @@
   .finding{font-size:12.5px;line-height:1.55;margin:9px 0;padding-left:12px;border-left:2px solid var(--accent-2)}
   .finding b{color:#fff}
   .muted{color:var(--muted)}
-
-  /* Nodes */
   .node{cursor:pointer}
   .node rect.box{transition:opacity .15s}
   .node .nlabel{font-size:12px;font-weight:700;fill:var(--text)}
@@ -95,7 +85,7 @@
 <div id="app">
   <div id="stage">
     <div id="top">
-      <h1>Vantus <span>· architecture map</span></h1>
+      <h1>Vantus <span>· architecture map · 2026-06-04</span></h1>
       <div id="chips"></div>
     </div>
     <svg id="svg"><g id="vp"></g></svg>
@@ -119,11 +109,11 @@
 /* ============================ DATA ============================ */
 const clusters = [
   { id:'client',   label:'Client',          x:20,   y:40,  w:210, h:280,  color:'client' },
-  { id:'routes',   label:'Routes',          x:270,  y:40,  w:210, h:470,  color:'route' },
+  { id:'routes',   label:'Routes',          x:270,  y:40,  w:210, h:540,  color:'route' },
   { id:'uiapps',   label:'UI / Apps',       x:520,  y:40,  w:230, h:920,  color:'uiapps' },
   { id:'core',     label:'Core / Services', x:790,  y:40,  w:210, h:600,  color:'service' },
-  { id:'server',   label:'Server (Netlify Functions)', x:1040, y:40, w:240, h:950, color:'service' },
-  { id:'data',     label:'Data (Supabase)', x:1330, y:40,  w:230, h:880,  color:'db' },
+  { id:'server',   label:'Server (Netlify Functions)', x:1040, y:40, w:240, h:1015, color:'service' },
+  { id:'data',     label:'Data (Supabase)', x:1330, y:40,  w:230, h:940,  color:'db' },
   { id:'external', label:'External APIs',   x:1610, y:40,  w:210, h:860,  color:'external' },
 ];
 
@@ -133,309 +123,307 @@ const nodes = [
   /* CLIENT */
   N('main-entry','client','main.jsx','Vite entry stub',40,90,170,48,'client',{
     role:'Vite entry that imports App.jsx, which self-mounts via ReactDOM at its own bottom.',
-    plain:'The app\'s front door. Does almost nothing except hand off to the big main file.',
+    plain:'The app\'s front door. Hands off to the big main file.',
     path:'src/main.jsx:1', tag:['overview','all'],
-    notes:['Single line: import \'./App.jsx\'','Actual ReactDOM mount lives at App.jsx:1342 — unusual']}),
+    notes:['Single line: import \'./App.jsx\'','Actual ReactDOM mount lives at App.jsx bottom']}),
   N('app-root','client','App.jsx','auth gate + state + router',40,160,170,60,'client',{critical:true,
-    role:'Root component: auth gate, session/role state, multi-tenant client roster, all realtime subscriptions, and nav-based route switching.',
-    plain:'The brain of the app. Logs you in, decides what you can see, keeps the client list live, and shows whichever screen the menu points at.',
-    path:'src/App.jsx:44', tag:['overview','auth','content','analytics','all'],
-    notes:['Two components in one file: App (gate, :44) + Vantus (shell, :390)','ADMIN_EMAILS + cloudscenic.com allowlist :41','Realtime on content_items/clients/notifications/client_users','stuckGuard auth-lock recovery :241-277']}),
+    role:'Root component: auth gate, session/role state, multi-tenant client roster, all realtime subscriptions, and nav route switching.',
+    plain:'The brain of the app. Logs you in, decides what you can see, keeps the client list live, shows whichever screen the menu points at.',
+    path:'src/App.jsx:44', tag:['overview','auth','content','analytics','ideas','all'],
+    notes:['Two components: App (gate, :44) + Vantus (shell, :390)','Realtime on content_items/clients/notifications/client_users','content_changes channel NOT client-scoped (:490) — relies on RLS','Idea Engine route mounted :1299']}),
 
   /* ROUTES */
-  N('dashboard-route','routes','DashboardRoute.jsx','home dashboard',285,80,180,52,'route',{
-    role:'Composes the home dashboard: metric grid, CommandInput, agent grid, ActivityFeed, OpsBoard.',
+  N('dashboard-route','routes','DashboardRoute.jsx','home dashboard',285,78,180,50,'route',{
+    role:'Composes the home dashboard: metrics, CommandInput, agent grid, ActivityFeed, OpsBoard.',
     plain:'The landing page with stats, the command box, the team, and a live activity feed.',
     path:'src/ui/routes/DashboardRoute.jsx:56', tag:['overview','all'],
-    notes:['Metric tiles from clientContent :56-69','Renders CommandInput, ActivityFeed, OpsBoard']}),
-  N('content-route','routes','ContentRoute.jsx','platform pipeline tabs',285,156,180,52,'route',{
-    role:'Platform-tabbed (IG/TikTok/YouTube) container rendering ContentPipelineBoard(s) per platform.',
-    plain:'The content pipeline page — switch platforms and watch cards move through production stages.',
+    notes:['Metric tiles from clientContent','Renders CommandInput, ActivityFeed, OpsBoard']}),
+  N('content-route','routes','ContentRoute.jsx','platform pipeline tabs',285,150,180,50,'route',{
+    role:'Platform-tabbed (IG/TikTok/YouTube) container rendering ContentPipelineBoard(s).',
+    plain:'The content pipeline page — switch platforms, watch cards move through production stages.',
     path:'src/ui/routes/ContentRoute.jsx:18', tag:['overview','content','all'],
-    notes:['8 STAGES array :18','IG renders 2 boards, TT/YT one each','Presentational — data+handlers are props from App']}),
-  N('agents-route','routes','AgentsRoute.jsx','chat entry',285,232,180,44,'route',{
+    notes:['8 STAGES','IG renders 2 boards; data/handlers are props from App']}),
+  N('agents-route','routes','AgentsRoute.jsx','chat entry',285,222,180,42,'route',{
     role:'Thin pass-through wrapper forwarding props to AgentChatPage.',
-    plain:'The agent-chat page entry point — just forwards along.',
+    plain:'The agent-chat page entry point.',
     path:'src/ui/routes/AgentsRoute.jsx:4', tag:['overview','agents','all'],
-    notes:['6-line pass-through, no logic']}),
-  N('analytics-route','routes','AnalyticsRoute.jsx','perf + "why it won"',285,300,180,56,'route',{critical:true,
-    role:'Reads connected_accounts + account_posts, computes per-platform metrics/top performers, and runs the AI "why these won" performance analysis.',
-    plain:'The analytics page — shows how your social posts performed and lets AI explain why the best ones did well.',
+    notes:['6-line pass-through']}),
+  N('analytics-route','routes','AnalyticsRoute.jsx','perf + "why it won"',285,288,180,54,'route',{critical:true,
+    role:'Reads connected_accounts + account_posts, computes per-platform metrics/top performers, runs the AI "why these won" analysis.',
+    plain:'The analytics page — how your posts performed and why the best ones did well.',
     path:'src/ui/routes/AnalyticsRoute.jsx:81', tag:['overview','analytics','oauth-social','all'],
-    notes:['Loads account_posts limit 500 :104; realtime :128','"Why these won" → action scrappy_analyze_performance :171','topPerformers ranks by engagement_rate :262','Per-card aspect ratio :565; Insights panel :501']}),
-  N('settings-page','routes','SettingsPage.jsx','workspace config',285,376,180,52,'route',{
-    role:'Workspace config (localStorage), display-only AI toggles, static team list; hosts ConnectedAccountsCard.',
-    plain:'The settings page — brand/webhook config, on/off switches, and where you link social accounts.',
+    notes:['account_posts limit 500 :104; realtime :128','"Why these won" → scrappy_analyze_performance :174','topPerformers ranks by engagement_rate :262 (scoping bug)']}),
+  N('idea-engine-route','routes','IdeaEngineRoute.jsx','Idea Engine (NEW)',285,360,180,58,'route',{critical:true,
+    role:'Two-stage Muse flow — fast concept list, then per-tile film brief on open — writes the chosen brief into content_items.',
+    plain:'The Idea Engine screen. Pick a funnel goal + format (or paste your own idea), get 6 concepts, open one for a full shoot brief, send it to the pipeline.',
+    path:'src/ui/routes/IdeaEngineRoute.jsx:13', tag:['overview','ideas','all'],
+    notes:['Setup box: funnel TOF/MOF/BOF + content type + your-idea + creators (:147)','cook() → muse_idea_list :39; openIdea() → muse_film_brief :53','sendToPipeline() inserts content_items via sb directly :83','client-side id Date.now() + no brief-timeout guard (bugs)']}),
+  N('settings-page','routes','SettingsPage.jsx','workspace config',285,432,180,50,'route',{
+    role:'Workspace config (localStorage), AI toggles (now persisted), team list; hosts ConnectedAccountsCard.',
+    plain:'The settings page — config, on/off switches, and where you link social accounts.',
     path:'src/ui/settings/SettingsPage.jsx:5', tag:['overview','settings','oauth-social','all'],
-    notes:['Config in localStorage vantus_settings :143','AI toggles + team list are display-only','Renders ConnectedAccountsCard :258']}),
+    notes:['AI toggles now persist; invite labeled "coming soon" (Fix #15 done)','Renders ConnectedAccountsCard']}),
 
   /* UI / APPS */
   N('command-input','uiapps','CommandInput.jsx','NL command box',535,80,200,46,'uiapps',{
-    role:'Natural-language command box that dispatches a task through core/routeTask.js and streams a mission log.',
+    role:'NL command box dispatching a task through core/routeTask.js.',
     plain:'The "tell Vantus what to do" box on the dashboard.',
-    path:'src/ui/dashboard/CommandInput.jsx:23', tag:['agents','all'],
-    notes:['Calls routeTask(task) :23','In-memory mission log']}),
+    path:'src/ui/dashboard/CommandInput.jsx:23', tag:['agents','all'], notes:['Calls routeTask(task)']}),
   N('activity-feed','uiapps','ActivityFeed.jsx','live agent log',535,134,200,46,'uiapps',{
     role:'Real-time feed of agent_events for the current client.',
-    plain:'Live log of what the agents just did, for this client.',
-    path:'src/ui/dashboard/ActivityFeed.jsx:61', tag:['agents','all'],
-    notes:['Reads agent_events last 60 by client_id :61','Realtime INSERT subscription :74']}),
+    plain:'Live log of what the agents just did.',
+    path:'src/ui/dashboard/ActivityFeed.jsx:61', tag:['agents','all'], notes:['Reads agent_events; realtime INSERT']}),
   N('agent-chat-page','uiapps','AgentChatPage.jsx','multi-agent chat',535,188,200,50,'uiapps',{
-    role:'Multi-agent chat with per-agent action buttons, per-run brand-voice override, and client brand-voice injection.',
-    plain:'Where you chat with each AI agent and trigger their special actions.',
+    role:'Multi-agent chat with per-agent action buttons + brand-voice injection.',
+    plain:'Where you chat with each AI agent and trigger their actions.',
     path:'src/ui/agents/AgentChatPage.jsx:166', tag:['agents','all'],
-    notes:['Free chat → /api/chat sonnet-4-6 :171','Action buttons → /api/agent-action :291-313','History in localStorage vantus_agent_hists']}),
+    notes:['Free chat → /api/chat sonnet-4-6','Action buttons → /api/agent-action']}),
   N('content-pipeline-board','uiapps','ContentPipelineBoard.jsx','kanban board',535,246,200,46,'uiapps',{
-    role:'Horizontal-scroll kanban bucketing items into stage columns, with Muse caption/script quick-buttons.',
-    plain:'The kanban board of content cards organized by production stage.',
-    path:'src/ui/pipeline/ContentPipelineBoard.jsx:16', tag:['content','all'],
-    notes:['Caption/Script buttons → onMuseWrite → muse_write_content','Card click opens edit modal']}),
+    role:'Stage-column kanban with Muse caption/script quick-buttons.',
+    plain:'The kanban board of content cards by production stage.',
+    path:'src/ui/pipeline/ContentPipelineBoard.jsx:16', tag:['content','all'], notes:['Buttons → muse_write_content']}),
   N('edit-content-modal','uiapps','EditContentModal.jsx','editor + Drive upload',535,300,200,48,'uiapps',{
-    role:'Full content editor with SOP-gate validation and a direct client-side Google Drive resumable upload.',
-    plain:'The popup for editing a content piece — fields, file uploads to Drive, and a checklist before approval.',
+    role:'Content editor with SOP gates + client-side Google Drive resumable upload.',
+    plain:'The popup to edit a content piece — fields, file uploads, a pre-approval checklist.',
     path:'src/ui/pipeline/EditContentModal.jsx:11', tag:['content','all'],
-    notes:['SOP gates :11-32; hard block on publish date','Google Drive resumable upload, hardcoded GDRIVE_CLIENT_ID :42']}),
+    notes:['SOP gates','Hardcoded GDRIVE_CLIENT_ID :42']}),
   N('connected-accounts-card','uiapps','ConnectedAccountsCard.jsx','OAuth connect/sync',535,356,200,50,'uiapps',{critical:true,
-    role:'Per-platform OAuth connect / sync / disconnect, with redirect-param toast handling on mount.',
+    role:'Per-platform OAuth connect / sync / disconnect with redirect-param toasts.',
     plain:'The card that connects Instagram/TikTok/YouTube and syncs their data.',
     path:'src/ui/settings/ConnectedAccountsCard.jsx:6', tag:['oauth-social','settings','all'],
-    notes:['PLATFORMS list :6 (LinkedIn comingSoon)','Connect → /api/oauth/<p>/start :71','Sync → /api/sync/<p> :109; disconnect deletes connected_accounts :92','Generic *_connected / *_oauth_error toast handler :45']}),
+    notes:['Connect → /api/oauth/<p>/start','Sync → /api/sync/<p>; generic toast handler']}),
   N('add-client-modal','uiapps','AddClientModal.jsx','client CRUD',535,414,200,46,'uiapps',{
-    role:'Create/edit/archive a client row, upload logo to Storage, embed team panel in edit mode.',
-    plain:'The popup to add or edit a client (brand voice, logo, integrations).',
-    path:'src/ui/clients/AddClientModal.jsx:86', tag:['clients','all'],
-    notes:['Insert/update clients :86; archive :118','Logo → Storage bucket client-logos','Embeds ClientTeamPanel']}),
+    role:'Create/edit/archive a client row, upload logo, embed team panel.',
+    plain:'The popup to add or edit a client.',
+    path:'src/ui/clients/AddClientModal.jsx:86', tag:['clients','all'], notes:['Insert/update clients; logo → Storage']}),
   N('client-team-panel','uiapps','ClientTeamPanel.jsx','invite/approve',535,468,200,46,'uiapps',{
-    role:'Manages per-client team members (invite/approve/reject/remove) on client_users with realtime.',
+    role:'Per-client team invite/approve/reject/remove on client_users with realtime.',
     plain:'Invite teammates to a client and approve who can log in.',
-    path:'src/ui/clients/ClientTeamPanel.jsx:24', tag:['clients','auth','all'],
-    notes:['Reads/subscribes client_users by client_id :24','Approval drives PendingApprovalScreen unlock']}),
+    path:'src/ui/clients/ClientTeamPanel.jsx:24', tag:['clients','auth','all'], notes:['Approval unlocks pending-invite screen']}),
   N('cid-page','uiapps','CIDPage.jsx','competitor intel',535,522,200,52,'uiapps',{
-    role:'Competitor intelligence — Apify scraping, AI brand-adaptation, briefs, A/B variations, hook lab; falls back to MOCK_POSTS.',
+    role:'Competitor intel — Apify scraping, AI adaptation, briefs, A/B, hook lab.',
     plain:'Spies on competitor posts and turns winners into briefs for your brand.',
     path:'src/apps/competitor-intel/CIDPage.jsx:73', tag:['competitor-intel','all'],
-    notes:['Scrape → /api/apify-scrape :73; enrich → /api/chat','Actions: cid_build_brief, cid_ab_variations, scrappy_hook_analysis','BROKEN: writes content_items + cid_performance via undefined SUPABASE_URL/KEY :381,442']}),
+    notes:['Writes now go through the sb client (:381,:434) — ReferenceError fixed','Actions: cid_build_brief, cid_ab_variations, scrappy_hook_analysis']}),
   N('artgrid-scout-page','uiapps','ArtgridScoutPage.jsx','footage briefs',535,582,200,46,'uiapps',{
-    role:'Generates Artgrid.io footage briefs/search queries — bulk via agent-action, single via chat proxy.',
+    role:'Generates Artgrid footage briefs/queries — bulk via agent-action, single via chat.',
     plain:'AI suggests stock-footage search terms for your videos.',
-    path:'src/apps/artgrid/ArtgridScoutPage.jsx:26', tag:['content','all'],
-    notes:['Scout All → action artgrid_scout :26','Scout single → /api/chat haiku-4-5 :72']}),
+    path:'src/apps/artgrid/ArtgridScoutPage.jsx:26', tag:['content','all'], notes:['Scout All → artgrid_scout; single → /api/chat']}),
   N('ad-roi-hub','uiapps','AdROIHub.jsx','ad ROI tracker',535,636,200,46,'uiapps',{
-    role:'Local ad-campaign ROI/ROAS/CPL/CVR tracker with an AI analysis pass.',
-    plain:'Track ad spend vs return and get AI optimization tips.',
-    path:'src/apps/ad-roi/AdROIHub.jsx:41', tag:['all'],
-    notes:['localStorage vantus_adroi_campaigns','AI → /api/chat sonnet-4-6, no DB']}),
+    role:'Local ad-campaign ROI tracker with an AI analysis pass.',
+    plain:'Track ad spend vs return and get AI tips.',
+    path:'src/apps/ad-roi/AdROIHub.jsx:41', tag:['all'], notes:['localStorage; AI → /api/chat']}),
   N('quick-actions','uiapps','QuickActionsDashboard.jsx','DEAD — not rendered',535,690,200,46,'uiapps',{dead:true,
-    role:'Button strip that fires agent actions — imported in App.jsx but never rendered.',
-    plain:'A quick-action button panel that isn\'t wired into any screen. Dead code.',
-    path:'src/ui/dashboard/QuickActionsDashboard.jsx:26', tag:['all'],
-    notes:['Imported App.jsx:20, zero JSX usages','Superseded by CommandInput']}),
+    role:'Button strip firing agent actions — imported but never rendered.',
+    plain:'A quick-action panel not wired into any screen. Dead code.',
+    path:'src/ui/dashboard/QuickActionsDashboard.jsx:26', tag:['all'], notes:['Imported App.jsx, zero JSX usages']}),
 
   /* CORE / SERVICES */
   N('api-fetch','core','apiFetch.js','token-injecting fetch',805,130,180,50,'service',{critical:true,
-    role:'fetch() wrapper that pulls the session access_token and injects Authorization: Bearer for protected functions.',
-    plain:'Every time the app talks to the backend, this stamps it with your login token so the server knows it\'s you.',
-    path:'src/services/apiFetch.js:17', tag:['overview','all'],
-    notes:['Calls sb.auth.getSession() per request :18','No-session calls still fire → 401 by design']}),
+    role:'fetch() wrapper that injects the Supabase access token on protected calls.',
+    plain:'Stamps every backend call with your login token so the server knows it\'s you.',
+    path:'src/services/apiFetch.js:17', tag:['overview','all'], notes:['getSession() per request']}),
   N('supabase-client','core','supabaseClient.js','sb singleton',805,200,180,48,'service',{
-    role:'Creates the singleton sb Supabase client from Vite env vars; exports DB_CONNECTED flag.',
+    role:'Creates the singleton sb client from Vite env vars.',
     plain:'The single database connection the whole app shares.',
     path:'src/services/supabaseClient.js:15', tag:['overview','all'],
-    notes:['Throws at import if env vars missing :7','DB_CONNECTED hardcoded true :14 (offline state unreachable)','Default localStorage + navigator.locks auth lock']}),
+    notes:['Throws at import if env missing','DB_CONNECTED hardcoded true (offline state unreachable)']}),
   N('core-route-task','core','routeTask.js','NL agent router',805,268,180,48,'service',{
-    role:'Keyword-scores agents against NL input, then sequentially calls /api/chat for each and aggregates.',
-    plain:'Reads what you typed, picks which AI specialists answer, runs them one after another.',
-    path:'src/core/routeTask.js:9', tag:['agents','all'],
-    notes:['Always includes Sean :20','Hardcoded sonnet-4-6, max_tokens 400 :34','Sequential await loop — N agents = N serial round-trips']}),
+    role:'Keyword-scores agents, sequentially calls /api/chat per agent.',
+    plain:'Reads what you typed, picks AI specialists, runs them one after another.',
+    path:'src/core/routeTask.js:9', tag:['agents','all'], notes:['Hardcoded sonnet-4-6','Serial await loop']}),
   N('core-agent-registry','core','agentRegistry.js','agent prompts',805,336,180,48,'service',{
-    role:'Central agent definitions — routing keywords + short and full system prompts.',
+    role:'Central agent definitions — keywords + short/full prompts.',
     plain:'The roster and job descriptions for the four AI agents.',
-    path:'src/core/agentRegistry.js:5', tag:['agents','all'],
-    notes:['Four agents: Sean, Muse, Scrappy, Artgrid','Brand voice injected per-request, not hardcoded']}),
+    path:'src/core/agentRegistry.js:5', tag:['agents','all'], notes:['Four agents: Sean, Muse, Scrappy, Artgrid']}),
   N('core-memory','core','memory.js','per-agent memory',805,404,180,48,'service',{
-    role:'Per-agent memory layer in localStorage, injected into system prompts alongside ICP context.',
-    plain:'Gives each AI agent a notepad it remembers between sessions.',
-    path:'src/core/memory.js:51', tag:['agents','all'],
-    notes:['localStorage vantus_mem_<agent>, vantus_icps','Truncates lastTask/lastResponse','Legacy seedMuseMemory removed for multi-tenancy']}),
+    role:'Per-agent localStorage memory injected into system prompts.',
+    plain:'Gives each agent a notepad it remembers between sessions.',
+    path:'src/core/memory.js:51', tag:['agents','all'], notes:['localStorage vantus_mem_<agent>']}),
   N('utils-constants','core','constants.js','nav + status config',805,472,180,46,'service',{
-    role:'Static UI config: nav structure, pipeline status colors/labels, format/platform/pillar lists.',
-    plain:'The fixed labels, menu items, and color codes the interface uses everywhere.',
-    path:'src/utils/constants.js:3', tag:['overview','all'],
-    notes:['NAV drives sidebar groups','PILLARS_LIST/CAMPAIGNS are placeholders']}),
+    role:'Static UI config: nav, pipeline status colors, format/platform lists.',
+    plain:'The fixed labels, menu items, color codes.',
+    path:'src/utils/constants.js:5', tag:['overview','ideas','all'], notes:['NAV adds Idea Engine (id "ideas") :5']}),
 
   /* SERVER */
-  N('lib-require-user','server','requireUser.js','auth gate',1055,80,210,50,'service',{critical:true,
-    role:'Validates the Supabase JWT against /auth/v1/user, then authorizes @cloudscenic.com admins or approved client_users rows.',
-    plain:'The bouncer. Checks your token is real, then checks you\'re staff or an approved client.',
+  N('lib-require-user','server','requireUser.js','auth gate + CORS',1055,80,210,50,'service',{critical:true,
+    role:'Validates the Supabase JWT, authorizes @cloudscenic.com admins or approved client_users; CORS now rejects bad origins.',
+    plain:'The bouncer. Checks your token, checks you\'re staff or an approved client, and now blocks requests from unknown websites.',
     path:'netlify/functions/_lib/requireUser.js:58', tag:['overview','auth','all'],
-    notes:['JWT verified via REST /auth/v1/user :70','Admin path = email-suffix match, no DB check :83','CORS allowlist regex :26 (fail-open on write — see bug)']}),
+    notes:['JWT via /auth/v1/user','CORS: isForbiddenOrigin 403 on non-allowlisted writes :39 (Fix #17 done)']}),
   N('lib-rate-limit','server','rateLimit.js','sliding window',1055,138,210,44,'service',{
-    role:'In-memory sliding-window per-key counter (Map), default 30/60s, plus tooManyRequests() 429 builder.',
-    plain:'A simple speed bump that counts how many times one user hits an endpoint per minute.',
+    role:'In-memory sliding-window per-key counter; now used by all authenticated functions.',
+    plain:'A speed bump counting how many times one user hits an endpoint per minute.',
     path:'netlify/functions/_lib/rateLimit.js:34', tag:['overview','all'],
-    notes:['State per warm Lambda; cold start resets','Not distributed — effective cap = max × instances','Only chat.js + agent-action.js use it']}),
-  N('agent-action','server','agent-action.js','13-action AI router',1055,196,210,58,'service',{critical:true,
-    role:'Single POST router for 13 AI agent actions; gated by requireUser + rateLimit(60/min), loads per-client brand voice, dispatches, logs to agent_events, mirrors to Slack.',
-    plain:'The brain of the app. One door all the "AI agent" buttons go through — checks who you are, loads brand voice, runs the right agent, records it, pings Slack.',
-    path:'netlify/functions/agent-action.js:1199', tag:['overview','agents','content','analytics','competitor-intel','all'],
-    notes:['ai() → Anthropic claude-haiku-4-5-20251001 :166','getBrandContext reads clients.brand_voice_md :122','scrappy_analyze_performance :1087 reads account_posts','muse_from_brief :669 is DEAD (no caller)','3 handlers inline a duplicate Anthropic fetch :800,902,966']}),
+    notes:['Per-warm-Lambda; not distributed','Now wired into all 8 protected functions (Fix #4 done)']}),
+  N('agent-action','server','agent-action.js','15-action AI router',1055,196,210,58,'service',{critical:true,
+    role:'Single POST router for 15 AI actions; gated by requireUser + rateLimit, loads brand voice, dispatches, logs to agent_events, mirrors to Slack.',
+    plain:'The brain of the AI side. One door all agent buttons go through — checks you, loads voice, runs the right agent, records it.',
+    path:'netlify/functions/agent-action.js:1459', tag:['overview','agents','content','analytics','ideas','competitor-intel','all'],
+    notes:['ai() now takes a model param :166','3-tier model split: Haiku (most) · Opus 4.8 (muse_ig_ideas :1074, muse_idea_list :1236, muse_film_brief :1289) · Sonnet (frontend chat)','Idea Engine: getSyncedDigest :1321, WINNING_FORMULA/FUNNEL/CONTENT_TYPE :1142-1183','muse_from_brief :669 still DEAD; getSyncedDigest reads all rows via service role']}),
   N('chat','server','chat.js','Anthropic proxy',1055,300,210,48,'service',{critical:true,
-    role:'Thin authenticated pass-through proxy to Anthropic /v1/messages; forwards raw client body so the API key stays server-side.',
-    plain:'A secure mailbox: the browser\'s chat request goes through here so Claude\'s secret key never reaches the user.',
+    role:'Authenticated pass-through to Anthropic; now validates model allowlist + clamps max_tokens.',
+    plain:'A secure mailbox for chat requests so Claude\'s key stays server-side — now with guardrails.',
     path:'netlify/functions/chat.js:45', tag:['overview','agents','all'],
-    notes:['Gated by requireUser + rateLimit(30/min)','Forwards body verbatim — model chosen client-side (sonnet-4-6)','No max_tokens cap / model allowlist (see bug)']}),
+    notes:['rateLimit(30/min)','Model allowlist + max_tokens 4096 cap :16-62 (Fix #8 done)']}),
   N('notify','server','notify.js','email/Slack/n8n fanout',1055,368,210,48,'service',{
-    role:'On client approve/revisions, writes notifications then fans out to Resend email, Slack, and n8n.',
-    plain:'When a client approves or asks for changes, this sends the email + Slack + automation pings and records the event.',
+    role:'On client approve/revisions: writes notifications, fans out Resend + Slack + n8n.',
+    plain:'Sends the email + Slack + automation pings and records the event.',
     path:'netlify/functions/notify.js:56', tag:['clients','all'],
-    notes:['Gated by requireUser but NO rateLimit','Per-client slack/n8n URLs from clients table','User fields interpolated into raw email HTML unescaped (see bug)']}),
+    notes:['rateLimit(20/min) added (Fix #4)','User fields now HTML-escaped via escapeHtml :24,:134 (Fix #7 done)']}),
   N('apify-scrape','server','apify-scrape.js','competitor scraper',1055,426,210,46,'service',{
-    role:'Two-mode Apify proxy (start run → poll dataset) for IG/TikTok/YT/LinkedIn/Reddit competitor scraping.',
-    plain:'Goes out and scrapes viral posts from social platforms in two steps to dodge the timeout.',
+    role:'Two-mode Apify proxy for competitor scraping.',
+    plain:'Scrapes viral posts from social platforms in two steps.',
     path:'netlify/functions/apify-scrape.js:10', tag:['competitor-intel','all'],
-    notes:['Gated but NO rateLimit — spends Apify credits','TikTok actor clockworks/free-tiktok-scraper','Returns 200 on errors (masks failures)']}),
+    notes:['rateLimit(20/min) added (Fix #4)','Apify account billing must be current']}),
   N('unsplash','server','unsplash.js','image proxy',1055,484,210,44,'service',{
-    role:'Authenticated GET proxy to Unsplash photo search; keeps UNSPLASH_ACCESS_KEY server-side.',
-    plain:'A safe way to search Unsplash stock photos without exposing the API key.',
-    path:'netlify/functions/unsplash.js:7', tag:['all'],
-    notes:['Gated; NO rateLimit','GET only, ?q required, 1h cache']}),
-  N('lib-oauth','server','_lib/oauth.js','OAuth plumbing',1055,540,210,48,'service',{critical:true,
-    role:'Shared OAuth plumbing — CSRF state create/consume in oauth_states, upserts connected_accounts + connected_account_tokens.',
-    plain:'The shared machinery all three social-connect flows reuse: hands out a one-time anti-forgery ticket, then stores the account and its keys.',
+    role:'Authenticated GET proxy to Unsplash photo search.',
+    plain:'Safe Unsplash search without exposing the key.',
+    path:'netlify/functions/unsplash.js:7', tag:['all'], notes:['rateLimit(60/min) added (Fix #4)']}),
+  N('lib-oauth','server','_lib/oauth.js','OAuth plumbing + crypto',1055,540,210,50,'service',{critical:true,
+    role:'CSRF state, account/token upserts (now encrypted), expired-state cleanup, and delete-by-platform-id for revocation.',
+    plain:'The shared OAuth machinery — anti-forgery tickets, storing accounts, encrypting tokens, and deleting them when a user revokes.',
     path:'netlify/functions/_lib/oauth.js:65', tag:['oauth-social','all'],
-    notes:['createOAuthState UUID, 10-min expiry','consumeOAuthState deletes row (consume-once)','Tokens stored PLAINTEXT in connected_account_tokens (see bug)']}),
-  N('oauth-start','server','oauth-*-start.js','connect (3 platforms)',1055,598,210,46,'service',{
-    role:'Authenticated POST endpoints (IG/TikTok/YouTube) that mint a CSRF state and return the platform authorize URL.',
-    plain:'The "Connect my account" button — hands the browser a one-time-ticketed link to log into the platform.',
+    notes:['upsertAccountToken now encrypts via _lib/crypto (Fix #6)','deleteConnectedAccountByPlatformId for revoke','Opportunistic expired oauth_states cleanup (Fix #14)']}),
+  N('lib-crypto','server','_lib/crypto.js','token encryption (NEW)',1055,600,210,46,'service',{
+    role:'AES-256-GCM encrypt/decrypt for OAuth tokens at rest, keyed by TOKEN_ENC_KEY.',
+    plain:'Locks the saved social-account keys so they\'re unreadable even if the database leaks.',
+    path:'netlify/functions/_lib/crypto.js:16', tag:['oauth-social','all'],
+    notes:['v1:iv:tag:cipher format; legacy plaintext decrypts unchanged (backward compat)','Degrades to plaintext + warns if TOKEN_ENC_KEY unset','Founder set TOKEN_ENC_KEY in Netlify 2026-06-04']}),
+  N('oauth-start','server','oauth-*-start.js','connect (3 platforms)',1055,658,210,46,'service',{
+    role:'Authenticated POST endpoints minting a CSRF state + platform authorize URL.',
+    plain:'The "Connect" button — hands the browser a ticketed login link.',
     path:'netlify/functions/oauth-youtube-start.js:43', tag:['oauth-social','all'],
-    notes:['IG scopes instagram_business_*; TT user.info+video.list; YT youtube.readonly+yt-analytics','YT adds access_type=offline&prompt=consent for refresh token']}),
-  N('oauth-callback','server','oauth-*-callback.js','token exchange (3)',1055,656,210,48,'service',{critical:true,
-    role:'GET callbacks (no bearer; secured by state) that exchange code for tokens, fetch profile, upsert account+token, 302 home.',
-    plain:'The return trip after the user logs into the platform — verifies the ticket, grabs the keys, saves the account, sends the user home.',
+    notes:['IG/TikTok/YouTube; YT access_type=offline for refresh token']}),
+  N('oauth-callback','server','oauth-*-callback.js','token exchange (3)',1055,716,210,46,'service',{critical:true,
+    role:'GET callbacks that exchange code for tokens, fetch profile, upsert (encrypted) account+token, 302 home.',
+    plain:'The return trip after platform login — grabs the keys, saves the account, sends you home.',
     path:'netlify/functions/oauth-youtube-callback.js:52', tag:['oauth-social','all'],
-    notes:['IG = 2-step exchange, NO refresh token (60-day re-auth)','TT & YT = 1-step with refresh tokens','Open-redirect guarded (startsWith APP_ORIGIN)']}),
-  N('oauth-webhooks','server','oauth-*-deauth/data-deletion','6 unverified stubs',1055,714,210,48,'service',{dead:true,
-    role:'Six deauthorize/data-deletion webhook stubs — accept any POST, verify no signature, delete no data.',
-    plain:'Compliance placeholders for App Review. They acknowledge but don\'t actually verify or delete anything.',
-    path:'netlify/functions/oauth-instagram-data-deletion.js:13', tag:['oauth-social','all'],
-    notes:['No signed_request verification','Token never deleted on platform revoke (see bug)','Data-deletion returns a fake confirmation code']}),
-  N('sync-fns','server','sync-{ig,tt,yt}.js','pull posts → account_posts',1055,772,210,52,'service',{critical:true,
-    role:'Authenticated POST endpoints that pull recent posts + metrics from each platform and upsert into account_posts.',
-    plain:'"Sync" pulls your recent posts and their like/view/comment numbers and stores them for analytics + Scrappy.',
+    notes:['IG 2-step no refresh; TT/YT refresh tokens','Tokens stored encrypted now']}),
+  N('oauth-deauth','server','oauth-*-deauth/data-deletion','revoke + delete (now real)',1055,774,210,48,'service',{
+    role:'Deauthorize + data-deletion webhooks: verify signature, delete the account+token, persist a confirmation code.',
+    plain:'When a user revokes access on the platform, these now actually delete their stored data and log a real deletion receipt.',
+    path:'netlify/functions/oauth-instagram-data-deletion.js:18', tag:['oauth-social','all'],
+    notes:['Meta signed_request verified; account+token deleted (Fix #5 done)','Writes data_deletion_requests; oauth-data-deletion-status.js serves the status URL']}),
+  N('sync-fns','server','sync-{ig,tt,yt}.js','pull posts → account_posts',1055,832,210,52,'service',{critical:true,
+    role:'Pull recent posts + metrics per platform, decrypt tokens to call APIs, upsert account_posts.',
+    plain:'"Sync" pulls your recent posts and their numbers and stores them for analytics + Muse.',
     path:'netlify/functions/sync-youtube.js:108', tag:['oauth-social','analytics','all'],
-    notes:['Upsert conflict key account_id,platform_post_id','TT/YT auto-refresh token when expiring; IG has none','sync-instagram serial 30-call loop; declared timeout unused (see bug)','No rateLimit on any sync fn']}),
+    notes:['Tokens decrypted on read (Fix #6)','rateLimit(10/min) each (Fix #4)','sync-instagram insight loop now timeout + concurrency-capped (Fix #12)']}),
 
   /* DATA */
-  N('tbl-clients','data','clients','tenant registry',1345,80,200,46,'db',{
-    role:'Tenant registry — one row per agency client with brand voice, branding, integration config.',
-    plain:'The list of client companies and their settings (logo, color, Slack channel, brand voice).',
+  N('tbl-clients','data','clients','tenant registry',1345,80,200,44,'db',{
+    role:'Tenant registry — brand voice, branding, integration config.',
+    plain:'The list of client companies and their settings.',
     path:'supabase/migrations/20260523_clients_multitenant.sql:13', tag:['clients','all'],
-    notes:['brand_voice_md powers per-client agent voice','slack_webhook_url + n8n_webhook_url per client','Admin RLS; VitalLyfe seeded in migration (see bug)']}),
-  N('tbl-profiles','data','profiles','role map',1345,134,200,44,'db',{
-    role:'Maps each auth.users row to an app role (client/admin) and caches email.',
+    notes:['brand_voice_md powers per-client agent voice','VitalLyfe seed moved to supabase/seed/dev_seed.sql (Fix #16)']}),
+  N('tbl-profiles','data','profiles','role map',1345,130,200,42,'db',{
+    role:'Maps auth.users → app role; wide-open policy now dropped.',
     plain:'The user list — who can log in and whether they\'re staff or a client.',
     path:'supabase/migrations/002_profiles.sql:4', tag:['auth','all'],
-    notes:['Self-read + admins-read-all','Wide-open "Service role full access" USING(true) :20 (see bug)']}),
-  N('tbl-client-users','data','client_users','invite allowlist',1345,186,200,44,'db',{
-    role:'Per-client external-login allowlist + invite/approval state machine.',
-    plain:'Which outside people are allowed into which client\'s dashboard, and whether approved.',
+    notes:['"Service role full access" USING(true) dropped via 20260603 migration (Fix #10 done)']}),
+  N('tbl-client-users','data','client_users','invite allowlist',1345,180,200,42,'db',{
+    role:'Per-client external-login allowlist + approval state machine.',
+    plain:'Which outside people are allowed into which client\'s dashboard.',
     path:'supabase/migrations/20260525_client_users_allowlist.sql:25', tag:['auth','clients','all'],
-    notes:['status pending/approved/rejected; unique (email, client_id)','Realtime — approval unlocks login instantly']}),
-  N('tbl-content-items','data','content_items','content pipeline',1345,238,200,46,'db',{
-    role:'Core content tracker — one row per content piece (script, caption, platform, stage/status, files).',
-    plain:'The content calendar/pipeline — every post or video being planned, written, reviewed, approved.',
-    path:'supabase/migrations/20260526_content_items_baseline.sql:24', tag:['content','all'],
-    notes:['PK is text (not UUID), no default :25','Baseline reverse-engineered from live prod','Scoped client SELECT/UPDATE RLS; "Allow all" dropped']}),
-  N('tbl-agent-events','data','agent_events','agent audit log',1345,292,200,44,'db',{
-    role:'Append-only audit log of every agent action invocation.',
-    plain:'A history of what each AI agent did and when — powers the live activity feed.',
-    path:'supabase/migrations/20260523_agent_events.sql:8', tag:['agents','all'],
-    notes:['Written via service role (RLS bypass)','Indexed (client_id, ts desc); realtime']}),
-  N('tbl-notifications','data','notifications','durable alerts',1345,344,200,44,'db',{
-    role:'Durable, refresh-safe notification store for client approval/revision actions.',
-    plain:'The bell-icon alerts — saved so they survive refreshes and show across tabs.',
-    path:'supabase/migrations/20260523_notifications.sql:7', tag:['clients','all'],
-    notes:['Unique (type, content_item_id) dedupe','Realtime scoped by client_id']}),
-  N('tbl-connected-accounts','data','connected_accounts','linked socials',1345,396,200,46,'db',{
-    role:'Public-ish metadata for a user\'s linked social account (platform, handle, avatar, sync time).',
-    plain:'The IG/TikTok/YouTube accounts a user connected — names and pictures, no secrets.',
-    path:'supabase/migrations/20260601_connected_accounts.sql:13', tag:['oauth-social','all'],
-    notes:['Unique (user_id, platform, platform_account_id)','Admin manage-all + user self CRUD RLS']}),
-  N('tbl-account-tokens','data','connected_account_tokens','OAuth secrets',1345,450,200,46,'db',{
-    role:'OAuth secret store (access/refresh tokens, expiry, scopes), 1:1 with connected_accounts.',
-    plain:'The actual keys for connected accounts — locked so only the server can touch them.',
+    notes:['status pending/approved/rejected; realtime']}),
+  N('tbl-content-items','data','content_items','content pipeline',1345,230,200,46,'db',{
+    role:'Core content tracker — one row per content piece.',
+    plain:'The content calendar/pipeline — every post being planned, written, reviewed.',
+    path:'supabase/migrations/20260526_content_items_baseline.sql:24', tag:['content','ideas','all'],
+    notes:['PK is text, no default (Idea Engine inserts client-side Date.now() ids)','Scoped client RLS']}),
+  N('tbl-agent-events','data','agent_events','agent audit log',1345,284,200,42,'db',{
+    role:'Append-only audit log of every agent action.',
+    plain:'A history of what each AI agent did and when.',
+    path:'supabase/migrations/20260523_agent_events.sql:8', tag:['agents','all'], notes:['Service-role writes; realtime']}),
+  N('tbl-notifications','data','notifications','durable alerts',1345,334,200,42,'db',{
+    role:'Durable, refresh-safe notification store.',
+    plain:'The bell-icon alerts, saved across refreshes.',
+    path:'supabase/migrations/20260523_notifications.sql:7', tag:['clients','all'], notes:['Realtime scoped by client_id']}),
+  N('tbl-connected-accounts','data','connected_accounts','linked socials',1345,384,200,44,'db',{
+    role:'Public-ish metadata for a user\'s linked social account.',
+    plain:'The connected IG/TikTok/YouTube accounts — names and pictures.',
+    path:'supabase/migrations/20260601_connected_accounts.sql:13', tag:['oauth-social','all'], notes:['Admin + user-self CRUD']}),
+  N('tbl-account-tokens','data','connected_account_tokens','OAuth secrets (encrypted)',1345,434,200,46,'db',{
+    role:'OAuth secret store, now encrypted at rest; 1:1 with connected_accounts.',
+    plain:'The keys for connected accounts — now scrambled so a DB leak can\'t use them.',
     path:'supabase/migrations/20260601_connected_accounts.sql:66', tag:['oauth-social','all'],
-    notes:['RLS enabled, ZERO policies → service-role only (correct)','Tokens stored plaintext (encrypt — see bug)']}),
-  N('tbl-account-posts','data','account_posts','synced posts + metrics',1345,504,200,48,'db',{critical:true,
-    role:'Recent posts pulled per connected account, with metrics + raw API payload.',
-    plain:'The actual posts fetched from each social account and how they performed.',
-    path:'supabase/migrations/20260601_connected_accounts.sql:80', tag:['oauth-social','analytics','all'],
-    notes:['metrics jsonb differs per platform','Expression index on metrics->>engagement_rate','Read by AnalyticsRoute + scrappy_analyze_performance']}),
-  N('tbl-oauth-states','data','oauth_states','CSRF tokens',1345,558,200,44,'db',{
-    role:'Short-lived CSRF state tokens for the OAuth connect→callback handshake.',
-    plain:'Temporary one-time codes that prove a "Connect account" request is genuine; expire in 10 min.',
+    notes:['Service-role only RLS','Tokens AES-256-GCM encrypted via _lib/crypto (Fix #6 done)']}),
+  N('tbl-account-posts','data','account_posts','synced posts + metrics',1345,488,200,46,'db',{critical:true,
+    role:'Recent posts pulled per connected account, with metrics.',
+    plain:'The actual posts fetched from each account and how they performed.',
+    path:'supabase/migrations/20260601_connected_accounts.sql:80', tag:['oauth-social','analytics','ideas','all'],
+    notes:['Read by Analytics, scrappy_analyze_performance, AND the Idea Engine (getSyncedDigest)']}),
+  N('tbl-oauth-states','data','oauth_states','CSRF tokens',1345,542,200,42,'db',{
+    role:'Short-lived CSRF state tokens; expired rows now cleaned opportunistically.',
+    plain:'One-time codes proving a "Connect" request is genuine; auto-expire.',
     path:'supabase/migrations/20260601_connected_accounts.sql:124', tag:['oauth-social','all'],
-    notes:['RLS enabled, no policies → service-role only','No expiry-cleanup job (see bug)']}),
-  N('tbl-cid-library','data','cid_library','hook library (DRIFT)',1345,610,200,46,'db',{dead:true,
-    role:'Stores Scrappy\'s competitor hook/body/CTA analysis library.',
-    plain:'A saved library of winning hooks scraped from competitors, adapted per brand.',
-    path:'netlify/functions/agent-action.js:822', tag:['competitor-intel','all'],
-    notes:['NO CREATE TABLE migration — only a column rename exists','Schema lives in code comments only (see bug)']}),
-  N('tbl-cid-performance','data','cid_performance','perf log (DRIFT)',1345,664,200,46,'db',{dead:true,
-    role:'Logs actual post-publish performance vs predicted score.',
+    notes:['Service-role only','Expired-row cleanup added (Fix #14 done)']}),
+  N('tbl-data-deletion','data','data_deletion_requests','deletion audit (NEW)',1345,592,200,46,'db',{
+    role:'Audit table recording OAuth data-deletion requests + confirmation codes.',
+    plain:'A receipt book for "delete my data" requests from the platforms, so the status URL can confirm them.',
+    path:'supabase/migrations/20260604_data_deletion_requests.sql:4', tag:['oauth-social','all'],
+    notes:['confirmation_code PK; service-role only','Written by the deauth/data-deletion endpoints (Fix #5)']}),
+  N('tbl-cid-library','data','cid_library','hook library',1345,646,200,44,'db',{
+    role:'Scrappy\'s competitor hook/CTA analysis library — now has a real migration.',
+    plain:'A saved library of winning hooks scraped from competitors.',
+    path:'supabase/migrations/20260603_cid_library_baseline.sql:4', tag:['competitor-intel','all'],
+    notes:['CREATE TABLE migration added (Fix #2 done); admin-only RLS']}),
+  N('tbl-cid-performance','data','cid_performance','perf log',1345,696,200,44,'db',{
+    role:'Logs actual post-publish performance — now has a real migration.',
     plain:'Where users record how a post actually did after publishing.',
-    path:'src/apps/competitor-intel/CIDPage.jsx:442', tag:['competitor-intel','analytics','all'],
-    notes:['NO migration; written from browser with anon key','Implies an unmanaged anon-write RLS policy (see bug)']}),
+    path:'supabase/migrations/20260603_cid_performance.sql:4', tag:['competitor-intel','analytics','all'],
+    notes:['Migration added; written via the sb client now (Fix #1/#2 done); admin-only RLS']}),
 
   /* EXTERNAL */
-  N('ext-anthropic','external','Anthropic API','Claude messages',1625,90,180,46,'external',{
-    role:'Claude /v1/messages — haiku-4-5 server-side (agent-action), sonnet-4-6 client-chosen (chat).',
-    plain:'The AI itself — Claude — that writes the content, scripts, and analysis.',
-    path:'netlify/functions/agent-action.js:166', tag:['agents','content','analytics','all'],
-    notes:['agent-action ai() pins claude-haiku-4-5-20251001','chat proxy forwards sonnet-4-6 from frontend']}),
-  N('ext-tavily','external','Tavily API','web search',1625,150,180,44,'external',{
-    role:'Web search used by Scrappy research/collab actions.',
-    plain:'A search engine the research agent uses to find trends.',
-    path:'netlify/functions/agent-action.js:297', tag:['agents','all'], notes:['scrappy_research + scrappy_muse_collab']}),
-  N('ext-apify','external','Apify API','scraper actors',1625,206,180,44,'external',{
-    role:'Hosted scraper actors for IG/TikTok/YT/LinkedIn competitor posts.',
+  N('ext-anthropic','external','Anthropic API','Claude (3-tier)',1625,90,180,48,'external',{
+    role:'Claude /v1/messages — Haiku 4.5 (most handlers), Opus 4.8 (3 Muse-creative actions), Sonnet 4.6 (frontend chat).',
+    plain:'The AI — Claude — that writes the content, scripts, ideas, and analysis.',
+    path:'netlify/functions/agent-action.js:166', tag:['agents','content','analytics','ideas','all'],
+    notes:['Opus 4.8 on muse_idea_list/muse_film_brief/muse_ig_ideas — slow, 26s timeout risk']}),
+  N('ext-tavily','external','Tavily API','web search',1625,148,180,44,'external',{
+    role:'Web search for Scrappy research + Idea Engine creator research.',
+    plain:'A search engine the agents use to find current trends/creators.',
+    path:'netlify/functions/agent-action.js:281', tag:['agents','ideas','all'], notes:['_researchDigest + scrappy_research']}),
+  N('ext-apify','external','Apify API','scraper actors',1625,204,180,44,'external',{
+    role:'Hosted scraper actors for competitor posts.',
     plain:'A service that scrapes social posts on demand.',
-    path:'netlify/functions/apify-scrape.js:34', tag:['competitor-intel','all'], notes:['clockworks/free-tiktok-scraper; google-search-scraper']}),
-  N('ext-unsplash','external','Unsplash API','stock photos',1625,262,180,44,'external',{
+    path:'netlify/functions/apify-scrape.js:34', tag:['competitor-intel','all'], notes:['Account billing must be current to function']}),
+  N('ext-unsplash','external','Unsplash API','stock photos',1625,260,180,44,'external',{
     role:'Stock photo search.', plain:'A stock-photo library.',
     path:'netlify/functions/unsplash.js:7', tag:['all'], notes:['GET /search/photos']}),
-  N('ext-resend','external','Resend API','email',1625,318,180,44,'external',{
-    role:'Transactional email to ADMIN_EMAILS on client actions.', plain:'The service that sends notification emails.',
-    path:'netlify/functions/notify.js:12', tag:['clients','all'], notes:['to: hardcoded ADMIN_EMAILS']}),
-  N('ext-slack','external','Slack webhook','team pings',1625,374,180,44,'external',{
-    role:'Incoming-webhook messages for agent actions + client events.', plain:'Posts updates into your Slack.',
-    path:'netlify/functions/agent-action.js:143', tag:['agents','clients','all'], notes:['Per-client slack_webhook_url with global fallback']}),
-  N('ext-n8n','external','n8n cloud','automation',1625,430,180,44,'external',{
-    role:'Workflow automation webhook fired on client events.', plain:'A no-code automation tool triggered on events.',
+  N('ext-resend','external','Resend API','email',1625,316,180,44,'external',{
+    role:'Transactional email to ADMIN_EMAILS.', plain:'Sends notification emails.',
+    path:'netlify/functions/notify.js:12', tag:['clients','all'], notes:['User fields escaped before send']}),
+  N('ext-slack','external','Slack webhook','team pings',1625,372,180,44,'external',{
+    role:'Incoming-webhook messages for agent + client events.', plain:'Posts updates into Slack.',
+    path:'netlify/functions/agent-action.js:146', tag:['agents','clients','all'], notes:['Per-client webhook + global fallback']}),
+  N('ext-n8n','external','n8n cloud','automation',1625,428,180,44,'external',{
+    role:'Workflow automation webhook on client events.', plain:'A no-code automation tool triggered on events.',
     path:'netlify/functions/notify.js:56', tag:['clients','all'], notes:['Per-client n8n_webhook_url']}),
-  N('ext-meta','external','Meta / IG Graph','Instagram data',1625,486,180,44,'external',{
-    role:'Instagram Graph API — OAuth + media + per-media insights.', plain:'Instagram\'s data feed.',
-    path:'netlify/functions/sync-instagram.js:108', tag:['oauth-social','analytics','all'], notes:['Long-lived 60-day token, no refresh']}),
-  N('ext-tiktok','external','TikTok API','TikTok data',1625,542,180,44,'external',{
+  N('ext-meta','external','Meta / IG Graph','Instagram data',1625,484,180,44,'external',{
+    role:'Instagram Graph API — OAuth + media + insights + deauth signed_request.',
+    plain:'Instagram\'s data feed (and the revoke webhook it calls).',
+    path:'netlify/functions/sync-instagram.js:108', tag:['oauth-social','analytics','all'], notes:['60-day token, no refresh','signed_request verified on deauth']}),
+  N('ext-tiktok','external','TikTok API','TikTok data',1625,540,180,44,'external',{
     role:'TikTok OAuth + /v2/video/list.', plain:'TikTok\'s data feed.',
-    path:'netlify/functions/sync-tiktok.js:123', tag:['oauth-social','analytics','all'], notes:['Access + refresh tokens; auto-refresh']}),
-  N('ext-google','external','Google / YouTube','YouTube data + OAuth',1625,598,180,46,'external',{
-    role:'Google OAuth + YouTube Data API v3 (channels → playlistItems → videos).', plain:'YouTube\'s data feed and the Google login for it.',
-    path:'netlify/functions/sync-youtube.js:108', tag:['oauth-social','analytics','all'], notes:['Separate from Supabase Google sign-in client','access_type=offline for refresh token']}),
-  N('ext-gdrive','external','Google Drive','file uploads',1625,654,180,44,'external',{
-    role:'Resumable file upload target for content assets, called client-side.', plain:'Where uploaded content files are stored.',
-    path:'src/ui/pipeline/EditContentModal.jsx:67', tag:['content','all'], notes:['Hardcoded GDRIVE_CLIENT_ID; public-permission set after upload']}),
+    path:'netlify/functions/sync-tiktok.js:123', tag:['oauth-social','analytics','all'], notes:['Access + refresh tokens']}),
+  N('ext-google','external','Google / YouTube','YouTube data + OAuth',1625,596,180,46,'external',{
+    role:'Google OAuth + YouTube Data API v3.', plain:'YouTube\'s data feed and its Google login.',
+    path:'netlify/functions/sync-youtube.js:108', tag:['oauth-social','analytics','all'], notes:['Consent screen still in Testing mode (7-day token)']}),
+  N('ext-gdrive','external','Google Drive','file uploads',1625,652,180,44,'external',{
+    role:'Resumable file upload target, called client-side.', plain:'Where uploaded content files are stored.',
+    path:'src/ui/pipeline/EditContentModal.jsx:67', tag:['content','all'], notes:['Hardcoded GDRIVE_CLIENT_ID']}),
 ];
 
 const edges = [
-  /* mounts / entry */
   {from:'main-entry',to:'app-root',kind:'mount',label:'imports',tag:['overview','all']},
   {from:'app-root',to:'dashboard-route',kind:'mount',label:'nav',tag:['overview','all']},
   {from:'app-root',to:'content-route',kind:'mount',label:'nav',tag:['content','all']},
   {from:'app-root',to:'agents-route',kind:'mount',label:'nav',tag:['agents','all']},
   {from:'app-root',to:'analytics-route',kind:'critical',label:'nav',tag:['overview','analytics','all']},
+  {from:'app-root',to:'idea-engine-route',kind:'critical',label:'nav',tag:['overview','ideas','all']},
   {from:'app-root',to:'settings-page',kind:'mount',label:'nav',tag:['settings','all']},
-  /* routes → ui */
   {from:'dashboard-route',to:'command-input',kind:'normal',label:'renders',tag:['agents','all']},
   {from:'dashboard-route',to:'activity-feed',kind:'normal',label:'renders',tag:['agents','all']},
   {from:'agents-route',to:'agent-chat-page',kind:'normal',label:'renders',tag:['agents','all']},
@@ -443,39 +431,39 @@ const edges = [
   {from:'content-pipeline-board',to:'edit-content-modal',kind:'normal',label:'opens',tag:['content','all']},
   {from:'settings-page',to:'connected-accounts-card',kind:'normal',label:'renders',tag:['oauth-social','settings','all']},
   {from:'add-client-modal',to:'client-team-panel',kind:'normal',label:'embeds',tag:['clients','all']},
-  /* core wiring */
   {from:'command-input',to:'core-route-task',kind:'critical',label:'routeTask()',tag:['agents','all']},
   {from:'core-route-task',to:'core-agent-registry',kind:'normal',label:'prompts',tag:['agents','all']},
   {from:'core-route-task',to:'core-memory',kind:'normal',label:'memory',tag:['agents','all']},
   {from:'core-route-task',to:'api-fetch',kind:'api',label:'/api/chat',tag:['agents','all']},
   {from:'api-fetch',to:'supabase-client',kind:'critical',label:'getSession token',tag:['overview','all']},
-  /* ui → api-fetch (agent actions + chat) */
   {from:'app-root',to:'api-fetch',kind:'critical',label:'muse_ig_ideas / notify',tag:['overview','content','all']},
   {from:'analytics-route',to:'api-fetch',kind:'critical',label:'scrappy_analyze_performance',tag:['analytics','all']},
+  {from:'idea-engine-route',to:'api-fetch',kind:'critical',label:'muse_idea_list + muse_film_brief',tag:['ideas','all']},
+  {from:'idea-engine-route',to:'tbl-content-items',kind:'db',label:'sb insert (send to pipeline)',tag:['ideas','all']},
   {from:'agent-chat-page',to:'api-fetch',kind:'api',label:'chat + 5 actions',tag:['agents','all']},
   {from:'content-pipeline-board',to:'api-fetch',kind:'api',label:'muse_write_content',tag:['content','all']},
   {from:'cid-page',to:'api-fetch',kind:'api',label:'scrape + 3 actions',tag:['competitor-intel','all']},
+  {from:'cid-page',to:'tbl-cid-performance',kind:'db',label:'sb insert (fixed)',tag:['competitor-intel','all']},
   {from:'artgrid-scout-page',to:'api-fetch',kind:'api',label:'artgrid_scout',tag:['content','all']},
   {from:'connected-accounts-card',to:'api-fetch',kind:'critical',label:'/api/oauth + /api/sync',tag:['oauth-social','all']},
-  /* api-fetch → server */
-  {from:'api-fetch',to:'agent-action',kind:'critical',label:'POST /api/agent-action',tag:['overview','agents','content','analytics','competitor-intel','all']},
+  {from:'api-fetch',to:'agent-action',kind:'critical',label:'POST /api/agent-action',tag:['overview','agents','content','analytics','ideas','competitor-intel','all']},
   {from:'api-fetch',to:'chat',kind:'critical',label:'POST /api/chat',tag:['agents','all']},
   {from:'api-fetch',to:'notify',kind:'api',label:'POST /api/notify',tag:['clients','all']},
   {from:'api-fetch',to:'apify-scrape',kind:'api',label:'POST /api/apify-scrape',tag:['competitor-intel','all']},
   {from:'api-fetch',to:'unsplash',kind:'api',label:'GET /api/unsplash',tag:['all']},
   {from:'connected-accounts-card',to:'oauth-start',kind:'api',label:'/api/oauth/*/start',tag:['oauth-social','all']},
   {from:'connected-accounts-card',to:'sync-fns',kind:'api',label:'/api/sync/*',tag:['oauth-social','analytics','all']},
-  /* server gating */
   {from:'agent-action',to:'lib-require-user',kind:'critical',label:'auth',tag:['overview','auth','all']},
   {from:'agent-action',to:'lib-rate-limit',kind:'normal',label:'60/min',tag:['overview','all']},
   {from:'chat',to:'lib-require-user',kind:'critical',label:'auth',tag:['agents','auth','all']},
-  {from:'oauth-start',to:'lib-require-user',kind:'normal',label:'auth',tag:['oauth-social','all']},
   {from:'oauth-start',to:'lib-oauth',kind:'normal',label:'createState',tag:['oauth-social','all']},
   {from:'oauth-callback',to:'lib-oauth',kind:'critical',label:'consume + upsert',tag:['oauth-social','all']},
+  {from:'lib-oauth',to:'lib-crypto',kind:'normal',label:'encrypt token',tag:['oauth-social','all']},
+  {from:'oauth-deauth',to:'lib-oauth',kind:'normal',label:'delete account+token',tag:['oauth-social','all']},
   {from:'sync-fns',to:'lib-oauth',kind:'normal',label:'token read',tag:['oauth-social','all']},
-  /* server → external */
-  {from:'agent-action',to:'ext-anthropic',kind:'critical',label:'haiku-4-5',tag:['agents','content','analytics','all']},
-  {from:'agent-action',to:'ext-tavily',kind:'api',label:'search',tag:['agents','all']},
+  {from:'sync-fns',to:'lib-crypto',kind:'normal',label:'decrypt token',tag:['oauth-social','all']},
+  {from:'agent-action',to:'ext-anthropic',kind:'critical',label:'Haiku / Opus 4.8',tag:['agents','content','analytics','ideas','all']},
+  {from:'agent-action',to:'ext-tavily',kind:'api',label:'research',tag:['agents','ideas','all']},
   {from:'agent-action',to:'ext-slack',kind:'normal',label:'mirror',tag:['agents','all']},
   {from:'chat',to:'ext-anthropic',kind:'critical',label:'sonnet-4-6',tag:['agents','all']},
   {from:'notify',to:'ext-resend',kind:'api',label:'email',tag:['clients','all']},
@@ -486,24 +474,25 @@ const edges = [
   {from:'oauth-callback',to:'ext-meta',kind:'api',label:'IG token',tag:['oauth-social','all']},
   {from:'oauth-callback',to:'ext-tiktok',kind:'api',label:'TT token',tag:['oauth-social','all']},
   {from:'oauth-callback',to:'ext-google',kind:'api',label:'YT token',tag:['oauth-social','all']},
+  {from:'oauth-deauth',to:'ext-meta',kind:'api',label:'signed_request verify',tag:['oauth-social','all']},
   {from:'sync-fns',to:'ext-meta',kind:'api',label:'media+insights',tag:['oauth-social','analytics','all']},
   {from:'sync-fns',to:'ext-tiktok',kind:'api',label:'video list',tag:['oauth-social','analytics','all']},
   {from:'sync-fns',to:'ext-google',kind:'api',label:'videos',tag:['oauth-social','analytics','all']},
   {from:'edit-content-modal',to:'ext-gdrive',kind:'api',label:'upload',tag:['content','all']},
-  /* server → data */
   {from:'lib-require-user',to:'tbl-client-users',kind:'db',label:'authorize',tag:['auth','all']},
   {from:'agent-action',to:'tbl-clients',kind:'db',label:'brand voice',tag:['agents','all']},
-  {from:'agent-action',to:'tbl-content-items',kind:'db',label:'read/write',tag:['content','all']},
+  {from:'agent-action',to:'tbl-content-items',kind:'db',label:'read/write',tag:['content','ideas','all']},
   {from:'agent-action',to:'tbl-agent-events',kind:'db',label:'log every call',tag:['agents','all']},
-  {from:'agent-action',to:'tbl-account-posts',kind:'db',label:'analyze read',tag:['analytics','all']},
+  {from:'agent-action',to:'tbl-account-posts',kind:'db',label:'getSyncedDigest read',tag:['analytics','ideas','all']},
+  {from:'agent-action',to:'tbl-connected-accounts',kind:'db',label:'getSyncedDigest read',tag:['ideas','all']},
   {from:'agent-action',to:'tbl-cid-library',kind:'db',label:'hook insert',tag:['competitor-intel','all']},
   {from:'notify',to:'tbl-notifications',kind:'db',label:'insert',tag:['clients','all']},
   {from:'lib-oauth',to:'tbl-oauth-states',kind:'db',label:'state',tag:['oauth-social','all']},
   {from:'lib-oauth',to:'tbl-connected-accounts',kind:'db',label:'upsert',tag:['oauth-social','all']},
-  {from:'lib-oauth',to:'tbl-account-tokens',kind:'db',label:'upsert token',tag:['oauth-social','all']},
+  {from:'lib-oauth',to:'tbl-account-tokens',kind:'db',label:'upsert (encrypted)',tag:['oauth-social','all']},
+  {from:'oauth-deauth',to:'tbl-data-deletion',kind:'db',label:'log deletion',tag:['oauth-social','all']},
   {from:'sync-fns',to:'tbl-account-posts',kind:'db',label:'upsert posts',tag:['oauth-social','analytics','all']},
-  /* client → data (direct) */
-  {from:'app-root',to:'tbl-content-items',kind:'db',label:'realtime',tag:['content','all']},
+  {from:'app-root',to:'tbl-content-items',kind:'db',label:'realtime (not client-scoped)',tag:['content','all']},
   {from:'app-root',to:'tbl-clients',kind:'db',label:'roster',tag:['clients','all']},
   {from:'app-root',to:'tbl-notifications',kind:'db',label:'realtime',tag:['clients','all']},
   {from:'analytics-route',to:'tbl-account-posts',kind:'db',label:'read+realtime',tag:['analytics','all']},
@@ -512,67 +501,47 @@ const edges = [
   {from:'activity-feed',to:'tbl-agent-events',kind:'db',label:'read+realtime',tag:['agents','all']},
   {from:'client-team-panel',to:'tbl-client-users',kind:'db',label:'CRUD+realtime',tag:['clients','all']},
   {from:'add-client-modal',to:'tbl-clients',kind:'db',label:'insert/update',tag:['clients','all']},
-  {from:'cid-page',to:'tbl-cid-performance',kind:'db',label:'anon write (broken)',tag:['competitor-intel','all']},
 ];
 
-/* FIXES + KNOWN_BUGS keyed by node id */
+/* FIXES + KNOWN_BUGS keyed by node id — OPEN items only (the security batch is shipped) */
 const FIXES = {
-  'cid-page':[{n:1,t:'Import SUPABASE_URL/KEY or route content_items + cid_performance writes through a service-role function'},{n:3,t:'Drop client-set id:Date.now() — let Postgres generate'}],
-  'tbl-cid-performance':[{n:1,t:'Move write to service-role fn'},{n:2,t:'Add baseline migration + scoped RLS'}],
-  'tbl-cid-library':[{n:2,t:'Add CREATE TABLE migration + RLS (only a rename migration exists)'}],
-  'agent-action':[{n:2,t:'Add cid_library baseline migration'},{n:3,t:'Scope analyze to true top performers + align ranking metric'},{n:11,t:'Remove dead muse_from_brief handler'}],
-  'analytics-route':[{n:3,t:'Scope "Why these won" to top performer(s); reconcile engagement_rate ranking with backend score'}],
-  'apify-scrape':[{n:4,t:'Add rateLimit gate'}],
-  'unsplash':[{n:4,t:'Add rateLimit gate'}],
-  'sync-fns':[{n:4,t:'Add rateLimit gate'},{n:12,t:'Wire declared INSIGHTS_TIMEOUT + parallelize sync-instagram insight loop'}],
-  'notify':[{n:4,t:'Add rateLimit gate'},{n:7,t:'HTML-escape user fields before building email/Slack body'}],
-  'lib-rate-limit':[{n:4,t:'Apply to all credit-spending / fanout functions'}],
-  'oauth-webhooks':[{n:5,t:'Verify signed_request signature + delete connected_accounts/tokens on revoke'}],
-  'lib-oauth':[{n:5,t:'Delete tokens on deauthorize'},{n:6,t:'Encrypt tokens at rest (pgcrypto/Vault)'}],
-  'tbl-account-tokens':[{n:6,t:'Encrypt access/refresh tokens at rest'}],
-  'chat':[{n:8,t:'Validate/clamp model (allowlist) + max_tokens before forwarding'}],
-  'app-root':[{n:9,t:'Scope content_items realtime + initial load by client_id'},{n:11,t:'Drop dead imports (QuickActions/TypingTask/PlaceholderPage/OPS_INIT)'},{n:13,t:'Fix stale stuckGuard 4s/8s comment'}],
-  'tbl-profiles':[{n:10,t:'Drop wide-open "Service role full access" USING(true) policy'}],
-  'quick-actions':[{n:11,t:'Delete unused component + import'}],
-  'tbl-oauth-states':[{n:14,t:'Add expired-state cleanup job (pg_cron / scheduled fn)'}],
-  'settings-page':[{n:15,t:'Persist AI toggles/invite or label coming-soon'}],
-  'tbl-clients':[{n:16,t:'Move VitalLyfe seed out of canonical migration set'}],
-  'lib-require-user':[{n:17,t:'Reject (403) state-changing requests from non-allowlisted origins instead of fail-open'}],
+  'analytics-route':[{n:1,t:'Scope "Why these won" to true top performer(s) + one shared ranking metric'}],
+  'agent-action':[{n:2,t:'Guard Opus generation vs the 26s timeout — move Tavily research off the synchronous path / cap tokens'},{n:5,t:'Surface silent JSON parse failures as errors instead of success:true + empty'},{n:7,t:'Remove the dead muse_from_brief handler'},{n:9,t:'Scope getSyncedDigest by user_id before multi-tenant'},{n:11,t:'Reuse _researchDigest in muse_ig_ideas instead of the inline Tavily copy'}],
+  'idea-engine-route':[{n:3,t:'Let Postgres generate the content_items id (drop client-side Date.now()) + block send when client_id is null'},{n:4,t:'Add an AbortController/timeout on the muse_film_brief call so the modal can\'t hang'}],
+  'app-root':[{n:6,t:'Scope content_items realtime + initial load by client_id'},{n:8,t:'Fix the stale stuckGuard 4s/8s comment'}],
+  'tbl-content-items':[{n:10,t:'Document the text-PK convention or add a default/format check'}],
 };
 const KNOWN_BUGS = {
-  'cid-page':[{sev:'high',ref:'BUG-1',t:'SUPABASE_URL / SUPABASE_KEY referenced but never imported (:381,:442) → ReferenceError when "Send to Content Tracker" / "Log Results" is clicked'},{sev:'low',t:'id:Date.now() pushed into content_items (:368) — latent type/identity clash'}],
-  'tbl-cid-library':[{sev:'high',t:'No CREATE TABLE migration — written at agent-action.js:822; schema lives only in code comments'}],
-  'tbl-cid-performance':[{sev:'high',t:'No migration + written from the browser with the anon key — implies an unmanaged anon-write RLS policy'}],
-  'analytics-route':[{sev:'med',ref:'flagged',t:'"Why these won" surfaces reasons across multiple posts and the displayed top set leans on raw views; should be scoped to the true top performer(s) with a consistent ranking metric'}],
-  'agent-action':[{sev:'low',t:'muse_from_brief (:669) fully wired but has zero frontend callers — dead handler / attack surface'}],
-  'apify-scrape':[{sev:'med',t:'No rateLimit — any authed user can loop it and burn Apify credits'},{sev:'low',t:'Returns statusCode 200 on errors, masking failures from monitoring'}],
-  'unsplash':[{sev:'med',t:'No rateLimit gate'}],
-  'sync-fns':[{sev:'med',t:'No rateLimit on any sync fn — hammers paid platform APIs'},{sev:'low',t:'sync-instagram declares INSIGHTS_TIMEOUT_MS but never uses it; awaits up to 30 insight calls serially → 26s-timeout risk'}],
-  'notify':[{sev:'med',t:'User fields (title, client_note, etc.) interpolated into raw email HTML unescaped (:138-144) — stored/email HTML injection'},{sev:'med',t:'No rateLimit on a function that fans out email/Slack/n8n'}],
-  'lib-require-user':[{sev:'med',ref:'CORS',t:'CORS fail-open: unknown origins still execute writes (:26); browser blocks the read but a token-bearing non-browser caller is unaffected'}],
-  'oauth-webhooks':[{sev:'med',t:'Deauthorize/data-deletion stubs never verify signatures or delete data — revoked tokens persist; data-deletion returns a fake confirmation code'}],
-  'lib-oauth':[{sev:'med',t:'OAuth access/refresh tokens stored in plaintext (:122-135)'}],
-  'tbl-account-tokens':[{sev:'med',t:'Tokens unencrypted at rest'}],
-  'chat':[{sev:'low',t:'Forwards unvalidated client body to Anthropic — no max_tokens cap or model allowlist (:43)'}],
-  'app-root':[{sev:'med',t:'content_items realtime + initial load are not client-scoped (:134,:489); only filtered at render — every browser holds the full multi-tenant set'},{sev:'low',t:'stuckGuard comment says 4s but timeout is 8000ms (:238 vs :269)'},{sev:'low',t:'Dead imports: QuickActionsDashboard/TypingTask/PlaceholderPage/OPS_INIT (:12,:20,:32,:33)'}],
-  'tbl-profiles':[{sev:'med',t:'"Service role full access" is an unrestricted FOR ALL USING(true) (:20) — applies to anon/public too'}],
-  'tbl-content-items':[{sev:'low',t:'PK is text with no default/format constraint (:25) — drift vs UUID/bigserial tables'}],
-  'tbl-oauth-states':[{sev:'low',t:'No cleanup of expired state rows'}],
-  'settings-page':[{sev:'low',t:'AI toggles + team invite are display-only with no persistence/backend — misleading UI'}],
-  'supabase-client':[{sev:'low',t:'DB_CONNECTED hardcoded true (:14) — the UI offline indicator can never show'}],
+  'analytics-route':[{sev:'med',ref:'flagged',t:'"Why these won" surfaces reasons across multiple posts and the top set ranks by raw views — should target the true top performer(s) with one consistent metric (:262)'}],
+  'agent-action':[
+    {sev:'med',t:'Opus 4.8 on muse_idea_list/muse_film_brief/muse_ig_ideas + serial Tavily research stacked on the same request risks the 26s Netlify function timeout (:1236,:1289,:1074)'},
+    {sev:'med',t:'Silent parse-failure: muse_generate_calendar/scrappy_muse_collab/artgrid_scout/scrappy_analyze_performance catch a bad JSON parse and return success:true with empty results'},
+    {sev:'low',t:'muse_from_brief (:669) fully wired but zero frontend callers — dead handler'},
+    {sev:'low',t:'getSyncedDigest reads all rows via service role (:1320) — latent multi-tenant data leak when user_id scoping isn\'t added'},
+    {sev:'low',t:'muse_ig_ideas reimplements the Tavily block inline instead of reusing _researchDigest'},
+  ],
+  'idea-engine-route':[
+    {sev:'med',t:'Inserts content_items with a client-generated id `${slug}-idea-${Date.now()}` (:73) — collision/type risk; bypasses any DB default'},
+    {sev:'med',t:'openIdea() awaits muse_film_brief with no timeout/abort (:48) — a slow Opus brief leaves the modal stuck on the spinner'},
+    {sev:'med',t:'client_id only spread in when truthy (:81) — a null-client send writes an orphan/unscoped content_items row'},
+  ],
+  'app-root':[
+    {sev:'med',t:'content_items realtime channel + initial load are not client-scoped (:490) — every browser holds the full multi-tenant set; relies solely on RLS'},
+    {sev:'low',t:'stuckGuard comment says 4s but the timeout is 8000ms'},
+  ],
+  'tbl-content-items':[{sev:'low',t:'PK is text with no default/format constraint — the Idea Engine + App both mint ids client-side'}],
+  'supabase-client':[{sev:'low',t:'DB_CONNECTED hardcoded true — the UI offline indicator can never show'}],
   'quick-actions':[{sev:'low',t:'Dead component — imported but never rendered'}],
-  'tbl-clients':[{sev:'low',t:'VitalLyfe brand voice/email seeded into the canonical migration set'}],
 };
 
-/* Notable findings for the default sidebar */
 const FINDINGS = [
-  ['Two HIGH schema-drift + broken-write bugs in Competitor Intel','<code>cid_library</code> and <code>cid_performance</code> have no CREATE TABLE migration; <code>CIDPage.jsx</code> writes them via <code>SUPABASE_URL/SUPABASE_KEY</code> that it never imports — clicking "Send to Content Tracker" or "Log Results" throws <code>ReferenceError</code>. The performance write also uses the browser anon key.'],
-  ['The headline new feature has a known scoping bug','<code>scrappy_analyze_performance</code> ("Why these won") surfaces reasons across multiple posts and the top set ranks by raw views — it should target the true top performer(s) with one consistent metric. Flagged by the operator; Fix #3.'],
-  ['Rate-limit coverage is partial','Only <code>chat.js</code> and <code>agent-action.js</code> call <code>rateLimit</code>. <code>apify-scrape</code> (Apify credits), the three <code>sync-*</code> functions (paid platform APIs), <code>unsplash</code>, and <code>notify</code> (email/Slack/n8n fanout) are ungated.'],
-  ['OAuth security debt','Tokens are stored plaintext in <code>connected_account_tokens</code>, and the 6 deauthorize/data-deletion webhooks are unverified no-ops that never delete a revoked token. (The token table\'s service-role-only RLS posture itself is correct.)'],
-  ['Dead code located','<code>muse_from_brief</code> handler (no caller), <code>QuickActionsDashboard</code>/<code>TypingTask</code>/<code>PlaceholderPage</code> (imported, never rendered), and an unused <code>OPS_INIT</code> import in App.jsx.'],
-  ['Multi-tenant leak risk in realtime','<code>App.jsx</code> subscribes to ALL <code>content_items</code> and filters only at render — every browser receives realtime rows for clients not on screen. Fine for admins today, risky if an external client role reaches the main shell.'],
-  ['Model split','Server-side agent actions pin <code>claude-haiku-4-5-20251001</code>; frontend chat callers send <code>claude-sonnet-4-6</code>. Three agent-action handlers inline a duplicate Anthropic fetch instead of the shared <code>ai()</code> — each needs separate edits on a model bump.'],
+  ['The security batch shipped — the map is much greener','Yesterday\'s 23 bugs are mostly <b>fixed</b>: rate limits on all functions, CID write repair + migrations, notify HTML-escaping, chat validation, <b>OAuth token encryption (AES-256-GCM)</b>, real deauth/data-deletion with signed-request verification, dropped the wide-open <code>profiles</code> policy, and CORS now 403s bad origins. Remaining items are mostly feature-quality, centered on the new Idea Engine.'],
+  ['The Idea Engine is the new hot path — and it leans on Opus 4.8','<code>muse_idea_list</code>, <code>muse_film_brief</code>, and <code>muse_ig_ideas</code> all call <b>Opus 4.8</b>. With <code>getSyncedDigest</code> + serial Tavily research stacked on the same request, slow runs risk the <b>26s Netlify function timeout</b> — the biggest live risk now. Fix #2.'],
+  ['Idea Engine writes to the DB from the browser','<code>IdeaEngineRoute</code> inserts <code>content_items</code> directly via the sb client with a <b>client-generated <code>Date.now()</code> id</b> and only attaches <code>client_id</code> when present — collision/orphan risk. The film-brief call also has <b>no timeout guard</b>, so a slow Opus brief hangs the modal. Fixes #3, #4.'],
+  ['The headline feature still has its scoping bug','<code>scrappy_analyze_performance</code> ("Why these won") surfaces reasons across multiple posts and ranks by raw views — should target the true top performer(s) with one metric. Operator-flagged; Fix #1.'],
+  ['Model split is now 3-tier','Haiku 4.5 drives most handlers; <b>Opus 4.8</b> the three Muse-creative actions; <b>Sonnet 4.6</b> the frontend chat. Three agent-action handlers still inline their own Anthropic fetch (Haiku) instead of the shared <code>ai()</code>.'],
+  ['Multi-tenant realtime + getSyncedDigest read everything','<code>App.jsx</code> subscribes to ALL <code>content_items</code> (filtered only at render), and <code>getSyncedDigest</code> reads every row via service role. Fine single-tenant; a leak risk the moment a second client is onboarded. Fixes #6, #9.'],
+  ['Dead code still present','<code>muse_from_brief</code> handler (no caller) and <code>QuickActionsDashboard</code> (imported, never rendered). Fix #7.'],
 ];
 
 /* ============================ RENDER ============================ */
@@ -583,10 +552,7 @@ const CCOL={client:'--client',route:'--route',service:'--service',db:'--db',exte
 const EKIND={critical:'--critical',api:'--accent-2',db:'--db',mount:'--client',normal:'#5a5a5a'};
 const cssv=v=>v.startsWith('--')?getComputedStyle(document.documentElement).getPropertyValue(v).trim():v;
 const nodeById=Object.fromEntries(nodes.map(n=>[n.id,n]));
-
 function mk(tag,attrs={}){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
-
-// defs: arrow markers
 const defs=mk('defs');
 for(const k in EKIND){
   const col=cssv(EKIND[k]);
@@ -594,35 +560,28 @@ for(const k in EKIND){
   m.appendChild(mk('path',{d:'M0,0 L10,5 L0,10 z',fill:col}));defs.appendChild(m);
 }
 vp.appendChild(defs);
-
-// clusters
 const gC=mk('g');vp.appendChild(gC);
 clusters.forEach(c=>{
   const col=cssv(CCOL[c.color]);
   gC.appendChild(mk('rect',{x:c.x,y:c.y,width:c.w,height:c.h,rx:14,fill:col+'10',stroke:col+'33','stroke-width':1}));
   const t=mk('text',{x:c.x+14,y:c.y-10,class:'clbl'});t.textContent=c.label;gC.appendChild(t);
 });
-
-// edges
 const gE=mk('g');vp.appendChild(gE);
 const edgeEls=[];
 edges.forEach((e,i)=>{
   const a=nodeById[e.from],b=nodeById[e.to];if(!a||!b)return;
   const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2;
-  const back=x2<x1; const dx=Math.max(60,Math.abs(x2-x1)*0.5);
-  const c1x=back?x1+dx:x1+dx, c2x=back?x2-dx:x2-dx;
+  const dx=Math.max(60,Math.abs(x2-x1)*0.5);
+  const c1x=x1+dx, c2x=x2-dx;
   const col=cssv(EKIND[e.kind]);
   const p=mk('path',{d:`M${x1},${y1} C${c1x},${y1} ${c2x},${y2} ${x2},${y2}`,fill:'none',
     stroke:col,'stroke-width':e.kind==='critical'?2.4:1.4,opacity:e.kind==='normal'?.5:.8,
     'marker-end':`url(#arr-${e.kind})`,class:'edge'});
   p._edge=e;gE.appendChild(p);edgeEls.push(p);
-  // label
   const mx=(x1+c1x+c2x+x2)/4, my=(y1+y2)/2 + (i%2?-7:7);
   const lt=mk('text',{x:mx,y:my,class:'elabel','text-anchor':'middle'});lt.textContent=e.label;
   lt._edge=e;gE.appendChild(lt);edgeEls.push(lt);
 });
-
-// nodes
 const gN=mk('g');vp.appendChild(gN);
 const nodeEls=[];
 nodes.forEach(n=>{
@@ -635,7 +594,6 @@ nodes.forEach(n=>{
   const lab=mk('text',{x:n.x+12,y:n.y+21,class:'nlabel'});lab.textContent=n.label;g.appendChild(lab);
   const sub=mk('text',{x:n.x+12,y:n.y+(n.h>52?37:35),class:'nsub'});sub.textContent=n.sub;g.appendChild(sub);
   if(n.critical){g.appendChild(mk('circle',{cx:n.x+n.w-9,cy:n.y+9,r:3.2,class:'crit-dot'}));}
-  // badges
   const fc=(FIXES[n.id]||[]).length, bc=(KNOWN_BUGS[n.id]||[]).length;
   let bx=n.x+n.w-12;
   if(bc>0){const bg=mk('g',{class:'badge badge-bug'});bg.appendChild(mk('circle',{cx:bx,cy:n.y+n.h-10,r:8}));
@@ -647,17 +605,10 @@ nodes.forEach(n=>{
   g.addEventListener('mouseleave',()=>!selected&&showDefault());
   g.addEventListener('click',ev=>{ev.stopPropagation();selected=(selected===n)?null:n;selected?select(n):showDefault();applyFilter();});
 });
-
-/* ===================== interaction ===================== */
 let selected=null, activeFilter='overview';
 const side=document.getElementById('side');
-
-function connectedIds(n){
-  const s=new Set([n.id]);
-  edges.forEach(e=>{if(e.from===n.id)s.add(e.to);if(e.to===n.id)s.add(e.from);});
-  return s;
-}
-function select(n,hover){
+function connectedIds(n){const s=new Set([n.id]);edges.forEach(e=>{if(e.from===n.id)s.add(e.to);if(e.to===n.id)s.add(e.from);});return s;}
+function select(n){
   const con=connectedIds(n);
   nodeEls.forEach(g=>g.classList.toggle('dim',!con.has(g._node.id)));
   edgeEls.forEach(el=>{const e=el._edge;el.classList.toggle('dim',!(e.from===n.id||e.to===n.id));});
@@ -668,7 +619,6 @@ function showDefault(){
   else applyFilter();
   renderIdle();
 }
-
 function renderSidebar(n){
   const fixes=FIXES[n.id]||[], bugs=KNOWN_BUGS[n.id]||[];
   const ins=edges.filter(e=>e.to===n.id), outs=edges.filter(e=>e.from===n.id);
@@ -688,7 +638,7 @@ function renderDefaultSidebar(){
   let h=`<h2>Vantus</h2><div class="path">content-ops dashboard · React 19 + Vite · Supabase · Netlify Functions</div>`;
   h+=`<div class="lbl">Notable findings from this map</div>`;
   h+=FINDINGS.map(f=>`<div class="finding"><b>${f[0]}</b><br>${f[1]}</div>`).join('');
-  h+=`<div class="lbl">How to read this</div><div class="role" style="font-size:12.5px;color:#cdcdcd">Hover a node for its role + plain English + bugs/fixes. Click to pin it and dim everything unconnected. Green badge = fix count, red = bug count. Use the chips up top to isolate a feature, the critical path, or just the buggy nodes.</div>`;
+  h+=`<div class="lbl">How to read this</div><div class="role" style="font-size:12.5px;color:#cdcdcd">Hover a node for its role + plain English + bugs/fixes. Click to pin it and dim everything unconnected. Green badge = fix count, red = bug count. Chips up top isolate a feature, or just the buggy nodes.</div>`;
   h+=`<div class="lbl">Clusters</div><ul>`+clusters.map(c=>`<li><b>${c.label}</b></li>`).join('')+`</ul>`;
   side.innerHTML=h;
 }
@@ -697,7 +647,7 @@ function renderBugsSidebar(){
   const c={high:0,med:0,low:0};all.forEach(b=>c[b.sev]++);
   const fixNums=new Set();for(const id in FIXES){FIXES[id].forEach(f=>fixNums.add(f.n));}
   const SEV={high:'🔴 High',med:'🟡 Med',low:'🟢 Low'};
-  let h=`<h2>Bugs &amp; Roadmap</h2><div class="path">${all.length} bugs across ${Object.keys(KNOWN_BUGS).length} nodes · ${fixNums.size} numbered fixes</div>`;
+  let h=`<h2>Bugs &amp; Roadmap</h2><div class="path">${all.length} open bugs across ${Object.keys(KNOWN_BUGS).length} nodes · ${fixNums.size} fixes · (security batch shipped 2026-06-04)</div>`;
   h+=`<div class="lbl">Count by severity</div>`;
   h+=`<div style="display:flex;gap:8px;margin-top:4px">
     <div style="flex:1;background:rgba(255,93,122,.1);border:1px solid rgba(255,93,122,.3);border-radius:10px;padding:10px;text-align:center"><div style="font-size:24px;font-weight:800;color:#ff5d7a">${c.high}</div><div style="font-size:10px;color:var(--muted)">HIGH</div></div>
@@ -718,10 +668,9 @@ function renderBugsSidebar(){
   side.innerHTML=h;
 }
 function renderIdle(){ activeFilter==='bugs' ? renderBugsSidebar() : renderDefaultSidebar(); }
-
-/* filter chips */
 const FILTERS=[
   {id:'overview',label:'Overview'},
+  {id:'ideas',label:'Idea Engine'},
   {id:'analytics',label:'Analytics / "why it won"'},
   {id:'oauth-social',label:'OAuth + Sync'},
   {id:'content',label:'Content pipeline'},
@@ -748,12 +697,10 @@ function applyFilter(){
   nodeEls.forEach(g=>g.classList.toggle('dim',!(g._node.tag||[]).includes(f)));
   edgeEls.forEach(el=>{const e=el._edge;el.classList.toggle('dim',!(e.tag||[]).includes(f));});
 }
-
-/* pan + zoom */
 let tx=0,ty=0,s=1;
 function apply(){vp.setAttribute('transform',`translate(${tx},${ty}) scale(${s})`);}
 function fit(){
-  const pad=60,bb={x:0,y:0,w:1840,h:1010};
+  const pad=60,bb={x:0,y:0,w:1840,h:1070};
   const r=svg.getBoundingClientRect();
   s=Math.min((r.width-pad*2)/bb.w,(r.height-pad*2)/bb.h);s=Math.min(s,1.1);
   tx=(r.width-bb.w*s)/2; ty=(r.height-bb.h*s)/2+10; apply();
@@ -769,7 +716,6 @@ svg.addEventListener('click',ev=>{if(!ev.target.closest('.node')){selected=null;
 document.getElementById('zin').onclick=()=>{s=Math.min(2.5,s*1.15);apply();};
 document.getElementById('zout').onclick=()=>{s=Math.max(.25,s*0.87);apply();};
 document.getElementById('zfit').onclick=fit;
-
 renderIdle();applyFilter();fit();
 </script>
 </body>

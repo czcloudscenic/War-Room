@@ -1,44 +1,55 @@
-# Critical Path — the Agent Action Spine
+# Critical Path — the Idea Engine + Agent-Action Spine
 
-The most important code path in Vantus is the **AI agent action chain**: every AI button (write content, generate ideas, analyze performance, research) flows through one authenticated router. The newest feature — `scrappy_analyze_performance` ("Why these won") — rides this exact spine, so understanding it explains most of the app.
+Two seams matter in Vantus. The **agent-action spine** is the trunk every AI feature flows through; the **Idea Engine flow** is the newest, highest-value path and the current frontier.
 
 > Citations are `file:line`. Operation kind tagged per step.
 
+## Spine A — Idea Engine (the new headline flow)
+
 | # | Step | Where | Kind |
 |---|---|---|---|
-| 1 | User clicks an AI action (e.g. "✨ Why these won") | `src/ui/routes/AnalyticsRoute.jsx:171` | UI |
-| 2 | Call routed through the token-injecting fetch wrapper | `src/services/apiFetch.js:17` | — |
-| 3 | Fresh access token pulled from the Supabase session | `src/services/apiFetch.js:18` → `src/services/supabaseClient.js:15` | `[AUTH]` |
-| 4 | `POST /api/agent-action` with `{action, payload, client_id}` + Bearer token | `netlify.toml:14` → `netlify/functions/agent-action.js:1166` | `[HTTP]` |
-| 5 | Auth gate: JWT verified against `/auth/v1/user`, then admin/approved-client check | `netlify/functions/_lib/requireUser.js:58` | `[AUTH]` |
-| 6 | Rate limit: sliding window `agent-action:<user.id>`, 60/min | `netlify/functions/_lib/rateLimit.js:34` (called at `agent-action.js:1180`) | `[RL]` |
-| 7 | Per-client brand voice loaded from `clients.brand_voice_md` (+ pillar parse) | `netlify/functions/agent-action.js:122` | `[DB]` |
-| 8 | Switch dispatches to the matching handler (13 actions) | `netlify/functions/agent-action.js:1199` | — |
-| 9a | **Analysis path:** read `account_posts` (limit 500) + `connected_accounts`, bucket by platform, median baseline, top 6 | `netlify/functions/agent-action.js:1087` | `[DB]` |
-| 9b | **Write path (e.g. muse_ig_ideas):** read existing items, build prompt | `netlify/functions/agent-action.js:981` | `[DB]` |
-| 10 | Claude call via shared `ai()` → `claude-haiku-4-5-20251001` | `netlify/functions/agent-action.js:166` | `[LLM]` |
-| 11 | Result written back (insert `content_items`, or returned `insights`+`reasons`) | `netlify/functions/agent-action.js` | `[DB]` |
-| 12 | Every invocation logged to `agent_events` (fire-and-forget) | `netlify/functions/agent-action.js:72` | `[DB]` |
-| 13 | Mapped actions mirrored to Slack | `netlify/functions/agent-action.js:143` | `[API]` |
-| 14 | JSON response returns → UI renders (insights panel + per-card reasons) | `src/ui/routes/AnalyticsRoute.jsx:178,501,596` | UI |
+| 1 | User opens **Idea Engine**, picks funnel stage (TOF/MOF/BOF) + content type + optional own-idea in the setup box | `src/ui/routes/IdeaEngineRoute.jsx:147` | UI |
+| 2 | `cook()` → `POST /api/agent-action` `{action:'muse_idea_list', funnelStage, contentType, userIdea, inspiration}` | `IdeaEngineRoute.jsx:39` → `agent-action.js:1459` | `[HTTP]` |
+| 3 | Auth + rate-limit gate | `_lib/requireUser.js:58`, `_lib/rateLimit.js:34` | `[AUTH]` |
+| 4 | `muse_idea_list` pulls the account's real top performers + voice samples | `agent-action.js:1185` → `getSyncedDigest:1321` (reads `connected_accounts`, `account_posts`) | `[DB]` |
+| 5 | Optional Tavily creator research (when a creator is named) | `agent-action.js:1158` (`_researchDigest`) → Tavily | `[API]` |
+| 6 | Prompt assembled with WINNING_FORMULA + funnel + content-type + levers; one **Opus 4.8** call → 6 concept tiles | `agent-action.js:1236` | `[LLM]` |
+| 7 | Tiles render; user clicks one → `openIdea()` → `POST muse_film_brief` `{title,hook,lever,format,funnelStage}` | `IdeaEngineRoute.jsx:53` → `agent-action.js:1247` | `[HTTP]` |
+| 8 | `muse_film_brief` generates one full shootable brief on **Opus 4.8** (story-sequence aware structure) | `agent-action.js:1289` | `[LLM]` |
+| 9 | User hits "Send to pipeline" → insert `content_items` directly via the sb client | `IdeaEngineRoute.jsx:83` | `[DB]` |
+
+**Why two stages:** generating six full briefs at once on Opus would blow the 26s function timeout, so the list is cheap and each brief is generated on demand (step 7-8). Open risk: even one brief + stacked research can still approach the cap (Fix #2), and the brief call has no client-side timeout guard (Fix #4).
 
 ---
 
-## Secondary spine — Connect → Sync → Analyze (the pivot data path)
+## Spine B — Agent Action (the trunk)
 
-This is the data pipeline the analyzer depends on. Worth reading alongside the agent-action spine.
+Every AI button (write content, research, analyze, ideate) flows through one authenticated router.
 
 | # | Step | Where | Kind |
 |---|---|---|---|
-| 1 | User clicks "Connect" on a platform | `src/ui/settings/ConnectedAccountsCard.jsx:71` | UI |
-| 2 | `POST /api/oauth/<platform>/start` → mint CSRF state, return authorize URL | `netlify/functions/oauth-youtube-start.js:43` → `_lib/oauth.js:65` | `[DB]` |
-| 3 | Browser redirects to platform consent; platform calls back | `netlify/functions/oauth-youtube-callback.js:52` | `[API]` |
-| 4 | State consumed (once), code exchanged for tokens, profile fetched | `_lib/oauth.js:78` + callback | `[API]` |
-| 5 | Upsert `connected_accounts` + `connected_account_tokens` (plaintext) | `_lib/oauth.js:96,122` | `[DB]` |
-| 6 | User clicks "Sync now" → `POST /api/sync/<platform>` | `ConnectedAccountsCard.jsx:109` → `sync-youtube.js:108` | `[HTTP]` |
-| 7 | (TT/YT) refresh token if expiring; pull recent posts + metrics | `sync-youtube.js:172` | `[API]` |
-| 8 | Upsert into `account_posts` (conflict key `account_id,platform_post_id`) | `sync-youtube.js:264` | `[DB]` |
-| 9 | AnalyticsRoute reads `account_posts` + realtime; renders metrics/top performers | `AnalyticsRoute.jsx:104,128` | `[DB]` |
-| 10 | "Why these won" → re-enters the agent-action spine at step 9a above | `AnalyticsRoute.jsx:171` | — |
+| 1 | UI action → token-injecting fetch | `src/services/apiFetch.js:17` | — |
+| 2 | Fresh access token from the Supabase session | `apiFetch.js:18` → `supabaseClient.js:15` | `[AUTH]` |
+| 3 | `POST /api/agent-action` `{action, payload, client_id}` + Bearer | `agent-action.js:1459` | `[HTTP]` |
+| 4 | Auth gate (JWT + admin/approved-client) | `_lib/requireUser.js:58` | `[AUTH]` |
+| 5 | Rate limit `agent-action:<user.id>` 60/min | `_lib/rateLimit.js:34` | `[RL]` |
+| 6 | Per-client brand voice from `clients.brand_voice_md` | `agent-action.js:122` | `[DB]` |
+| 7 | Switch dispatches to one of 15 handlers | `agent-action.js:1459-1474` | — |
+| 8 | Claude call via shared `ai()` — model per caller (Haiku default; Opus 4.8 for the 3 Muse-creative actions) | `agent-action.js:166` | `[LLM]` |
+| 9 | Result written back (content_items / cid_library) or returned (insights/ideas) | various | `[DB]` |
+| 10 | Every invocation logged to `agent_events` | `agent-action.js:74` | `[DB]` |
+| 11 | Mapped actions mirrored to Slack | `agent-action.js:146` | `[API]` |
 
-**Note:** Instagram differs — its callback does a 2-step token exchange and gets a **60-day token with no refresh** (re-auth required at expiry), while TikTok and YouTube store refresh tokens the sync functions auto-renew.
+---
+
+## Spine C — Connect → Sync → (analyze / ideate)
+
+The data pipeline both Analytics and the Idea Engine depend on.
+
+| # | Step | Where | Kind |
+|---|---|---|---|
+| 1 | "Connect" → `POST /api/oauth/<p>/start` → mint CSRF state, return authorize URL | `ConnectedAccountsCard.jsx:71` → `oauth-*-start.js` → `_lib/oauth.js:65` | `[DB]` |
+| 2 | Platform consent → callback exchanges code, fetches profile, upserts account + **encrypted** token | `oauth-*-callback.js` → `_lib/oauth.js` → `_lib/crypto.js:16` | `[API]`/`[DB]` |
+| 3 | "Sync now" → `POST /api/sync/<p>` → decrypt token, pull posts + metrics, upsert `account_posts` | `sync-youtube.js:108` → `_lib/crypto.js` | `[API]`/`[DB]` |
+| 4 | `account_posts` feeds AnalyticsRoute (charts/top performers) AND the Idea Engine (`getSyncedDigest`) | `AnalyticsRoute.jsx:104`, `agent-action.js:1321` | `[DB]` |
+| 5 | Platform revoke → deauth/data-deletion webhook verifies `signed_request`, deletes account+token, logs `data_deletion_requests` | `oauth-*-data-deletion.js:18` → `_lib/oauth.js` | `[API]`/`[DB]` |
