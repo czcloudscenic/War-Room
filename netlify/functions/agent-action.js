@@ -163,7 +163,7 @@ async function sbPatch(table, match, body) {
   return res.json();
 }
 
-async function ai(system, user, maxTokens = 1200) {
+async function ai(system, user, maxTokens = 1200, model = "claude-haiku-4-5-20251001") {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -172,7 +172,7 @@ async function ai(system, user, maxTokens = 1200) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+      model,
       max_tokens: maxTokens,
       system,
       messages: [{ role: "user", content: user }],
@@ -979,10 +979,37 @@ Return ONLY valid JSON:
 // ─── MAIN HANDLER ─────────────────────────────────────────────────────────────
 
 async function muse_ig_ideas(payload = {}, brand) {
-  const { campaign = "" } = payload;
+  const { campaign = "", inspiration = "" } = payload;
+  const insp = String(inspiration || "").trim();
   const pillars = brand.pillars && brand.pillars.length ? brand.pillars : [];
-  const existing = await sbGet("content_items", "?platform=eq.instagram&order=id.desc&limit=20");
+  const existing = await sbGet("content_items", "?platform=eq.instagram&order=id.desc&limit=40");
   const existingTitles = existing.map(i => i.title).join(", ");
+  const synced = await getSyncedDigest("instagram", 8);
+
+  // Live research — when the user names creators/styles to emulate, scrape the
+  // web (Tavily) for their CURRENT winning short-form content so ideas are
+  // grounded in what is actually working now, not the model's stale memory.
+  // Fresh results each run also break the repetition problem.
+  let researchDigest = "";
+  if (insp && TAVILY_KEY) {
+    try {
+      const queries = [
+        `${insp} best viral short-form video hooks and formats 2026`,
+        `${insp} most viral content ideas and angles this year`,
+      ];
+      const results = await Promise.allSettled(queries.map(q => tavilySearch(q, "advanced", 5)));
+      const lines = [];
+      results.forEach(r => {
+        if (r.status === "fulfilled" && r.value) {
+          if (r.value.answer) lines.push("• " + String(r.value.answer).slice(0, 400));
+          (r.value.results || []).slice(0, 4).forEach(x =>
+            lines.push(`• ${x.title}: ${String(x.content || "").slice(0, 160)}`));
+        }
+      });
+      researchDigest = lines.slice(0, 12).join("\n");
+    } catch (e) { researchDigest = ""; }
+  }
+
   const brandHashtag = "#" + (brand.name || "").replace(/\s+/g, "");
   const pillarLine = pillars.length
     ? `Content pillars: ${pillars.join(", ")}.`
@@ -991,13 +1018,32 @@ async function muse_ig_ideas(payload = {}, brand) {
     ? `one of: ${pillars.join(" | ")}`
     : `derive from the brand voice`;
 
-  const systemPrompt = `You are Muse, Content Ideation Agent for ${brand.name}.
+  const systemPrompt = `You are Muse, an elite short-form content strategist for ${brand.name} — the kind a top creator pays $10k/mo for. Sharp, specific, scroll-stopping ideas only. Never safe filler.
 Generate exactly 5 Instagram content ideas.
 
-${brand.voice || "(No brand voice configured — keep tone neutral and on-trend.)"}
+NON-NEGOTIABLE — zero generic AI slop. BANNED words/shapes: "unlock", "game-changer", "dive in/into", "in today's world", "elevate", "supercharge", "the secret to", "level up", and any vague aspirational theme. Every idea must be a SPECIFIC, opinionated concept with a concrete detail only a real operator inside this business would think of. If an idea could be posted by literally any brand, it is a FAILURE — rewrite it until it's unmistakably ${brand.name}.
+
+TONAL REFERENCE ONLY (flavor — do NOT let this make ideas safe, generic, or less bold):
+${brand.voice || "(no voice set — be sharp, current, a little contrarian)"}
 
 ${pillarLine}
 Instagram formats: Reel, Carousel, Graphics (IMG).
+${synced ? `
+PRIMARY SOURCE — @${synced.handle || "this account"}'s REAL top-performing posts, highest engagement first (${synced.sampleSize} synced posts analyzed):
+${synced.digest}
+
+These are what demonstrably work on THIS account. Each of your 5 ideas MUST be modeled on a specific post above — same hook mechanic and format — applied to a DIFFERENT but equally CONCRETE moment (never a duplicate).
+
+BE SPECIFIC, NOT GENERIC. The reason these posts win is concreteness: "Super Full Time" is a real milestone, "the proposal's 'high'" is a real sales moment, "THE SOUND" is one exact craft detail. Every idea must contain a real, particular detail — an actual number, a named role ("the editor at 2am", "the PM during a reshoot"), a specific agency scenario, a real dollar figure or deadline. A title that could belong to ANY agency is a FAILURE — rewrite it until it could only be a Cloud Scenic post. No vague, aspirational, or theme-level concepts.
+
+The brand voice above governs TONE only: do NOT force in off-account topics that don't appear in these posts. In each idea's "notes", name the exact post it's modeled on, e.g. "models #2 — the 'Super Full Time' milestone hook".` : `
+(No synced account data yet — generate on brand voice + pillars alone.)`}
+
+AMBITION — these should feel like scroll-stopping creator content, not safe brand posts. ${insp
+  ? `Channel the content DNA and hook ambition of: ${insp}. Use the viral structures they are known for — big specific results/numbers, contrarian truths, give-away-the-playbook value, framework/listicle drops, bold curiosity gaps — adapted to Cloud Scenic's voice and grounded in our winning hooks above.${researchDigest ? `\n\nLIVE RESEARCH on ${insp} (fresh web results — mine these for CURRENT, real hooks/formats/angles; adapt them to Cloud Scenic, do not copy verbatim):\n${researchDigest}` : ""}`
+  : `Aim for the ambition of top creator-economy content (e.g. Alex Hormozi: big specific numbers, contrarian truths, give-away value, frameworks) — adapted to Cloud Scenic, never generic or safe.`}
+
+VARIETY — the 5 ideas must be DISTINCT from each other AND different from everything in the "existing content" list below. Skip the safe/obvious version of each hook and spread across the pillars.
 
 Return a JSON array of exactly 5 items only (no markdown, no backticks):
 [
@@ -1010,9 +1056,9 @@ Return a JSON array of exactly 5 items only (no markdown, no backticks):
     "campaign": "${campaign}",
     "status": "Ready For Copy Creation",
     "stage": "Ready For Copy Creation",
-    "description": "one sentence visual description",
+    "description": ${synced ? `"ONE sentence that names the specific top post this idea is modeled on (quote its hook + its ER%) then the fresh angle — e.g. \\"Models your 14.2% ER 'POV: you find THE SOUND' post: same satisfying-reveal POV, applied to the color grade.\\""` : `"one sentence visual description"`},
     "caption": "",
-    "script": "",
+    "script": "a tight short-form script — a scroll-stopping HOOK line, then 2-3 body beats, then a CTA. Write real spoken/on-screen lines, not a description.",
     "cta": "",
     "seoKeywords": "",
     "hashtags": "${brandHashtag}",
@@ -1024,7 +1070,8 @@ Return a JSON array of exactly 5 items only (no markdown, no backticks):
 ]
 Return ONLY the JSON array. Vary the 5 ideas across different pillars and formats.`;
 
-  const rawResult = await ai(systemPrompt, `Existing IG content (don't repeat): ${existingTitles}\n\nGenerate 5 fresh Instagram ideas now.`, 1800);
+  const userMsg = `Existing IG content (don't repeat): ${existingTitles}\n\n${synced ? "Generate 5 fresh Instagram ideas grounded in the account's top performers above, each with a real short-form script." : "Generate 5 fresh Instagram ideas now, each with a real short-form script."}`;
+  const rawResult = await ai(systemPrompt, userMsg, 3200, "claude-opus-4-8");
 
   let ideas = [];
   try {
@@ -1036,11 +1083,31 @@ Return ONLY the JSON array. Vary the 5 ideas across different pillars and format
     return { success: false, agent: "Muse", action: "muse_ig_ideas", message: "❌ Muse couldn't generate ideas — try again" };
   }
 
-  // Save to Supabase
+  // Save to Supabase — map to real content_items columns (snake_case) and
+  // whitelist; the model emits a few camelCase keys (seoKeywords, startWeek)
+  // and extra fields that aren't columns, which would 400 the whole batch.
   const slug = brand.slug || "ig";
   const toInsert = ideas.map((item, idx) => ({
-    ...item,
     id: `${slug}-ig-${Date.now()}-${idx}`,
+    title: item.title || "Untitled",
+    description: item.description || "",
+    campaign: item.campaign || campaign || "",
+    platform: "instagram",
+    type: item.type || "reel",
+    format: item.format || "",
+    stage: item.stage || "Ready For Copy Creation",
+    status: item.status || "Ready For Copy Creation",
+    pillar: item.pillar || "",
+    platforms: Array.isArray(item.platforms) ? item.platforms : ["IG"],
+    script: item.script || "",
+    caption: item.caption || "",
+    cta: item.cta || "",
+    hashtags: item.hashtags || brandHashtag,
+    seo_keywords: item.seoKeywords || item.seo_keywords || "",
+    notes: item.notes || "",
+    start_week: Number(item.startWeek || item.start_week || 1),
+    duration: Number(item.duration || 1),
+    ...(brand.clientId ? { client_id: brand.clientId } : {}),
   }));
 
   const res = await fetch(`${REST}/content_items`, {
@@ -1060,9 +1127,171 @@ Return ONLY the JSON array. Vary the 5 ideas across different pillars and format
     action: "muse_ig_ideas",
     ideas,
     count: ideas.length,
-    message: `✍️ ${ideas.length} Instagram ideas generated and added to Content Tracker`,
+    grounded: !!synced,
+    message: synced
+      ? `✍️ ${ideas.length} Instagram ideas generated — grounded in your ${synced.sampleSize} synced posts — and added to Content Tracker`
+      : `✍️ ${ideas.length} Instagram ideas generated and added to Content Tracker`,
     preview: ideas.map(i => `• [${i.pillar}] "${i.title}" — ${i.format}`).join("\n"),
   };
+}
+
+// ── Idea Engine ───────────────────────────────────────────────────────────────
+// Two-stage so Opus never blows the 26s timeout: muse_idea_list returns compact
+// tiles (fast, small output); muse_film_brief expands ONE tile into a full,
+// shootable breakdown on demand when the user opens it.
+const SLOP = `zero generic AI slop. BANNED words/shapes: "unlock", "game-changer", "dive in/into", "in today's world", "elevate", "supercharge", "the secret to", "level up", any vague aspirational theme. Every concept must be SPECIFIC and opinionated with a concrete detail only a real operator inside this business would think of — if it could be posted by any brand, it's a FAILURE.`;
+const VOICE_RULES = `WRITE LIKE A HUMAN, NOT AN AI. A real operator typed this fast — specific, a little rough, personality on. HARD BANS on AI cadence (these read as AI even with the right words): no em-dash-balanced sentences, no "it's not just X, it's Y", no "here's the thing"/"the truth is"/"let's be honest", no rule-of-three lists, no hype adjectives (incredible/powerful/seamless/effortless), no "imagine if", no perfectly parallel clauses, no wrapping every thought in a neat bow. Short punchy lines. Plain real words. Start mid-thought sometimes. If a line sounds like a LinkedIn post or a polished brand caption, rewrite it dirtier, blunter, and more specific.`;
+
+// THE WINNING FORMULA — distilled from the proven personal-brand / info-business
+// viral playbook. This is the DEFAULT engine for every idea; naming a creator is
+// optional enrichment, not required. Apply all of it.
+const WINNING_FORMULA = `THE WINNING FORMULA — apply this to EVERY idea by default (it's how top personal-brand / info-business content actually wins; no creator needs to be named):
+1. HOOK on a psychological lever — a curiosity gap, a contrarian truth, a big specific claim, or a direct callout that stops the scroll in the first 1-2 seconds.
+2. CONCRETE SPECIFICS over adjectives — real numbers, real timeframes, real names ("$57K in 14 days", "117 clients", "$180k week"). Specificity is what makes it believable.
+3. PROOF / RECEIPTS — show don't tell: Stripe notifications, revenue charts, follower spikes, DM screenshots, view counts, app notifications. Especially when selling.
+4. BELIEF SHIFT — reframe how the viewer thinks, challenge an assumption they hold, teach the ONE thing. Make them feel they've been doing it wrong.
+5. VULNERABILITY → AUTHORITY — admit the grind, the failure, the 16-hour days. Trust is earned through honesty, not flexing alone.
+6. IDENTITY / STATUS — make the viewer want to be the kind of person who gets this; name their exact situation so they feel seen.
+7. PAYOFF — land on a curiosity question or a call to reflection, never a salesy pitch. The tension shouldn't fully resolve until the end.
+Never sound like an ad, a brand, or AI. Concrete, bold, human.`;
+
+async function _researchDigest(insp) {
+  if (!insp || !TAVILY_KEY) return "";
+  try {
+    const qs = [`${insp} best viral short-form video hooks and formats 2026`, `${insp} most viral content ideas and angles this year`];
+    const results = await Promise.allSettled(qs.map(q => tavilySearch(q, "advanced", 5)));
+    const lines = [];
+    results.forEach(r => {
+      if (r.status === "fulfilled" && r.value) {
+        if (r.value.answer) lines.push("• " + String(r.value.answer).slice(0, 400));
+        (r.value.results || []).slice(0, 4).forEach(x => lines.push(`• ${x.title}: ${String(x.content || "").slice(0, 160)}`));
+      }
+    });
+    return lines.slice(0, 12).join("\n");
+  } catch (e) { return ""; }
+}
+
+const FUNNEL = {
+  TOF: "TOP OF FUNNEL — a cold stranger who's never heard of this brand. Goal: reach, attention, a new follow. SELL NOTHING. Lean on curiosity gap, contrarian truth, relatable callout, status/identity. Broad, entertaining, or genuinely useful — make a stranger stop and feel seen.",
+  MOF: "MIDDLE OF FUNNEL — a warm viewer who's aware but not convinced. Goal: nurture trust, build belief, position authority. Lean on transformation/before→after, vulnerability→authority, teach the 'how', show the process and receipts. Earn the relationship; pitch nothing directly.",
+  BOF: "BOTTOM OF FUNNEL — a hot viewer ready to act (or a retargeted one). Goal: convert. Lean on proof/testimonials, objection-handling, loss aversion, a concrete outcome, and a confident CTA. Sell through proof and outcomes — never salesy hype.",
+};
+const CONTENT_TYPE = {
+  "Story Sequence": "FORMAT — an Instagram STORY (a single vertical frame, sometimes 2-3 in a row). NOT a video. It is a real or aspirational photo background with LAYERED TEXT and PROOF stacked on top, read top-to-bottom. Two flavors: (1) value-essay — a behind-the-scenes photo (desk/gym/studio) with a stack of short belief/reframe text boxes building hook → reframe → a payoff or curiosity question; (2) proof/flex — a bold headline with a HUGE specific number ('$57K in 14 days', '117+ clients', '$180k week') over a lifestyle shot, layered with real RECEIPTS: Stripe revenue notifications, revenue charts, follower-spike or DM screenshots, view counts, app notification screenshots ('new client $3,000/mo, $36K ARR'). Other real elements: feature/benefit bullet lists for product stories, an embedded video clip or a meme image as the background, and raw vulnerability/mission copy for MOF ('it hurts me to see people try without success'). Always concrete numbers over adjectives. Use the value-essay flavor for TOF/MOF and the proof/flex flavor for BOF.",
+  "Carousel": "FORMAT — a CAROUSEL: slide 1 is the hook, each slide advances the idea with one beat, the last slide lands the point or CTA.",
+  "Reel/Video": "FORMAT — a REEL / short VIDEO: hook in the first 3 seconds, fast beats, one clean payoff.",
+};
+
+async function muse_idea_list(payload = {}, brand) {
+  const insp = String(payload.inspiration || "").trim();
+  const funnel = String(payload.funnelStage || "TOF").toUpperCase();
+  const contentType = String(payload.contentType || "Reel/Video").trim();
+  const userIdea = String(payload.userIdea || "").trim();
+  const funnelLine = FUNNEL[funnel] || FUNNEL.TOF;
+  const ctLine = CONTENT_TYPE[contentType] || CONTENT_TYPE["Reel/Video"];
+  const synced = await getSyncedDigest("instagram", 8);
+  const research = await _researchDigest(insp);
+  const nicheLine = brand.voice ? `Niche/context: ${String(brand.voice).slice(0, 220).replace(/\s+/g, " ")}…` : `Niche: ${brand.name}.`;
+
+  const system = `You are Muse, a viral short-form strategist in the school of Alex Hormozi and Nik Setting. You do NOT write brand content or scripts. You ENGINEER ideas around explicit PSYCHOLOGICAL LEVERS that make people stop, feel, and share. Never salesy — pull on value, story, status, identity, and curiosity, never a pitch.
+
+Generate exactly 6 short-form content concepts for ${brand.name}. ${nicheLine}
+Relevance to the niche matters. BRAND VOICE DOES NOT — if it's thin, ignore it and go bold. Quality and psychology over politeness.
+
+FUNNEL STAGE — ${funnelLine}
+${ctLine}
+${userIdea ? `\nSTRUCTURE THE OPERATOR'S OWN IDEA — do NOT replace it. Their raw idea: "${userIdea}". All 6 concepts must be distinct executions/angles of THIS idea (different levers, hooks, entry points), shaped for the funnel stage and format above.` : ""}
+
+${WINNING_FORMULA}
+
+Each concept MUST be engineered on ONE named psychological lever — use a DIFFERENT lever for each of the 6 (favor levers that fit the funnel stage above):
+• Curiosity gap / open loop — withhold the payoff so they HAVE to keep watching
+• Contrarian truth / pattern interrupt — say the thing nobody in the niche says out loud
+• Status & identity — make them want to be the kind of person who gets this
+• Loss aversion / FOMO — the real cost of not knowing this
+• Specificity & proof — exact numbers/details that make it undeniable
+• In-group / us-vs-them — call out the tribe, draw the line
+• Vulnerability → authority — admit the flaw/failure, earn the trust
+• Transformation / before→after — the gap they ache to close
+• Direct callout — name their exact situation back to them so they feel seen
+• Defensible hot take — a strong opinion worth arguing with in the comments
+
+${SLOP}
+${VOICE_RULES}
+${synced ? `\nWhat THIS audience already rewards (their top posts — proof of appetite, NOT a template to copy):\n${synced.digest}` : ""}
+${research ? `\nLIVE RESEARCH${insp ? " on " + insp : ""} (current viral patterns — steal the MECHANIC, not the words):\n${research}` : ""}
+
+Return ONLY a JSON array of exactly 6 (no markdown):
+[{
+  "title":"short internal name for the idea",
+  "hook":"the LITERAL first line / first 3 seconds — exactly what is said or shown on screen",
+  "lever":"the named psychological lever from the list above",
+  "whyItWorks":"one blunt line on the psychology — what it makes the viewer feel or do",
+  "format":"${contentType}",
+  "pillar":"one theme/pillar",
+  "angle":"one line on the actual substance/payoff the piece delivers"
+}]
+The 6 hooks must be bold, specific, and distinct. If a hook sounds like an ad, a brand, or AI, kill it and write a sharper one.`;
+
+  const raw = await ai(system, `Engineer the 6 concepts now — ${funnel} stage, as a ${contentType}${userIdea ? ", all structuring the operator's idea" : ""}. Each on a DIFFERENT lever, hooks that genuinely stop the scroll, zero sales energy.`, 1900, "claude-opus-4-8");
+  let ideas = [];
+  try { const m = raw.match(/\[[\s\S]*\]/); ideas = m ? JSON.parse(m[0]) : []; } catch (e) { ideas = []; }
+  if (!ideas.length) return { success: false, agent: "Muse", action: "muse_idea_list", message: "❌ Muse couldn't generate concepts — try again" };
+  ideas = ideas.map((i, idx) => ({ idx, ...i }));
+  return {
+    success: true, agent: "Muse", action: "muse_idea_list", ideas, count: ideas.length, grounded: !!synced,
+    message: synced ? `🎬 ${ideas.length} concepts generated — grounded in your ${synced.sampleSize} synced posts` : `🎬 ${ideas.length} concepts generated`,
+  };
+}
+
+async function muse_film_brief(payload = {}, brand) {
+  const title = String(payload.title || "").trim();
+  const concept = String(payload.concept || payload.angle || "").trim();
+  const hook = String(payload.hook || "").trim();
+  const lever = String(payload.lever || "").trim();
+  const format = String(payload.format || "Reel").trim();
+  const pillar = String(payload.pillar || "").trim();
+  const funnel = String(payload.funnelStage || "").toUpperCase();
+  if (!title) return { success: false, agent: "Muse", action: "muse_film_brief", message: "No concept provided" };
+  const synced = await getSyncedDigest("instagram", 8);
+  const structHint = /story/i.test(format)
+    ? `This is an Instagram STORY (a single layered frame, not a video). Each shotBreakdown entry is one LAYERED ELEMENT stacked top-to-bottom: set "time" to a label like "Background", "Headline", "Line 2", "Proof", "Payoff". "shot" = what the element is and where it sits (e.g. "behind-the-scenes desk photo as the background", "bold headline top third, the big number in accent color", "Stripe revenue notification screenshot mid-frame", "follower-spike screenshot"). "script" = the EXACT copy/text in that element with real specific numbers. "overlay" = the proof detail or '-'. Use 6-10 elements. Open on a hook headline; for BOF lean hard on real receipts (Stripe/charts/follows/DMs/view counts). "setting" = the background photo; "talent" = who/what is in it.`
+    : /carousel/i.test(format)
+    ? `Each shotBreakdown entry is a SLIDE: set "time" to "Slide 1", "Slide 2", … "shot" = the visual, "script" = the slide copy, "overlay" = headline or '-'.`
+    : `Each shotBreakdown entry is a timestamped beat: set "time" to "0:00 — …", "0:03 — …" (5-7 beats). "shot" = camera/blocking, "script" = the line, "overlay" = on-screen text or '-'.`;
+
+  const system = `You are Muse, a viral short-form director in the school of Alex Hormozi and Nik Setting. Turn ONE concept into a complete, SHOOTABLE film brief that PULLS ITS PSYCHOLOGICAL LEVER the whole way through. Concrete, directable, specific. Never salesy — value/story/status/identity, not a pitch. ${SLOP}
+
+${VOICE_RULES}
+${synced && synced.voiceSamples ? `\nVoice reference — real lines from this account (match the energy, don't copy):\n${synced.voiceSamples}\n` : ""}
+
+${WINNING_FORMULA}
+
+Open ON the hook. Keep the lever${lever ? ` (${lever})` : ""} working in every beat — the curiosity/tension/status must not resolve until the payoff.
+${funnel && FUNNEL[funnel] ? `FUNNEL INTENT — ${FUNNEL[funnel]}` : ""}
+This is a ${format}. ${structHint}
+
+Return ONLY JSON (no markdown):
+{
+  "title": "${title.replace(/"/g, "'")}",
+  "filmLabel": "short label e.g. FILM 1",
+  "concept": "2-3 sentence concept description — what the video does and the feeling it creates",
+  "message": "the single core message, one line",
+  "setting": "where it's shot — be specific",
+  "talent": "who is on camera and the exact energy they bring",
+  "shotBreakdown": [
+    {"time":"0:00 — Opening Image","shot":"camera/blocking direction","script":"the exact line spoken or shown","overlay":"on-screen text or '-'"}
+  ],
+  "script": "the full spoken/on-screen script written out in labeled sections"
+}
+${structHint} No placeholders — write the real lines.`;
+
+  const raw = await ai(system, `Concept: "${title}"\nHOOK (open on this, word for word or sharper): ${hook || concept}\nPsychological lever to pull all the way through: ${lever || "(pick the strongest one for this idea)"}\nSubstance/payoff: ${concept}\nPillar: ${pillar} · Format: ${format}\nWrite the full film brief now — bold, specific, zero sales energy.`, 2600, "claude-opus-4-8");
+  let brief = null;
+  try { const m = raw.match(/\{[\s\S]*\}/); brief = m ? JSON.parse(m[0]) : null; } catch (e) { brief = null; }
+  if (!brief) return { success: false, agent: "Muse", action: "muse_film_brief", message: "❌ Muse couldn't build the brief — try again" };
+  brief.format = format; brief.pillar = pillar; if (lever) brief.lever = lever;
+  return { success: true, agent: "Muse", action: "muse_film_brief", brief, message: `🎬 Film brief ready: ${brief.title || title}` };
 }
 
 // ── Performance "why" analysis ────────────────────────────────────────────────
@@ -1082,6 +1311,37 @@ function _engagementScore(m) {
   const eng = (m.likes || 0) + (m.comments || 0) + (m.shares || 0) + (m.saved || 0);
   const base = m.reach || m.views || 0;
   return base > 0 ? eng / base : eng;
+}
+
+// Pull a brand's own top-performing synced posts for a platform so Muse can
+// ground ideas in what is actually working on the account (not generic trends).
+// Returns null when nothing is connected/synced yet, so callers fall back to
+// brand-voice-only generation. Reads via service role (sees all rows); fine for
+// the current single-tenant (Cloud Scenic) setup — scope by user_id when going multi-tenant.
+async function getSyncedDigest(platform, n = 8) {
+  let accounts = [];
+  try { accounts = await sbGet("connected_accounts", `?select=id,handle&platform=eq.${platform}`); }
+  catch (e) { return null; }
+  if (!accounts.length) return null;
+  const ids = accounts.map(a => a.id);
+  let posts = [];
+  try { posts = await sbGet("account_posts", `?select=caption,media_type,metrics,posted_at&account_id=in.(${ids.join(",")})&order=posted_at.desc&limit=200`); }
+  catch (e) { return null; }
+  if (posts.length < 3) return null;
+  const top = posts.map(p => ({ ...p, _s: _engagementScore(p.metrics) }))
+                   .sort((a, b) => b._s - a._s).slice(0, n);
+  const digest = top.map((p, i) => {
+    const m = p.metrics || {};
+    const er = typeof m.engagement_rate === "number" ? (m.engagement_rate * 100).toFixed(1) + "%" : "n/a";
+    const reach = m.reach ?? m.views ?? "—";
+    return `${i + 1}. [${p.media_type || "post"}] ER ${er}, ${reach} reach — "${(p.caption || "(no caption)").slice(0, 200).replace(/\s+/g, " ")}"`;
+  }).join("\n");
+  // Real captions verbatim — the strongest possible anti-AI-tone anchor.
+  const voiceSamples = top.slice(0, 5)
+    .map(p => (p.caption || "").replace(/\s+/g, " ").trim().slice(0, 340))
+    .filter(c => c.length > 12)
+    .map((c, i) => `${i + 1}. "${c}"`).join("\n");
+  return { handle: accounts[0].handle || null, sampleSize: posts.length, digest, voiceSamples };
 }
 
 async function scrappy_analyze_performance(payload = {}, brand) {
@@ -1209,6 +1469,8 @@ exports.handler = async (event) => {
       case "cid_build_brief":        result = await cid_build_brief(payload, brand); break;
       case "cid_ab_variations":      result = await cid_ab_variations(payload, brand); break;
       case "muse_ig_ideas":          result = await muse_ig_ideas(payload, brand); break;
+      case "muse_idea_list":         result = await muse_idea_list(payload, brand); break;
+      case "muse_film_brief":        result = await muse_film_brief(payload, brand); break;
       case "scrappy_analyze_performance": result = await scrappy_analyze_performance(payload, brand); break;
       default:
         await logAgentEvent({

@@ -36,6 +36,7 @@ import DashboardRoute from './ui/routes/DashboardRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
 import AnalyticsRoute from './ui/routes/AnalyticsRoute.jsx';
+import IdeaEngineRoute from './ui/routes/IdeaEngineRoute.jsx';
 
 //  ROOT APP WRAPPER
 const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
@@ -758,17 +759,18 @@ if (sb) {
   const [museToast, setMuseToast] = useState(null);
   const [igIdeasLoading, setIgIdeasLoading] = useState(false);
   const handleIgIdeas = async () => {
+    const inspiration = (window.prompt("Creators / styles for Muse to emulate (e.g. Alex Hormozi, Nik). Leave blank for default creator-level ambition:", "") || "").trim();
     setIgIdeasLoading(true);
     setMuseToast({ id: "ig-ideas", field: "ideas", status: "writing" });
     try {
       const res = await safeAgentFetch("/api/agent-action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "muse_ig_ideas", payload: {}, client_id: currentClient?.id }),
+        body: JSON.stringify({ action: "muse_ig_ideas", payload: { inspiration }, client_id: currentClient?.id }),
       });
       const d = await res.json();
       if (d.error || !d.success) throw new Error(d.error || d.message || "Unknown error");
-      setMuseToast({ id: "ig-ideas", field: "ideas", status: "done", content: `${d.count} ideas added to Content Tracker` });
+      setMuseToast({ id: "ig-ideas", field: "ideas", status: "done", content: d.message || `${d.count} ideas added to Content Tracker` });
       setTimeout(() => setMuseToast(null), 5000);
     } catch(e) {
       setMuseToast({ id: "ig-ideas", field: "ideas", status: "error", msg: e.message });
@@ -1294,6 +1296,7 @@ try {
     )}
 
     {activeNav === "analytics" && <AnalyticsRoute />}
+    {activeNav === "ideas" && <IdeaEngineRoute currentClient={currentClient} />}
     {activeNav === "cid" && React.createElement(CIDPage, null)}
     {activeNav === "icp" && <ICPPage />}
     {(activeNav === "sales" || activeNav === "adroihub") && <AdROIHub />}

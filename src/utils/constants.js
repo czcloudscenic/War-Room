@@ -2,7 +2,7 @@
 
 export const NAV = [
   { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"analytics", label:"Analytics" }, { id:"agents", label:"Agents" }, { id:"cid", label:"Competitor Intel" }, { id:"icp", label:"Ideal Customer" }]},
-  { section:"CONTENT", items:[{ id:"content", label:"Pipeline" }]},
+  { section:"CONTENT", items:[{ id:"ideas", label:"Idea Engine" }, { id:"content", label:"Pipeline" }]},
   { section:"APPS", items:[{ id:"apps", label:"Apps" }, { id:"settings", label:"Settings" }]},
 ];
 
