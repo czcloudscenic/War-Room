@@ -1,32 +1,48 @@
 // /api/oauth/youtube/data-deletion
 //
-// Google/YouTube deletion cleanup can be wired here when we add verified
-// request handling. We return a JSON object with a URL the user can visit to
-// confirm deletion status + a unique confirmation_code.
-//
-// For now this is a stub. Proper deletion job tracking will land when we have
-// user activity to clean up for this platform.
+// Google OAuth revocation is not delivered through this webhook. If a channel
+// id is supplied, delete that connected account and persist a status row.
 
-const crypto = require("crypto");
+const {
+  confirmationCode,
+  dataDeletionStatusUrl,
+  deleteConnectedAccountByPlatformId,
+  extractPlatformAccountId,
+  parseRequestBody,
+  recordDataDeletionRequest,
+} = require("./_lib/oauth");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  console.log("[oauth-youtube-data-deletion] received", {
-    bodyLength: (event.body || "").length,
-  });
+  const payload = { ...(event.queryStringParameters || {}), ...parseRequestBody(event) };
+  const accountId = extractPlatformAccountId(payload);
 
-  const confirmationCode = crypto.randomBytes(8).toString("hex");
-  const statusUrl = `https://usevantus.com/?data_deletion_status=${confirmationCode}`;
+  try {
+    if (accountId) await deleteConnectedAccountByPlatformId("youtube", accountId);
+    const code = confirmationCode();
+    await recordDataDeletionRequest({
+      platform: "youtube",
+      platformAccountId: accountId,
+      confirmationCode: code,
+      rawPayload: payload,
+    });
 
-  return {
-    statusCode: 200,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url: statusUrl,
-      confirmation_code: confirmationCode,
-    }),
-  };
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: dataDeletionStatusUrl(code),
+        confirmation_code: code,
+      }),
+    };
+  } catch (e) {
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: e.message }),
+    };
+  }
 };
