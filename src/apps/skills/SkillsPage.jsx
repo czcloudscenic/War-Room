@@ -14,6 +14,7 @@ try { return JSON.parse(localStorage.getItem("vantus_skill_briefs") || "[]"); } 
   const inp = { width:"100%", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"10px 14px", fontSize:13, color:"rgba(255,255,255,0.85)", outline:"none", fontFamily:"Inter, sans-serif", background:"#0f0d0e", boxSizing:"border-box" };
   const targetColor = form.target === "All Agents" ? "#2AABFF" : (AGENT_COLORS[form.target] || "#2AABFF");
   const TARGETS = ["All Agents", ...agents.map(a => a.name)];
+  const agentCount = agents.length;
 
   const deploy = () => {
 if (!form.title.trim() || !form.content.trim() || deploying) return;
@@ -41,7 +42,7 @@ try { localStorage.setItem("vantus_skill_briefs", JSON.stringify(updated)); } ca
   {/* Header */}
   <div style={{ marginBottom:32 }}>
     <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>Agent Skills</h1>
-    <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>Write a skill brief and deploy it to a specific agent or broadcast to all 8. Agents receive it as a capability update.</p>
+    <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>Write a skill brief and deploy it to a specific agent or broadcast to all {agentCount}. Agents receive it as a capability update.</p>
   </div>
 
   {/*  BRIEF BUILDER  */}
