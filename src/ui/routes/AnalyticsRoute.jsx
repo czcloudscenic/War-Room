@@ -90,6 +90,7 @@ export default function AnalyticsRoute() {
   const [error, setError] = useState(null);
   const [insights, setInsights] = useState(null);   // { instagram: { patterns, sampleSize, ... }, ... }
   const [reasons, setReasons] = useState({});        // { <post_id>: "why it won" }
+  const [lossReasons, setLossReasons] = useState({}); // { <post_id>: "why it lost" }
   const [analyzing, setAnalyzing] = useState(false);
 
   const load = useCallback(async () => {
@@ -177,6 +178,7 @@ export default function AnalyticsRoute() {
       if (!res.ok || !data.success) throw new Error(data.error || 'Analysis failed');
       setInsights(data.insights || {});
       setReasons(data.reasons || {});
+      setLossReasons(data.lossReasons || {});
     } catch (e) {
       setError(e.message || 'Analysis failed');
     } finally {
@@ -264,6 +266,13 @@ export default function AnalyticsRoute() {
       .sort((a, b) => (b.metrics?.engagement_rate || 0) - (a.metrics?.engagement_rate || 0))
       .slice(0, 5);
   }, [filteredPosts]);
+
+  const bottomPerformers = useMemo(() => {
+    return filteredPosts
+      .filter(p => lossReasons[p.id])
+      .sort((a, b) => (a.metrics?.engagement_rate || 0) - (b.metrics?.engagement_rate || 0))
+      .slice(0, 5);
+  }, [filteredPosts, lossReasons]);
 
   const tablePosts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -599,6 +608,47 @@ export default function AnalyticsRoute() {
                         fontSize: 12.5, color: 'rgba(196,181,253,0.92)', lineHeight: 1.5,
                       }}>
                         <span style={{ fontWeight: 700, color: '#c4b5fd' }}>Why it won — </span>{reasons[p.id]}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* BOTTOM PERFORMERS */}
+      {bottomPerformers.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: -0.2 }}>Bottom Performers</div>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: "'Geist Mono', monospace" }}>What didn't land — and why</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {bottomPerformers.map((p) => {
+              const platform = accountPlatform[p.account_id];
+              const meta = PLATFORM_META[platform] || {};
+              return (
+                <div key={p.id}
+                  onClick={() => p.permalink && window.open(p.permalink, '_blank', 'noopener,noreferrer')}
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,69,58,0.12)', borderRadius: 12, overflow: 'hidden', cursor: p.permalink ? 'pointer' : 'default' }}>
+                  <div style={{ width: '100%', aspectRatio: platform === 'youtube' ? '16 / 9' : platform === 'tiktok' ? '9 / 16' : '1 / 1', background: '#1a1a1a', position: 'relative', overflow: 'hidden' }}>
+                    {p.thumbnail_url && <img src={p.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 7px', borderRadius: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: 3, background: meta.dot }} />
+                      {meta.short || platform}
+                    </div>
+                  </div>
+                  <div style={{ padding: '14px 16px' }}>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 40 }}>{p.caption?.slice(0, 110) || ''}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
+                      <span style={{ fontSize: 14, color: '#ff6b6b', fontWeight: 700 }}>{fmtRate(p.metrics?.engagement_rate)}</span>
+                      <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>{fmtNumber(p.metrics?.reach)} reach</span>
+                    </div>
+                    {lossReasons[p.id] && (
+                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 12.5, color: 'rgba(255,140,130,0.92)', lineHeight: 1.5 }}>
+                        <span style={{ fontWeight: 700, color: '#ff6b6b' }}>Why it lost — </span>{lossReasons[p.id]}
                       </div>
                     )}
                   </div>

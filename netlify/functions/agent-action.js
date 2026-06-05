@@ -1328,6 +1328,7 @@ async function scrappy_analyze_performance(payload = {}, brand) {
   const PLATFORM_LABEL = { instagram: "Instagram", tiktok: "TikTok", youtube: "YouTube", linkedin: "LinkedIn" };
   const insights = {};
   const reasons = {};
+  const lossReasons = {};
   let analyzedCount = 0;
 
   await Promise.all(Object.entries(byPlatform).map(async ([plat, plist]) => {
@@ -1335,31 +1336,38 @@ async function scrappy_analyze_performance(payload = {}, brand) {
       insights[plat] = { insufficient: true, sampleSize: plist.length, patterns: [] };
       return;
     }
-    const scored = plist.map(p => ({ ...p, _score: _engagementScore(p.metrics) }));
+    const scored = plist.map(p => ({ ...p, _score: _engagementScore(p.metrics) }))
+                        .sort((a, b) => b._score - a._score);
     const baseline = _median(scored.map(s => s._score));
-    const top = [...scored].sort((a, b) => b._score - a._score).slice(0, 6);
+    const top = scored.slice(0, 6);
+    const bottom = scored.length >= 10 ? scored.slice(-4) : [];
 
-    const digest = top.map(p => {
+    const fmt = (p, tag) => {
       const m = p.metrics || {};
       const er = typeof m.engagement_rate === "number" ? (m.engagement_rate * 100).toFixed(1) + "%" : "n/a";
       const headline = m.reach != null ? `${m.reach} reach` : m.views != null ? `${m.views} views` : "—";
-      return `[${p.id}] ${p.media_type || "post"} · ER ${er} · ${headline} · ${m.likes ?? 0} likes / ${m.comments ?? 0} comments\n  caption: ${(p.caption || "(no caption)").slice(0, 160).replace(/\s+/g, " ")}`;
-    }).join("\n\n");
+      return `[${p.id}]${tag} ${p.media_type || "post"} · ER ${er} · ${headline} · ${m.likes ?? 0} likes / ${m.comments ?? 0} comments / ${m.shares ?? m.saved ?? 0} shares\n  caption: ${(p.caption || "(no caption)").slice(0, 200).replace(/\s+/g, " ")}`;
+    };
+    const winnersDigest = top.map(p => fmt(p, " [WINNER]")).join("\n\n");
+    const contrastDigest = bottom.length ? "\n\nFor CONTRAST — lower performers on the same account:\n" + bottom.map(p => fmt(p, " [low]")).join("\n\n") : "";
 
     const label = PLATFORM_LABEL[plat] || plat;
-    const system = `You are Scrappy, ${brand.name || "the brand"}'s performance analyst. You explain WHY social content wins — concretely and specifically, never with generic advice.
-${brand.voice ? "Brand voice context:\n" + brand.voice + "\n" : ""}You are analyzing ${label}. The platform median engagement rate is ${(baseline * 100).toFixed(1)}%. The posts below are the top performers — each beat that baseline.`;
+    const system = `You're an elite social performance analyst — the one creators pay to tell them WHY their content actually wins. You diagnose the real, specific, often non-obvious mechanic behind a win by comparing the winners to everything else. No generic advice, no "post consistently" fluff — cite what's literally in the captions and numbers.${brand.voice ? `\n\nBrand context: ${String(brand.voice).slice(0, 200).replace(/\s+/g, " ")}` : ""}`;
 
-    const user = `Top ${label} posts:\n\n${digest}\n\nReturn ONLY JSON (no markdown, no backticks):
+    const user = `${label} · median engagement rate ${(baseline * 100).toFixed(1)}%.
+${winnersDigest}${contrastDigest}
+
+Diagnose what actually drove the winners${bottom.length ? ", AND why the lower performers flopped" : ""} — the specific lever, not a platitude. Return ONLY JSON (no markdown):
 {
-  "patterns": ["3-5 concrete patterns separating these winners from average posts — name the specific hook style, format, topic, length, posting cadence, or CTA you actually see"],
-  "posts": [{ "id": "the number inside the [brackets]", "reason": "one specific sentence: why THIS post beat the rest, citing the concrete lever (hook, format, topic, length, timing, CTA)" }]
+  "patterns": ["3-5 specific, non-obvious patterns separating the winners — name the exact hook move, format, topic, length, or framing you see in the data"],
+  "posts": [{ "id": "the number in [brackets]", "reason": "one sharp sentence: the specific reason THIS [WINNER] won, citing the real detail from its caption/metrics" }]${bottom.length ? `,
+  "lostPosts": [{ "id": "the number in [brackets]", "reason": "one sharp sentence: the specific reason THIS [low] post underperformed — what it lacked or got wrong vs the winners" }]` : ""}
 }
-Include one posts entry per top post above. Reference what's actually in the captions/metrics — no boilerplate.`;
+One posts entry per WINNER${bottom.length ? ", one lostPosts entry per [low] post" : ""}. Be specific or say nothing.`;
 
-    let parsed = { patterns: [], posts: [] };
+    let parsed = { patterns: [], posts: [], lostPosts: [] };
     try {
-      const raw = await ai(system, user, 1400);
+      const raw = await ai(system, user, 1300, "claude-opus-4-8");
       const m = raw.match(/\{[\s\S]*\}/);
       if (m) parsed = JSON.parse(m[0]);
     } catch (e) {
@@ -1367,6 +1375,9 @@ Include one posts entry per top post above. Reference what's actually in the cap
     }
     for (const pr of (parsed.posts || [])) {
       if (pr && pr.id != null && pr.reason) reasons[String(pr.id)] = String(pr.reason);
+    }
+    for (const pr of (parsed.lostPosts || [])) {
+      if (pr && pr.id != null && pr.reason) lossReasons[String(pr.id)] = String(pr.reason);
     }
     insights[plat] = {
       sampleSize: plist.length,
@@ -1383,6 +1394,7 @@ Include one posts entry per top post above. Reference what's actually in the cap
     action: "scrappy_analyze_performance",
     insights,
     reasons,
+    lossReasons,
     message: analyzed.length
       ? `📊 Scrappy analyzed ${analyzedCount} top posts across ${analyzed.map(p => PLATFORM_LABEL[p] || p).join(", ")}`
       : "Not enough synced posts to analyze yet — sync more content first.",
