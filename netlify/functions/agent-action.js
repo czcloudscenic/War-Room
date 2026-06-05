@@ -993,29 +993,11 @@ async function muse_ig_ideas(payload = {}, brand) {
   const { campaign = "", inspiration = "" } = payload;
   const insp = String(inspiration || "").trim();
   const pillars = brand.pillars && brand.pillars.length ? brand.pillars : [];
-  const researchPromise = (insp && TAVILY_KEY) ? (async () => {
-    try {
-      const queries = [
-        `${insp} best viral short-form video hooks and formats 2026`,
-        `${insp} most viral content ideas and angles this year`,
-      ];
-      const results = await Promise.allSettled(queries.map(q => tavilySearch(q, "basic", 4)));
-      const lines = [];
-      results.forEach(r => {
-        if (r.status === "fulfilled" && r.value) {
-          if (r.value.answer) lines.push("• " + String(r.value.answer).slice(0, 360));
-          (r.value.results || []).slice(0, 3).forEach(x =>
-            lines.push(`• ${x.title}: ${String(x.content || "").slice(0, 140)}`));
-        }
-      });
-      return lines.slice(0, 10).join("\n");
-    } catch (e) { return ""; }
-  })() : Promise.resolve("");
 
   const [existing, synced, researchDigest] = await Promise.all([
     sbGet("content_items", "?platform=eq.instagram&order=id.desc&limit=40"),
     getSyncedDigest("instagram", 8),
-    researchPromise,
+    _researchDigest(insp),
   ]);
   const existingTitles = existing.map(i => i.title).join(", ");
 
