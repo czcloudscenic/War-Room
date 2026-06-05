@@ -294,33 +294,19 @@ async function tavilySearch(query, searchDepth = "advanced", maxResults = 8) {
   return res.json();
 }
 
-async function scrappy_research(payload, brand) {
-  const { topic = "" } = payload;
+async function scrappySearchContext(topic, brand) {
   const brandTopic = topic || brand.name || "content trends";
-
-  if (!TAVILY_KEY) {
-    return {
-      success: false,
-      agent: "Scrappy",
-      action: "scrappy_research",
-      message: "❌ TAVILY_API_KEY not configured — add it in Netlify environment variables",
-    };
-  }
-
-  // ── Run parallel Tavily searches across key angles ──────────────────────
   const queries = [
-    `${brandTopic} trends 2025 2026`,
+    `${brandTopic} trends 2026`,
     `${brandTopic} content marketing trends`,
     `${brandTopic} viral content`,
     `${brandTopic} TikTok Instagram trends this month`,
-    `${brandTopic} news`,
   ];
 
   const searchResults = await Promise.allSettled(
-    queries.map(q => tavilySearch(q, "advanced", 6))
+    queries.map(q => tavilySearch(q, "basic", 5))
   );
 
-  // ── Flatten and dedupe results ──────────────────────────────────────────
   const allResults = [];
   const seenUrls = new Set();
   searchResults.forEach((r, i) => {
@@ -332,21 +318,44 @@ async function scrappy_research(payload, brand) {
             query: queries[i],
             title: result.title,
             url: result.url,
-            content: result.content?.slice(0, 300),
+            content: result.content?.slice(0, 240),
             score: result.score,
           });
         }
       });
-      // Also grab Tavily's AI answer if available
       if (r.value.answer) {
-        allResults.push({ query: queries[i], title: "Tavily Answer", content: r.value.answer, score: 1, url: "" });
+        allResults.push({ query: queries[i], title: "Tavily Answer", content: String(r.value.answer).slice(0, 600), score: 1, url: "" });
       }
     }
   });
 
-  // Sort by relevance score
   allResults.sort((a, b) => (b.score || 0) - (a.score || 0));
-  const topResults = allResults.slice(0, 25);
+  const topResults = allResults.slice(0, 18);
+  const dataContext = `
+TOPIC: ${topic}
+LIVE SEARCH DATA (${topResults.length} results from Tavily):
+
+${topResults.map((r, i) => `[${i + 1}] "${r.title}"
+  Query: ${r.query}
+  ${r.content || ""}
+  ${r.url ? `Source: ${r.url}` : ""}`).join("\n\n")}
+`;
+  return { brandTopic, queries, topResults, dataContext };
+}
+
+async function scrappy_research(payload, brand) {
+  const { topic = "" } = payload;
+
+  if (!TAVILY_KEY) {
+    return {
+      success: false,
+      agent: "Scrappy",
+      action: "scrappy_research",
+      message: "❌ TAVILY_API_KEY not configured — add it in Netlify environment variables",
+    };
+  }
+
+  const { queries, topResults, dataContext } = await scrappySearchContext(topic, brand);
 
   const systemPrompt = `You are Scrappy, ${brand.name}'s Trend Scout agent for Cloud Scenic's Vantus.
 You scour the internet for content trends, viral topics, and fresh angles — then report back with gems for Muse to work with.
@@ -379,17 +388,7 @@ Return a structured JSON object:
 
 Return ONLY the JSON object.`;
 
-  const dataContext = `
-TOPIC: ${topic}
-LIVE SEARCH DATA (${topResults.length} results from Tavily):
-
-${topResults.map((r, i) => `[${i + 1}] "${r.title}"
-  Query: ${r.query}
-  ${r.content || ""}
-  ${r.url ? `Source: ${r.url}` : ""}`).join("\n\n")}
-`;
-
-  const rawResult = await ai(systemPrompt, `Analyze and generate research brief:\n${dataContext}`, 2000);
+  const rawResult = await ai(systemPrompt, `Analyze and generate research brief:\n${dataContext}`, 1600);
 
   let report = null;
   try {
@@ -426,20 +425,23 @@ ${topResults.map((r, i) => `[${i + 1}] "${r.title}"
 }
 
 async function scrappy_muse_collab(payload, brand) {
-  // Phase 1: Scrappy researches
-  const research = await scrappy_research(payload, brand);
-  if (!research.success || !research.report) {
-    return { ...research, action: "scrappy_muse_collab", message: "❌ Research phase failed — collaboration aborted" };
+  if (!TAVILY_KEY) {
+    return {
+      success: false,
+      agent: "Scrappy × Muse",
+      action: "scrappy_muse_collab",
+      message: "❌ TAVILY_API_KEY not configured — collaboration aborted",
+    };
   }
 
-  const { report } = research;
-
-  // Phase 2: Muse generates content ideas from the research
-  const existingItems = await sbGet("content_items", "?order=id&limit=5");
+  const [searchCtx, existingItems] = await Promise.all([
+    scrappySearchContext(payload.topic || "", brand),
+    sbGet("content_items", "?order=id&limit=5"),
+  ]);
   const existingTitles = existingItems.map(i => i.title).join(", ");
 
-  const museSystemPrompt = `You are Muse, Content Ideation Agent for ${brand.name} via Cloud Scenic Vantus.
-Scrappy has just completed live internet research and handed you a trend brief. Your job is to turn those trends into concrete, on-brand content pieces.
+  const systemPrompt = `You are Scrappy × Muse for ${brand.name} via Cloud Scenic Vantus.
+Scrappy scouts live internet signals. Muse turns the sharpest signals into concrete, on-brand content pieces.
 
 ${brand.voice}
 
@@ -447,46 +449,55 @@ Caption structure: poetic statement → expand metaphor → bridge to brand → 
 
 Existing content (don't repeat): ${existingTitles}
 
-Return a JSON array of 6-8 fresh content ideas:
-[
-  {
-    "title": "cinematic content title",
-    "pillar": "content pillar",
-    "format": "Reel|Carousel|Thread|Graphics (IMG)|Short",
-    "platform": "IG|TT|YT|X|TH",
-    "hook": "opening hook line",
-    "angle": "the specific trend/angle from Scrappy's research this taps into",
-    "caption": "full draft caption (poetic, on-brand)",
-    "cta": "soft CTA",
-    "urgency": "high|medium|low",
-    "trendSignal": "why this is timely right now"
-  }
-]
-Return ONLY the JSON array.`;
+Return ONLY one JSON object:
+{
+  "report": {
+    "trendPulse": "1-2 sentence read on where the conversation is right now",
+    "topTrends": [
+      { "trend": "trend name", "why": "why it matters for ${brand.name} specifically", "pillar": "which content pillar it maps to", "hookIdea": "one-line hook ${brand.name} could use", "heat": "🔥🔥🔥|🔥🔥|🔥" }
+    ],
+    "contentAngles": [
+      { "angle": "fresh specific angle or idea", "format": "Reel|Carousel|Thread|Short", "platform": "IG|TT|YT|X", "urgency": "high|medium|low" }
+    ],
+    "competitorMoves": "what's working in ${brand.name}'s space right now",
+    "avoidZones": ["oversaturated or off-brand topics to skip"],
+    "museHandoff": "direct brief to Muse — what to create this month based on this research"
+  },
+  "contentIdeas": [
+    {
+      "title": "cinematic content title",
+      "pillar": "content pillar",
+      "format": "Reel|Carousel|Thread|Graphics (IMG)|Short",
+      "platform": "IG|TT|YT|X|TH",
+      "hook": "opening hook line",
+      "angle": "the specific trend/angle from Scrappy's research this taps into",
+      "caption": "full draft caption (poetic, on-brand)",
+      "cta": "soft CTA",
+      "urgency": "high|medium|low",
+      "trendSignal": "why this is timely right now"
+    }
+  ]
+}`;
 
-  const musePrompt = `Scrappy's research findings for this month:
+  const userPrompt = `Live research data:
+${searchCtx.dataContext}
 
-Trend Pulse: ${report.trendPulse}
+Generate the research report and 6-8 content ideas in one pass. Be specific, on-brand, and timely.`;
 
-Top Trends:
-${(report.topTrends || []).map(t => `• [${t.pillar}] ${t.trend} — ${t.why}\n  Hook idea: "${t.hookIdea}"`).join("\n")}
+  const rawMuse = await ai(systemPrompt, userPrompt, 2400);
 
-Fresh Angles:
-${(report.contentAngles || []).map(a => `• ${a.angle} (${a.format}, ${a.platform}, urgency: ${a.urgency})`).join("\n")}
-
-Competitor Context: ${report.competitorMoves || "—"}
-
-Your brief: ${report.museHandoff || "Generate 6-8 fresh content ideas based on these trends."}
-
-Now create the content ideas.`;
-
-  const rawMuse = await ai(museSystemPrompt, musePrompt, 2000);
-
+  let report = null;
   let contentIdeas = [];
   try {
-    const jsonMatch = rawMuse.match(/\[[\s\S]*\]/);
-    contentIdeas = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-  } catch (e) { contentIdeas = []; }
+    const jsonMatch = rawMuse.match(/\{[\s\S]*\}/);
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    report = parsed?.report || null;
+    contentIdeas = Array.isArray(parsed?.contentIdeas) ? parsed.contentIdeas : [];
+  } catch (e) { report = null; contentIdeas = []; }
+
+  if (!report) {
+    return { success: false, agent: "Scrappy × Muse", action: "scrappy_muse_collab", message: "❌ Research phase failed — collaboration aborted" };
+  }
 
   const highPriority = contentIdeas.filter(i => i.urgency === "high");
 
@@ -495,7 +506,7 @@ Now create the content ideas.`;
     agent: "Scrappy × Muse",
     action: "scrappy_muse_collab",
     trendPulse: report.trendPulse,
-    dataPoints: research.dataPoints,
+    dataPoints: { sources: searchCtx.topResults.length, queries: searchCtx.queries.length },
     contentIdeas,
     highPriorityCount: highPriority.length,
     message: `🕵️✍️ Scrappy × Muse collab complete — ${contentIdeas.length} fresh ideas generated from live internet research`,
@@ -614,7 +625,7 @@ Return a JSON array of content items only (no markdown, no backticks):
 ]
 Generate 12-16 items across 4 weeks, covering all pillars evenly. Vary formats and platforms. Return ONLY the JSON array.`;
 
-  const rawResult = await ai(systemPrompt, `Existing content (don't repeat): ${existing}\n\nGenerate the 4-week calendar now.`, 2800);
+  const rawResult = await ai(systemPrompt, `Existing content (don't repeat): ${existing}\n\nGenerate the 4-week calendar now.`, 2400);
 
   let calendarItems = [];
   try {
@@ -710,7 +721,7 @@ Return ONLY a valid JSON array (no markdown, no backticks, no explanation):
 
   const userPrompt = `Creative brief from the team:\n\n${brief}\n\nGenerate exactly ${reels} Reels and ${stories} Stories based on this brief. Total: ${reels + stories} items.`;
 
-  const rawResult = await ai(systemPrompt, userPrompt, 3200);
+  const rawResult = await ai(systemPrompt, userPrompt, 2600);
 
   let items = [];
   try {
@@ -899,7 +910,7 @@ Return ONLY valid JSON (no markdown):
   const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1300, messages: [{ role: "user", content: prompt }] }),
   });
   const aiData = await aiRes.json();
   const raw = aiData.content?.[0]?.text || "{}";
@@ -963,7 +974,7 @@ Return ONLY valid JSON:
   const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
   });
   const aiData = await aiRes.json();
   const raw = aiData.content?.[0]?.text || "{}";
@@ -982,33 +993,31 @@ async function muse_ig_ideas(payload = {}, brand) {
   const { campaign = "", inspiration = "" } = payload;
   const insp = String(inspiration || "").trim();
   const pillars = brand.pillars && brand.pillars.length ? brand.pillars : [];
-  const existing = await sbGet("content_items", "?platform=eq.instagram&order=id.desc&limit=40");
-  const existingTitles = existing.map(i => i.title).join(", ");
-  const synced = await getSyncedDigest("instagram", 8);
-
-  // Live research — when the user names creators/styles to emulate, scrape the
-  // web (Tavily) for their CURRENT winning short-form content so ideas are
-  // grounded in what is actually working now, not the model's stale memory.
-  // Fresh results each run also break the repetition problem.
-  let researchDigest = "";
-  if (insp && TAVILY_KEY) {
+  const researchPromise = (insp && TAVILY_KEY) ? (async () => {
     try {
       const queries = [
         `${insp} best viral short-form video hooks and formats 2026`,
         `${insp} most viral content ideas and angles this year`,
       ];
-      const results = await Promise.allSettled(queries.map(q => tavilySearch(q, "advanced", 5)));
+      const results = await Promise.allSettled(queries.map(q => tavilySearch(q, "basic", 4)));
       const lines = [];
       results.forEach(r => {
         if (r.status === "fulfilled" && r.value) {
-          if (r.value.answer) lines.push("• " + String(r.value.answer).slice(0, 400));
-          (r.value.results || []).slice(0, 4).forEach(x =>
-            lines.push(`• ${x.title}: ${String(x.content || "").slice(0, 160)}`));
+          if (r.value.answer) lines.push("• " + String(r.value.answer).slice(0, 360));
+          (r.value.results || []).slice(0, 3).forEach(x =>
+            lines.push(`• ${x.title}: ${String(x.content || "").slice(0, 140)}`));
         }
       });
-      researchDigest = lines.slice(0, 12).join("\n");
-    } catch (e) { researchDigest = ""; }
-  }
+      return lines.slice(0, 10).join("\n");
+    } catch (e) { return ""; }
+  })() : Promise.resolve("");
+
+  const [existing, synced, researchDigest] = await Promise.all([
+    sbGet("content_items", "?platform=eq.instagram&order=id.desc&limit=40"),
+    getSyncedDigest("instagram", 8),
+    researchPromise,
+  ]);
+  const existingTitles = existing.map(i => i.title).join(", ");
 
   const brandHashtag = "#" + (brand.name || "").replace(/\s+/g, "");
   const pillarLine = pillars.length
@@ -1071,7 +1080,7 @@ Return a JSON array of exactly 5 items only (no markdown, no backticks):
 Return ONLY the JSON array. Vary the 5 ideas across different pillars and formats.`;
 
   const userMsg = `Existing IG content (don't repeat): ${existingTitles}\n\n${synced ? "Generate 5 fresh Instagram ideas grounded in the account's top performers above, each with a real short-form script." : "Generate 5 fresh Instagram ideas now, each with a real short-form script."}`;
-  const rawResult = await ai(systemPrompt, userMsg, 3200, "claude-opus-4-8");
+  const rawResult = await ai(systemPrompt, userMsg, 2600, "claude-sonnet-4-6");
 
   let ideas = [];
   try {
@@ -1422,6 +1431,7 @@ exports.handler = async (event) => {
   }
 
   const { action, payload = {}, client_id = null } = JSON.parse(event.body || "{}");
+  const actionStartedAt = Date.now();
   const agent_name = deriveAgentName(action);
   let brand = await getBrandContext(client_id);
   // Per-request voice override — replaces brand.voice for this one call without
@@ -1464,8 +1474,7 @@ exports.handler = async (event) => {
         };
     }
 
-    // Log successful event
-    await logAgentEvent({
+    const eventLog = logAgentEvent({
       agent_name,
       action_key: action,
       payload,
@@ -1475,12 +1484,14 @@ exports.handler = async (event) => {
       client_id,
     });
 
-    // Post to Slack
     const slackLabel = SLACK_AGENT_LABELS[action];
-    if (slackLabel && result) {
+    const slackPost = (slackLabel && result) ? (async () => {
       const msg = result.message || result.summary || result.briefing || result.report || result.trends || `✅ ${action} completed`;
       await postToSlack(slackLabel, msg);
-    }
+    })() : Promise.resolve();
+
+    await Promise.all([eventLog, slackPost]);
+    console.log(`[agent-action] ${action} completed in ${Date.now() - actionStartedAt}ms`);
 
     return {
       statusCode: 200,
