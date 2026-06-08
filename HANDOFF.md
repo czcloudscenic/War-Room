@@ -1,3 +1,66 @@
+# Vantus Handoff Brief — 2026-06-04 (9-item package: speed shipped, #3 reunited, #10 planned)
+
+## 2026-06-04 session — the "9-item package" push
+
+**Canonical list lives in `VANTUS_TODO.md`** (repo root) — that's the running board, status-keyed. This handoff is the narrative; the TODO is the source of truth. Read it first on pickup.
+
+### 📋 9-item package status (6 shipped, 4 left)
+| # | Item | Status |
+|---|------|--------|
+| 1 | Refresh holds your page, doesn't sign you out | ✅ live |
+| 7 | Analytics + Ad ROI Hub moved under "Content" nav | ✅ live |
+| 8 | Team Broadcast page killed; button moved under Scrappy in Agents | ✅ live |
+| 6 (part) | Login water-video removed | ✅ live |
+| 4 | Generation speed 28–30s → 10–15s | ✅ **shipped this session** (`70dcd29`) |
+| 3 | Analytics "why it won/lost" (Opus) | ✅ **committed & live this session** (`6cb248b`) |
+| 9 | Admin page (user count + feedback) | 🗓️ queued for Codex next burst |
+| 10 | Virality Checker (pre-publish gate) | 🟢 **ours, started — planning** |
+| 6 | Multi-tenant data isolation (agency seats + self-serve) | 🟡 blocked — needs design pass |
+| 2 | Per-client OAuth | 🟡 blocked behind #6 |
+| 5 | Ad ROI Hub (Meta + static-ad gen) | 🟡 blocked — no Meta connection exists |
+
+### 🚀 #4 — Generation speed (SHIPPED, live)
+- Built by Codex on its worktree, reviewed by me line-by-line, pushed to `main` (`52bdea3..70dcd29`).
+- Worst offenders fixed: `muse_ig_ideas` and `scrappy_muse_collab` (both 22–30s) → ~10–15s. Method: parallelized fetches (`Promise.all`), Tavily `advanced`→`basic`, `muse_ig_ideas` Opus→**Sonnet**, single-pass collab (raw Tavily data → ideas, *better* grounding), trimmed token caps. Shared `scrappySearchContext` + `_researchDigest` dedup.
+- Bonus Codex added: real timing logs — `[agent-action] {action} completed in {ms}ms` in Netlify function logs (so "estimated" numbers become measurable).
+- ⚠️ **Spot-check still owed:** the `muse_ig_ideas` Opus→Sonnet quality on a real Idea Engine run. Founder said they'd eyeball it.
+
+### 🔧 #3 — "why it won/lost" (REUNITED + live) — the gotcha to remember
+- The #3 work (Opus winner/loser contrast + `lossReasons` "why it lost" in `scrappy_analyze_performance` + `AnalyticsRoute.jsx` Bottom Performers section) had been **deployed-from-local-tree but never committed.**
+- Pushing Codex's #4 branch (built off the older commit) auto-deployed and **briefly reverted #3 on prod.** Caught it, committed #3 (`fce3c0f`), **rebased it onto #4** (`6cb248b`) — clean, non-overlapping (#4 never touched `scrappy_analyze_performance`), built green, pushed. #3 now reunited with #4 and in history.
+- **Lesson:** the Desktop repo and Codex's `/private/tmp/vantus-grunt-2026-06-04` are **linked git worktrees sharing one object store** — Codex commits are reachable from Desktop by SHA without a fetch. Don't push a branch that's behind local uncommitted work without reconciling first.
+- 🔜 #3's win/lose is still slated to eventually **migrate into #10's gate** (where the model can actually see the content). It's safe and shipped for now.
+
+### 🗓️ #9 — Admin page (queued for Codex)
+- Was ~80% done before a burst-cancel (`admin-stats.js` + `netlify.toml` redirect written on the throwaway branch, **nothing merged**, that branch had its feedback migration reverted out so #4's net diff stayed clean).
+- Re-hand on a **fresh burst** — brief at `/tmp/codex_brief_speed_admin.md` (the #9 half). Standalone #4 brief also saved at `/tmp/codex_brief_4_speed.md` (already shipped, keep for reference).
+- Codex burst was nearly spent (`<20%` of 5h, resets ~08:21). Hand it ONE finite task per burst; don't let the speed-audit type work finish on the downgraded mini model.
+
+### 🧭 #10 — Virality Checker (STARTED — planning, this is the next build)
+**Concept:** a pre-publish gate — run content through it *before* posting; the model actually watches the whole video (you hold the file at that moment, so no gated-link/scraper wall). It's the final gate before content goes out.
+**Architecture decision made:** build the brain on **Gemini alone, all platforms** — YouTube by URL (native), IG/TikTok by file-upload at the gate (Gemini Files API). Gemini gives the **semantic "why"** ("body sags at 0:15, hook works because of the close-up") which is what the founder wants. **Dropped Higgsfield as a dependency** (its MCP is session-only, not usable by the deployed app, and dev-API availability is uncertain) — keep Higgsfield's virality *score* as an optional later layer only.
+**The loop (why it matters):** the gate IS the DNA harvester — every check is a real, legit, fully-analyzed piece of the user's content. Store that DNA → feed the **Idea Engine** so it generates grounded ideas. Pair each gate analysis with the metrics that roll in later → revives a *real* "why it won."
+**Build slices:**
+1. Scaffold (no key) — Virality Checker page + nav item + route, DNA-store table/migration, analysis-function skeleton.
+2. Wire Gemini — URL for YouTube, upload for IG/TikTok → verdict. **Needs `GEMINI_API_KEY`.**
+3. DNA harvest → Idea Engine feed.
+4. Pair gate analysis + later metrics → real "why it won."
+**⛔ UNBLOCK NEEDED:** founder grabs a free Gemini key at https://aistudio.google.com/apikey → set as `GEMINI_API_KEY` in Netlify. Slice 1 (scaffold) can start without it.
+
+### 🚢 Git / deploy state
+- `main` is at **`6cb248b`** (= #4 speed + #3 reunited), live on prod via auto-deploy.
+- Pushes this session via one-shot GitHub PATs (shell can't reach keychain — [[project_vantus_push_auth]]). **Both tokens should be revoked** (reminded founder). Always `git fetch` + verify fast-forward before pushing — Counsel tab may push to `main` too ([[project_vantus_counsel_workflow]]).
+- `VANTUS_TODO.md` is **untracked** (not committed) — it's the working list; commit it if you want it versioned.
+
+### 📌 Pickup queue (in order)
+1. **Spot-check Idea Engine** quality (`muse_ig_ideas`, Opus→Sonnet) on a live run.
+2. **#10 slice 1** — scaffold the Virality Checker (page + nav + route + DNA-store migration + function skeleton). No key needed.
+3. **Grab the Gemini key** → #10 slice 2 (wire the real gate).
+4. **Re-hand #9** to Codex on a fresh burst (`/tmp/codex_brief_speed_admin.md`).
+5. When ready for the next epic: **#6 multi-tenant design session** (unblocks #2).
+
+---
+
 # Vantus Handoff Brief — 2026-06-02 (YouTube OAuth live + Scrappy performance analysis)
 
 ## 2026-06-02 session — YouTube connected, analytics cards restyled, "why it won" analysis
