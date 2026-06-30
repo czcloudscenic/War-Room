@@ -10,6 +10,9 @@ function slugify(s) {
     .replace(/^-|-$/g, "");
 }
 
+// Service Library (ceiling) — clients inherit only the ones they pay for (scope).
+const SERVICE_LIBRARY = ["Content Strategy", "Reels", "Stories", "Static Posts", "Graphics & Flyers", "Photography", "Video Editing", "Paid Ads", "SEO", "Email", "Reporting"];
+
 export default function AddClientModal({ onClose, onCreated, onUpdated, editingClient = null, currentUserId = null }) {
   const isEdit = !!editingClient;
   const [name, setName] = useState(editingClient?.name || "");
@@ -28,6 +31,18 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState("");
+  const [lane, setLane] = useState(editingClient?.lane || "recurring");
+  const [services, setServices] = useState(Array.isArray(editingClient?.service_scope) ? editingClient.service_scope : []);
+  const [cadence, setCadence] = useState(editingClient?.cadence || "");
+  const [approvalRule, setApprovalRule] = useState(editingClient?.approval_rule || "internal");
+  const [retainerAmount, setRetainerAmount] = useState(editingClient?.retainer_amount ?? "");
+  const [retainerStatus, setRetainerStatus] = useState(editingClient?.retainer_status || "active");
+  const toggleService = (s) => setServices(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+  const joinArr = (a) => (Array.isArray(a) ? a.join("\n") : "");
+  const toArr = (s) => s.split("\n").map(x => x.trim()).filter(Boolean);
+  const [brandPillars, setBrandPillars] = useState(joinArr(editingClient?.brand_pillars));
+  const [brandDos, setBrandDos] = useState(joinArr(editingClient?.brand_dos));
+  const [brandDonts, setBrandDonts] = useState(joinArr(editingClient?.brand_donts));
 
   const handleNameChange = (v) => {
     setName(v);
@@ -80,6 +95,15 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
         slack_webhook_url: slackWebhook.trim() || null,
         n8n_webhook_url: n8nWebhook.trim() || null,
         logo_url: finalLogoUrl,
+        lane,
+        service_scope: services,
+        cadence: cadence.trim() || null,
+        approval_rule: approvalRule,
+        retainer_amount: retainerAmount === "" ? null : Number(retainerAmount),
+        retainer_status: retainerStatus,
+        brand_pillars: toArr(brandPillars),
+        brand_dos: toArr(brandDos),
+        brand_donts: toArr(brandDonts),
       };
 
       if (isEdit) {
@@ -200,6 +224,79 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
               <input type="color" value={brandColor} onChange={e => setBrandColor(e.target.value)} style={{ width:32, height:32, border:"1px solid rgba(255,255,255,0.1)", borderRadius:6, background:"none", cursor:"pointer", padding:0 }} />
               <input value={brandColor} onChange={e => setBrandColor(e.target.value)} style={{ ...inputStyle, padding:"7px 8px", fontSize:11, fontFamily:"'Geist Mono', monospace" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Brand Guidelines */}
+        <div style={{ marginBottom:14 }}>
+          <label style={labelStyle}>Pillars <span style={{ color:"rgba(255,255,255,0.25)" }}>(one per line)</span></label>
+          <textarea value={brandPillars} onChange={e => setBrandPillars(e.target.value)} placeholder={"Movement, not product\nCalm authority\nReal stories"} rows={2} style={{ ...inputStyle, resize:"vertical", minHeight:46, fontSize:12 }} />
+        </div>
+        <div style={{ display:"flex", gap:12, marginBottom:6 }}>
+          <div style={{ flex:1 }}>
+            <label style={labelStyle}>Always do</label>
+            <textarea value={brandDos} onChange={e => setBrandDos(e.target.value)} placeholder={"Lead with the feeling\nKeep it human"} rows={2} style={{ ...inputStyle, resize:"vertical", minHeight:46, fontSize:12 }} />
+          </div>
+          <div style={{ flex:1 }}>
+            <label style={labelStyle}>Never do</label>
+            <textarea value={brandDonts} onChange={e => setBrandDonts(e.target.value)} placeholder={"Sound corporate\nGeneric wellness lingo"} rows={2} style={{ ...inputStyle, resize:"vertical", minHeight:46, fontSize:12 }} />
+          </div>
+        </div>
+        <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", margin:"0 0 14px" }}>Fed into every agent prompt for this client — pillars + do/don't rules.</div>
+
+        {/* Scope & Fulfillment */}
+        <div style={{ marginBottom:18, paddingTop:6, borderTop:"1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.55)", margin:"10px 0 12px" }}>Scope &amp; Fulfillment</div>
+
+          <div style={{ display:"flex", gap:12, marginBottom:14 }}>
+            <div style={{ flex:1 }}>
+              <label style={labelStyle}>Engagement</label>
+              <select value={lane} onChange={e => setLane(e.target.value)} style={inputStyle}>
+                <option value="recurring">Recurring retainer</option>
+                <option value="brief">Brief / project-driven</option>
+              </select>
+            </div>
+            <div style={{ flex:1 }}>
+              <label style={labelStyle}>Approval rule</label>
+              <select value={approvalRule} onChange={e => setApprovalRule(e.target.value)} style={inputStyle}>
+                <option value="internal">Internal QC only</option>
+                <option value="client">Client approval required</option>
+                <option value="auto">Auto (no review)</option>
+              </select>
+            </div>
+          </div>
+
+          <label style={labelStyle}>Services in scope</label>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
+            {SERVICE_LIBRARY.map(s => {
+              const on = services.includes(s);
+              return (
+                <button type="button" key={s} onClick={() => toggleService(s)}
+                  style={{ fontSize:11, padding:"6px 11px", borderRadius:20, cursor:"pointer", fontFamily:"Inter, sans-serif",
+                    background: on ? "rgba(42,171,255,0.15)" : "rgba(255,255,255,0.04)",
+                    border: on ? "1px solid rgba(42,171,255,0.4)" : "1px solid rgba(255,255,255,0.1)",
+                    color: on ? "#2AABFF" : "rgba(255,255,255,0.5)" }}>{s}</button>
+              );
+            })}
+          </div>
+
+          <label style={labelStyle}>Cadence</label>
+          <input value={cadence} onChange={e => setCadence(e.target.value)} placeholder="1 shoot/mo · 2 reels/wk · 2 stories/wk" style={inputStyle} />
+          <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", margin:"4px 0 14px" }}>What they get each cycle.</div>
+
+          <div style={{ display:"flex", gap:12 }}>
+            <div style={{ flex:1 }}>
+              <label style={labelStyle}>Retainer ($/mo)</label>
+              <input type="number" value={retainerAmount} onChange={e => setRetainerAmount(e.target.value)} placeholder="0" style={inputStyle} />
+            </div>
+            <div style={{ flex:1 }}>
+              <label style={labelStyle}>Retainer status</label>
+              <select value={retainerStatus} onChange={e => setRetainerStatus(e.target.value)} style={inputStyle}>
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="none">None</option>
+              </select>
             </div>
           </div>
         </div>

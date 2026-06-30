@@ -33,6 +33,8 @@ import TypingTask from './ui/shared/TypingTask.jsx';
 import PlaceholderPage from './ui/shared/PlaceholderPage.jsx';
 import AddClientModal from './ui/clients/AddClientModal.jsx';
 import DashboardRoute from './ui/routes/DashboardRoute.jsx';
+import ClientsRoute from './ui/routes/ClientsRoute.jsx';
+import LedgerRoute from './ui/routes/LedgerRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
 import AnalyticsRoute from './ui/routes/AnalyticsRoute.jsx';
@@ -1246,6 +1248,23 @@ try {
         selectedAgent={selectedAgent}
         setSelectedAgent={setSelectedAgent}
       />
+    )}
+
+    {/* CLIENTS — CRM home */}
+    {activeNav === "clients" && (
+      <ClientsRoute
+        isMobile={isMobile}
+        clients={clients}
+        content={content}
+        currentClient={currentClient}
+        onOpen={(c) => { switchClient(c); setActiveNav("dashboard"); }}
+        onEdit={(c) => setEditingClient(c)}
+        onAdd={() => setAddClientOpen(true)}
+      />
+    )}
+
+    {activeNav === "ledger" && (
+      <LedgerRoute isMobile={isMobile} clients={clients} content={content} currentUser={{ id: userId, email: userEmail }} />
     )}
 
     {/* AGENTS */}

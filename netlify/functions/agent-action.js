@@ -123,15 +123,24 @@ async function getBrandContext(client_id) {
   const fallback = { name: "the brand", slug: null, voice: "", pillars: [], clientId: null };
   if (!client_id) return fallback;
   try {
-    const rows = await sbGet("clients", `?id=eq.${client_id}&select=name,slug,brand_voice_md`);
+    const rows = await sbGet("clients", `?id=eq.${client_id}&select=name,slug,brand_voice_md,brand_pillars,brand_dos,brand_donts`);
     const r = rows?.[0];
     if (!r) return { ...fallback, clientId: client_id };
-    const voice = r.brand_voice_md || "";
+    const voiceMd = r.brand_voice_md || "";
+    // Prefer the structured Brand Manager fields; fall back to parsing the markdown.
+    const pillars = (Array.isArray(r.brand_pillars) && r.brand_pillars.length) ? r.brand_pillars : parsePillars(voiceMd);
+    const dos = Array.isArray(r.brand_dos) ? r.brand_dos : [];
+    const donts = Array.isArray(r.brand_donts) ? r.brand_donts : [];
+    // Compose structured guidelines so EVERY prompt that injects `voice` respects them.
+    let guide = "";
+    if (pillars.length) guide += `\nContent pillars: ${pillars.join(", ")}.`;
+    if (dos.length) guide += `\nAlways: ${dos.join("; ")}.`;
+    if (donts.length) guide += `\nNever: ${donts.join("; ")}.`;
     return {
       name: r.name || "the brand",
       slug: r.slug || null,
-      voice,
-      pillars: parsePillars(voice),
+      voice: voiceMd + (guide ? `\n\nBrand guidelines:${guide}` : ""),
+      pillars, dos, donts,
       clientId: client_id,
     };
   } catch (e) {
