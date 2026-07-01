@@ -129,7 +129,16 @@ export default function OperationsRoute({ isMobile, clients = [] }) {
                 <button disabled={busy} onClick={commitAssignments} style={{ height: 34, padding: "0 16px", borderRadius: 9, background: "rgba(48,209,88,0.15)", border: "1px solid rgba(48,209,88,0.35)", color: "#30d158", cursor: "pointer", fontSize: 12.5, fontWeight: 600 }}>Create {assignments.length} task{assignments.length === 1 ? "" : "s"} →</button>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {assignments.map((a, i) => {
+                {assignments.map((raw, i) => {
+                  const a = {
+                    title: raw.title || "Untitled task",
+                    priority: ["low", "medium", "high", "urgent"].includes(raw.priority) ? raw.priority : "medium",
+                    score: Number(raw.score) || 0,
+                    reason: raw.reason || "",
+                    due_hint: raw.due_hint || null,
+                    assignee_id: raw.assignee_id || null,
+                    assignee_name: raw.assignee_name || null,
+                  };
                   const m = memberById(a.assignee_id);
                   const pc = PRIORITY_COLOR[a.priority] || PRIORITY_COLOR.medium;
                   return (

@@ -83,7 +83,7 @@ export default function DashboardRoute({
           <span style={{ fontSize:11, color:"rgba(255,255,255,0.28)", fontWeight:400 }}>{liveCount} active</span>
         </div>
         <div style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap:12 }}>
-          {agents.map(agent => <AgentCard key={agent.id} agent={agent} selected={selectedAgent?.id===agent.id} onClick={() => setSelectedAgent(selectedAgent?.id===agent.id?null:agent)} />)}
+          {(agents || []).map(agent => <AgentCard key={agent.id} agent={agent} selected={selectedAgent?.id===agent.id} onClick={() => setSelectedAgent(selectedAgent?.id===agent.id?null:agent)} />)}
         </div>
       </div>
 

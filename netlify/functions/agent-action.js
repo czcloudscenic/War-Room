@@ -1434,7 +1434,7 @@ Return ONLY a JSON array — no prose, no markdown fences.`;
   try {
     tasks = JSON.parse(raw.replace(/```json|```/g, "").trim());
     if (!Array.isArray(tasks)) tasks = [];
-  } catch { tasks = []; }
+  } catch (e) { console.error("[ops_assign] JSON parse failed:", e.message, "| raw:", (raw || "").slice(0, 500)); tasks = []; }
   return { tasks };
 }
 

@@ -37,6 +37,8 @@ import ClientsRoute from './ui/routes/ClientsRoute.jsx';
 import LedgerRoute from './ui/routes/LedgerRoute.jsx';
 import ReportsRoute from './ui/routes/ReportsRoute.jsx';
 import OperationsRoute from './ui/routes/OperationsRoute.jsx';
+import ClientAnalyticsRoute from './ui/routes/ClientAnalyticsRoute.jsx';
+import BillingRoute from './ui/routes/BillingRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
 import AnalyticsRoute from './ui/routes/AnalyticsRoute.jsx';
@@ -377,6 +379,7 @@ function Vantus({ onSignOut, userEmail, userId, content: contentProp, setContent
   // ── Multi-tenant: client roster + currently-active client ──
   const [clients, setClients] = useState([]);
   const [currentClient, setCurrentClient] = useState(null);  // {id, slug, name, brand_color, ...}
+  const [teamMembers, setTeamMembers] = useState([]);        // roster — resolves deliverable owners in the Ledger
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [addClientOpen, setAddClientOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);  // null = not editing
@@ -534,6 +537,18 @@ return () => sb.removeChannel(channel);
         if (payload.eventType === "DELETE") setClients(prev => prev.filter(c => c.id !== payload.old.id));
       }).subscribe();
     return () => { cancelled = true; sb.removeChannel(ch); };
+  }, []);
+
+  // Team roster — for resolving deliverable owners in the Ledger (assigned_to → name).
+  useEffect(() => {
+    if (!sb) return;
+    let cancelled = false;
+    (async () => {
+      await sb.auth.getSession();
+      const { data } = await sb.from("team_members").select("id, name, role, color").eq("active", true);
+      if (!cancelled && Array.isArray(data)) setTeamMembers(data);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // ── NOTIFICATIONS (Move 3 — DB-backed, multi-tenant scoped) ──
@@ -1266,7 +1281,7 @@ try {
     )}
 
     {activeNav === "ledger" && (
-      <LedgerRoute isMobile={isMobile} clients={clients} content={content} currentUser={{ id: userId, email: userEmail }} />
+      <LedgerRoute isMobile={isMobile} clients={clients} content={content} team={teamMembers} currentUser={{ id: userId, email: userEmail }} />
     )}
 
     {activeNav === "reports" && (
@@ -1275,6 +1290,14 @@ try {
 
     {activeNav === "operations" && (
       <OperationsRoute isMobile={isMobile} clients={clients} />
+    )}
+
+    {activeNav === "clientanalytics" && (
+      <ClientAnalyticsRoute isMobile={isMobile} clients={clients} content={content} />
+    )}
+
+    {activeNav === "billing" && (
+      <BillingRoute isMobile={isMobile} clients={clients} />
     )}
 
     {/* AGENTS */}
