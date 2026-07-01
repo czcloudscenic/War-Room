@@ -35,12 +35,12 @@ function isThisWeek(d) {
   return !Number.isNaN(t) && t >= Date.now() && t <= Date.now() + 7 * 86400000;
 }
 function isOverdue(item) {
-  const t = item.due_date ? new Date(item.due_date).getTime() : NaN;
+  const t = item?.due_date ? new Date(item.due_date).getTime() : NaN;
   if (Number.isNaN(t)) return false;
-  return t < Date.now() && !["Approved", "Scheduled", "Posted"].includes(item.status) && !item.posted_at;
+  return t < Date.now() && !["Approved", "Scheduled", "Posted"].includes(item?.status) && !item?.posted_at;
 }
-function clientName(clients, id) { const c = clients.find(x => x.id === id); return c ? (c.name || "—") : "—"; }
-function clientColor(clients, id) { const c = clients.find(x => x.id === id); return (c && c.brand_color) || ACCENT; }
+function clientName(clients, id) { const c = (clients || []).find(x => x?.id === id); return c ? (c.name || "—") : "—"; }
+function clientColor(clients, id) { const c = (clients || []).find(x => x?.id === id); return c?.brand_color || ACCENT; }
 
 function Flag({ label, color }) {
   return <span style={{ fontSize: 8.5, letterSpacing: 0.4, textTransform: "uppercase", fontWeight: 700, fontFamily: "'Geist Mono', monospace", color, background: `${color}14`, border: `1px solid ${color}30`, borderRadius: 4, padding: "2px 6px" }}>{label}</span>;
@@ -60,10 +60,13 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
   const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState(null);
   const [err, setErr] = useState(null);
+  const safeClients = clients || [];
+  const safeContent = content || [];
+  const safeTeam = team || [];
 
-  const patch = (id, fields) => setOverrides(o => ({ ...o, [id]: { ...(o[id] || {}), ...fields } }));
-  const view = (item) => ({ ...item, ...(overrides[item.id] || {}) });
-  const stageOf = (item) => ((item.status || "").includes("Copy") ? "copy" : "content");
+  const patch = (id, fields) => setOverrides(o => ({ ...(o || {}), [id]: { ...((o || {})[id] || {}), ...fields } }));
+  const view = (item) => ({ ...(item || {}), ...(overrides[item?.id] || {}) });
+  const stageOf = (item) => ((item?.status || "").includes("Copy") ? "copy" : "content");
 
   async function doApprove(item) {
     setBusy(item.id); setErr(null);
@@ -87,18 +90,18 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
     catch (e) { setErr(e.message); }
   }
 
-  const ownerOf = (item) => { if (!item.assigned_to) return null; const t = team.find(m => m.id === item.assigned_to); return t ? (t.name || t.email || "Assigned") : "Assigned"; };
+  const ownerOf = (item) => { if (!item?.assigned_to) return null; const t = safeTeam.find(m => m?.id === item.assigned_to); return t ? (t.name || t.email || "Assigned") : "Assigned"; };
 
   const rows = useMemo(() => {
-    const merged = content.map(view);
-    const rank = (x) => (isOverdue(x) ? 0 : NEED_ATTENTION.includes(x.status) ? 1 : IN_PRODUCTION.includes(x.status) ? 2 : x.status === "Approved" ? 3 : x.status === "Scheduled" ? 4 : 5);
-    return merged.sort((a, b) => { const r = rank(a) - rank(b); if (r) return r; const da = a.due_date ? new Date(a.due_date).getTime() : Infinity; const db = b.due_date ? new Date(b.due_date).getTime() : Infinity; return da - db; });
-  }, [content, overrides]);
+    const merged = safeContent.map(view);
+    const rank = (x) => (isOverdue(x) ? 0 : NEED_ATTENTION.includes(x?.status) ? 1 : IN_PRODUCTION.includes(x?.status) ? 2 : x?.status === "Approved" ? 3 : x?.status === "Scheduled" ? 4 : 5);
+    return merged.sort((a, b) => { const r = rank(a) - rank(b); if (r) return r; const da = a?.due_date ? new Date(a.due_date).getTime() : Infinity; const db = b?.due_date ? new Date(b.due_date).getTime() : Infinity; return da - db; });
+  }, [safeContent, overrides]);
 
-  const dueThisWeek    = rows.filter(x => isThisWeek(x.due_date)).length;
-  const awaitingReview = rows.filter(x => NEED_ATTENTION.includes(x.status)).length;
-  const scheduled      = rows.filter(x => x.status === "Scheduled").length;
-  const awaitingPost   = rows.filter(x => !x.posted_at && x.publish_date && new Date(x.publish_date).getTime() <= Date.now() && (x.status === "Scheduled" || x.status === "Approved")).length;
+  const dueThisWeek    = rows.filter(x => isThisWeek(x?.due_date)).length;
+  const awaitingReview = rows.filter(x => NEED_ATTENTION.includes(x?.status)).length;
+  const scheduled      = rows.filter(x => x?.status === "Scheduled").length;
+  const awaitingPost   = rows.filter(x => !x?.posted_at && x?.publish_date && new Date(x.publish_date).getTime() <= Date.now() && (x?.status === "Scheduled" || x?.status === "Approved")).length;
 
   const col = (w, extra = {}) => ({ flex: w, minWidth: 0, ...extra });
   const head = { fontSize: 8.5, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.38)", fontWeight: 700, fontFamily: "'Geist Mono', monospace" };
@@ -109,7 +112,7 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
       <div style={{ marginBottom: isMobile ? 22 : 32, paddingBottom: isMobile ? 18 : 26, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
         <div style={{ fontSize: 9, color: "rgba(255,255,255,0.55)", fontWeight: 600, letterSpacing: 3, textTransform: "uppercase", fontFamily: "'Geist Mono', monospace", marginBottom: 12 }}>Cloud Scenic / Deliverables Ledger</div>
         <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: isMobile ? 34 : 46, fontWeight: 400, fontStyle: "italic", color: "#fff", margin: 0, letterSpacing: -1, lineHeight: 1 }}>Ledger</h1>
-        <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", margin: "12px 0 0" }}>{content.length} deliverable{content.length === 1 ? "" : "s"} across {clients.length} client{clients.length === 1 ? "" : "s"} — click a row to assign, approve, or mark posted.</p>
+        <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", margin: "12px 0 0" }}>{safeContent.length} deliverable{safeContent.length === 1 ? "" : "s"} across {safeClients.length} client{safeClients.length === 1 ? "" : "s"} — click a row to assign, approve, or mark posted.</p>
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 22, flexWrap: isMobile ? "wrap" : "nowrap" }}>
@@ -121,7 +124,7 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
 
       {err && <div style={{ marginBottom: 14, padding: "9px 13px", borderRadius: 9, background: "rgba(255,69,58,0.1)", border: "1px solid rgba(255,69,58,0.3)", color: "#ff453a", fontSize: 12 }}>{err}</div>}
 
-      {content.length === 0 ? (
+      {safeContent.length === 0 ? (
         <div style={{ padding: "60px 30px", textAlign: "center", border: "1px dashed rgba(255,255,255,0.12)", borderRadius: 16 }}>
           <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: 24, fontStyle: "italic", color: "#f5f5f7", marginBottom: 8 }}>Nothing in the ledger yet.</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>Deliverables land here as the team and agents create content.</div>
@@ -154,8 +157,8 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace", marginTop: 2 }}>{[item.type, item.platform].filter(Boolean).join(" · ") || "—"}{item.revision_count ? ` · rev ${item.revision_count}` : ""}</div>
                   </div>
                   <div style={{ ...col(1.2), display: "flex", alignItems: "center", gap: 7 }}>
-                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: clientColor(clients, item.client_id), flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clientName(clients, item.client_id)}</span>
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: clientColor(safeClients, item.client_id), flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clientName(safeClients, item.client_id)}</span>
                   </div>
                   <div style={{ ...col(1), fontSize: 12, color: owner ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)" }}>{owner || "—"}</div>
                   <div style={col(1.1)}><span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: sc, fontWeight: 600 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: sc }} />{item.status || "—"}</span></div>

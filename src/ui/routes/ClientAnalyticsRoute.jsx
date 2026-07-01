@@ -20,7 +20,7 @@ function fmtNum(n) {
 }
 function fmtMoney(n) { return "$" + fmtNum(n); }
 function pct(n, d) { return d ? Math.round((n / d) * 100) : 0; }
-function isOverdue(x) { const t = x.due_date ? new Date(x.due_date).getTime() : NaN; return !Number.isNaN(t) && t < Date.now() && !DONE.includes(x.status) && !x.posted_at; }
+function isOverdue(x) { const t = x?.due_date ? new Date(x.due_date).getTime() : NaN; return !Number.isNaN(t) && t < Date.now() && !DONE.includes(x?.status) && !x?.posted_at; }
 
 const head = { fontSize: 8.5, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.38)", fontWeight: 700, fontFamily: "'Geist Mono', monospace" };
 
@@ -75,6 +75,7 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
   // Honest time-series (we don't retain retainer history), so the chart tracks
   // invoiced revenue per month; current MRR is the headline reference above.
   const trend = useMemo(() => {
+    const rows = invoices || [];
     const now = new Date();
     const months = [];
     for (let i = 5; i >= 0; i--) {
@@ -82,14 +83,14 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
       months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString("en-US", { month: "short" }), value: 0 });
     }
     const idx = new Map(months.map((m, i) => [m.key, i]));
-    for (const inv of invoices) {
-      if (inv.status === "void" || inv.status === "draft") continue; // only billed
-      const raw = inv.issued_at || inv.sent_at || inv.paid_at || inv.created_at;
+    for (const inv of rows) {
+      if (inv?.status === "void" || inv?.status === "draft") continue; // only billed
+      const raw = inv?.issued_at || inv?.sent_at || inv?.paid_at || inv?.created_at;
       if (!raw) continue;
       const d = new Date(raw);
       if (Number.isNaN(d.getTime())) continue;
       const k = `${d.getFullYear()}-${d.getMonth()}`;
-      if (idx.has(k)) months[idx.get(k)].value += Number(inv.amount) || 0;
+      if (idx.has(k)) months[idx.get(k)].value += Number(inv?.amount) || 0;
     }
     const maxY = Math.max(...months.map(m => m.value), 1);
     const hasData = months.some(m => m.value > 0);
@@ -102,44 +103,48 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
   }, [invoices]);
 
   const roll = useMemo(() => {
-    const acctClient = new Map(accounts.map(a => [a.id, a.client_id]));
+    const safeAccounts = accounts || [];
+    const safePosts = posts || [];
+    const safeClients = clients || [];
+    const safeContent = content || [];
+    const acctClient = new Map(safeAccounts.map(a => [a?.id, a?.client_id]));
     const reachByClient = {};
     let totalReach = 0, totalEng = 0;
-    for (const p of posts) {
-      const cid = acctClient.get(p.account_id);
-      const m = p.metrics || {};
+    for (const p of safePosts) {
+      const cid = acctClient.get(p?.account_id);
+      const m = p?.metrics || {};
       const reach = Number(m.reach) || 0;
       const eng = (Number(m.likes) || 0) + (Number(m.comments) || 0) + (Number(m.saved) || 0) + (Number(m.shares) || 0);
       totalReach += reach; totalEng += eng;
       if (cid) reachByClient[cid] = (reachByClient[cid] || 0) + reach;
     }
-    const active = clients.filter(c => c.status === "active");
-    const mrr = active.reduce((s, c) => s + (Number(c.retainer_amount) || 0), 0);
-    const retainerRev = active.filter(c => (c.lane || "recurring") === "recurring").reduce((s, c) => s + (Number(c.retainer_amount) || 0), 0);
-    const projectRev = active.filter(c => c.lane === "brief").reduce((s, c) => s + (Number(c.retainer_amount) || 0), 0);
+    const active = safeClients.filter(c => c?.status === "active");
+    const mrr = active.reduce((s, c) => s + (Number(c?.retainer_amount) || 0), 0);
+    const retainerRev = active.filter(c => (c?.lane || "recurring") === "recurring").reduce((s, c) => s + (Number(c?.retainer_amount) || 0), 0);
+    const projectRev = active.filter(c => c?.lane === "brief").reduce((s, c) => s + (Number(c?.retainer_amount) || 0), 0);
 
     // Delivery health across all deliverables
-    const overdue = content.filter(isOverdue).length;
-    const inReview = content.filter(x => NEED_ATTENTION.includes(x.status)).length;
-    const onTrack = content.filter(x => !isOverdue(x) && !NEED_ATTENTION.includes(x.status) && x.status !== "Scrapped").length;
+    const overdue = safeContent.filter(isOverdue).length;
+    const inReview = safeContent.filter(x => NEED_ATTENTION.includes(x?.status)).length;
+    const onTrack = safeContent.filter(x => !isOverdue(x) && !NEED_ATTENTION.includes(x?.status) && x?.status !== "Scrapped").length;
 
-    const healthCounts = active.reduce((a, c) => { const h = c.health || "green"; a[h] = (a[h] || 0) + 1; return a; }, {});
+    const healthCounts = active.reduce((a, c) => { const h = c?.health || "green"; a[h] = (a[h] || 0) + 1; return a; }, {});
     const avgHealth = pct(healthCounts.green || 0, active.length);
 
     const perClient = active.map(c => {
-      const items = content.filter(x => x.client_id === c.id);
+      const items = safeContent.filter(x => x?.client_id === c?.id);
       return {
-        id: c.id, name: c.name, color: c.brand_color || ACCENT,
-        mrr: Number(c.retainer_amount) || 0,
-        lane: c.lane || "recurring",
-        health: c.health || "green",
+        id: c?.id, name: c?.name, color: c?.brand_color || ACCENT,
+        mrr: Number(c?.retainer_amount) || 0,
+        lane: c?.lane || "recurring",
+        health: c?.health || "green",
         deliverables: items.length,
         overdue: items.filter(isOverdue).length,
-        reach: reachByClient[c.id] || 0,
+        reach: reachByClient[c?.id] || 0,
       };
-    }).sort((a, b) => b.mrr - a.mrr);
+    }).sort((a, b) => (b?.mrr || 0) - (a?.mrr || 0));
 
-    return { totalReach, totalEng, mrr, retainerRev, projectRev, overdue, inReview, onTrack, avgHealth, activeCount: active.length, perClient, deliverables: content.length };
+    return { totalReach, totalEng, mrr, retainerRev, projectRev, overdue, inReview, onTrack, avgHealth, activeCount: active.length, perClient, deliverables: safeContent.length };
   }, [accounts, posts, clients, content]);
 
   const onTrackPct = pct(roll.onTrack, roll.onTrack + roll.inReview + roll.overdue);

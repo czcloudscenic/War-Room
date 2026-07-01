@@ -3,7 +3,8 @@ import { useIsMobile } from '../../utils/hooks.js';
 import { buildSystemPrompt, updateAgentMemory } from '../../core/memory.js';
 import AgentAvatar from '../shared/AgentAvatar.jsx';
 import { apiFetch } from '../../services/apiFetch.js';
-import TeamBroadcast from './TeamBroadcast.jsx';
+
+const TeamBroadcast = React.lazy(() => import('./TeamBroadcast.jsx'));
 
 function CalendarSaveButton({ items }) {
   const [status, setStatus] = React.useState("idle");
@@ -253,7 +254,9 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
 
   {broadcast ? (
   <div className="hover-card" style={{ flex:1, padding:18, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.13)", borderRadius:20, overflow:"auto", boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>
-    <TeamBroadcast agents={agents} />
+    <React.Suspense fallback={null}>
+      <TeamBroadcast agents={agents} />
+    </React.Suspense>
   </div>
   ) : (
   <div className="hover-card" style={{ flex:1, display:"flex", flexDirection:"column", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.13)", borderRadius:20, overflow:"hidden", boxShadow:"0 4px 24px rgba(0,0,0,0.07)" }}>

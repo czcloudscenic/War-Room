@@ -12,7 +12,7 @@ const NEED_ATTENTION = ["Need Copy Approval", "Need Content Approval", "Needs Re
 const SHIPPED = ["Approved", "Scheduled", "Posted"];
 
 function pct(n, d) { return d ? Math.round((n / d) * 100) : 0; }
-function clientName(clients, id) { const c = clients.find(x => x.id === id); return c ? (c.name || "—") : "Unassigned"; }
+function clientName(clients, id) { const c = (clients || []).find(x => x?.id === id); return c ? (c.name || "—") : "Unassigned"; }
 function fmtDate(d) { if (!d) return "—"; const t = new Date(d); return Number.isNaN(t.getTime()) ? "—" : t.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
 
 function KpiCard({ value, suffix, label, sub, color }) {
@@ -31,6 +31,9 @@ function KpiCard({ value, suffix, label, sub, color }) {
 export default function ReportsRoute({ isMobile, clients = [], content = [] }) {
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const safeClients = clients || [];
+  const safeContent = content || [];
+  const safeApprovals = approvals || [];
 
   useEffect(() => {
     let cancelled = false;
@@ -42,48 +45,51 @@ export default function ReportsRoute({ isMobile, clients = [], content = [] }) {
   }, []);
 
   const k = useMemo(() => {
-    const shipped = content.filter(x => SHIPPED.includes(x.status));
-    const posted = content.filter(x => x.posted_at);
+    const items = content || [];
+    const shipped = items.filter(x => SHIPPED.includes(x?.status));
+    const posted = items.filter(x => x?.posted_at);
     // On-time: posted on or before its scheduled publish_date
-    const onTime = posted.filter(x => x.publish_date && new Date(x.posted_at) <= new Date(new Date(x.publish_date).getTime() + 86400000));
+    const onTime = posted.filter(x => x?.publish_date && new Date(x.posted_at) <= new Date(new Date(x.publish_date).getTime() + 86400000));
     // First-pass: shipped with zero revisions
-    const firstPass = shipped.filter(x => !x.revision_count);
+    const firstPass = shipped.filter(x => !x?.revision_count);
     // Revision load
-    const revs = content.reduce((s, x) => s + (x.revision_count || 0), 0);
-    const revised = content.filter(x => x.revision_count > 0).length;
+    const revs = items.reduce((s, x) => s + (Number(x?.revision_count) || 0), 0);
+    const revised = items.filter(x => Number(x?.revision_count) > 0).length;
     return {
-      total: content.length,
+      total: items.length,
       shipped: shipped.length,
       posted: posted.length,
-      inFlight: content.filter(x => !SHIPPED.includes(x.status) && x.status !== "Scrapped").length,
-      awaiting: content.filter(x => NEED_ATTENTION.includes(x.status)).length,
+      inFlight: items.filter(x => !SHIPPED.includes(x?.status) && x?.status !== "Scrapped").length,
+      awaiting: items.filter(x => NEED_ATTENTION.includes(x?.status)).length,
       onTimeRate: pct(onTime.length, posted.length),
       firstPassRate: pct(firstPass.length, shipped.length),
       postingRate: pct(posted.length, shipped.length),
-      avgRevisions: content.length ? (revs / content.length).toFixed(1) : "0",
+      avgRevisions: items.length ? (revs / items.length).toFixed(1) : "0",
       revised,
     };
   }, [content]);
 
   const perClient = useMemo(() => {
-    return clients.map(c => {
-      const items = content.filter(x => x.client_id === c.id);
-      const shipped = items.filter(x => SHIPPED.includes(x.status));
-      const posted = items.filter(x => x.posted_at);
-      const firstPass = shipped.filter(x => !x.revision_count);
+    const allClients = clients || [];
+    const allContent = content || [];
+    return allClients.map(c => {
+      const items = allContent.filter(x => x?.client_id === c?.id);
+      const shipped = items.filter(x => SHIPPED.includes(x?.status));
+      const posted = items.filter(x => x?.posted_at);
+      const firstPass = shipped.filter(x => !x?.revision_count);
       return {
-        id: c.id, name: c.name, color: c.brand_color || ACCENT,
+        id: c?.id, name: c?.name, color: c?.brand_color || ACCENT,
         total: items.length,
-        awaiting: items.filter(x => NEED_ATTENTION.includes(x.status)).length,
+        awaiting: items.filter(x => NEED_ATTENTION.includes(x?.status)).length,
         firstPass: pct(firstPass.length, shipped.length),
         posted: posted.length,
-        cadence: c.cadence || null,
+        cadence: c?.cadence || null,
       };
-    }).filter(r => r.total > 0).sort((a, b) => b.total - a.total);
+    }).filter(r => (r?.total || 0) > 0).sort((a, b) => (b?.total || 0) - (a?.total || 0));
   }, [clients, content]);
 
-  const decisions = approvals.slice(0, 12);
-  const itemTitle = (id) => { const it = content.find(x => x.id === id); return it ? (it.title || "Untitled") : id; };
+  const decisions = safeApprovals.slice(0, 12);
+  const itemTitle = (id) => { const it = safeContent.find(x => x?.id === id); return it ? (it.title || "Untitled") : id; };
   const decColor = (d) => d === "approved" ? "#30d158" : d === "revision_requested" ? "#f97316" : "#ff453a";
   const decLabel = (d) => d === "approved" ? "Approved" : d === "revision_requested" ? "Revisions" : "Rejected";
 
@@ -155,16 +161,16 @@ export default function ReportsRoute({ isMobile, clients = [], content = [] }) {
             ) : decisions.length === 0 ? (
               <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 12.5, color: "rgba(255,255,255,0.4)" }}>No approvals recorded yet. They'll appear as the team works the Ledger.</div>
             ) : decisions.map((a, i) => (
-              <div key={a.id} style={{ padding: "11px 16px", borderBottom: i < decisions.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+              <div key={a?.id} style={{ padding: "11px 16px", borderBottom: i < decisions.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <span style={{ fontSize: 12, color: "#f5f5f7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{itemTitle(a.content_item_id)}</span>
-                  <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: decColor(a.decision), flexShrink: 0 }}>{decLabel(a.decision)}</span>
+                  <span style={{ fontSize: 12, color: "#f5f5f7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{itemTitle(a?.content_item_id)}</span>
+                  <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: decColor(a?.decision), flexShrink: 0 }}>{decLabel(a?.decision)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 3 }}>
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clientName(clients, a.client_id)}{a.approver_email ? ` · ${a.approver_email.split("@")[0]}` : ""}</span>
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'Geist Mono', monospace", flexShrink: 0 }}>{fmtDate(a.created_at)}</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clientName(safeClients, a?.client_id)}{a?.approver_email ? ` · ${a.approver_email.split("@")[0]}` : ""}</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'Geist Mono', monospace", flexShrink: 0 }}>{fmtDate(a?.created_at)}</span>
                 </div>
-                {a.feedback && <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.45)", marginTop: 4, fontStyle: "italic" }}>“{a.feedback}”</div>}
+                {a?.feedback && <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.45)", marginTop: 4, fontStyle: "italic" }}>“{a.feedback}”</div>}
               </div>
             ))}
           </div>

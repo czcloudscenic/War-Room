@@ -25,13 +25,15 @@ function nextStatus(decision, stage) {
  *   approver : { id, email } (the signed-in user)
  * Writes the audit row → advances the item → notifies. Returns the new status.
  */
-export async function recordApproval({ item, decision, stage, feedback, approver }) {
+export async function recordApproval({ item, decision, stage, feedback, approver } = {}) {
   const status = nextStatus(decision, stage);
+  const itemId = item?.id;
+  const clientId = item?.client_id;
 
   // 1. audit trail
   const { error: aErr } = await sb.from('approvals').insert({
-    content_item_id: item.id,
-    client_id: item.client_id,
+    content_item_id: itemId,
+    client_id: clientId,
     approver_id: approver?.id || null,
     approver_email: approver?.email || null,
     decision,
@@ -42,8 +44,8 @@ export async function recordApproval({ item, decision, stage, feedback, approver
 
   // 2. advance the item
   const patch = { status, updated_at: new Date().toISOString() };
-  if (decision === 'revision_requested') patch.revision_count = (item.revision_count || 0) + 1;
-  const { error: uErr } = await sb.from('content_items').update(patch).eq('id', item.id);
+  if (decision === 'revision_requested') patch.revision_count = (Number(item?.revision_count) || 0) + 1;
+  const { error: uErr } = await sb.from('content_items').update(patch).eq('id', itemId);
   if (uErr) throw new Error('status update failed: ' + uErr.message);
 
   // 3. notify (best-effort — never block the decision on a failed webhook)
@@ -53,20 +55,20 @@ export async function recordApproval({ item, decision, stage, feedback, approver
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         type: decision === 'revision_requested' ? 'revision_requested' : 'approved',
-        item: { id: item.id, title: item.title, status },
-        client_id: item.client_id,
+        item: { id: itemId, title: item?.title, status },
+        client_id: clientId,
         feedback: feedback || null,
       }),
     });
   } catch { /* noop — Slack/email is a courtesy, not a gate */ }
 
-  return { status, revision_count: patch.revision_count ?? item.revision_count };
+  return { status, revision_count: patch.revision_count ?? item?.revision_count };
 }
 
 /** Inline ledger edits — assign owner / set due date. */
 export async function setLedgerFields(itemId, fields) {
   const { error } = await sb.from('content_items')
-    .update({ ...fields, updated_at: new Date().toISOString() })
+    .update({ ...(fields || {}), updated_at: new Date().toISOString() })
     .eq('id', itemId);
   if (error) throw new Error(error.message);
 }

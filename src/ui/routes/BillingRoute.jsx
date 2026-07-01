@@ -13,8 +13,8 @@ const STATUS_COLOR = { paid: "#30d158", sent: "#64d2ff", overdue: "#ff453a", dra
 function fmtMoney(n) { return "$" + (Number(n) || 0).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
 function fmtDate(d) { if (!d) return "—"; const t = new Date(d); return Number.isNaN(t.getTime()) ? "—" : t.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
 function effectiveStatus(inv) {
-  if (inv.status === "sent" && inv.due_date && new Date(inv.due_date).getTime() < Date.now()) return "overdue";
-  return inv.status;
+  if (inv?.status === "sent" && inv?.due_date && new Date(inv.due_date).getTime() < Date.now()) return "overdue";
+  return inv?.status;
 }
 const head = { fontSize: 8.5, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.38)", fontWeight: 700, fontFamily: "'Geist Mono', monospace" };
 const input = { width: "100%", background: "#161314", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 9, padding: "10px 12px", fontSize: 14, color: "#f5f5f7", outline: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box" };
@@ -36,22 +36,24 @@ export default function BillingRoute({ isMobile, clients = [] }) {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ client_id: "", amount: "", due_date: "", description: "" });
   const [busy, setBusy] = useState(false);
+  const safeClients = clients || [];
+  const safeInvoices = invoices || [];
 
   const load = async () => { const { data } = await sb.from("invoices").select("*").order("created_at", { ascending: false }); if (Array.isArray(data)) setInvoices(data); setLoading(false); };
   useEffect(() => { load(); }, []);
 
-  const clientName = (id) => { const c = clients.find(x => x.id === id); return c ? c.name : "—"; };
-  const activeMRR = clients.filter(c => c.status === "active").reduce((s, c) => s + (Number(c.retainer_amount) || 0), 0);
+  const clientName = (id) => { const c = safeClients.find(x => x?.id === id); return c ? c.name : "—"; };
+  const activeMRR = safeClients.filter(c => c?.status === "active").reduce((s, c) => s + (Number(c?.retainer_amount) || 0), 0);
 
   const stats = useMemo(() => {
     let outstanding = 0, overdue = 0, paid30 = 0;
     const now = Date.now();
-    for (const inv of invoices) {
+    for (const inv of (invoices || [])) {
       const st = effectiveStatus(inv);
-      const amt = Number(inv.amount) || 0;
+      const amt = Number(inv?.amount) || 0;
       if (st === "sent" || st === "overdue") outstanding += amt;
       if (st === "overdue") overdue += amt;
-      if (inv.status === "paid" && inv.paid_at && new Date(inv.paid_at).getTime() >= now - 30 * 86400000) paid30 += amt;
+      if (inv?.status === "paid" && inv?.paid_at && new Date(inv.paid_at).getTime() >= now - 30 * 86400000) paid30 += amt;
     }
     return { outstanding, overdue, paid30 };
   }, [invoices]);
@@ -77,7 +79,7 @@ export default function BillingRoute({ isMobile, clients = [] }) {
     setBusy(true); setErr(null);
     try {
       const year = form.due_date ? new Date(form.due_date).getFullYear() : new Date().getFullYear();
-      const number = `INV-${year}-${String(invoices.length + 1).padStart(3, "0")}`;
+      const number = `INV-${year}-${String(safeInvoices.length + 1).padStart(3, "0")}`;
       const row = {
         number, client_id: form.client_id, amount: Number(form.amount), currency: "usd",
         status: send ? "sent" : "draft",
@@ -88,11 +90,11 @@ export default function BillingRoute({ isMobile, clients = [] }) {
       };
       const { data, error } = await sb.from("invoices").insert(row).select().single();
       if (error) throw new Error(error.message);
-      setInvoices(prev => [data, ...prev]);
+      if (data) setInvoices(prev => [data, ...(prev || [])]);
       // On "send": try Stripe first (hosted invoice + native email). If Stripe
       // isn't wired (501) or errors, fall back to the manual invoice email so the
       // client still gets billed either way. Best-effort — never block the create.
-      if (send) {
+      if (send && data) {
         try {
           const res = await apiFetch("/api/billing/stripe", {
             method: "POST",
@@ -101,7 +103,7 @@ export default function BillingRoute({ isMobile, clients = [] }) {
           });
           if (res.ok) {
             const j = await res.json().catch(() => ({}));
-            if (j.stripe_invoice_id) setInvoices(prev => prev.map(x => x.id === data.id ? { ...x, stripe_invoice_id: j.stripe_invoice_id } : x));
+            if (j.stripe_invoice_id) setInvoices(prev => (prev || []).map(x => x.id === data.id ? { ...x, stripe_invoice_id: j.stripe_invoice_id } : x));
           } else {
             await emailInvoice(data); // 501 not-wired or Stripe error → manual email
           }
@@ -116,9 +118,9 @@ export default function BillingRoute({ isMobile, clients = [] }) {
   async function setStatus(inv, status) {
     const patch = { status, updated_at: new Date().toISOString() };
     if (status === "paid") patch.paid_at = new Date().toISOString();
-    if (status === "sent" && !inv.sent_at) { patch.sent_at = new Date().toISOString(); patch.issued_at = new Date().toISOString().slice(0, 10); }
-    setInvoices(prev => prev.map(x => x.id === inv.id ? { ...x, ...patch } : x));
-    await sb.from("invoices").update(patch).eq("id", inv.id);
+    if (status === "sent" && !inv?.sent_at) { patch.sent_at = new Date().toISOString(); patch.issued_at = new Date().toISOString().slice(0, 10); }
+    setInvoices(prev => (prev || []).map(x => x?.id === inv?.id ? { ...x, ...patch } : x));
+    await sb.from("invoices").update(patch).eq("id", inv?.id);
   }
 
   return (
@@ -147,29 +149,29 @@ export default function BillingRoute({ isMobile, clients = [] }) {
       <div style={{ background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
         {loading ? (
           <div style={{ padding: "28px 18px", textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>Loading…</div>
-        ) : invoices.length === 0 ? (
+        ) : safeInvoices.length === 0 ? (
           <div style={{ padding: "40px 18px", textAlign: "center" }}>
             <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: 22, fontStyle: "italic", color: "#f5f5f7", marginBottom: 8 }}>No invoices yet.</div>
             <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)" }}>Create your first invoice to start tracking billing.</div>
           </div>
-        ) : invoices.map((inv, i) => {
+        ) : safeInvoices.map((inv, i) => {
           const st = effectiveStatus(inv);
           const sc = STATUS_COLOR[st] || STATUS_COLOR.draft;
           return (
-            <div key={inv.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderBottom: i < invoices.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", flexWrap: isMobile ? "wrap" : "nowrap" }}>
+            <div key={inv?.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderBottom: i < safeInvoices.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", flexWrap: isMobile ? "wrap" : "nowrap" }}>
               <div style={{ flex: 2, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, color: "#f5f5f7", fontFamily: "'Geist Mono', monospace" }}>{inv.number || "—"}</div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clientName(inv.client_id)}{inv.line_items?.[0]?.description ? ` · ${inv.line_items[0].description}` : ""}</div>
+                <div style={{ fontSize: 12.5, color: "#f5f5f7", fontFamily: "'Geist Mono', monospace" }}>{inv?.number || "—"}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clientName(inv?.client_id)}{inv?.line_items?.[0]?.description ? ` · ${inv.line_items[0].description}` : ""}</div>
               </div>
-              <div style={{ flex: 1, textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 13, color: "#f5f5f7" }}>{fmtMoney(inv.amount)}</div>
-              <div style={{ width: 70, textAlign: "right", fontSize: 11, fontFamily: "'Geist Mono', monospace", color: st === "overdue" ? "#ff453a" : "rgba(255,255,255,0.45)" }}>{fmtDate(inv.due_date)}</div>
+              <div style={{ flex: 1, textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 13, color: "#f5f5f7" }}>{fmtMoney(inv?.amount)}</div>
+              <div style={{ width: 70, textAlign: "right", fontSize: 11, fontFamily: "'Geist Mono', monospace", color: st === "overdue" ? "#ff453a" : "rgba(255,255,255,0.45)" }}>{fmtDate(inv?.due_date)}</div>
               <div style={{ width: 78, textAlign: "right" }}>
                 <span style={{ fontSize: 8.5, letterSpacing: 0.5, textTransform: "uppercase", fontWeight: 700, fontFamily: "'Geist Mono', monospace", color: sc }}>{st}</span>
               </div>
               <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", width: 150 }}>
-                {inv.status === "draft" && <button onClick={() => setStatus(inv, "sent")} style={{ height: 28, padding: "0 11px", borderRadius: 7, background: "rgba(100,210,255,0.14)", border: "1px solid rgba(100,210,255,0.3)", color: "#64d2ff", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Send</button>}
-                {inv.status !== "paid" && inv.status !== "void" && <button onClick={() => setStatus(inv, "paid")} style={{ height: 28, padding: "0 11px", borderRadius: 7, background: "rgba(48,209,88,0.14)", border: "1px solid rgba(48,209,88,0.3)", color: "#30d158", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Mark paid</button>}
-                {inv.status === "paid" && <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace" }}>paid {fmtDate(inv.paid_at)}</span>}
+                {inv?.status === "draft" && <button onClick={() => setStatus(inv, "sent")} style={{ height: 28, padding: "0 11px", borderRadius: 7, background: "rgba(100,210,255,0.14)", border: "1px solid rgba(100,210,255,0.3)", color: "#64d2ff", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Send</button>}
+                {inv?.status !== "paid" && inv?.status !== "void" && <button onClick={() => setStatus(inv, "paid")} style={{ height: 28, padding: "0 11px", borderRadius: 7, background: "rgba(48,209,88,0.14)", border: "1px solid rgba(48,209,88,0.3)", color: "#30d158", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Mark paid</button>}
+                {inv?.status === "paid" && <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace" }}>paid {fmtDate(inv?.paid_at)}</span>}
               </div>
             </div>
           );
@@ -184,7 +186,7 @@ export default function BillingRoute({ isMobile, clients = [] }) {
             <label style={{ ...head, display: "block", marginBottom: 6 }}>Client</label>
             <select value={form.client_id} onChange={e => setForm({ ...form, client_id: e.target.value })} style={{ ...input, marginBottom: 12 }}>
               <option value="">Select client…</option>
-              {clients.filter(c => c.status === "active").map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {safeClients.filter(c => c?.status === "active").map(c => <option key={c?.id} value={c?.id}>{c?.name}</option>)}
             </select>
             <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
               <div style={{ flex: 1 }}>

@@ -50,6 +50,10 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
   const [accounts, setAccounts] = useState([]);
   const [clientOv, setClientOv] = useState({});   // id -> partial (optimistic)
   const [busy, setBusy] = useState(null);
+  const safeClients = clients || [];
+  const safeContent = content || [];
+  const safeTeam = team || [];
+  const safeAccounts = accounts || [];
 
   useEffect(() => {
     let cancelled = false;
@@ -65,24 +69,24 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
     return () => { cancelled = true; };
   }, []);
 
-  const activeClients = useMemo(() => clients.filter(c => c.status === "active"), [clients]);
-  const cval = (c, k) => (clientOv[c.id] && k in clientOv[c.id]) ? clientOv[c.id][k] : c[k];
+  const activeClients = useMemo(() => (clients || []).filter(c => c?.status === "active"), [clients]);
+  const cval = (c, k) => (clientOv[c?.id] && k in clientOv[c?.id]) ? clientOv[c?.id][k] : c?.[k];
 
   async function patchClient(id, fields) {
     setClientOv(prev => ({ ...prev, [id]: { ...prev[id], ...fields } }));
     await sb.from("clients").update(fields).eq("id", id);
   }
   async function patchAccount(id, client_id) {
-    setAccounts(prev => prev.map(a => a.id === id ? { ...a, client_id } : a));
+    setAccounts(prev => (prev || []).map(a => a?.id === id ? { ...a, client_id } : a));
     await sb.from("connected_accounts").update({ client_id }).eq("id", id);
   }
 
   // ── completion counts ──
   const retDone = activeClients.filter(c => Number(cval(c, "retainer_amount")) > 0).length;
-  const acctDone = accounts.filter(a => a.client_id).length;
-  const dueItems = content.filter(x => !DONE_STATUSES.includes(x.status));
-  const assignDone = dueItems.filter(x => x.due_date && x.assigned_to).length;
-  const teamDone = team.filter(m => m.email && m.email.trim()).length;
+  const acctDone = safeAccounts.filter(a => a?.client_id).length;
+  const dueItems = safeContent.filter(x => !DONE_STATUSES.includes(x?.status));
+  const assignDone = dueItems.filter(x => x?.due_date && x?.assigned_to).length;
+  const teamDone = safeTeam.filter(m => m?.email && m.email.trim()).length;
 
   return (
     <div style={{ animation: "fadeIn 0.4s ease" }}>
@@ -146,18 +150,18 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
       </Section>
 
       {/* 2 — Connected accounts → client */}
-      <Section n={2} title="Connect social accounts to clients" desc="Attributes each account's reach to the right client in Analytics." done={acctDone} total={accounts.length}>
-        {accounts.length === 0 ? (
+      <Section n={2} title="Connect social accounts to clients" desc="Attributes each account's reach to the right client in Analytics." done={acctDone} total={safeAccounts.length}>
+        {safeAccounts.length === 0 ? (
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>No connected accounts yet. Connect them in Settings → Connected Accounts.</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {accounts.map(a => (
-              <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 9, fontFamily: "'Geist Mono', monospace", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", width: 66 }}>{PLATFORM_LABEL[a.platform] || a.platform}</span>
-                <span style={{ flex: 1, minWidth: 120, fontSize: 13, color: "#f5f5f7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.handle || a.display_name || `Account ${a.id}`}</span>
-                <select value={a.client_id || ""} onChange={e => patchAccount(a.id, e.target.value || null)} style={{ ...input, width: 200, padding: "8px 10px", fontSize: 13 }}>
+            {safeAccounts.map(a => (
+              <div key={a?.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 9, fontFamily: "'Geist Mono', monospace", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", width: 66 }}>{PLATFORM_LABEL[a?.platform] || a?.platform}</span>
+                <span style={{ flex: 1, minWidth: 120, fontSize: 13, color: "#f5f5f7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a?.handle || a?.display_name || `Account ${a?.id}`}</span>
+                <select value={a?.client_id || ""} onChange={e => patchAccount(a?.id, e.target.value || null)} style={{ ...input, width: 200, padding: "8px 10px", fontSize: 13 }}>
                   <option value="">— Unassigned —</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {safeClients.map(c => <option key={c?.id} value={c?.id}>{c?.name}</option>)}
                 </select>
               </div>
             ))}
@@ -167,12 +171,12 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
 
       {/* 3 — Owners & due dates */}
       <Section n={3} title="Deliverable owners & due dates" desc="Assign an owner and due date — powers Ledger/Reports health and the daily overdue chase." done={assignDone} total={dueItems.length}>
-        <BulkAssign items={dueItems} clients={clients} team={team} onBusy={setBusy} busy={busy} />
+        <BulkAssign items={dueItems} clients={safeClients} team={safeTeam} onBusy={setBusy} busy={busy} />
       </Section>
 
       {/* 4 — Team roster */}
-      <Section n={4} title="Team roster" desc="Real names + emails so the daily overdue-task chase can reach people." done={teamDone} total={team.length}>
-        <TeamEditor team={team} setTeam={setTeam} />
+      <Section n={4} title="Team roster" desc="Real names + emails so the daily overdue-task chase can reach people." done={teamDone} total={safeTeam.length}>
+        <TeamEditor team={safeTeam} setTeam={setTeam} />
       </Section>
     </div>
   );
@@ -180,14 +184,17 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
 
 // ── Section 3 body: multi-select + bulk owner / due date ──
 function BulkAssign({ items, clients, team = [], onBusy, busy }) {
+  const safeItems = items || [];
+  const safeClients = clients || [];
+  const safeTeam = team || [];
   const [sel, setSel] = useState(() => new Set());
   const [due, setDue] = useState("");
   const [owner, setOwner] = useState("");
   const [overrides, setOverrides] = useState({}); // id -> { due_date, assigned_to } (optimistic)
-  const cname = (id) => { const c = clients.find(x => x.id === id); return c ? c.name : "—"; };
-  const ownerName = (id) => { const m = team.find(t => t.id === id); return m ? (m.name || m.email || "Owner") : null; };
-  const fieldOf = (x, k) => (overrides[x.id] && k in overrides[x.id]) ? overrides[x.id][k] : x[k];
-  const missing = items.filter(x => !fieldOf(x, "due_date") || !fieldOf(x, "assigned_to"));
+  const cname = (id) => { const c = safeClients.find(x => x?.id === id); return c ? c.name : "—"; };
+  const ownerName = (id) => { const m = safeTeam.find(t => t?.id === id); return m ? (m.name || m.email || "Owner") : null; };
+  const fieldOf = (x, k) => (overrides[x?.id] && k in overrides[x?.id]) ? overrides[x?.id][k] : x?.[k];
+  const missing = safeItems.filter(x => !fieldOf(x, "due_date") || !fieldOf(x, "assigned_to"));
   const shown = missing.slice(0, 40);
 
   const toggle = (id) => setSel(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -207,7 +214,7 @@ function BulkAssign({ items, clients, team = [], onBusy, busy }) {
     finally { setSel(new Set()); onBusy(null); }
   }
 
-  if (items.length === 0) {
+  if (safeItems.length === 0) {
     return <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>No open deliverables yet.</div>;
   }
   if (missing.length === 0) {
@@ -220,7 +227,7 @@ function BulkAssign({ items, clients, team = [], onBusy, busy }) {
         <button type="button" onClick={toggleAll} style={{ fontSize: 11, padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)", cursor: "pointer" }}>{allShown ? "Clear" : `Select all (${shown.length})`}</button>
         <select value={owner} onChange={e => setOwner(e.target.value)} style={{ ...input, width: 170 }}>
           <option value="">Owner…</option>
-          {team.map(m => <option key={m.id} value={m.id}>{m.name || m.email}</option>)}
+          {safeTeam.map(m => <option key={m?.id} value={m?.id}>{m?.name || m?.email}</option>)}
         </select>
         <input type="date" value={due} onChange={e => setDue(e.target.value)} style={{ ...input, width: 160 }} />
         <button type="button" disabled={!canApply || busy === "assign"} onClick={apply}
@@ -249,35 +256,36 @@ function BulkAssign({ items, clients, team = [], onBusy, busy }) {
 }
 
 // ── Section 4 body: team roster editor ──
-function TeamEditor({ team, setTeam }) {
+function TeamEditor({ team = [], setTeam }) {
+  const safeTeam = team || [];
   const [adding, setAdding] = useState(false);
   const [nm, setNm] = useState({ name: "", role: "", email: "", skills: "" });
 
   const patch = async (id, fields) => {
-    setTeam(prev => prev.map(m => m.id === id ? { ...m, ...fields } : m));
+    setTeam(prev => (prev || []).map(m => m?.id === id ? { ...m, ...fields } : m));
     await sb.from("team_members").update(fields).eq("id", id);
   };
   const del = async (m) => {
-    if (!window.confirm(`Remove ${m.name} from the roster?`)) return;
-    setTeam(prev => prev.filter(x => x.id !== m.id));
-    await sb.from("team_members").delete().eq("id", m.id);
+    if (!window.confirm(`Remove ${m?.name || "this person"} from the roster?`)) return;
+    setTeam(prev => (prev || []).filter(x => x?.id !== m?.id));
+    await sb.from("team_members").delete().eq("id", m?.id);
   };
   const add = async () => {
     if (!nm.name.trim()) return;
     const row = { name: nm.name.trim(), role: nm.role.trim() || null, email: nm.email.trim() || null, skills: nm.skills.split(",").map(s => s.trim()).filter(Boolean), status: "online" };
     const { data } = await sb.from("team_members").insert(row).select().single();
-    if (data) setTeam(prev => [...prev, data]);
+    if (data) setTeam(prev => [...(prev || []), data]);
     setNm({ name: "", role: "", email: "", skills: "" }); setAdding(false);
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {team.map(m => (
-        <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, flexWrap: "wrap" }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: m.color || ACCENT, flexShrink: 0 }} />
-          <input defaultValue={m.name} onBlur={e => e.target.value.trim() && e.target.value !== m.name && patch(m.id, { name: e.target.value.trim() })} placeholder="Name" style={{ ...input, width: 130, padding: "7px 10px", fontSize: 13 }} />
-          <input defaultValue={m.role || ""} onBlur={e => e.target.value !== (m.role || "") && patch(m.id, { role: e.target.value.trim() || null })} placeholder="Role" style={{ ...input, width: 120, padding: "7px 10px", fontSize: 13 }} />
-          <input defaultValue={m.email || ""} onBlur={e => e.target.value !== (m.email || "") && patch(m.id, { email: e.target.value.trim() || null })} placeholder="email@…" style={{ ...input, flex: 1, minWidth: 150, padding: "7px 10px", fontSize: 13, border: m.email ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,159,10,0.35)" }} />
+      {safeTeam.map(m => (
+        <div key={m?.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, flexWrap: "wrap" }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: m?.color || ACCENT, flexShrink: 0 }} />
+          <input defaultValue={m?.name} onBlur={e => e.target.value.trim() && e.target.value !== m?.name && patch(m?.id, { name: e.target.value.trim() })} placeholder="Name" style={{ ...input, width: 130, padding: "7px 10px", fontSize: 13 }} />
+          <input defaultValue={m?.role || ""} onBlur={e => e.target.value !== (m?.role || "") && patch(m?.id, { role: e.target.value.trim() || null })} placeholder="Role" style={{ ...input, width: 120, padding: "7px 10px", fontSize: 13 }} />
+          <input defaultValue={m?.email || ""} onBlur={e => e.target.value !== (m?.email || "") && patch(m?.id, { email: e.target.value.trim() || null })} placeholder="email@…" style={{ ...input, flex: 1, minWidth: 150, padding: "7px 10px", fontSize: 13, border: m?.email ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,159,10,0.35)" }} />
           <button type="button" onClick={() => del(m)} title="Remove" style={{ width: 30, height: 30, borderRadius: 8, background: "transparent", border: "1px solid rgba(255,69,58,0.3)", color: "#ff453a", cursor: "pointer", fontSize: 13 }}>×</button>
         </div>
       ))}
