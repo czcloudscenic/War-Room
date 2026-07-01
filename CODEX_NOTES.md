@@ -117,3 +117,4 @@ Review notes:
 
 - Vite reports `TeamBroadcast.jsx` is still also statically imported by `src/ui/agents/AgentChatPage.jsx`, so that specific dynamic import cannot become its own chunk until that separate static import is addressed.
 - Because the original checkout was being used by a parallel `main` session, the remaining work was completed in the isolated worktree `/private/tmp/vantus-codex-grunt` on the same branch.
+- 2026-07-01 follow-up: converted the embedded `AgentChatPage` TeamBroadcast consumer to `React.lazy` + local `Suspense`; `npm run build` now emits a separate `TeamBroadcast` chunk with no static-import warning.
