@@ -89,3 +89,31 @@ Function syntax checks:
 - No live OAuth, platform API, Resend, Slack, n8n, Anthropic, Supabase production, or paid API calls were run.
 - Hands-off files were not edited: `netlify/functions/agent-action.js`, `src/ui/routes/IdeaEngineRoute.jsx`, `src/ui/routes/AnalyticsRoute.jsx`, `src/App.jsx`, `architecture-map.html`, and `docs/architecture-map/**`.
 - Existing generated/dirty files under `.netlify/`, plus untracked `Videos/` and `sprint-recap.html`, were left untouched.
+
+## 2026-07-01 grunt route split + null guards
+
+Branch: `codex/grunt-2026-07-01`.
+
+Changed:
+
+- Code-split the requested heavy routes/pages in `src/App.jsx` with `React.lazy` and one shared `React.Suspense` fallback around the existing route conditionals.
+- Kept `DashboardRoute` and `AgentsRoute` eager.
+- Added defensive null/undefined guards in `SetupRoute`, `LedgerRoute`, `ReportsRoute`, `OperationsRoute`, `ClientAnalyticsRoute`, `BillingRoute`, and `src/core/approvals.js`.
+- Guard patterns were mechanical: `(clients || [])`/safe collection fallbacks, optional chaining for row/metrics access, guarded `.find()` lookups, and numeric `|| 0`/`Number(...) || 0` defaults.
+
+Validation:
+
+- `npm run build` passed on the grunt branch.
+- Build emits multiple route chunks, including `SetupRoute`, `LedgerRoute`, `ReportsRoute`, `OperationsRoute`, `ClientAnalyticsRoute`, `BillingRoute`, `AnalyticsRoute`, `IdeaEngineRoute`, `CIDPage`, `ArtgridScoutPage`, `ReferencesPage`, `SkillsPage`, `ICPPage`, and `AdROIHub`.
+- Final main bundle reported by Vite: `dist/assets/index-D4HGWGp5.js` at 466.92 kB minified.
+
+Skipped / not touched:
+
+- No dependency changes were committed.
+- No `.env*`, auth, API-key, paid API, deploy, migration, push, or PR actions were run.
+- Existing parallel-session changes in the original checkout on `main` were left untouched.
+
+Review notes:
+
+- Vite reports `TeamBroadcast.jsx` is still also statically imported by `src/ui/agents/AgentChatPage.jsx`, so that specific dynamic import cannot become its own chunk until that separate static import is addressed.
+- Because the original checkout was being used by a parallel `main` session, the remaining work was completed in the isolated worktree `/private/tmp/vantus-codex-grunt` on the same branch.
