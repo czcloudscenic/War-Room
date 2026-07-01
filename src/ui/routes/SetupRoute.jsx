@@ -81,7 +81,7 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
   const retDone = activeClients.filter(c => Number(cval(c, "retainer_amount")) > 0).length;
   const acctDone = accounts.filter(a => a.client_id).length;
   const dueItems = content.filter(x => !DONE_STATUSES.includes(x.status));
-  const dueDone = dueItems.filter(x => x.due_date).length;
+  const assignDone = dueItems.filter(x => x.due_date && x.assigned_to).length;
   const teamDone = team.filter(m => m.email && m.email.trim()).length;
 
   return (
@@ -165,12 +165,9 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
         )}
       </Section>
 
-      {/* 3 — Due dates (owner assignment deferred — see banner) */}
-      <Section n={3} title="Deliverable due dates" desc="Powers overdue detection in Ledger, Reports, and Analytics." done={dueDone} total={dueItems.length}>
-        <div style={{ marginBottom: 14, padding: "10px 14px", background: "rgba(255,159,10,0.06)", border: "1px solid rgba(255,159,10,0.25)", borderRadius: 9, fontSize: 11.5, color: "rgba(255,200,120,0.9)" }}>
-          Owner assignment isn't here yet — <code style={{ fontFamily: "'Geist Mono', monospace" }}>content_items.assigned_to</code> points at auth users while the Ledger reads the team roster. That mismatch needs a schema decision first. Due dates work now.
-        </div>
-        <BulkDue items={dueItems} clients={clients} isMobile={isMobile} onBusy={setBusy} busy={busy} />
+      {/* 3 — Owners & due dates */}
+      <Section n={3} title="Deliverable owners & due dates" desc="Assign an owner and due date — powers Ledger/Reports health and the daily overdue chase." done={assignDone} total={dueItems.length}>
+        <BulkAssign items={dueItems} clients={clients} team={team} onBusy={setBusy} busy={busy} />
       </Section>
 
       {/* 4 — Team roster */}
@@ -181,53 +178,70 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
   );
 }
 
-// ── Section 3 body: multi-select + bulk due date ──
-function BulkDue({ items, clients, isMobile, onBusy, busy }) {
+// ── Section 3 body: multi-select + bulk owner / due date ──
+function BulkAssign({ items, clients, team = [], onBusy, busy }) {
   const [sel, setSel] = useState(() => new Set());
   const [due, setDue] = useState("");
-  const [overrides, setOverrides] = useState({}); // id -> due_date (optimistic)
+  const [owner, setOwner] = useState("");
+  const [overrides, setOverrides] = useState({}); // id -> { due_date, assigned_to } (optimistic)
   const cname = (id) => { const c = clients.find(x => x.id === id); return c ? c.name : "—"; };
-  const missing = items.filter(x => !(overrides[x.id] ?? x.due_date));
+  const ownerName = (id) => { const m = team.find(t => t.id === id); return m ? (m.name || m.email || "Owner") : null; };
+  const fieldOf = (x, k) => (overrides[x.id] && k in overrides[x.id]) ? overrides[x.id][k] : x[k];
+  const missing = items.filter(x => !fieldOf(x, "due_date") || !fieldOf(x, "assigned_to"));
   const shown = missing.slice(0, 40);
 
   const toggle = (id) => setSel(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const allShown = shown.length > 0 && shown.every(x => sel.has(x.id));
   const toggleAll = () => setSel(allShown ? new Set() : new Set(shown.map(x => x.id)));
 
+  const canApply = (due || owner) && sel.size > 0;
   async function apply() {
-    if (!due || sel.size === 0) return;
-    onBusy("due");
+    if (!canApply) return;
+    onBusy("assign");
     const ids = [...sel];
-    setOverrides(prev => { const n = { ...prev }; ids.forEach(id => { n[id] = due; }); return n; });
-    try { await Promise.all(ids.map(id => setLedgerFields(id, { due_date: due }))); }
+    const fields = {};
+    if (due) fields.due_date = due;
+    if (owner) fields.assigned_to = owner;
+    setOverrides(prev => { const n = { ...prev }; ids.forEach(id => { n[id] = { ...n[id], ...fields }; }); return n; });
+    try { await Promise.all(ids.map(id => setLedgerFields(id, fields))); }
     finally { setSel(new Set()); onBusy(null); }
   }
 
-  if (items.length > 0 && missing.length === 0) {
-    return <div style={{ fontSize: 12, color: "#30d158" }}>Every deliverable has a due date. ✓</div>;
-  }
   if (items.length === 0) {
     return <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>No open deliverables yet.</div>;
+  }
+  if (missing.length === 0) {
+    return <div style={{ fontSize: 12, color: "#30d158" }}>Every deliverable has an owner and a due date. ✓</div>;
   }
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
         <button type="button" onClick={toggleAll} style={{ fontSize: 11, padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)", cursor: "pointer" }}>{allShown ? "Clear" : `Select all (${shown.length})`}</button>
+        <select value={owner} onChange={e => setOwner(e.target.value)} style={{ ...input, width: 170 }}>
+          <option value="">Owner…</option>
+          {team.map(m => <option key={m.id} value={m.id}>{m.name || m.email}</option>)}
+        </select>
         <input type="date" value={due} onChange={e => setDue(e.target.value)} style={{ ...input, width: 160 }} />
-        <button type="button" disabled={!due || sel.size === 0 || busy === "due"} onClick={apply}
-          style={{ fontSize: 12, fontWeight: 600, padding: "8px 16px", borderRadius: 8, border: "none", cursor: (!due || sel.size === 0) ? "not-allowed" : "pointer", background: (!due || sel.size === 0) ? "rgba(255,255,255,0.08)" : ACCENT, color: (!due || sel.size === 0) ? "rgba(255,255,255,0.4)" : "#fff" }}>
-          {busy === "due" ? "Setting…" : `Set due date${sel.size ? ` (${sel.size})` : ""}`}
+        <button type="button" disabled={!canApply || busy === "assign"} onClick={apply}
+          style={{ fontSize: 12, fontWeight: 600, padding: "8px 16px", borderRadius: 8, border: "none", cursor: !canApply ? "not-allowed" : "pointer", background: !canApply ? "rgba(255,255,255,0.08)" : ACCENT, color: !canApply ? "rgba(255,255,255,0.4)" : "#fff" }}>
+          {busy === "assign" ? "Applying…" : `Apply${sel.size ? ` (${sel.size})` : ""}`}
         </button>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {shown.map(x => (
-          <label key={x.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: sel.has(x.id) ? "rgba(42,171,255,0.08)" : "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 9, cursor: "pointer" }}>
-            <input type="checkbox" checked={sel.has(x.id)} onChange={() => toggle(x.id)} style={{ accentColor: ACCENT, width: 15, height: 15 }} />
-            <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "#f5f5f7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.title || "Untitled"}</span>
-            <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace" }}>{cname(x.client_id)}</span>
-          </label>
-        ))}
+        {shown.map(x => {
+          const o = ownerName(fieldOf(x, "assigned_to"));
+          const d = fieldOf(x, "due_date");
+          return (
+            <label key={x.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: sel.has(x.id) ? "rgba(42,171,255,0.08)" : "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 9, cursor: "pointer" }}>
+              <input type="checkbox" checked={sel.has(x.id)} onChange={() => toggle(x.id)} style={{ accentColor: ACCENT, width: 15, height: 15 }} />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "#f5f5f7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.title || "Untitled"}</span>
+              <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: o ? "rgba(255,255,255,0.55)" : "rgba(255,159,10,0.8)" }}>{o || "no owner"}</span>
+              <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: d ? "rgba(255,255,255,0.55)" : "rgba(255,159,10,0.8)" }}>{d || "no date"}</span>
+              <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.35)", fontFamily: "'Geist Mono', monospace" }}>{cname(x.client_id)}</span>
+            </label>
+          );
+        })}
         {missing.length > shown.length && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", padding: "6px 2px" }}>+{missing.length - shown.length} more — set these first, the rest will surface.</div>}
       </div>
     </div>
