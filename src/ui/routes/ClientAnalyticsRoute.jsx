@@ -50,23 +50,56 @@ function Bar({ label, value, total, color }) {
 export default function ClientAnalyticsRoute({ isMobile, clients = [], content = [] }) {
   const [accounts, setAccounts] = useState([]);
   const [posts, setPosts] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [acc, pst] = await Promise.all([
+      const [acc, pst, inv] = await Promise.all([
         sb.from("connected_accounts").select("id, client_id, platform"),
         sb.from("account_posts").select("account_id, metrics"),
+        sb.from("invoices").select("amount, status, issued_at, sent_at, paid_at, created_at"),
       ]);
       if (!cancelled) {
         if (Array.isArray(acc.data)) setAccounts(acc.data);
         if (Array.isArray(pst.data)) setPosts(pst.data);
+        if (Array.isArray(inv.data)) setInvoices(inv.data);
         setLoading(false);
       }
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // MRR / revenue trend — last 6 months of billed revenue from invoices.
+  // Honest time-series (we don't retain retainer history), so the chart tracks
+  // invoiced revenue per month; current MRR is the headline reference above.
+  const trend = useMemo(() => {
+    const now = new Date();
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString("en-US", { month: "short" }), value: 0 });
+    }
+    const idx = new Map(months.map((m, i) => [m.key, i]));
+    for (const inv of invoices) {
+      if (inv.status === "void" || inv.status === "draft") continue; // only billed
+      const raw = inv.issued_at || inv.sent_at || inv.paid_at || inv.created_at;
+      if (!raw) continue;
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) continue;
+      const k = `${d.getFullYear()}-${d.getMonth()}`;
+      if (idx.has(k)) months[idx.get(k)].value += Number(inv.amount) || 0;
+    }
+    const maxY = Math.max(...months.map(m => m.value), 1);
+    const hasData = months.some(m => m.value > 0);
+    const W = 800, H = 120;
+    const step = months.length > 1 ? W / (months.length - 1) : 0;
+    const pts = months.map((m, i) => ({ x: months.length > 1 ? i * step : W / 2, y: H - (m.value / maxY) * (H - 10) - 4 }));
+    const line = pts.map((p, i) => (i === 0 ? `M ${p.x},${p.y}` : `L ${p.x},${p.y}`)).join(" ");
+    const area = `${line} L ${pts[pts.length - 1].x},${H} L ${pts[0].x},${H} Z`;
+    return { months, maxY, hasData, line, area };
+  }, [invoices]);
 
   const roll = useMemo(() => {
     const acctClient = new Map(accounts.map(a => [a.id, a.client_id]));
@@ -125,6 +158,35 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
         <StatCard value={fmtMoney(roll.mrr)} label="MRR" sub={`${roll.activeCount} active clients`} color="#30d158" big />
         <StatCard value={`${onTrackPct}%`} label="Deliverables on-track" sub={`${roll.deliverables} total`} color={onTrackPct >= 80 ? "#30d158" : "#f59e0b"} big />
         <StatCard value={`${roll.avgHealth}%`} label="Clients green" sub={`${roll.overdue} overdue items`} color={roll.avgHealth >= 70 ? "#30d158" : "#f59e0b"} big />
+      </div>
+
+      {/* MRR / revenue trend */}
+      <div style={{ padding: "18px 20px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ ...head }}>Revenue trend · last 6 months</div>
+          <div style={{ fontSize: 20, fontFamily: "'Geist Mono', monospace", fontWeight: 700, color: "#30d158" }}>{fmtMoney(roll.mrr)}<span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 400, marginLeft: 6 }}>MRR now</span></div>
+        </div>
+        {trend.hasData ? (
+          <>
+            <svg viewBox="0 0 800 120" preserveAspectRatio="none" style={{ width: "100%", height: 110, display: "block" }}>
+              <defs>
+                <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#30d158" stopOpacity="0.28" />
+                  <stop offset="100%" stopColor="#30d158" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d={trend.area} fill="url(#mrrGrad)" />
+              <path d={trend.line} fill="none" stroke="#30d158" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+              {trend.months.map((m, i) => (
+                <span key={i} style={{ fontSize: 9.5, color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace" }}>{m.label}</span>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div style={{ padding: "26px 0", textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>No invoiced revenue yet — create invoices in Billing to see the trend.</div>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 18, flexWrap: isMobile ? "wrap" : "nowrap", marginBottom: 24 }}>

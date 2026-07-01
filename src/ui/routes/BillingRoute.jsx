@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
+import { apiFetch } from '../../services/apiFetch.js';
 
 // ── Billing & Invoices ────────────────────────────────────────────────────────
 // Manual invoice tracking, built Stripe-ready. Create/send/mark-paid invoices,
@@ -72,8 +73,28 @@ export default function BillingRoute({ isMobile, clients = [] }) {
       const { data, error } = await sb.from("invoices").insert(row).select().single();
       if (error) throw new Error(error.message);
       setInvoices(prev => [data, ...prev]);
-      // Invoice email is deferred to the Stripe wiring step (Stripe sends invoice
-      // emails natively). For now "send" marks the invoice sent + issued.
+      // Fire the invoice-sent email (best-effort — never block the create on a
+      // webhook). notify.js resolves the client's billing email from client_id.
+      // When Stripe is wired later, it can take over native invoice delivery.
+      if (send) {
+        apiFetch("/api/notify", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            type: "invoice_sent",
+            client_id: form.client_id,
+            item: {
+              id: data.id,
+              number: data.number,
+              amount: data.amount,
+              currency: data.currency,
+              due_date: data.due_date,
+              description: form.description || "",
+              title: `Invoice ${data.number}`,
+            },
+          }),
+        }).catch(() => {});
+      }
       setModal(false); setForm({ client_id: "", amount: "", due_date: "", description: "" });
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   }

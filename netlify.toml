@@ -120,6 +120,11 @@
 [functions."agent-action"]
   timeout = 26
 
+# Daily "chase" — nudges assignees + Danny about overdue tasks. 14:00 UTC (~7am PT).
+[functions."chase-overdue-tasks"]
+  schedule = "0 14 * * *"
+  timeout = 26
+
 [functions."apify-scrape"]
   timeout = 26
 

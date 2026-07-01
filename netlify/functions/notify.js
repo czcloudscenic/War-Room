@@ -66,6 +66,124 @@ async function insertNotification({ type, item, message, client_id }) {
   }
 }
 
+function fmtMoney(n, currency) {
+  const amt = (Number(n) || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  return (currency && currency.toLowerCase() !== "usd") ? `${amt} ${String(currency).toUpperCase()}` : `$${amt}`;
+}
+
+// ── Invoice-sent email ────────────────────────────────────────────────────────
+// Delivers the invoice to the client's billing email (clients.primary_email),
+// falling back to the admin list if none is on file. Also persists a bell
+// notification and mirrors to Slack. Kept separate from the approval path so
+// each stays simple. When Stripe is wired, it can take over native delivery.
+async function handleInvoiceSent({ cors, item, client_id }) {
+  const results = [];
+
+  // Resolve client name + billing email + webhooks in one round-trip.
+  let clientName = null, clientEmail = null;
+  let SLACK = process.env.SLACK_WEBHOOK_URL;
+  if (client_id && SERVICE_KEY) {
+    try {
+      const cRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/clients?id=eq.${client_id}&select=name,primary_email,slack_webhook_url`,
+        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      );
+      if (cRes.ok) {
+        const row = (await cRes.json())?.[0];
+        clientName = row?.name || null;
+        clientEmail = row?.primary_email || null;
+        if (row?.slack_webhook_url) SLACK = row.slack_webhook_url;
+      }
+    } catch (e) { console.warn("[notify] invoice client lookup failed:", e.message); }
+  }
+
+  const number = item.number || item.title || "Invoice";
+  const amountLabel = fmtMoney(item.amount, item.currency);
+  const dueLabel = item.due_date
+    ? new Date(item.due_date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    : "upon receipt";
+  const message = `🧾 Invoice ${number} for ${amountLabel} sent to ${clientName || "client"} · due ${dueLabel}`;
+
+  // Persist bell notification (broadcast to admins).
+  results.push({ channel: "supabase", ...(await insertNotification({ type: "invoice_sent", item: { ...item, client_id }, message, client_id })) });
+
+  // Email — to the client if we have their address, else the admin list.
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  const toClient = !!clientEmail;
+  const recipients = clientEmail ? [clientEmail] : ADMIN_EMAILS;
+  if (RESEND_KEY) {
+    const safeNumber = escapeHtml(number);
+    const safeClient = escapeHtml(clientName || "there");
+    const safeDesc = escapeHtml(item.description || "");
+    const descHtml = item.description
+      ? `<tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;">Description</td><td style="padding:8px 0;font-size:13px;color:rgba(0,0,0,0.65);">${safeDesc}</td></tr>`
+      : "";
+    const fallbackBanner = toClient ? "" :
+      `<div style="margin:0 0 16px;padding:12px 16px;background:#fff8e6;border-left:3px solid #ff9f0a;border-radius:6px;font-size:12px;color:#8a5a00;">No billing email on file for this client — sent to the team instead. Add one in the client's profile.</div>`;
+    const html = `
+<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,Inter,sans-serif;">
+  <div style="max-width:520px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+    <div style="background:linear-gradient(135deg,#0a1a2e,#0d2a4a);padding:32px 32px 28px;">
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;">Cloud Scenic${clientName ? " × " + escapeHtml(clientName) : ""}</div>
+      <div style="font-size:28px;font-weight:700;color:#fff;letter-spacing:-1px;line-height:1.1;">🧾 Invoice ${safeNumber}</div>
+    </div>
+    <div style="padding:28px 32px;">
+      ${fallbackBanner}
+      <p style="font-size:14px;color:#1d1d1f;margin:0 0 18px;">Hi ${safeClient}, here's your invoice from Cloud Scenic.</p>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;width:110px;">Amount due</td><td style="padding:8px 0;font-size:20px;font-weight:700;color:#1d1d1f;">${escapeHtml(amountLabel)}</td></tr>
+        <tr><td style="padding:8px 0;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:1px;">Due</td><td style="padding:8px 0;font-size:13px;color:rgba(0,0,0,0.65);">${escapeHtml(dueLabel)}</td></tr>
+        ${descHtml}
+      </table>
+      <div style="margin-top:26px;padding-top:20px;border-top:1px solid rgba(0,0,0,0.07);font-size:11px;color:rgba(0,0,0,0.35);">
+        Cloud Scenic · Reply to this email with any billing questions.
+      </div>
+    </div>
+  </div>
+</body></html>`;
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: "Cloud Scenic Billing <notifications@cloudscenic.com>",
+          to: recipients,
+          subject: `🧾 Invoice ${number} — ${amountLabel} due ${dueLabel}`,
+          html,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      results.push({ channel: "email", ok: res.ok, to: toClient ? "client" : "admins", id: data.id, error: data.message });
+    } catch (e) {
+      results.push({ channel: "email", ok: false, error: e.message });
+    }
+  } else {
+    results.push({ channel: "email", ok: false, error: "RESEND_API_KEY not set" });
+  }
+
+  // Slack mirror (internal).
+  if (SLACK) {
+    try {
+      const r = await fetch(SLACK, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocks: [
+          { type: "header", text: { type: "plain_text", text: `🧾 Invoice ${number} sent`, emoji: true } },
+          { type: "section", fields: [
+            { type: "mrkdwn", text: `*Client*\n${escapeHtml(clientName || "—")}` },
+            { type: "mrkdwn", text: `*Amount*\n${escapeHtml(amountLabel)}` },
+            { type: "mrkdwn", text: `*Due*\n${escapeHtml(dueLabel)}` },
+            { type: "mrkdwn", text: `*Delivered to*\n${toClient ? "client" : "team (no client email)"}` },
+          ] },
+        ] }),
+      });
+      results.push({ channel: "slack", ok: r.ok });
+    } catch (e) { results.push({ channel: "slack", ok: false, error: e.message }); }
+  }
+
+  return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, message, results }) };
+}
+
 exports.handler = async (event) => {
   const cors = { ...makeCors(event), "Content-Type": "application/json" };
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers: cors, body: "" };
@@ -82,6 +200,9 @@ exports.handler = async (event) => {
 
   const { type, item, client_id } = body;
   if (!type || !item) return { statusCode: 400, headers: cors, body: "Missing type or item" };
+
+  // Invoice-sent has its own recipient (the client) + template — handle and return.
+  if (type === "invoice_sent") return handleInvoiceSent({ cors, item, client_id });
 
   const isApproved = type === "approved";
   const emoji      = isApproved ? "✅" : "🔄";
