@@ -56,6 +56,22 @@ export default function BillingRoute({ isMobile, clients = [] }) {
     return { outstanding, overdue, paid30 };
   }, [invoices]);
 
+  // Manual invoice-sent email (used when Stripe isn't wired or errors).
+  async function emailInvoice(data) {
+    return apiFetch("/api/notify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        type: "invoice_sent",
+        client_id: data.client_id,
+        item: {
+          id: data.id, number: data.number, amount: data.amount, currency: data.currency,
+          due_date: data.due_date, description: (data.line_items?.[0]?.description) || "", title: `Invoice ${data.number}`,
+        },
+      }),
+    }).catch(() => {});
+  }
+
   async function createInvoice(send) {
     if (!form.client_id || !form.amount) { setErr("Client and amount are required."); return; }
     setBusy(true); setErr(null);
@@ -73,27 +89,25 @@ export default function BillingRoute({ isMobile, clients = [] }) {
       const { data, error } = await sb.from("invoices").insert(row).select().single();
       if (error) throw new Error(error.message);
       setInvoices(prev => [data, ...prev]);
-      // Fire the invoice-sent email (best-effort — never block the create on a
-      // webhook). notify.js resolves the client's billing email from client_id.
-      // When Stripe is wired later, it can take over native invoice delivery.
+      // On "send": try Stripe first (hosted invoice + native email). If Stripe
+      // isn't wired (501) or errors, fall back to the manual invoice email so the
+      // client still gets billed either way. Best-effort — never block the create.
       if (send) {
-        apiFetch("/api/notify", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            type: "invoice_sent",
-            client_id: form.client_id,
-            item: {
-              id: data.id,
-              number: data.number,
-              amount: data.amount,
-              currency: data.currency,
-              due_date: data.due_date,
-              description: form.description || "",
-              title: `Invoice ${data.number}`,
-            },
-          }),
-        }).catch(() => {});
+        try {
+          const res = await apiFetch("/api/billing/stripe", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ action: "create", invoice_id: data.id }),
+          });
+          if (res.ok) {
+            const j = await res.json().catch(() => ({}));
+            if (j.stripe_invoice_id) setInvoices(prev => prev.map(x => x.id === data.id ? { ...x, stripe_invoice_id: j.stripe_invoice_id } : x));
+          } else {
+            await emailInvoice(data); // 501 not-wired or Stripe error → manual email
+          }
+        } catch {
+          await emailInvoice(data);
+        }
       }
       setModal(false); setForm({ client_id: "", amount: "", due_date: "", description: "" });
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
