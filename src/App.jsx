@@ -19,14 +19,7 @@ import AppPlaceholder from './ui/shared/AppPlaceholder.jsx';
 // ── Extracted UI components (Phase 3) ──
 import QuickActionsDashboard from './ui/dashboard/QuickActionsDashboard.jsx';
 import AppsPage from './ui/apps/AppsPage.jsx';
-import ReferencesPage from './apps/references/ReferencesPage.jsx';
-import SkillsPage from './apps/skills/SkillsPage.jsx';
-import AdROIHub from './apps/ad-roi/AdROIHub.jsx';
-import TeamBroadcast from './ui/agents/TeamBroadcast.jsx';
-import ArtgridScoutPage from './apps/artgrid/ArtgridScoutPage.jsx';
 import EditContentModal from './ui/pipeline/EditContentModal.jsx';
-import CIDPage from './apps/competitor-intel/CIDPage.jsx';
-import ICPPage from './ui/command/ICPPage.jsx';
 import LoginScreen from './ui/layout/LoginScreen.jsx';
 import SettingsPage from './ui/settings/SettingsPage.jsx';
 import TypingTask from './ui/shared/TypingTask.jsx';
@@ -34,16 +27,24 @@ import PlaceholderPage from './ui/shared/PlaceholderPage.jsx';
 import AddClientModal from './ui/clients/AddClientModal.jsx';
 import DashboardRoute from './ui/routes/DashboardRoute.jsx';
 import ClientsRoute from './ui/routes/ClientsRoute.jsx';
-import SetupRoute from './ui/routes/SetupRoute.jsx';
-import LedgerRoute from './ui/routes/LedgerRoute.jsx';
-import ReportsRoute from './ui/routes/ReportsRoute.jsx';
-import OperationsRoute from './ui/routes/OperationsRoute.jsx';
-import ClientAnalyticsRoute from './ui/routes/ClientAnalyticsRoute.jsx';
-import BillingRoute from './ui/routes/BillingRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
-import AnalyticsRoute from './ui/routes/AnalyticsRoute.jsx';
-import IdeaEngineRoute from './ui/routes/IdeaEngineRoute.jsx';
+
+const ReferencesPage = React.lazy(() => import('./apps/references/ReferencesPage.jsx'));
+const SkillsPage = React.lazy(() => import('./apps/skills/SkillsPage.jsx'));
+const AdROIHub = React.lazy(() => import('./apps/ad-roi/AdROIHub.jsx'));
+const TeamBroadcast = React.lazy(() => import('./ui/agents/TeamBroadcast.jsx'));
+const ArtgridScoutPage = React.lazy(() => import('./apps/artgrid/ArtgridScoutPage.jsx'));
+const CIDPage = React.lazy(() => import('./apps/competitor-intel/CIDPage.jsx'));
+const ICPPage = React.lazy(() => import('./ui/command/ICPPage.jsx'));
+const SetupRoute = React.lazy(() => import('./ui/routes/SetupRoute.jsx'));
+const LedgerRoute = React.lazy(() => import('./ui/routes/LedgerRoute.jsx'));
+const ReportsRoute = React.lazy(() => import('./ui/routes/ReportsRoute.jsx'));
+const OperationsRoute = React.lazy(() => import('./ui/routes/OperationsRoute.jsx'));
+const ClientAnalyticsRoute = React.lazy(() => import('./ui/routes/ClientAnalyticsRoute.jsx'));
+const BillingRoute = React.lazy(() => import('./ui/routes/BillingRoute.jsx'));
+const AnalyticsRoute = React.lazy(() => import('./ui/routes/AnalyticsRoute.jsx'));
+const IdeaEngineRoute = React.lazy(() => import('./ui/routes/IdeaEngineRoute.jsx'));
 
 //  ROOT APP WRAPPER
 const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
@@ -1253,6 +1254,7 @@ try {
 
   {/*  MAIN  */}
   <div style={{ flex:1, overflowY:"auto", padding: isMobile ? "24px 16px calc(72px + env(safe-area-inset-bottom,0px))" : "48px 52px", position:"relative", zIndex:25, background:"transparent", WebkitOverflowScrolling:"touch" }}>
+    <React.Suspense fallback={<div style={{ padding:48,color:'rgba(255,255,255,0.4)',fontSize:13 }}>Loading…</div>}>
 
     {/* DASHBOARD */}
     {activeNav === "dashboard" && (
@@ -1347,6 +1349,7 @@ try {
     {activeNav === "costs" && <AppPlaceholder label="Cost Governance" desc="API spend tracking, agent budget controls, and cost optimization." icon="$" />}
     {activeNav === "automation" && <AppPlaceholder label="Automation Center" desc="Scheduled agent workflows, n8n triggers, and pipeline automation." icon="⚡" />}
 
+    </React.Suspense>
   </div>
 
   {/*  MOBILE BOTTOM NAV  */}
