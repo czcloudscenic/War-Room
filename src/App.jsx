@@ -34,6 +34,7 @@ import PlaceholderPage from './ui/shared/PlaceholderPage.jsx';
 import AddClientModal from './ui/clients/AddClientModal.jsx';
 import DashboardRoute from './ui/routes/DashboardRoute.jsx';
 import ClientsRoute from './ui/routes/ClientsRoute.jsx';
+import SetupRoute from './ui/routes/SetupRoute.jsx';
 import LedgerRoute from './ui/routes/LedgerRoute.jsx';
 import ReportsRoute from './ui/routes/ReportsRoute.jsx';
 import OperationsRoute from './ui/routes/OperationsRoute.jsx';
@@ -1278,6 +1279,10 @@ try {
         onEdit={(c) => setEditingClient(c)}
         onAdd={() => setAddClientOpen(true)}
       />
+    )}
+
+    {activeNav === "setup" && (
+      <SetupRoute isMobile={isMobile} clients={clients} content={content} />
     )}
 
     {activeNav === "ledger" && (
