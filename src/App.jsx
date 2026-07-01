@@ -36,6 +36,7 @@ import DashboardRoute from './ui/routes/DashboardRoute.jsx';
 import ClientsRoute from './ui/routes/ClientsRoute.jsx';
 import LedgerRoute from './ui/routes/LedgerRoute.jsx';
 import ReportsRoute from './ui/routes/ReportsRoute.jsx';
+import OperationsRoute from './ui/routes/OperationsRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
 import AnalyticsRoute from './ui/routes/AnalyticsRoute.jsx';
@@ -1270,6 +1271,10 @@ try {
 
     {activeNav === "reports" && (
       <ReportsRoute isMobile={isMobile} clients={clients} content={content} />
+    )}
+
+    {activeNav === "operations" && (
+      <OperationsRoute isMobile={isMobile} clients={clients} />
     )}
 
     {/* AGENTS */}

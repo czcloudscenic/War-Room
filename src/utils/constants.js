@@ -1,7 +1,7 @@
 // ── Constants ──
 
 export const NAV = [
-  { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"clients", label:"Clients" }, { id:"ledger", label:"Ledger" }, { id:"reports", label:"Reports" }, { id:"agents", label:"Agents" }, { id:"cid", label:"Competitor Intel" }, { id:"icp", label:"Ideal Customer" }]},
+  { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"clients", label:"Clients" }, { id:"ledger", label:"Ledger" }, { id:"reports", label:"Reports" }, { id:"operations", label:"Operations" }, { id:"agents", label:"Agents" }, { id:"cid", label:"Competitor Intel" }, { id:"icp", label:"Ideal Customer" }]},
   { section:"CONTENT", items:[{ id:"analytics", label:"Analytics" }, { id:"ideas", label:"Idea Engine" }, { id:"adroihub", label:"Ad ROI Hub" }, { id:"content", label:"Pipeline" }]},
   { section:"APPS", items:[{ id:"apps", label:"Apps" }, { id:"settings", label:"Settings" }]},
 ];
