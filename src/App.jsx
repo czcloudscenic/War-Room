@@ -30,20 +30,14 @@ import ClientsRoute from './ui/routes/ClientsRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
 
-const ReferencesPage = React.lazy(() => import('./apps/references/ReferencesPage.jsx'));
 const SkillsPage = React.lazy(() => import('./apps/skills/SkillsPage.jsx'));
-const AdROIHub = React.lazy(() => import('./apps/ad-roi/AdROIHub.jsx'));
 const TeamBroadcast = React.lazy(() => import('./ui/agents/TeamBroadcast.jsx'));
-const ArtgridScoutPage = React.lazy(() => import('./apps/artgrid/ArtgridScoutPage.jsx'));
-const CIDPage = React.lazy(() => import('./apps/competitor-intel/CIDPage.jsx'));
-const ICPPage = React.lazy(() => import('./ui/command/ICPPage.jsx'));
 const SetupRoute = React.lazy(() => import('./ui/routes/SetupRoute.jsx'));
 const LedgerRoute = React.lazy(() => import('./ui/routes/LedgerRoute.jsx'));
 const ReportsRoute = React.lazy(() => import('./ui/routes/ReportsRoute.jsx'));
 const OperationsRoute = React.lazy(() => import('./ui/routes/OperationsRoute.jsx'));
 const ClientAnalyticsRoute = React.lazy(() => import('./ui/routes/ClientAnalyticsRoute.jsx'));
 const BillingRoute = React.lazy(() => import('./ui/routes/BillingRoute.jsx'));
-const AnalyticsRoute = React.lazy(() => import('./ui/routes/AnalyticsRoute.jsx'));
 const IdeaEngineRoute = React.lazy(() => import('./ui/routes/IdeaEngineRoute.jsx'));
 
 //  ROOT APP WRAPPER
@@ -1330,14 +1324,8 @@ try {
       />
     )}
 
-    {activeNav === "analytics" && <AnalyticsRoute />}
     {activeNav === "ideas" && <IdeaEngineRoute currentClient={currentClient} />}
-    {activeNav === "cid" && React.createElement(CIDPage, null)}
-    {activeNav === "icp" && <ICPPage />}
-    {(activeNav === "sales" || activeNav === "adroihub") && <AdROIHub />}
     {(activeNav === "chat" || activeNav === "broadcast") && <TeamBroadcast agents={agents} />}
-    {activeNav === "artgrid" && <ArtgridScoutPage content={content} />}
-    {activeNav === "references" && <ReferencesPage />}
 
     {/* SKILLS */}
     {activeNav === "skills" && <SkillsPage agents={agents} />}
@@ -1346,7 +1334,6 @@ try {
     {activeNav === "apps" && <AppsPage apps={apps} toggleApp={toggleApp} />}
     {activeNav === "settings" && <SettingsPage />}
     {activeNav === "scrappy" && <AppPlaceholder label="Scraping Ops" desc="Live trend scraping from TikTok, IG, Reddit — powered by Scrappy." icon="◉" />}
-    {activeNav === "costs" && <AppPlaceholder label="Cost Governance" desc="API spend tracking, agent budget controls, and cost optimization." icon="$" />}
     {activeNav === "automation" && <AppPlaceholder label="Automation Center" desc="Scheduled agent workflows, n8n triggers, and pipeline automation." icon="⚡" />}
 
     </React.Suspense>
@@ -1357,10 +1344,10 @@ try {
     <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:"rgba(10,8,9,0.96)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderTop:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", paddingBottom:"env(safe-area-inset-bottom,0)", height:"calc(58px + env(safe-area-inset-bottom,0px))" }}>
       {[
         { id:"dashboard", label:"Home" },
+        { id:"clients", label:"Clients" },
         { id:"content", label:"Pipeline" },
-        { id:"agents", label:"Agents" },
-        { id:"adroihub", label:"ROI" },
-        { id:"cid", label:"Intel" },
+        { id:"ledger", label:"Ledger" },
+        { id:"billing", label:"Billing" },
       ].map(tab => {
         const active = activeNav === tab.id;
         return (
