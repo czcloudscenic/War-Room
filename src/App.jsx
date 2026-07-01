@@ -40,6 +40,21 @@ const ClientAnalyticsRoute = React.lazy(() => import('./ui/routes/ClientAnalytic
 const BillingRoute = React.lazy(() => import('./ui/routes/BillingRoute.jsx'));
 const IdeaEngineRoute = React.lazy(() => import('./ui/routes/IdeaEngineRoute.jsx'));
 
+// Warm the lazy route chunks in the background after first paint so navigating
+// between pages is instant (no per-click chunk fetch + Suspense flash). Keeps the
+// small initial bundle for fast login, then pre-downloads everything while idle.
+function prefetchRoutes() {
+  import('./ui/routes/SetupRoute.jsx');
+  import('./ui/routes/LedgerRoute.jsx');
+  import('./ui/routes/ReportsRoute.jsx');
+  import('./ui/routes/OperationsRoute.jsx');
+  import('./ui/routes/ClientAnalyticsRoute.jsx');
+  import('./ui/routes/BillingRoute.jsx');
+  import('./ui/routes/IdeaEngineRoute.jsx');
+  import('./ui/agents/TeamBroadcast.jsx');
+  import('./apps/skills/SkillsPage.jsx');
+}
+
 //  ROOT APP WRAPPER
 const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
 const ALLOWED_DOMAIN = "cloudscenic.com";
@@ -416,6 +431,11 @@ document.body.classList.toggle("ai-disabled", !next);
   // Sync body class on mount
   useEffect(() => {
 document.body.classList.toggle("ai-disabled", !aiEnabled);
+  }, []);
+  // Warm lazy route chunks ~1.2s after mount so page-to-page nav is instant.
+  useEffect(() => {
+const t = setTimeout(prefetchRoutes, 1200);
+return () => clearTimeout(t);
   }, []);
   // Global AI gate — all agent/chat calls check this ref before firing
   const aiEnabledRef = React.useRef(aiEnabled);
