@@ -1,11 +1,11 @@
 # Vantus
 
-Content operations dashboard for **VitalLyfe**. Internally named "warroom" (per `package.json`).
+**Agency fulfillment + billing OS** for Cloud Scenic (multi-tenant client book). Internally named "warroom" (per `package.json`). Nav: Dashboard · Clients · Setup · Ledger · Reports · Client Analytics · Operations · Agents · Idea Engine · Pipeline · Billing (Stripe-wired).
 
 **Live:** https://usevantus.com
 **Fallback:** https://majestic-cassata-aa16e9.netlify.app
 **Repo:** https://github.com/czcloudscenic/War-Room.git — `main` auto-deploys via Netlify
-**Local dev:** `npm run dev` → http://localhost:5173
+**Local dev:** `npm run dev` → http://localhost:5173 (auto-increments if the port's taken)
 
 ## Where things live
 
@@ -19,7 +19,7 @@ Content operations dashboard for **VitalLyfe**. Internally named "warroom" (per 
 | n8n workflow JSON exports | `n8n/` |
 | Architecture / agent / app / UI rules | `docs/` |
 | Interactive system map + bug punch-list | `architecture-map.html` + `docs/architecture-map/` |
-| Standalone sub-utilities (own node_modules) | `tools/artgrid-scout/`, `tools/cid-scout/` |
+| Removed code kept for reuse | `ripped out features/` (e.g. `analytics-page/`) |
 | Old UI experiments parked for reuse | `(experimental)/` |
 | Current session context (read first) | `HANDOFF.md` |
 | Agent persona + working rules | `CLAUDE.md` |

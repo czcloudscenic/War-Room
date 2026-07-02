@@ -1,6 +1,15 @@
 # Vantus (internally "warroom")
 
-Content operations dashboard for **VitalLyfe**. Production React/Vite app deployed to Netlify, auto-deploys on push to `main`.
+**Agency fulfillment + billing OS** for Cloud Scenic — multi-tenant (a client book, not a single-client dashboard). Runs client delivery end to end: CRM, content pipeline with approvals, deliverables ledger, delivery KPIs, operations/tasks, client analytics, and Stripe-wired billing. Production React/Vite app on Netlify, auto-deploys on push to `main`.
+
+## Current app surface (nav)
+
+- **COMMAND:** Dashboard · Clients · Setup · Ledger · Reports · Client Analytics · Operations · Agents
+- **CONTENT:** Idea Engine · Pipeline
+- **FINANCE:** Billing (Stripe wired — `netlify/functions/billing-stripe.js`)
+- **APPS:** Apps (Skills real; Scraping Ops + Automation Center are placeholders) · Settings
+
+Agent team is **Sean / Muse / Scrappy** (Artgrid removed 2026-07-01). Removed pages (2026-07-01): Ad ROI Hub, References, ArtGrid, Cost Governance, Ideal Customer, Competitor Intel, Analytics (Analytics extracted to `ripped out features/analytics-page/`).
 
 ## Agent persona
 
@@ -39,8 +48,8 @@ Before doing any work in this codebase, read that spec. It defines:
 - `netlify/functions/` — serverless
 - `public/` `supabase/` `n8n/` — assets / schema / workflows
 - `docs/` — architecture, rules, refactor plan
-- `tools/` — standalone sub-utilities (`artgrid-scout/`, `cid-scout/`) with their own `node_modules`
 - `(experimental)/` — UI experiments parked for reuse, NOT in the build
+- `ripped out features/` — removed code kept for reference/reuse (e.g. `analytics-page/`, `client-view/`)
 
 ## Business context (read before any user-facing copy)
 

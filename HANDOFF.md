@@ -1,3 +1,16 @@
+# Vantus Handoff Brief
+
+## 2026-07-01 session — fulfillment OS complete, Stripe wired, big cleanup
+
+**Current board lives in `VANTUS_TODO.md` (rewritten this session — read it first).** Snapshot:
+
+- **Vantus is now the agency fulfillment + billing OS** (multi-tenant), not a single-client dashboard. Live pages: Dashboard · Clients · Setup · Ledger · Reports · Client Analytics · Operations · Agents · Idea Engine · Pipeline · Billing.
+- **Shipped this session (all pushed):** P1 chase cron + MRR trend + invoice email; **Setup** data-entry page; owner-assign (migration `20260701_assigned_to_team_members.sql`, applied); **Stripe wiring** (`billing-stripe.js` — create hosted invoice + webhook paid-sync; secrets `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` set in Netlify, live webhook endpoint created); Codex perf merge (code-split + null-guards + prefetch, ~531KB); removed 6 pages + Analytics (extracted to `ripped out features/analytics-page/`); removed **Artgrid agent** (team = Sean/Muse/Scrappy); deleted `tools/`; `npm audit` clean.
+- **Open:** P0 data entry (retainers/mappings/owners on the Setup page); first real Stripe invoice unproven (each client needs `primary_email`); parked builds — ClientView portal, Unified Inbox, Template Engine, auto-posting, in-page customization design.
+- **Guardrails unchanged:** founder pushes `main` (one-shot PAT; shell can't reach keychain); migrations via Supabase SQL editor; `git fetch` before commit (shared repo); Codex runs in its OWN worktree (a shared-dir collision happened this session — never let it check out the live folder).
+
+---
+
 # Vantus Handoff Brief — 2026-06-04 (9-item package: speed shipped, #3 reunited, #10 planned)
 
 ## 2026-06-04 session — the "9-item package" push
