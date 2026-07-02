@@ -532,9 +532,11 @@ return () => sb.removeChannel(channel);
       // querying. Without this, the fetch can race the auth restore on hard
       // refresh / new deploy → RLS returns empty → "No clients yet".
       await sb.auth.getSession();
+      // select * so Setup reads scope/retainer/facts/report fields on first load
+      // (the old narrow column list left those blank until a realtime update).
       const { data, error } = await sb
         .from("clients")
-        .select("id, slug, name, brand_voice_md, brand_color, logo_url, primary_email, slack_channel_id, n8n_webhook_url, status")
+        .select("*")
         .eq("status", "active")
         .order("name");
       if (cancelled || error) { if (error) console.warn("[clients] fetch error", error); return; }
@@ -723,10 +725,20 @@ if (isNewItem) {
       .then(({ error }) => { if (error) console.warn("Supabase insert error:", error.message); });
   }
 } else {
+  const before = content.find(x => x.id === item.id);
   setContent(prev => prev.map(x => x.id === item.id ? item : x));
   if (sb) {
     sb.from("content_items").update(item).eq("id", item.id)
       .then(({ error }) => { if (error) console.warn("Supabase save error:", error.message); });
+  }
+  // QC auto-trigger: the moment a deliverable lands at the content-approval gate,
+  // the QC agent reviews it (fire-and-forget; result flows back via realtime).
+  if (before && before.status !== "Need Content Approval" && item.status === "Need Content Approval") {
+    safeAgentFetch("/api/agent-action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "qc_review", payload: { itemId: item.id }, client_id: item.client_id || null }),
+    }).catch(() => {});
   }
 }
 setEditingItem(null);

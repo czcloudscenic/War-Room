@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { recordApproval, setLedgerFields, markPosted } from '../../core/approvals.js';
+import { apiFetch } from '../../services/apiFetch.js';
 
 // ── Deliverables Ledger ───────────────────────────────────────────────────────
 // The system-of-record + the approval surface. Every deliverable as one row: who
@@ -69,9 +70,32 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
   const stageOf = (item) => ((item?.status || "").includes("Copy") ? "copy" : "content");
 
   async function doApprove(item) {
+    // QC gate — a blocked deliverable (wrong price/hours/expired offer) can't be
+    // approved at the content gate until QC passes or the facts are fixed.
+    if (item.qc_status === "blocked" && stageOf(item) === "content") {
+      setErr('QC has blocked this item (factual mismatch). Fix the issue and hit "Run QC" again before approving.');
+      return;
+    }
     setBusy(item.id); setErr(null);
     try { const { status } = await recordApproval({ item, decision: "approved", stage: stageOf(item), approver: currentUser }); patch(item.id, { status }); setExpandedId(null); }
     catch (e) { setErr(e.message); } finally { setBusy(null); }
+  }
+  async function doQC(item) {
+    setBusy(item.id); setErr(null);
+    patch(item.id, { qc_status: "running" });
+    try {
+      const res = await apiFetch("/api/agent-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "qc_review", payload: { itemId: item.id }, client_id: item.client_id || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `QC failed (${res.status})`);
+      patch(item.id, { qc_status: data.status, qc_issues: data.issues, qc_ran_at: data.qc_ran_at });
+    } catch (e) {
+      patch(item.id, { qc_status: item.qc_status || "not_run" });
+      setErr("QC run failed: " + e.message);
+    } finally { setBusy(null); }
   }
   async function doRevision(item) {
     if (!feedback.trim()) { setErr("Add feedback for the revision."); return; }
@@ -80,6 +104,10 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
     catch (e) { setErr(e.message); } finally { setBusy(null); }
   }
   async function doPosted(item) {
+    if (item.qc_status === "blocked") {
+      setErr("QC has blocked this item — it can't be marked posted until the factual issue is resolved and QC re-run.");
+      return;
+    }
     setBusy(item.id); setErr(null);
     try { await markPosted(item.id); patch(item.id, { status: "Posted", posted_at: new Date().toISOString() }); setExpandedId(null); }
     catch (e) { setErr(e.message); } finally { setBusy(null); }
@@ -165,6 +193,10 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
                   <div style={{ ...col(0.7), fontSize: 11.5, fontFamily: "'Geist Mono', monospace", color: overdue ? "#ff453a" : "rgba(255,255,255,0.6)" }}>{fmtDate(item.due_date) || "—"}</div>
                   <div style={{ ...col(0.7), fontSize: 11.5, fontFamily: "'Geist Mono', monospace", color: item.posted_at ? "#30d158" : "rgba(255,255,255,0.6)" }}>{item.posted_at ? "✓ live" : (fmtDate(item.publish_date) || "—")}</div>
                   <div style={{ ...col(1.2), display: "flex", gap: 6, justifyContent: isMobile ? "flex-start" : "flex-end", flexWrap: "wrap" }}>
+                    {item.qc_status === "blocked" && <Flag label="qc blocked" color="#ff453a" />}
+                    {item.qc_status === "flagged" && <Flag label="qc flags" color="#ff9f0a" />}
+                    {item.qc_status === "pass" && <Flag label="qc pass" color="#30d158" />}
+                    {item.qc_status === "running" && <Flag label="qc running" color="#64d2ff" />}
                     {item.in_scope === false && <Flag label="out of scope" color="#ff9f0a" />}
                     {item.billable === false && <Flag label="non-billable" color="rgba(255,255,255,0.45)" />}
                     {item.approval_mode === "client" && <Flag label="client approval" color="#64d2ff" />}
@@ -183,10 +215,38 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
                       <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="What needs to change? (required to request revisions)" rows={2} style={{ width: "100%", padding: "8px 11px", borderRadius: 8, background: "#161314", border: "1px solid rgba(255,255,255,0.12)", color: "#f5f5f7", fontSize: 12.5, fontFamily: "Inter, sans-serif", resize: "vertical", outline: "none" }} />
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignSelf: "flex-end" }}>
+                      <button disabled={working} onClick={() => doQC(item)} style={btn("rgba(100,210,255,0.12)", "#64d2ff")}>{item.qc_status === "running" ? "QC running…" : "Run QC"}</button>
                       <button disabled={working} onClick={() => doRevision(item)} style={btn("rgba(249,115,22,0.15)", "#f97316")}>Request revisions</button>
                       <button disabled={working} onClick={() => doApprove(item)} style={btn(ACCENT)}>{working ? "…" : "Approve"}</button>
                       {(item.status === "Scheduled" || item.status === "Approved") && <button disabled={working} onClick={() => doPosted(item)} style={btn("rgba(48,209,88,0.15)", "#30d158")}>Mark posted</button>}
                     </div>
+
+                    {/* QC panel — the agent's verdict on this deliverable */}
+                    {item.qc_status && item.qc_status !== "not_run" && item.qc_status !== "running" && (
+                      <div style={{ flexBasis: "100%", marginTop: 4, padding: "12px 14px", borderRadius: 10,
+                        background: item.qc_status === "blocked" ? "rgba(255,69,58,0.06)" : item.qc_status === "flagged" ? "rgba(255,159,10,0.05)" : "rgba(48,209,88,0.05)",
+                        border: `1px solid ${item.qc_status === "blocked" ? "rgba(255,69,58,0.25)" : item.qc_status === "flagged" ? "rgba(255,159,10,0.22)" : "rgba(48,209,88,0.22)"}` }}>
+                        <div style={{ ...head, marginBottom: 8, color: item.qc_status === "blocked" ? "#ff453a" : item.qc_status === "flagged" ? "#ff9f0a" : "#30d158" }}>
+                          🛡️ QC — {item.qc_status === "blocked" ? "BLOCKED (won't schedule)" : item.qc_status === "flagged" ? "Flagged for review" : "Pass"}
+                          {item.qc_ran_at && <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, marginLeft: 8, color: "rgba(255,255,255,0.35)" }}>ran {new Date(item.qc_ran_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>}
+                        </div>
+                        {(item.qc_issues || []).length === 0 ? (
+                          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>No issues. Facts, copy, and brand all check out.</div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                            {(item.qc_issues || []).map((iss, k) => (
+                              <div key={k} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12 }}>
+                                <span style={{ flexShrink: 0, fontSize: 11 }}>{iss.severity === "blocker" ? "⛔" : "⚠️"}</span>
+                                <span style={{ color: iss.severity === "blocker" ? "#ff6b61" : "rgba(255,255,255,0.7)" }}>
+                                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 9.5, textTransform: "uppercase", letterSpacing: 0.5, color: "rgba(255,255,255,0.4)", marginRight: 6 }}>{iss.layer}·{iss.location}</span>
+                                  {iss.description}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </React.Fragment>

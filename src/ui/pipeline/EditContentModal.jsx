@@ -27,9 +27,19 @@ if (["Need Content Approval","Approved","Ready For Schedule","Scheduled"].includ
 }
 if (["Ready For Schedule","Scheduled"].includes(s)) {
   gates.push({ label: "Publish date set", ok: hasDate, hard: true, fix: "Set a publish date before scheduling" });
+  // QC gate — blocked (wrong price/hours/expired offer) hard-stops scheduling;
+  // not-yet-run is a warning so the habit forms without bricking the flow.
+  gates.push({
+    label: "QC passed",
+    ok: ["pass","flagged"].includes(form.qc_status),
+    hard: form.qc_status === "blocked",
+    fix: form.qc_status === "blocked"
+      ? "QC blocked this item (factual mismatch) — fix it and re-run QC from the Ledger"
+      : "Run QC from the Ledger before scheduling",
+  });
 }
 return gates;
-  }, [form.status, form.caption, form.script, form.files, form.publish_date, form.format]);
+  }, [form.status, form.caption, form.script, form.files, form.publish_date, form.format, form.qc_status]);
 
   const hardBlocked = sopGates.some(g => g.hard && !g.ok);
   const hasWarnings = sopGates.some(g => !g.ok);
