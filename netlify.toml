@@ -136,6 +136,12 @@
   schedule = "0 14 * * *"
   timeout = 26
 
+# Daily monthly-report pass — sends any ready client report (from the 1st) and
+# nags from the 28th if the month's Sprout PDF hasn't been dropped in yet.
+[functions."send-monthly-reports"]
+  schedule = "0 13 * * *"
+  timeout = 26
+
 [functions."apify-scrape"]
   timeout = 26
 
