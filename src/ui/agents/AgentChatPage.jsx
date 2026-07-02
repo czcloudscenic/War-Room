@@ -38,20 +38,17 @@ export default function AgentChatPage({ agents, content, currentClient }) {
   const isMobile = useIsMobile();
   const [mobileAgentList, setMobileAgentList] = useState(false);
   const PROMPTS = {
-Sean: "You are Sean, Commander Agent. Orchestrate the team, own the content pipeline. Platforms: Instagram, TikTok, YouTube. Pipeline: Ready For Copy Creation, Need Copy Approval, Ready For Content Creation, Need Content Approval, Needs Revisions, Approved, Ready For Schedule, Scheduled. Team: Artgrid (Footage Scout), Muse (Content Ideation), Scrappy (Trend Scout). Personality: decisive, calm, short punchy sentences.",
-Artgrid: "You are Artgrid, Footage Scout. Source B-roll from Artgrid.io. Match visuals to the brand voice and pillars provided in context. Never corporate or fake stock. Personality: visual, cinematic, precise search terms.",
+Sean: "You are Sean, Commander Agent. Orchestrate the team, own the content pipeline. Platforms: Instagram, TikTok, YouTube. Pipeline: Ready For Copy Creation, Need Copy Approval, Ready For Content Creation, Need Content Approval, Needs Revisions, Approved, Ready For Schedule, Scheduled. Team: Muse (Content Ideation), Scrappy (Trend Scout). Personality: decisive, calm, short punchy sentences.",
 Muse: "You are Muse, Content Ideation Agent. Write hooks, captions, scripts, calendars. Caption structure: poetic statement then blank line then expand metaphor then blank line then bridge to brand then blank line then soft CTA. Voice and pillars are provided per-request — adapt to them. Always write real copy not descriptions.",
 Scrappy: "You are Scrappy, Trend Scout. You scour the internet for content trends, viral hooks, competitor moves, and fresh angles — then hand the gems to Muse. You pull from Reddit, Hacker News, TikTok trends, and the platform-specific space relevant to the brand. Personality: sharp, fast, a little chaotic in a good way. Short punchy reports. Lead with what's hot. Never vague — always specific signals with real context.",
   };
   const QUICK = {
 Sean:     ["Pipeline Status", "Today's Priorities", "Delegate a Task", "Morning Briefing"],
-Artgrid:  ["Scout Footage", "Mood Board Brief", "Review Clip Selections", "Build Shot List"],
 Muse:     ["Write Hooks", "Draft Caption", "Content Calendar", "New Concept Ideas"],
 Scrappy: ["What's trending this week?", "Competitor analysis", "Fresh hook ideas", "Muse collab brief"],
   };
   const DESC = {
 Sean: "Orchestrates agents, owns pipeline priorities",
-Artgrid: "Cinematic footage sourcing, visual briefs, Artgrid.io",
 Muse: "Copy, hooks, captions, content calendars, ideation",
 Scrappy: "Live internet research, trend scouting, Muse monthly collab",
   };
@@ -274,7 +271,7 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
     </div>
 
     {/*  VOICE OVERRIDE (per-request)  */}
-    {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Artgrid" || sel.name === "Scrappy") && (
+    {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Scrappy") && (
       <div style={{ padding:"6px 16px 4px", borderBottom: voiceOpen ? "1px solid rgba(255,255,255,0.07)" : "none", background:"rgba(0,0,0,0.015)", flexShrink:0 }}>
         <button onClick={() => setVoiceOpen(v => !v)}
           style={{ background:"none", border:"none", padding:0, color:"rgba(255,255,255,0.4)", fontSize:10, fontWeight:600, letterSpacing:0.6, textTransform:"uppercase", cursor:"pointer", fontFamily:"Inter,sans-serif", display:"flex", alignItems:"center", gap:5 }}>
@@ -308,7 +305,7 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
     )}
 
     {/*  AGENT ACTION BUTTONS  */}
-    {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Artgrid" || sel.name === "Scrappy") && (
+    {(sel.name === "Sean" || sel.name === "Muse" || sel.name === "Scrappy") && (
       <div style={{ padding:"8px 16px", borderBottom:"1px solid rgba(255,255,255,0.1)", display:"flex", gap:7, flexWrap:"wrap", background:"rgba(0,0,0,0.015)", flexShrink:0 }}>
         {sel.name === "Sean" && (
           <button onClick={() => runAgentAction("sean_briefing")} disabled={actionBusy}
@@ -320,12 +317,6 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
           <button onClick={() => runAgentAction("muse_generate_calendar")} disabled={actionBusy}
             style={{ fontSize:11, fontWeight:600, color:"#ff375f", background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
             {actionBusy ? "⏳ Running…" : " Generate Calendar"}
-          </button>
-        )}
-        {sel.name === "Artgrid" && (
-          <button onClick={() => runAgentAction("artgrid_scout")} disabled={actionBusy}
-            style={{ fontSize:11, fontWeight:600, color:"#2AABFF", background:"rgba(191,90,242,0.08)", border:"1px solid rgba(191,90,242,0.2)", borderRadius:20, padding:"5px 12px", cursor:actionBusy?"default":"pointer", fontFamily:"Inter,sans-serif", opacity:actionBusy?0.5:1 }}>
-            {actionBusy ? "⏳ Scouting…" : " Scout All Video Items"}
           </button>
         )}
         {sel.name === "Scrappy" && (<>

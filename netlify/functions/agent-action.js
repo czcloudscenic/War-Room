@@ -29,7 +29,6 @@ const SLACK_AGENT_LABELS = {
   muse_generate_calendar: "✍️ *Muse* — Content Calendar",
   muse_save_calendar:     "✍️ *Muse* — Calendar Saved",
   muse_write_content:     "✍️ *Muse* — Content Written",
-  artgrid_scout:          "🎨 *Artgrid* — Scout Report",
   scrappy_research:       "📡 *Scrappy* — Trend Research",
   scrappy_muse_collab:    "📡 *Scrappy* × *Muse* — Collab",
   muse_ig_ideas:          "✍️ *Muse* — 5 Instagram Ideas",
@@ -47,7 +46,7 @@ const SB_HEADERS = () => ({
 // agents actually did (replaces fake ACTIVITY_POOL theater).
 const AGENT_PREFIX_MAP = {
   muse: "Muse", sean: "Sean",
-  artgrid: "Artgrid", scrappy: "Scrappy",
+  scrappy: "Scrappy",
   cid: "Scrappy",  // CID actions are Scrappy's domain
 };
 function deriveAgentName(actionKey) {
@@ -521,70 +520,6 @@ Generate the research report and 6-8 content ideas in one pass. Be specific, on-
     message: `🕵️✍️ Scrappy × Muse collab complete — ${contentIdeas.length} fresh ideas generated from live internet research`,
     summary: contentIdeas.map(i =>
       `${i.urgency === "high" ? "🔥" : "·"} [${i.pillar}] "${i.title}" — ${i.format} for ${i.platform}\n   Angle: ${i.angle}`
-    ).join("\n"),
-  };
-}
-
-async function artgrid_scout(payload, brand) {
-  const { itemId } = payload;
-
-  let items = await sbGet("content_items", "?order=id");
-
-  if (itemId) {
-    items = items.filter(i => i.id === itemId);
-  } else {
-    items = items.filter(i =>
-      ["Reel", "YouTube", "Short"].includes(i.format) &&
-      !["Scheduled", "Scrapped"].includes(i.status)
-    );
-  }
-
-  if (items.length === 0) {
-    return {
-      success: true,
-      agent: "Artgrid",
-      action: "artgrid_scout",
-      itemCount: 0,
-      results: [],
-      message: "✦ No video items currently need footage scouting — pipeline clear",
-    };
-  }
-
-  // Lean prompt — just keywords, no essays
-  const systemPrompt = `You are Artgrid, footage scout for ${brand.name} via Cloud Scenic Vantus.
-For each video item, return 5 Artgrid.io search keywords that will find the best matching cinematic footage.
-
-${brand.name} brand notes (use these to pick aesthetic-appropriate keywords):
-${brand.voice || "(No brand voice configured — default to cinematic, calm, real human moments. Avoid corporate stock vibes.)"}
-
-CRITICAL — Artgrid search only works with SHORT queries (2-4 words max). Long phrases return zero results.
-GOOD: "slow motion water", "sunrise landscape", "woman walking nature", "water droplet macro"
-BAD: "slow motion water droplet hitting calm surface golden hour" — too long, returns nothing.
-Return ONLY a JSON array: [{ "itemId": "vl-X", "title": "...", "keywords": ["2-4 word term", "2-4 word term", "2-4 word term", "2-4 word term", "2-4 word term"] }]`;
-
-  const itemList = items.map(i =>
-    `ID: ${i.id} | "${i.title}" | Pillar: ${i.pillar} | Format: ${i.format}${i.description ? ` | ${i.description}` : ""}`
-  ).join("\n");
-
-  const rawResult = await ai(systemPrompt, itemList, 600);
-
-  let results = [];
-  try {
-    const jsonMatch = rawResult.match(/\[[\s\S]*\]/);
-    results = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-  } catch (e) {
-    results = [];
-  }
-
-  return {
-    success: true,
-    agent: "Artgrid",
-    action: "artgrid_scout",
-    itemCount: items.length,
-    results,
-    message: `✦ Keywords ready — ${results.length} item(s) scouted`,
-    summary: results.map(r =>
-      `• "${r.title}"\n  → ${(r.keywords || []).join(" | ")}`
     ).join("\n"),
   };
 }
@@ -1478,7 +1413,6 @@ exports.handler = async (event) => {
       case "muse_from_brief":        result = await muse_from_brief(payload, brand); break;
       case "muse_generate_calendar": result = await muse_generate_calendar(brand); break;
       case "muse_save_calendar":     result = await muse_save_calendar(payload); break;
-      case "artgrid_scout":          result = await artgrid_scout(payload, brand); break;
       case "scrappy_research":       result = await scrappy_research(payload, brand); break;
       case "scrappy_muse_collab":    result = await scrappy_muse_collab(payload, brand); break;
       case "scrappy_hook_analysis":  result = await scrappy_hook_analysis(brand); break;

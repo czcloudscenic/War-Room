@@ -29,7 +29,6 @@ function humanizeAction(key, summary) {
     muse_save_calendar:     "saved calendar",
     muse_ig_ideas:          "generated IG ideas",
     sean_briefing:          "ran morning briefing",
-    artgrid_scout:          "scouted footage",
     scrappy_research:       "ran research",
     scrappy_muse_collab:    "× Muse collab",
     scrappy_hook_analysis:  "analyzed hooks",

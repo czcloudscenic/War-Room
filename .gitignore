@@ -6,3 +6,5 @@ cid-scout/.env
 .env.local
 .env.*.local
 .netlify/
+Videos/
+sprint-recap.html

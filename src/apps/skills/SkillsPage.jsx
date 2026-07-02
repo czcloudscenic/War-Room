@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Card from '../../ui/shared/Card.jsx';
 
 export default function SkillsPage({ agents }) {
-  const AGENT_COLORS = { Sean:"#2AABFF", Artgrid:"#2AABFF", Muse:"#ff375f", Scrappy:"#5e5ce6" };
+  const AGENT_COLORS = { Sean:"#2AABFF", Muse:"#ff375f", Scrappy:"#5e5ce6" };
   const [briefs, setBriefs] = useState(() => {
 try { return JSON.parse(localStorage.getItem("vantus_skill_briefs") || "[]"); } catch { return []; }
   });

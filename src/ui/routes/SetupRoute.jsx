@@ -8,10 +8,9 @@ import { setLedgerFields } from '../../core/approvals.js';
 // Writes straight to Supabase (App realtime syncs `clients`/`content` back);
 // team_members + connected_accounts are loaded and managed locally here.
 //
-// Owner assignment for deliverables is intentionally NOT here yet:
-// content_items.assigned_to is a FK to profiles(id) while the Ledger resolves
-// owners against team_members — a schema mismatch that needs a migration
-// decision before it can work. Due-date bulk-set (below) has no such issue.
+// Section 3 bulk-assigns deliverable owners + due dates. Owners resolve against
+// team_members (content_items.assigned_to FK was repointed there in migration
+// 20260701_assigned_to_team_members.sql).
 
 const ACCENT = "#2AABFF";
 const SERVICE_LIBRARY = ["Content Strategy", "Reels", "Stories", "Static Posts", "Graphics & Flyers", "Photography", "Video Editing", "Paid Ads", "SEO", "Email", "Reporting"];
