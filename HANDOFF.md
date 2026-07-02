@@ -2,12 +2,25 @@
 
 ## 2026-07-01 session — fulfillment OS complete, Stripe wired, big cleanup
 
-**Current board lives in `VANTUS_TODO.md` (rewritten this session — read it first).** Snapshot:
+**Current board lives in `VANTUS_TODO.md` (rewritten this session, read it first).** Everything below is pushed and live; last commit on `main` is `0a01e23`.
 
-- **Vantus is now the agency fulfillment + billing OS** (multi-tenant), not a single-client dashboard. Live pages: Dashboard · Clients · Setup · Ledger · Reports · Client Analytics · Operations · Agents · Idea Engine · Pipeline · Billing.
-- **Shipped this session (all pushed):** P1 chase cron + MRR trend + invoice email; **Setup** data-entry page; owner-assign (migration `20260701_assigned_to_team_members.sql`, applied); **Stripe wiring** (`billing-stripe.js` — create hosted invoice + webhook paid-sync; secrets `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` set in Netlify, live webhook endpoint created); Codex perf merge (code-split + null-guards + prefetch, ~531KB); removed 6 pages + Analytics (extracted to `ripped out features/analytics-page/`); removed **Artgrid agent** (team = Sean/Muse/Scrappy); deleted `tools/`; `npm audit` clean.
-- **Open:** P0 data entry (retainers/mappings/owners on the Setup page); first real Stripe invoice unproven (each client needs `primary_email`); parked builds — ClientView portal, Unified Inbox, Template Engine, auto-posting, in-page customization design.
-- **Guardrails unchanged:** founder pushes `main` (one-shot PAT; shell can't reach keychain); migrations via Supabase SQL editor; `git fetch` before commit (shared repo); Codex runs in its OWN worktree (a shared-dir collision happened this session — never let it check out the live folder).
+**What Vantus is now:** the agency fulfillment + billing OS (multi-tenant client book), not a single-client dashboard. The generator side is pre-production (Idea Engine, agents, Pipeline); the fulfillment side is delivery, approvals, and billing. Live nav: Dashboard, Clients, Setup, Ledger, Reports, Client Analytics, Operations, Agents, Idea Engine, Pipeline, Billing. Agent team is Sean / Muse / Scrappy.
+
+**Shipped + pushed this session:**
+- P1: overdue-task chase cron (`chase-overdue-tasks`), MRR trend chart, invoice-sent email.
+- **Setup** data-entry page (retainers/scope, connected-account to client mapping, bulk owner + due-date, team roster edit).
+- Owner-assign: migration `20260701_assigned_to_team_members.sql` (assigned_to FK repointed to team_members), applied by Christian.
+- **Stripe wiring** (`billing-stripe.js`): create hosted invoice on send + webhook paid-sync. Secrets `STRIPE_SECRET_KEY` (live restricted key `rk_live_`) + `STRIPE_WEBHOOK_SECRET` set in Netlify, live webhook endpoint created (invoice.paid/voided/marked_uncollectible). Verified wired (webhook returns sig-fail not 501). Create-path NOT yet proven with a real invoice (test skipped). Each client needs `primary_email`.
+- Codex perf merge: code-split + null-guard sweep + route-chunk prefetch (bundle 744KB to ~531KB, nav stays instant).
+- Cleanup: removed 6 pages (Ad ROI Hub, References, ArtGrid, Cost Governance, Ideal Customer, Competitor Intel) + Analytics (extracted to `ripped out features/analytics-page/`). Removed the Artgrid agent everywhere. Deleted `tools/`. Deleted the parked ripped-out code (agents/apps/client-view/routes + working-ripped-out), keeping only analytics-page. Docs refreshed. `npm audit` clean.
+
+**Open / parked (revisit later):**
+- P0 data entry on the Setup page (retainers, account-to-client mappings, owners + due dates, real team roster). Pages read light until entered.
+- **Danny update email** drafted (framing: generator = pre-production, fulfillment = delivery/billing, no more Monday.com; no em-dashes per Christian). Not sent.
+- **Analytics live-data** (weekend job): plan at `ripped out features/analytics-page/LIVE-DATA-PLAN.md`. Key: the SMM-agent "reuse its IG pull" shortcut is a dead end (backbone only). Real reuse = Vantus's own `sync-instagram.js` + `oauth-instagram-*` + Meta app. Two routes (share Vantus Supabase, or port to a Supabase Edge Function). Seed a test row first.
+- Other parked builds: ClientView self-approval portal (old code was deleted but recoverable from git), Unified Inbox, Template Engine, auto-posting, in-page customization design.
+
+**Guardrails unchanged:** founder pushes `main` (one-shot PAT; shell can't reach keychain); migrations via Supabase SQL editor; `git fetch` before commit (shared repo); Codex runs in its OWN worktree (a shared-dir collision happened this session, never let it check out the live folder).
 
 ---
 
