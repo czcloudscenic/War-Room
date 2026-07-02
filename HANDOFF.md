@@ -1,5 +1,24 @@
 # Vantus Handoff Brief
 
+## 2026-07-02 session — QC Agent + Facts of Record + monthly report auto-email (Danny's spec)
+
+**Built from Danny's spec package (`vantus-spec-for-chris.zip`, Counsel has it at scratchpad + the 4-item build order). All four items committed locally on `main` — NOT pushed yet.** Commits: `e59dea2` (schema), `e35a933` (QC agent), `cb90bc4` (Setup sections), `4864c8f` (report cron).
+
+**Before this deploys, two manual steps (in order):**
+1. **Apply `supabase/migrations/20260702_qc_facts_reports.sql` in the Supabase SQL editor** (adds qc_* to content_items, client_facts/report_schedule to clients, client_reports table + private `client-reports` bucket, and seeds Dynasty/Parlour/Vital Lyfe config per the spec). App code tolerates the columns missing, but QC runs will fail until applied.
+2. Push `main` (founder PAT) → Netlify auto-deploys the new/changed functions.
+
+**What shipped:**
+- **QC Agent (spec priority 1):** `qc_review` action in `agent-action.js`. Hybrid gate: Claude sonnet **vision** (new `aiVision` helper) reviews facts/copy/brand + extracts on-asset text from the Google Drive assets; deterministic code exact-matches prices, phone numbers, and offer validity windows (expired offer = auto-blocker). Auto-runs when an item enters "Need Content Approval" (hook in `App.jsx handleSave`); manual "Run QC" button in the Ledger row panel. `qc_status` is a **parallel field** (not a new pipeline status): blocked items can't be Approved at the content gate, can't move to Ready For Schedule/Scheduled (hard SOP gate in EditContentModal), can't be Marked Posted. Videos are NOT frame-checked in v1 (no ffmpeg in functions) — caption+facts checked, warning emitted; fast-follow.
+- **Facts of Record (priority 2):** Setup section 5 — per-client hours/locations/prices/offers/operational-facts editor → `clients.client_facts` JSONB, stamps `facts_updated_at`, amber staleness badge >30d, and QC injects a stale-facts warning into every result. No facts on file → QC runs typo/brand only + says so. Owner: Sebastian (data entry pending him).
+- **Monthly report auto-email (priority 3):** semi-auto Sprout path (Christian's call — no Sprout API). Setup section 6: drop the month's PDF per client → private `client-reports` bucket + `client_reports` row; `send-monthly-reports` cron (daily 13:00 UTC) emails any unsent completed-month report to `clients.primary_email` with PDF attached, stamps sent_at, Slack+bell, and **nags from the 28th** if the PDF is missing. Test path: `?test=1&key=<CRON_TEST_KEY>` sends to OPS_OWNER without marking. Optional env: `CRON_TEST_KEY`.
+- **Per-client config (priority 4):** seeded in the migration (Dynasty 2/day Mon-Fri + monthly_1st report; Parlour 2 videos + 2 flyers/wk pre-approved; Vital Lyfe brief-lane full approval). Rest is Setup-UI data entry.
+- Side fix: clients query in App.jsx widened to `select *` — Setup previously read retainer/scope blanks on first load because the narrow column list omitted them.
+
+**Verify after deploy:** create a test item with a Drive image + a wrong price vs facts → move to Need Content Approval → expect qc blocked + the issue naming the price; fix → Run QC → pass. Then `send-monthly-reports?test=1` with a dummy PDF uploaded.
+
+---
+
 ## 2026-07-01 session — fulfillment OS complete, Stripe wired, big cleanup
 
 **Current board lives in `VANTUS_TODO.md` (rewritten this session, read it first).** Everything below is pushed and live; last commit on `main` is `0a01e23`.
