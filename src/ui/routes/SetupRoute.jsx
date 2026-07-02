@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
 import { setLedgerFields } from '../../core/approvals.js';
+import { FactsOfRecord, MonthlyReports, factsFilled } from '../settings/FactsAndReports.jsx';
 
 // ── Setup / Data-Entry ────────────────────────────────────────────────────────
 // One screen to bulk-fill the data that makes Analytics/Billing/Ledger/Reports
@@ -86,6 +87,7 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
   const dueItems = safeContent.filter(x => !DONE_STATUSES.includes(x?.status));
   const assignDone = dueItems.filter(x => x?.due_date && x?.assigned_to).length;
   const teamDone = safeTeam.filter(m => m?.email && m.email.trim()).length;
+  const factsDone = activeClients.filter(c => factsFilled({ client_facts: cval(c, "client_facts") })).length;
 
   return (
     <div style={{ animation: "fadeIn 0.4s ease" }}>
@@ -176,6 +178,16 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
       {/* 4 — Team roster */}
       <Section n={4} title="Team roster" desc="Real names + emails so the daily overdue-task chase can reach people." done={teamDone} total={safeTeam.length}>
         <TeamEditor team={safeTeam} setTeam={setTeam} />
+      </Section>
+
+      {/* 5 — Facts of Record (what the QC agent exact-matches against) */}
+      <Section n={5} title="Facts of Record" desc="Hours, prices, offers, locations — the source of truth QC checks every deliverable against. No facts = QC only catches typos and brand." done={factsDone} total={activeClients.length}>
+        <FactsOfRecord clients={activeClients} />
+      </Section>
+
+      {/* 6 — Monthly client reports (Sprout PDF → auto-email on the 1st) */}
+      <Section n={6} title="Monthly reports" desc="Drop Sprout's PDF for the month; Vantus emails it to the client on the 1st and logs the send." done={0} total={0}>
+        <MonthlyReports clients={activeClients} />
       </Section>
     </div>
   );
