@@ -4,7 +4,12 @@ import { STATUSES, FORMATS, PILLARS_LIST, PLATFORMS_LIST, CAMPAIGNS } from '../.
 
 export default function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew = false }) {
   const isMobile = useIsMobile();
-  const [form, setForm] = useState({ ...item });
+  // DB rows carry seo_keywords/start_week (snake_case); the form uses camelCase.
+  const [form, setForm] = useState({
+    ...item,
+    seoKeywords: item.seoKeywords ?? item.seo_keywords ?? "",
+    startWeek: item.startWeek ?? item.start_week ?? 1,
+  });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   // SOP gate validation

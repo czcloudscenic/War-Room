@@ -510,7 +510,8 @@ const channel = sb.channel("content_changes")
         }
       }
       if (payload.eventType === "INSERT") {
-        setContent(prev => [...prev, { ...payload.new, platforms: payload.new.platforms || [] }]);
+        // Guard against handleSave's optimistic append — both fire for one create.
+        setContent(prev => prev.some(x => x.id === payload.new.id) ? prev : [...prev, { ...payload.new, platforms: payload.new.platforms || [] }]);
       }
       if (payload.eventType === "DELETE") {
         setContent(prev => prev.filter(x => x.id !== payload.old.id));
@@ -550,7 +551,8 @@ return () => sb.removeChannel(channel);
     })();
     const ch = sb.channel("clients_changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "clients" }, (payload) => {
-        if (payload.eventType === "INSERT") setClients(prev => [...prev, payload.new]);
+        // Guard against the optimistic onCreated append — both fire for one create.
+        if (payload.eventType === "INSERT") setClients(prev => prev.some(c => c.id === payload.new.id) ? prev : [...prev, payload.new]);
         if (payload.eventType === "UPDATE") setClients(prev => prev.map(c => c.id === payload.new.id ? payload.new : c));
         if (payload.eventType === "DELETE") setClients(prev => prev.filter(c => c.id !== payload.old.id));
       }).subscribe();
@@ -717,6 +719,10 @@ const itemType = typeMap[updated.format] || updated.type || "reel";
 // Multi-tenant: tag new items with currentClient. Existing items keep their own client_id.
 const item = { ...updated, stage: updated.status, platform: primaryPlatform, type: itemType };
 if (isNewItem && currentClient?.id) item.client_id = currentClient.id;
+// The modal form uses camelCase for two fields the table stores as snake_case.
+// Writing the camelCase keys to PostgREST fails the whole insert/update (PGRST204).
+if ("seoKeywords" in item) { item.seo_keywords = item.seoKeywords; delete item.seoKeywords; }
+if ("startWeek" in item) { item.start_week = Number(item.startWeek) || null; delete item.startWeek; }
 
 if (isNewItem) {
   setContent(prev => [...prev, item]);
@@ -1136,7 +1142,7 @@ try {
                   currentUserId={userId}
                   onClose={() => setAddClientOpen(false)}
                   onCreated={(c) => {
-                    setClients(prev => [...prev, c]);
+                    setClients(prev => prev.some(x => x.id === c.id) ? prev : [...prev, c]);
                     switchClient(c);
                     setAddClientOpen(false);
                   }}
