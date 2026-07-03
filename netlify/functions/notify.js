@@ -225,9 +225,16 @@ exports.handler = async (event) => {
   const results = [];
 
   // ── PERSIST TO NOTIFICATIONS TABLE ──────────────────────────────────────────
-  // Fire-and-forget; logged in results but doesn't gate the other side-effects.
   const dbResult = await insertNotification({ type, item, message: payload.message, client_id });
   results.push({ channel: "supabase", ...dbResult });
+
+  // The unique index on (type, content_item_id) makes the first writer win.
+  // A deduped insert means another caller (recordApproval + the realtime
+  // detector, or a second admin tab) already notified for this state change —
+  // skip Slack/email/n8n or every approval fans out once per caller.
+  if (dbResult.deduped) {
+    return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, deduped: true, results }) };
+  }
 
   // ── Per-client lookup: webhook URLs + name (one roundtrip) ─────────────────
   let SLACK = process.env.SLACK_WEBHOOK_URL;
