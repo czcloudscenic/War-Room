@@ -158,7 +158,10 @@ const thread = [...msgs, userMsg];
 setHists(h => ({ ...h, [sel.id]: thread }));
 setBusy(true);
 try {
-  const ctx = content.length > 0 ? " Pipeline: " + content.slice(0,5).map(c => c.title + "[" + c.stage + "]").join(", ") : "";
+  // Scope the injected pipeline context to the ACTIVE client only — the global
+  // content array holds every client's items and must not bleed across tenants.
+  const scopedContent = currentClient ? content.filter(c => c.client_id === currentClient.id) : [];
+  const ctx = scopedContent.length > 0 ? " Pipeline: " + scopedContent.slice(0,5).map(c => c.title + "[" + c.stage + "]").join(", ") : "";
   // Inject the active client's brand voice (or the per-run override) so free-form
   // chat respects the same voice as quick actions. /api/chat is a pure proxy so
   // the system prompt has to carry the context client-side.

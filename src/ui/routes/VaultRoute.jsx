@@ -31,12 +31,11 @@ function Field({ label, value, onChange, placeholder, type = "text", flex = 1 })
   );
 }
 
-function ClientVaultCard({ client, row, onSaved, isMobile }) {
+function ClientVaultCard({ client, row, onSaved, isMobile, open, onToggle }) {
   const [form, setForm] = useState({ ...EMPTY, ...(row || {}) });
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(null); // 'save' | 'link' | 'sync'
   const [msg, setMsg] = useState(null);
-  const [open, setOpen] = useState(false);
   const set = (k) => (v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
 
   useEffect(() => { setForm({ ...EMPTY, ...(row || {}) }); setDirty(false); }, [row]);
@@ -79,8 +78,8 @@ function ClientVaultCard({ client, row, onSaved, isMobile }) {
   const filled = PROFILE_KEYS.filter(k => (row?.[k] || "").toString().trim() && k !== "country").length;
 
   return (
-    <div style={{ background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, marginBottom: 12, overflow: "hidden" }}>
-      <button onClick={() => setOpen(o => !o)}
+    <div id={`vault-${client.id}`} style={{ background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, marginBottom: 12, overflow: "hidden" }}>
+      <button onClick={onToggle}
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
         <span style={{ fontSize: 14.5, fontWeight: 650, color: "#f5f5f7", fontFamily: "Inter, sans-serif", flex: 1 }}>{client.name}</span>
         {hasCard
@@ -143,6 +142,8 @@ function ClientVaultCard({ client, row, onSaved, isMobile }) {
 export default function VaultRoute({ isMobile, clients = [] }) {
   const [rows, setRows] = useState({});
   const [loadErr, setLoadErr] = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const [addMenu, setAddMenu] = useState(false);
   const activeClients = (clients || []).filter(c => c.status === "active");
 
   const load = useCallback(async () => {
@@ -155,10 +156,37 @@ export default function VaultRoute({ isMobile, clients = [] }) {
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  const addInfoFor = (id) => {
+    setAddMenu(false);
+    setOpenId(id);
+    setTimeout(() => document.getElementById(`vault-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
+
   return (
     <div style={{ maxWidth: 860 }}>
       <div style={{ ...head, fontSize: 9.5 }}>CLOUD SCENIC / CLIENT VAULT</div>
-      <h1 style={{ fontSize: 30, fontWeight: 750, color: "#f5f5f7", margin: "6px 0 4px", fontFamily: "Inter, sans-serif", letterSpacing: -0.5 }}>Vault</h1>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 12, margin: "6px 0 4px" }}>
+        <h1 style={{ fontSize: 30, fontWeight: 750, color: "#f5f5f7", margin: 0, fontFamily: "Inter, sans-serif", letterSpacing: -0.5, flex: 1 }}>Vault</h1>
+        <div style={{ position: "relative" }}>
+          <button onClick={() => setAddMenu(m => !m)}
+            style={{ padding: "9px 18px", borderRadius: 9, border: "none", cursor: "pointer", background: ACCENT, color: "#08131c", fontWeight: 700, fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
+            + Add info
+          </button>
+          {addMenu && (
+            <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 30, minWidth: 200, background: "#161314", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,0.5)" }}>
+              {activeClients.map(c => (
+                <button key={c.id} onClick={() => addInfoFor(c.id)}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", color: "#f5f5f7", fontSize: 13, fontFamily: "Inter, sans-serif" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                  {c.name}
+                </button>
+              ))}
+              {!activeClients.length && <div style={{ padding: "10px 14px", color: "rgba(255,255,255,0.4)", fontSize: 12.5 }}>No active clients</div>}
+            </div>
+          )}
+        </div>
+      </div>
       <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", marginBottom: 20, lineHeight: 1.5 }}>
         Billing profiles and card-on-file per client. Cards live in Stripe's vault, never in Vantus.
       </div>
@@ -168,7 +196,8 @@ export default function VaultRoute({ isMobile, clients = [] }) {
         </div>
       )}
       {activeClients.map(c => (
-        <ClientVaultCard key={c.id} client={c} row={rows[c.id]} onSaved={load} isMobile={isMobile} />
+        <ClientVaultCard key={c.id} client={c} row={rows[c.id]} onSaved={load} isMobile={isMobile}
+          open={openId === c.id} onToggle={() => setOpenId(prev => prev === c.id ? null : c.id)} />
       ))}
       {!activeClients.length && <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>No active clients.</div>}
     </div>
