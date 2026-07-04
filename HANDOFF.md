@@ -1,5 +1,25 @@
 # Vantus Handoff Brief
 
+## 2026-07-03 session — full test campaign (27/31), config fixes, data wipe, Client Vault
+
+**All pushed + deployed; migration `20260703_client_vault.sql` applied by Christian.** Latest on `main`: `8e5c002` + this handoff commit.
+
+**Test campaign (results annotated in `TESTING-2026-07-02.md`):** 27/31 pass. The whole QC section is green INCLUDING A9 vision — a flyer with a wrong on-asset price ($8.99 vs $13.99 of record, caption clean) came back blocked citing on-asset. Demo-ready for Danny. Remaining: C4 (cron send fires 13:00 UTC 7/4 — dummy June report queued for "QC Test Kitchen", goes to cz@), C5 covered by design, D5 mobile pass deferred (`/mobile-audit`).
+
+**Two prod configs were silently broken and got fixed by Christian mid-session:**
+- Google OAuth `origin_mismatch` — usevantus.com wasn't an Authorized JS Origin for the Drive client (lives in GCloud project "Vital Lyfe War Room", number 458336864067). **Drive upload had NEVER worked in prod** (zero items ever had files). Fixed → upload + QC vision proven.
+- Resend domain — cloudscenic.com wasn't verified, so ALL email (reports/invoices/notifies/chase) was still dead despite the 7/2 API-key fix. Verified → C3 + D3 (invoice email) pass. `CRON_TEST_KEY` now set + enforced (keyless ?test=1 refuses).
+
+**Bugs found by testing, fixed + deployed:** (1) manual "+ Add" item creation NEVER persisted — modal sent camelCase `seoKeywords`/`startWeek`, PostgREST rejected the whole insert (PGRST204); (2) realtime INSERT echo doubled client/item cards vs optimistic appends; (3) approval Slack notifications double-fired (recordApproval + the per-tab realtime detector) — notify.js now honors the (type,content_item_id) dedupe before Slack/email/n8n.
+
+**Data wipe (Christian-approved):** 13 seed content items + 5 placeholder team members deleted from prod; dashboard OpsBoard demo tasks emptied and its fake task-motion timers + the agent-count jitter removed (the board was pure theater — not DB-backed).
+
+**NEW: Client Vault** (FINANCE → Vault, `src/ui/routes/VaultRoute.jsx`): per-client billing profile (legal name, contact, email, phone, address/ZIP, tax id, notes) → `client_vault` table, admin-only RLS (portal + anon read zero). Card-on-file via Stripe Checkout **setup mode** (`vault_link`/`vault_sync` actions in `billing-stripe.js`): card is typed on Stripe's hosted page, Stripe vaults it, Vantus stores only brand/last4/expiry + ids and sets the customer default PM. **Never store raw card numbers — this design is deliberate (PCI).** Smoke-tested live: save works, checkout.stripe.com session returns.
+
+**Cleanup owed (next session):** after the 7/4 cron send lands, archive "QC Test Kitchen" (id `4bf5e953…`), delete its test item `qc-test-kitchen-a1-price`, its client_vault row, the dummy `client_reports` row/PDF, and the test flyer in Drive. Note: a live-mode Stripe customer was created for the test client (harmless, no charges).
+
+---
+
 ## 2026-07-02 session — QC Agent + Facts of Record + monthly report auto-email (Danny's spec)
 
 **Built from Danny's spec package (`vantus-spec-for-chris.zip`, Counsel has it at scratchpad + the 4-item build order). All four items committed locally on `main` — NOT pushed yet.** Commits: `e59dea2` (schema), `e35a933` (QC agent), `cb90bc4` (Setup sections), `4864c8f` (report cron).
