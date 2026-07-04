@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Card from '../shared/Card.jsx';
-import { useIsMobile, useInterval } from '../../utils/hooks.js';
+import { useIsMobile } from '../../utils/hooks.js';
 import { OPS_INIT } from '../../data/seed.ops.js';
 
 export default function OpsBoard() {
@@ -9,21 +9,6 @@ export default function OpsBoard() {
   const [newTask, setNewTask] = useState("");
   const [editing, setEditing] = useState(null); // { col, id }
   const [editValue, setEditValue] = useState("");
-
-  useInterval(() => {
-    setOps(prev => {
-      if (prev.backlog.length===0) return prev;
-      const task = prev.backlog[0];
-      return { ...prev, backlog:prev.backlog.slice(1), inProgress:[...prev.inProgress,{ ...task, id:task.id+"_m" }] };
-    });
-  }, 20000);
-  useInterval(() => {
-    setOps(prev => {
-      if (prev.inProgress.length===0) return prev;
-      const task = prev.inProgress[0];
-      return { ...prev, inProgress:prev.inProgress.slice(1), completed:[{ ...task, id:task.id+"_d" },...prev.completed].slice(0,8) };
-    });
-  }, 28000);
 
   const addTask = () => {
     if (!newTask.trim()) return;

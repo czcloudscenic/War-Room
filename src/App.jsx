@@ -6,7 +6,7 @@ import './styles/globals.css';
 // ── Extracted modules ──
 import { sb, DB_CONNECTED } from './services/supabaseClient.js';
 import { apiFetch } from './services/apiFetch.js';
-import { getIsMobile, useIsMobile, useInterval } from './utils/hooks.js';
+import { getIsMobile, useIsMobile } from './utils/hooks.js';
 import { NAV } from './utils/constants.js';
 import { AGENTS_BASE, ACTION_COLORS } from './data/seed.agents.js';
 import { OPS_INIT } from './data/seed.ops.js';
@@ -707,7 +707,6 @@ return () => {
     // Sync the live count to the active agent roster whenever it changes.
     setLiveCount(agents.length);
   }, [agents.length]);
-  useInterval(() => setLiveCount(agents.length - (Math.random() < 0.5 ? 0 : 1)), aiEnabled ? 15000 : null);
 
   const handleSave = (updated) => {
 // Derive platform (singular) and type from platforms array + format
