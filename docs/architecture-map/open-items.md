@@ -1,123 +1,137 @@
 # Open Items — Vantus Punch List
 
-> Working doc. Mirrors the **Bugs & Roadmap** tab in `../../architecture-map.html`.
+> Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-06-04 · **Total open:** 14 bugs + 11 fixes
+**Snapshot:** 2026-07-04 · **Total open:** 16 bugs + 10 fixes = 20 items (bugs cross-reference fixes)
 
 ```
-🔴 High:   0    │   ✅ Done:  13  (security/OAuth batch)
-🟡 Med:    7    │
-🟢 Low:    7    │   📋 Fixes:  11
+🔴 High:   0    │   ✅ Done 7/3: 5 (insert bug, dup cards, double-notify,
+🟡 Med:    8    │                 OAuth origin, Resend domain)
+🟢 Low:    8    │   📋 Fixes:  10
 ```
 
 ---
 
 ## 🔴 HIGH — fix this week
 
-_None open — the high-severity items (CID write ReferenceError + missing migrations) shipped in the security batch._
+*(none open — the 7/3 campaign cleared this tier)*
 
 ---
 
 ## 🟡 MED — fix when planning next refactor
 
-- [ ] **AnalyticsRoute.jsx:262 — "Why these won" scope + ranking** *(operator-flagged)*
-  Reasons surface across multiple cards and the top set ranks by raw views; scope to the true top performer(s) with one shared metric.
-  → Touches: `AnalyticsRoute.jsx`, `agent-action.js` · Fix #1
+- [ ] **src/core/approvals.js:45-47 — approvals advance status but not stage**
+  After a Ledger approve, rows drift (seen live 7/3: status "Approved", stage "Need Content Approval"). Anything keyed on stage mis-buckets.
+  → Touches: `src/core/approvals.js`, `src/utils/constants.js` · Fix #3
 
-- [ ] **agent-action.js:1236/1289/1074 — Opus 4.8 vs 26s function timeout**
-  The three Muse-creative actions generate on Opus 4.8 with `getSyncedDigest` + serial Tavily research stacked on the same request — slow runs can 502.
-  → Touches: `agent-action.js` · Fix #2
+- [ ] **src/App.jsx:476,491 — global content fetch + unfiltered realtime**
+  All clients' items live in browser state, scoped only at render. One missed filter = cross-client bleed (one instance already bitten + fixed 7/3).
+  → Touches: `src/App.jsx`, admin pages needing all-clients data · Fix #7
 
-- [ ] **agent-action.js:621/486/552/1402 — silent parse failures reported as success**
-  Bad model-JSON is caught and returned as `success:true` with an empty result — looks like a genuine zero-result.
-  → Touches: `agent-action.js` · Fix #5
+- [ ] **20260523_notifications.sql:21 — re-approvals never re-notify**
+  unique(type, content_item_id) is a forever-dedupe; approve → revisions → re-approve is silent on bell, Slack, and email. Decide the semantics explicitly.
+  → Touches: `supabase/migrations/`, `netlify/functions/notify.js` · Fix #3
 
-- [ ] **IdeaEngineRoute.jsx:73 — client-generated content_items id**
-  Inserts with `${slug}-idea-${Date.now()}` — collision/type risk, bypasses DB default.
-  → Touches: `IdeaEngineRoute.jsx` · Fix #3
+- [ ] **BillingRoute.jsx:104-112 — branded invoice email only fires when Stripe FAILS**
+  With Stripe live, clients only ever get Stripe's own email; the Vantus-branded notice is dead code on the success path.
+  → Touches: `src/ui/routes/BillingRoute.jsx`, `netlify/functions/notify.js` · Fix #5
 
-- [ ] **IdeaEngineRoute.jsx:48 — film-brief call has no timeout guard**
-  A slow Opus brief hangs the modal on the spinner with no escape but closing it.
-  → Touches: `IdeaEngineRoute.jsx` · Fix #4
+- [ ] **billing-stripe.js:64 — live invoice create-path never proven**
+  Webhook verified, key live, handleCreate untested against a real invoice. Validate deliberately with a small controlled invoice.
+  → Touches: `netlify/functions/billing-stripe.js` · Fix #5
 
-- [ ] **IdeaEngineRoute.jsx:81 — null-client insert orphans rows**
-  `client_id` only attached when truthy; a null-client send writes an unscoped `content_items` row.
-  → Touches: `IdeaEngineRoute.jsx` · Fix #3
+- [ ] **index.html:5 — pinch-zoom disabled app-wide**
+  `maximum-scale=1.0, user-scalable=no` blocks zoom for everyone; compounds the 8px micro-labels (7/4 mobile audit).
+  → Touches: `index.html` · Fix #1
 
-- [ ] **App.jsx:490 — content_items realtime not client-scoped**
-  Every browser holds the full multi-tenant set and gets realtime events for off-screen clients; relies solely on RLS.
-  → Touches: `src/App.jsx` · Fix #6
+- [ ] **SetupRoute.jsx — 51-94 sub-40px tap targets at phone widths**
+  Service chips are 50×25; the page most likely to be poked from a phone is the least thumb-friendly (7/4 mobile audit).
+  → Touches: `src/ui/routes/SetupRoute.jsx`, App.jsx header · Fix #1
+
+- [ ] **_lib/crypto.js:7 — silent PLAINTEXT fallback for OAuth tokens**
+  If TOKEN_ENC_KEY is unset, tokens store unencrypted with no alarm — same silent-degradation class as the two 7/3 config outages.
+  → Touches: `netlify/functions/_lib/crypto.js` · Fix #8
 
 ---
 
 ## 🟢 LOW — track, no urgency
 
-- [ ] **agent-action.js:669 — dead handler `muse_from_brief`** (zero callers) · Fix #7
-- [ ] **agent-action.js:1320 — `getSyncedDigest` reads all rows via service role** (multi-tenant leak latent) · Fix #9
-- [ ] **agent-action.js:994 — `muse_ig_ideas` duplicates the Tavily block inline** · Fix #11
-- [ ] **App.jsx — stuckGuard comment says 4s, timeout is 8000ms** · Fix #8
-- [ ] **content_items.sql:25 — text PK, no default** (App + Idea Engine mint ids client-side) · Fix #10
-- [ ] **supabaseClient.js:14 — `DB_CONNECTED` hardcoded true** (offline indicator unreachable)
-- [ ] **QuickActionsDashboard.jsx:26 — dead component** (imported, never rendered) · Fix #7
+- [ ] **20260526_content_items_baseline.sql:47 — publish_date is TEXT** → Fix #3 batch
+- [ ] **constants.js:33 — "Posted" missing from STATUSES** (markPosted sets it at runtime) → Fix #3
+- [ ] **App.jsx:20,25,26 — three dead components ship in the bundle** (QuickActionsDashboard, PlaceholderPage, TypingTask) → Fix #6
+- [ ] **agent-action.js:21 — dead N8N_WEBHOOK_URL constant** → Fix #6
+- [ ] **clients.slack_channel_id — deprecated column never dropped** → Fix #6
+- [ ] **_lib/rateLimit.js — in-memory limits reset on cold start** (accepted tradeoff; revisit at scale)
+- [ ] **agent-action.js:333 — QC v1 doesn't frame-check video** (warning emitted) → Fix #9
+- [ ] **team_members emails blank — chase cron reaches nobody** (data entry) → Fix #10
 
 ---
 
-## ✅ Done — security / OAuth batch (2026-06-03/04)
+## 📋 Numbered Roadmap Fixes
 
-- [x] **#1** Repair CID write path → `CIDPage.jsx` (now via `sb` client)
-- [x] **#2** `cid_library` + `cid_performance` baseline migrations
-- [x] **#4** Rate-limit apify/unsplash/sync-*/notify (6 functions)
-- [x] **#5** Real OAuth deauthorize/data-deletion — Meta `signed_request` verify + token deletion + `data_deletion_requests` audit table
-- [x] **#6** Encrypt OAuth tokens at rest (AES-256-GCM, `_lib/crypto.js`)
-- [x] **#7** Escape user input in notify email/Slack
-- [x] **#8** Validate chat.js model allowlist + max_tokens
-- [x] **#10** Drop wide-open `profiles` RLS policy
-- [x] **#12** sync-instagram timeout + concurrency cap
-- [x] **#14** `oauth_states` expiry cleanup
-- [x] **#15** SettingsPage toggles persist / invite labeled
-- [x] **#16** De-couple VitalLyfe seed (`supabase/seed/dev_seed.sql`) + dev-proxy env var
-- [x] **#17** CORS 403 on bad origins + agent-count copy → 4
+Cross-references map node badges + the items above.
 
----
-
-## 📋 Numbered Roadmap Fixes (open)
-
-- [ ] **#1** — Scope "Why these won" + unify ranking metric → `AnalyticsRoute.jsx`, `agent-action.js`
-- [ ] **#2** — Guard Opus generation vs 26s timeout → `agent-action.js`
-- [ ] **#3** — Idea Engine server-side ids + block null-client send → `IdeaEngineRoute.jsx`
-- [ ] **#4** — Idea Engine timeout/abort on brief call → `IdeaEngineRoute.jsx`
-- [ ] **#5** — Surface silent parse failures as errors → `agent-action.js`
-- [ ] **#6** — Scope content_items realtime by client → `App.jsx`
-- [ ] **#7** — Remove dead `muse_from_brief` + `QuickActionsDashboard`
-- [ ] **#8** — Fix stuckGuard comment drift → `App.jsx`
-- [ ] **#9** — Scope `getSyncedDigest` by user_id → `agent-action.js`
-- [ ] **#10** — Document content_items text-PK convention
-- [ ] **#11** — Reuse `_researchDigest` in `muse_ig_ideas`
+- [ ] **#1** — Mobile a11y pack (zoom, 44px targets, text floor, touch icon) → `index.html`, App.jsx header, SetupRoute.jsx
+- [ ] **#2** — Muse model tiering haiku→sonnet for client-facing output → agent-action.js :487/:936/:840
+- [ ] **#3** — Pipeline-state hygiene (stage sync, Posted, notify semantics, publish_date) → approvals.js, constants.js, migration
+- [ ] **#4** — Split agent-action.js monolith (1,753 lines) → `_actions/` modules + dispatcher
+- [ ] **#5** — Prove Stripe create-path + invoice email overlap decision → billing-stripe.js, BillingRoute.jsx
+- [ ] **#6** — Dead-code + dead-schema sweep → 3 components, N8N constant, slack_channel_id
+- [ ] **#7** — Client-scope global content fetch/realtime → App.jsx:476,491
+- [ ] **#8** — Security debt (crypto hard-fail, password rotation, CSP style-src) → _lib/crypto.js, Supabase auth, netlify.toml
+- [ ] **#9** — QC v2 video frame sampling (NOT greenlit — propose first) → EditContentModal, agent-action qc_review
+- [ ] **#10** — Team roster emails (data entry) → Setup section 4
 
 ---
 
 ## Cross-cutting work
 
-### Founder follow-ups now LIVE (2026-06-04)
-- `TOKEN_ENC_KEY` set in Netlify (do NOT rotate casually — would orphan encrypted tokens).
-- Migrations applied to live Supabase: `20260603_drop_profiles_anon_policy.sql`, `20260604_data_deletion_requests.sql` (+ the CID baselines on 2026-06-03).
+### When #6 lands → schema cleanup migration
+```sql
+-- supabase/migrations/2026xxxx_drop_deprecated.sql
+alter table public.clients drop column if exists slack_channel_id;
+```
 
-### Before onboarding a second client (multi-tenant)
-- Land **#6** (realtime scope) and **#9** (getSyncedDigest user scope) together — both are single-tenant-safe today but leak across clients otherwise.
+### Test-data cleanup (owed from the 7/3 campaign — after the 7/4 cron send lands)
+```sql
+-- archive the test client and remove its artifacts
+update public.clients set status='archived', archived_at=now() where id='4bf5e953-a9d5-4b09-9159-7a3c5d240e35';
+delete from public.content_items where id='qc-test-kitchen-a1-price';
+delete from public.client_vault where client_id='4bf5e953-a9d5-4b09-9159-7a3c5d240e35';
+delete from public.client_reports where client_id='4bf5e953-a9d5-4b09-9159-7a3c5d240e35';
+-- plus: remove the test flyer from Google Drive; delete the abandoned live-mode Stripe customer (optional, harmless)
+```
+
+### When fully off password login → rotate credentials
+- Supabase admin password (`Cloudai25%`) — present in git history, rotate at the dashboard
+- Confirm `TOKEN_ENC_KEY` is set in Netlify (crypto.js silently degrades without it — see Fix #8)
 
 ---
 
 ## Suggested attack order
 
-1. **#1** — operator-flagged, contained, highest visibility. Unblocks trust in the headline feature.
-2. **#2 + #4** (paired) — the Opus-timeout + modal-hang pair that makes the Idea Engine actually reliable.
-3. **#3** — Idea Engine data integrity (ids + null-client). Quick.
-4. **#6 + #9** — multi-tenant safety, before any second client.
-5. **#5, #7, #8, #10, #11** — hygiene; #7 (dead code) is a 10-minute win anytime.
+1. **#1 (mobile a11y pack)** — smallest real-user impact win; closes the 7/4 audit + D5; pure frontend, zero risk.
+2. **#3 (state hygiene)** — the stage/status drift is quietly corrupting row consistency on every approve; do it before more views key on stage. Includes the notify-semantics decision.
+3. **#2 (model tiering)** — one-line-per-action quality bump on the exact output clients read; already agreed in principle.
+4. **#5 (Stripe proof)** — do it deliberately before a client deadline forces it; unblocks confident invoicing for the NYC Gyro-class deals.
+5. **#6 (dead-code sweep)** — 30-minute hygiene; do it inside any quiet moment.
+6. **#7 (client scoping)** — schedule ahead of onboarding the next active client; kills a whole bug class.
+7. **#8 (security debt)** — crypto hard-fail is 10 lines; password rotation when auth migration completes.
+8. **#4 (monolith split)** — biggest refactor; sequence AFTER #2/#3 so their diffs stay small, BEFORE the next batch of new actions.
+9. **#9 / #10** — #9 needs a greenlight; #10 is a data-entry ask, not engineering.
 
 ---
 
 ## How to keep this current
 
-When you fix an item: check the box, move the badge counts, and commit alongside the code fix. If the architecture changes meaningfully, re-run `/architecture-map` to regenerate the HTML + this bundle.
+When you fix an item:
+1. Add `~~strikethrough~~` to the bullet OR check the box `[x]`
+2. Move the badge count at the top
+3. If the fix touched multiple items, mark each
+4. Commit alongside the code fix so the punch-list reflects reality
+
+If the architecture changes meaningfully (new tables, new functions, big refactor):
+- Regenerate `architecture-map.html` via the `/architecture-map` skill (or `/health`)
+- The HTML's Bugs & Roadmap tab regenerates from the source data
+- Update this file by hand to match the new state, OR re-run the skill to overwrite this file too

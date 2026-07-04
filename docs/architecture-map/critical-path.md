@@ -1,55 +1,31 @@
-# Critical Path — the Idea Engine + Agent-Action Spine
+# Critical Path — the QC gate flow
 
-Two seams matter in Vantus. The **agent-action spine** is the trunk every AI feature flows through; the **Idea Engine flow** is the newest, highest-value path and the current frontier.
+> The spine of the system since 7/2: **nothing posts with a wrong price or wrong hours.** A deliverable moving to the content-approval gate is automatically fact-checked against the client's Facts of Record — caption AND artwork — and hard-blocked until clean. Verified end to end in production on 2026-07-03.
 
-> Citations are `file:line`. Operation kind tagged per step.
+1. **[UI]** An editor finishes a deliverable and sets its status to **Need Content Approval** in the edit modal — `src/ui/pipeline/EditContentModal.jsx` (status select; SOP checklist at 16-47 already shows the QC gate row).
 
-## Spine A — Idea Engine (the new headline flow)
+2. **[DB]** `handleSave` writes the updated row to `content_items` — `src/App.jsx:713-753`. Plain English: the item is saved with its new pipeline position.
 
-| # | Step | Where | Kind |
-|---|---|---|---|
-| 1 | User opens **Idea Engine**, picks funnel stage (TOF/MOF/BOF) + content type + optional own-idea in the setup box | `src/ui/routes/IdeaEngineRoute.jsx:147` | UI |
-| 2 | `cook()` → `POST /api/agent-action` `{action:'muse_idea_list', funnelStage, contentType, userIdea, inspiration}` | `IdeaEngineRoute.jsx:39` → `agent-action.js:1459` | `[HTTP]` |
-| 3 | Auth + rate-limit gate | `_lib/requireUser.js:58`, `_lib/rateLimit.js:34` | `[AUTH]` |
-| 4 | `muse_idea_list` pulls the account's real top performers + voice samples | `agent-action.js:1185` → `getSyncedDigest:1321` (reads `connected_accounts`, `account_posts`) | `[DB]` |
-| 5 | Optional Tavily creator research (when a creator is named) | `agent-action.js:1158` (`_researchDigest`) → Tavily | `[API]` |
-| 6 | Prompt assembled with WINNING_FORMULA + funnel + content-type + levers; one **Opus 4.8** call → 6 concept tiles | `agent-action.js:1236` | `[LLM]` |
-| 7 | Tiles render; user clicks one → `openIdea()` → `POST muse_film_brief` `{title,hook,lever,format,funnelStage}` | `IdeaEngineRoute.jsx:53` → `agent-action.js:1247` | `[HTTP]` |
-| 8 | `muse_film_brief` generates one full shootable brief on **Opus 4.8** (story-sequence aware structure) | `agent-action.js:1289` | `[LLM]` |
-| 9 | User hits "Send to pipeline" → insert `content_items` directly via the sb client | `IdeaEngineRoute.jsx:83` | `[DB]` |
+3. **[HTTP]** Because the status *transitioned into* Need Content Approval, `handleSave` fire-and-forgets `POST /api/agent-action {action: qc_review}` — `src/App.jsx:743-749`. (Only on the transition — re-saving an item already at the gate does not re-fire.)
 
-**Why two stages:** generating six full briefs at once on Opus would blow the 26s function timeout, so the list is cheap and each brief is generated on demand (step 7-8). Open risk: even one brief + stacked research can still approach the cap (Fix #2), and the brief call has no client-side timeout guard (Fix #4).
+4. **[HTTP]** `netlify.toml` routes `/api/agent-action` → `agent-action.js`; `requireUser` + rate limit pass — `netlify/functions/agent-action.js:1654-1657`.
 
----
+5. **[DB]** The `qc_review` handler loads the content row and the client's `client_facts` + `facts_updated_at` — `agent-action.js:333-344`. Plain English: it pulls the deliverable and the client's book of true facts (prices, hours, phones, offers).
 
-## Spine B — Agent Action (the trunk)
+6. **[API]** `fetchDriveImage` downloads up to 3 attached images from Google Drive (`drive.google.com/uc?export=download`, 4.5MB cap, image/* only) — `agent-action.js:235`. Files got there via the modal's upload flow, which sets anyone-with-link sharing (`EditContentModal.jsx:105-109`).
 
-Every AI button (write content, research, analyze, ideate) flows through one authenticated router.
+7. **[LLM]** `aiVision` sends image blocks + caption/script/CTA to **claude-sonnet-4-6** with a strict-JSON QC prompt; the model extracts on-asset text and flags issues — `agent-action.js:201` (helper), `:401` (call).
 
-| # | Step | Where | Kind |
-|---|---|---|---|
-| 1 | UI action → token-injecting fetch | `src/services/apiFetch.js:17` | — |
-| 2 | Fresh access token from the Supabase session | `apiFetch.js:18` → `supabaseClient.js:15` | `[AUTH]` |
-| 3 | `POST /api/agent-action` `{action, payload, client_id}` + Bearer | `agent-action.js:1459` | `[HTTP]` |
-| 4 | Auth gate (JWT + admin/approved-client) | `_lib/requireUser.js:58` | `[AUTH]` |
-| 5 | Rate limit `agent-action:<user.id>` 60/min | `_lib/rateLimit.js:34` | `[RL]` |
-| 6 | Per-client brand voice from `clients.brand_voice_md` | `agent-action.js:122` | `[DB]` |
-| 7 | Switch dispatches to one of 15 handlers | `agent-action.js:1459-1474` | — |
-| 8 | Claude call via shared `ai()` — model per caller (Haiku default; Opus 4.8 for the 3 Muse-creative actions) | `agent-action.js:166` | `[LLM]` |
-| 9 | Result written back (content_items / cid_library) or returned (insights/ideas) | various | `[DB]` |
-| 10 | Every invocation logged to `agent_events` | `agent-action.js:74` | `[DB]` |
-| 11 | Mapped actions mirrored to Slack | `agent-action.js:146` | `[API]` |
+8. **[CODE]** `runExactFactChecks` runs deterministic checks over copy + the model's extracted text: expired/future offers, price-of-record mismatches within a 60-char window of a $ amount, phone numbers matching no location — each a hard BLOCKER. Plain English: code catches the "9AM vs 10AM" class of errors even if the AI missed them.
 
----
+9. **[DB]** Verdict written: `qc_status` (pass / flagged / blocked), `qc_issues[]`, `qc_ran_at` PATCHed onto the row — `agent-action.js:441`. An `agent_events` row logs the run; Slack gets a 🛡️ card (loud when blocked).
 
-## Spine C — Connect → Sync → (analyze / ideate)
+10. **[WS]** Supabase realtime pushes the updated row to every open tab — `src/App.jsx:491-522` — and the Ledger row grows its `QC BLOCKED` / `qc pass` pill.
 
-The data pipeline both Analytics and the Idea Engine depend on.
+11. **[UI]** The gates hold: Ledger `doApprove` refuses a blocked item at the content stage (`src/ui/routes/LedgerRoute.jsx:74-78`), `doPosted` refuses too, and the edit modal disables Save into Ready For Schedule/Scheduled (`EditContentModal.jsx:37-44`). The human fixes the caption or artwork, hits **Run QC** (`LedgerRoute.jsx:85-99`), gets a pass.
 
-| # | Step | Where | Kind |
-|---|---|---|---|
-| 1 | "Connect" → `POST /api/oauth/<p>/start` → mint CSRF state, return authorize URL | `ConnectedAccountsCard.jsx:71` → `oauth-*-start.js` → `_lib/oauth.js:65` | `[DB]` |
-| 2 | Platform consent → callback exchanges code, fetches profile, upserts account + **encrypted** token | `oauth-*-callback.js` → `_lib/oauth.js` → `_lib/crypto.js:16` | `[API]`/`[DB]` |
-| 3 | "Sync now" → `POST /api/sync/<p>` → decrypt token, pull posts + metrics, upsert `account_posts` | `sync-youtube.js:108` → `_lib/crypto.js` | `[API]`/`[DB]` |
-| 4 | `account_posts` feeds AnalyticsRoute (charts/top performers) AND the Idea Engine (`getSyncedDigest`) | `AnalyticsRoute.jsx:104`, `agent-action.js:1321` | `[DB]` |
-| 5 | Platform revoke → deauth/data-deletion webhook verifies `signed_request`, deletes account+token, logs `data_deletion_requests` | `oauth-*-data-deletion.js:18` → `_lib/oauth.js` | `[API]`/`[DB]` |
+12. **[HTTP → DB]** Approve now succeeds: `recordApproval` writes the `approvals` audit row, advances the item's status, and calls `/api/notify` — `src/core/approvals.js:28-66`.
+
+13. **[API]** `notify.js` inserts the bell row (deduped on `unique(type, content_item_id)` — first writer wins, duplicates skip all channels), posts the Slack card, emails admins via Resend, and pings n8n — `netlify/functions/notify.js` (dedupe gate added 7/3).
+
+**Timing note:** first QC run of the day can take 10-15s (cold function + vision call); warm runs landed in ~5-20s during the 7/3 test campaign.

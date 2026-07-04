@@ -1,103 +1,162 @@
-# Node Catalog
+# Nodes — full catalog
 
-> Regenerated 2026-06-04. `★` = on a critical path. `☠` = dead code. Grouped by cluster.
+> Every node from `architecture-map.html`, grouped by cluster. **critical** = on the QC-gate spine.
 
-## Contents
-- [Client](#client) · [Routes](#routes) · [UI / Apps](#ui--apps) · [Core / Services](#core--services) · [Server](#server-netlify-functions) · [Data](#data-supabase) · [External](#external-apis)
+**ToC:** [Client](#client-browser) · [Server entry](#server-entry) · [Netlify Functions](#netlify-functions) · [Supabase data](#supabase-data) · [External APIs](#external-apis)
 
----
+## Client (browser)
 
-## Client
-### main.jsx
-`src/main.jsx:1` — Vite entry stub; imports App.jsx (which self-mounts).
-### ★ App.jsx
-`src/App.jsx:44` — Root: auth gate, session/role state, multi-tenant roster, realtime subs, nav routing. Mounts the Idea Engine route (`:1299`). **Note:** `content_changes` realtime channel is NOT client-scoped (`:490`).
+### App.jsx — root · 1,414 lines · critical
+`src/App.jsx` · Root component: 4-way auth gate, owner of global state, all realtime subscriptions, QC auto-trigger. **Plain:** the heart of the browser app — decides who you are, keeps the live data, and automatically summons the QC agent when a deliverable reaches the approval gate. Notes: setupSession 82-239; handleSave 713-753 (QC fire at 743-749); realtime content_items 491-522 unfiltered, clients 554-560, notifications 602-615; global content fetch at 476.
 
-## Routes
-### DashboardRoute.jsx
-`src/ui/routes/DashboardRoute.jsx:56` — Home dashboard composition.
-### ContentRoute.jsx
-`src/ui/routes/ContentRoute.jsx:18` — Platform-tabbed pipeline boards.
-### AgentsRoute.jsx
-`src/ui/routes/AgentsRoute.jsx:4` — Pass-through to AgentChatPage.
-### ★ AnalyticsRoute.jsx
-`src/ui/routes/AnalyticsRoute.jsx:81` — Reads `account_posts`/`connected_accounts`, computes metrics/top performers, runs "Why these won" (`scrappy_analyze_performance` `:174`). **Bug:** ranks top set by engagement_rate while backend returns top-6 — scoping mismatch (`:262`).
-### ★ IdeaEngineRoute.jsx (NEW)
-`src/ui/routes/IdeaEngineRoute.jsx:13` — Two-stage Muse flow: `cook()` → `muse_idea_list` (`:39`) renders 6 concept tiles; `openIdea()` → `muse_film_brief` (`:53`) builds one full brief on open; `sendToPipeline()` inserts `content_items` via the sb client (`:83`). Setup box captures funnel/content-type/own-idea/creators (`:147`). **Bugs:** client-generated `Date.now()` id (`:73`), no brief timeout guard (`:48`), null-client insert (`:81`).
-### SettingsPage.jsx
-`src/ui/settings/SettingsPage.jsx:5` — Workspace config; AI toggles now persist, invite labeled "coming soon" (Fix #15). Hosts ConnectedAccountsCard.
+### EditContentModal.jsx — SOP gates + Drive upload · critical
+`src/ui/pipeline/EditContentModal.jsx` · Deliverable form with hard QC gate and Google Drive resumable upload (anyone-with-link at 105-109). **Plain:** where content is written and files attached; refuses to schedule a QC-blocked item. Notes: SOP gates 16-47; QC hard gate 37-44; camelCase hydration fixed 7/3.
 
-## UI / Apps
-- **CommandInput.jsx** `:23` — NL command box → routeTask.
-- **ActivityFeed.jsx** `:61` — realtime `agent_events`.
-- **AgentChatPage.jsx** `:166` — multi-agent chat (sonnet-4-6) + action buttons.
-- **ContentPipelineBoard.jsx** `:16` — stage kanban; Muse caption/script buttons.
-- **EditContentModal.jsx** `:11` — editor + Google Drive resumable upload.
-- ★ **ConnectedAccountsCard.jsx** `:6` — OAuth connect/sync/disconnect.
-- **AddClientModal.jsx** `:86` / **ClientTeamPanel.jsx** `:24` — client CRUD + invite/approve.
-- **CIDPage.jsx** `src/apps/competitor-intel/CIDPage.jsx:73` — competitor intel; **writes now go through the sb client** (`:381,:434`) — the ReferenceError is fixed.
-- **ArtgridScoutPage.jsx** `:26` / **AdROIHub.jsx** `:41` — footage briefs / ad ROI.
-- ☠ **QuickActionsDashboard.jsx** `:26` — imported in App.jsx, never rendered. Dead.
+### LedgerRoute.jsx — approval surface · critical
+`src/ui/routes/LedgerRoute.jsx` · Approve / Request revisions / Mark posted / Run QC with QC verdict panel. **Plain:** the screen where work gets approved — blocked items are refused with the reason. Notes: doApprove gate 74-78; doQC 85-99.
 
-## Core / Services
-- ★ **apiFetch.js** `:17` — token-injecting fetch.
-- **supabaseClient.js** `:15` — singleton `sb`; `DB_CONNECTED` hardcoded true (`:14`).
-- **routeTask.js** `:9` — NL agent router (sonnet-4-6, serial).
-- **agentRegistry.js** `:5` — 4 agents + prompts.
-- **memory.js** `:51` — per-agent localStorage memory.
-- **constants.js** `:5` — NAV (now includes Idea Engine, id `ideas`).
+### core/approvals.js — audit + advance + notify · critical
+`src/core/approvals.js` · recordApproval 28-66: audit row → status advance → /api/notify. **Plain:** the bookkeeping for every yes/no. Bug: patches status not stage (45-47); markPosted at 77 sets runtime-only "Posted".
 
-## Server (Netlify Functions)
-### ★ requireUser.js
-`netlify/functions/_lib/requireUser.js:58` — JWT + admin/approved-client gate; **CORS now 403s non-allowlisted origins** (`isForbiddenOrigin :39`, Fix #17).
-### rateLimit.js
-`_lib/rateLimit.js:34` — in-memory sliding window; **now wired into all 8 protected functions** (Fix #4).
-### ★ agent-action.js
-`netlify/functions/agent-action.js:1459` — single POST router for 15 actions. `ai()` now takes a model param (`:166`). **3-tier model split:** Haiku 4.5 (most) · Opus 4.8 (`muse_ig_ideas:1074`, `muse_idea_list:1236`, `muse_film_brief:1289`) · Sonnet 4.6 (frontend chat). Idea Engine helpers/constants `:1142-1345` (`getSyncedDigest:1321`, `_researchDigest:1158`, `WINNING_FORMULA`, `FUNNEL`, `CONTENT_TYPE`). **Bugs:** Opus/timeout risk, silent parse-failures, dead `muse_from_brief:669`, service-role getSyncedDigest.
-### ★ chat.js
-`netlify/functions/chat.js:45` — Anthropic proxy; **now validates model allowlist + clamps max_tokens 4096** (`:16-62`, Fix #8).
-### notify.js
-`netlify/functions/notify.js:56` — notifications + Resend/Slack/n8n fanout; rateLimit (Fix #4); **user fields HTML-escaped** via `escapeHtml` (`:24,:134`, Fix #7).
-### apify-scrape.js / unsplash.js
-`:10` / `:7` — proxies; rateLimit added (Fix #4). Apify needs current billing to function.
-### ★ _lib/oauth.js
-`netlify/functions/_lib/oauth.js:65` — CSRF state, account/token upserts (**now encrypted**), expired-state cleanup (Fix #14), `deleteConnectedAccountByPlatformId` for revoke.
-### _lib/crypto.js (NEW)
-`netlify/functions/_lib/crypto.js:16` — AES-256-GCM encrypt/decrypt for tokens at rest, keyed by `TOKEN_ENC_KEY`. `v1:iv:tag:cipher` format; legacy plaintext decrypts unchanged; degrades + warns if key unset (Fix #6).
-### oauth-*-start.js / oauth-*-callback.js
-`:43` / `:52` — connect + token exchange (tokens stored encrypted).
-### oauth-*-deauth / data-deletion
-`netlify/functions/oauth-instagram-data-deletion.js:18` — **now real:** Meta `signed_request` verified, account+token deleted, `data_deletion_requests` row written; `oauth-data-deletion-status.js` serves the status URL (Fix #5).
-### ★ sync-{ig,tt,yt}.js
-`netlify/functions/sync-youtube.js:108` — pull posts + metrics, **decrypt tokens on read** (Fix #6), rateLimit (Fix #4); sync-instagram insight loop now timeout + concurrency-capped (Fix #12).
+### SetupRoute + FactsAndReports — data entry
+`src/ui/routes/SetupRoute.jsx` (317) + `src/ui/settings/FactsAndReports.jsx` (269) · Retainers/scope, account mapping, owners/dates, roster, Facts of Record, monthly report uploads. **Plain:** where humans teach Vantus the truth QC checks against. Notes: roster emails empty (0/7); worst mobile page (7/4 audit).
 
-## Data (Supabase)
-| Table | Defined | Notes |
-|---|---|---|
-| `clients` | `20260523_clients_multitenant.sql:13` | VitalLyfe seed moved to `supabase/seed/dev_seed.sql` (Fix #16) |
-| `profiles` | `002_profiles.sql:4` | wide-open policy **dropped** (Fix #10) |
-| `client_users` | `20260525_client_users_allowlist.sql:25` | invite allowlist; realtime |
-| `content_items` | `20260526_content_items_baseline.sql:24` | text PK; Idea Engine + App mint ids client-side |
-| `agent_events` | `20260523_agent_events.sql:8` | service-role writes; realtime |
-| `notifications` | `20260523_notifications.sql:7` | realtime, client-scoped |
-| `connected_accounts` | `20260601_connected_accounts.sql:13` | admin + user-self CRUD |
-| `connected_account_tokens` | `20260601_connected_accounts.sql:66` | **tokens AES-256-GCM encrypted** (Fix #6); service-role only |
-| ★ `account_posts` | `20260601_connected_accounts.sql:80` | read by Analytics + scrappy_analyze + Idea Engine |
-| `oauth_states` | `20260601_connected_accounts.sql:124` | service-role only; **expiry cleanup** (Fix #14) |
-| `data_deletion_requests` (NEW) | `20260604_data_deletion_requests.sql:4` | OAuth deletion audit; confirmation_code PK; service-role only (Fix #5) |
-| `cid_library` | `20260603_cid_library_baseline.sql:4` | **migration added** (Fix #2); admin-only RLS |
-| `cid_performance` | `20260603_cid_performance.sql:4` | **migration added** (Fix #1/#2); admin-only RLS |
+### VaultRoute.jsx — billing profiles + cards
+`src/ui/routes/VaultRoute.jsx` (205) · Per-client billing profile + Stripe-vaulted card-on-file. **Plain:** billing details page; card numbers only ever typed on Stripe's page.
+
+### BillingRoute.jsx — invoices
+`src/ui/routes/BillingRoute.jsx` (213) · Invoice CRUD, Stripe create-path, Resend fallback email (fires only on Stripe failure, 104-112).
+
+### IdeaEngineRoute.jsx — ideation → pipeline
+`src/ui/routes/IdeaEngineRoute.jsx` (290) · muse_idea_list / muse_film_brief actions; browser-side insert of picked ideas (content_items at 83).
+
+### Reports · ClientAnalytics · Operations — scoreboards + tasks
+`src/ui/routes/ReportsRoute.jsx` (181) · `ClientAnalyticsRoute.jsx` (250) · `OperationsRoute.jsx` (254) · Approval scoreboard, per-client social analytics, DB-backed task board with ops_assign.
+
+### AgentChatPage + CommandInput — chat · sonnet
+`src/ui/agents/AgentChatPage.jsx` (438, model at :178) + `src/core/routeTask.js` (:34) + TeamBroadcast (:37) · All chat via /api/chat on claude-sonnet-4-6. Context scoped to the active client since 7/3.
+
+### SettingsPage + ConnectedAccountsCard — OAuth + sync
+`src/ui/settings/ConnectedAccountsCard.jsx` (233) · Platform connect (oauth start) + manual sync triggers (lines 7-9).
+
+### apiFetch + supabaseClient — shared plumbing
+`src/services/apiFetch.js` (25) · `src/services/supabaseClient.js` (28) · Bearer-token fetch wrapper (26+ call sites) and the sb singleton.
+
+### QuickActionsDashboard · PlaceholderPage · TypingTask — DEAD, zero render sites
+`src/ui/dashboard/QuickActionsDashboard.jsx` (122) · `src/ui/shared/PlaceholderPage.jsx` (16) · `src/ui/shared/TypingTask.jsx` (13) · Imported at App.jsx:20/25/26, rendered nowhere. Delete (Fix #6).
+
+## Server entry
+
+### netlify.toml — /api/* redirects · critical
+Maps every /api path to its function; 26s timeouts on the heavy ones; HSTS/CSP/Permissions-Policy headers live here too.
+
+### cron 13:00 UTC — send-monthly-reports
+`schedule = "0 13 * * *"` · report send pass + missing-PDF nag pass. Test path gated by CRON_TEST_KEY since 7/3.
+
+### cron 14:00 UTC — chase-overdue-tasks
+`schedule = "0 14 * * *"` · overdue-task nudges.
+
+### Provider callbacks — Stripe · Meta · TikTok · Google
+Stripe webhook (signature-verified), OAuth callbacks (CSRF state), deauth/data-deletion (HMAC for Meta/TikTok; Google unsigned — no scheme offered).
+
+## Netlify Functions
+
+### agent-action.js — dispatcher · 1,753 lines · critical
+16-action switch. ai() default haiku-4-5 (:176); aiVision() sonnet-4-6 (:201). Tiers: haiku ×10 · sonnet ×4 (qc_review, muse_ig_ideas, muse_idea_list, muse_film_brief) · opus ×1 (scrappy_analyze_performance :1582). Dead N8N constant :21. Every run → agent_events + Slack.
+
+### qc_review — hybrid vision gate · critical
+`netlify/functions/agent-action.js:333` · Load item + facts → fetchDriveImage (:235, 3 imgs, 4.5MB, image/*) → sonnet vision strict-JSON → runExactFactChecks (offers/prices/phones = blockers) → PATCH qc_* (:441). Video not frame-checked (v1, warning emitted).
+
+### chat.js — Anthropic proxy
+88 lines · model allowlist sonnet/haiku (:16), default sonnet-4-6 (:17), 30/min rate limit.
+
+### notify.js — fan-out · 385 lines · critical
+Bell row (dedupe-gated since 7/3) → Resend email → per-client-or-global Slack (:246) → n8n (:369). invoice_sent template path at :205. From notifications@cloudscenic.com (domain verified 7/3).
+
+### billing-stripe.js — create + vault + webhook
+234 lines · handleCreate (:64, unproven live), vault_link/vault_sync (setup-mode Checkout, card stub sync), webhook invoice.paid/voided → invoices PATCH (:220-226).
+
+### send-monthly-reports.js — cron mailer
+197 lines · send pass (sent_at-gated) + nag pass (28th + days 1-5, once/client/day dedupe). Reads private client-reports bucket via service key. Nag verified live 7/3.
+
+### chase-overdue-tasks.js — cron nudger
+161 lines · overdue scan → Resend digests + Slack + bell rows. Blocked in practice by empty roster emails.
+
+### sync-instagram/tiktok/youtube — metrics pull ×3
+283/309/302 lines · pull posts/metrics into account_posts; TikTok/YouTube token refresh + AES re-encrypt.
+
+### oauth-* ×11 — connect + compliance
+start (CSRF state) / callback (code→token, encrypted) / deauthorize + data-deletion (HMAC Meta/TikTok) + public deletion-status page. States expire in 10 min.
+
+### _lib/ — requireUser · rateLimit · crypto · oauth
+Auth gate + CORS allowlist (141) · in-memory rate limits (66) · AES-256-GCM with PLAINTEXT fallback if key unset (59, :7) · OAuth state/store helpers (328).
+
+### unsplash.js · apify-scrape.js — research proxies
+62 / 315 lines · both requireUser-gated.
+
+## Supabase data
+
+### content_items — the deliverables · critical
+TEXT id; pipeline status/stage; ledger cols; qc_status/qc_issues/qc_ran_at. publish_date is TEXT (:47 of baseline). RLS: admins full, clients scoped SELECT/UPDATE, anon zero.
+
+### clients — tenants + facts of record · critical
+Brand voice, scope/retainer, client_facts JSONB (hours/locations/prices/offers), facts_updated_at staleness. Deprecated slack_channel_id column still present.
+
+### approvals — decision audit trail
+Who/what/when/stage/feedback. Admin write, clients read own.
+
+### notifications — bell + dedupe key
+unique(type, content_item_id) = permanent first-writer-wins dedupe across bell AND (since 7/3) Slack/email.
+
+### agent_events — agent activity log
+One row per action run; realtime feeds the dashboard ActivityFeed.
+
+### client_reports + client-reports bucket — monthly PDFs
+unique(client_id, month); private bucket (anon gets "Bucket not found" — verified 7/3).
+
+### client_vault — billing profiles
+Admin-only RLS, no client/anon policies; card stubs only (brand/last4/expiry + Stripe ids).
+
+### invoices + stripe_customers — money rows
+Local ledger with stripe linkage; webhook keeps paid/void in sync.
+
+### tasks + team_members — ops board
+DB-backed tasks (the dashboard OpsBoard widget is separate, local-only state); roster the chase cron emails (emails currently blank).
+
+### connected_accounts + connected_account_tokens + account_posts + oauth_states — social graph ×4
+Tokens table has RLS on with ZERO policies = service-role only. account_posts unique(account_id, platform_post_id).
+
+### cid_library + cid_performance — hook research
+Competitor hooks (scrappy_hook_analysis writes) + prediction-vs-actual.
+
+### profiles + client_users — identity + allowlist
+Roles + the invite allowlist (pending/approved/rejected); App.jsx watches client_users realtime to auto-unlock.
+
+### data_deletion_requests — compliance log
+Meta/TikTok deletion callbacks with public status codes; service-role only.
 
 ## External APIs
-| Service | Used by | Notes |
-|---|---|---|
-| Anthropic | agent-action `:166`, chat | **3-tier:** Haiku / Opus 4.8 / Sonnet 4.6 |
-| Tavily | agent-action `:281` | Scrappy research + Idea Engine creator research |
-| Apify | apify-scrape `:34` | billing must be current |
-| Unsplash | unsplash `:7` | stock photos |
-| Resend | notify `:12` | email (fields escaped) |
-| Slack / n8n | notify, agent-action | per-client webhooks |
-| Meta / IG | sync-instagram `:108` | 60-day token; signed_request on deauth |
-| TikTok | sync-tiktok `:123` | refresh tokens |
-| Google / YouTube | sync-youtube `:108` | consent screen in Testing mode |
-| Google Drive | EditContentModal `:67` | client-side resumable upload |
+
+### Anthropic API — haiku · sonnet · opus · critical
+haiku-4-5 grunt · sonnet-4-6 QC vision/ideation/chat · opus-4-8 performance analysis. muse_write_content still haiku (Fix #2).
+
+### Google Drive + GIS — asset store · critical
+Files uploaded from the browser (anyone-with-link); QC fetches bytes back. OAuth client in GCloud project "Vital Lyfe War Room" (458336864067); usevantus.com origin added 7/3 — first working prod upload that night.
+
+### Resend — transactional email
+Reports/invoices/notifies/digests from notifications@cloudscenic.com. Domain verified 7/3 (email was dead before).
+
+### Slack webhook — #vantus-test
+QC verdicts, agent runs, approval cards, report sends/nags; per-client override supported.
+
+### Stripe — live mode
+Hosted invoices, setup-mode Checkout card vaulting, signature-verified webhook.
+
+### Instagram Graph / TikTok API / YouTube Data API
+OAuth + post pulls + compliance callbacks (HMAC for Meta/TikTok; Google unsigned).
+
+### Tavily + Apify + Unsplash — research trio
+Scrappy research, scrape actors, stock photos.
+
+### n8n cloud — automation webhook
+notify.js fan-out target (:369). agent-action.js declares but never calls it (:21, dead constant).

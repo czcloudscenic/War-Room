@@ -1,10 +1,10 @@
 # Vantus Architecture Map
 
-> Regenerated 2026-06-04 via `/architecture-map`. Portable companion to `../../architecture-map.html`.
+> Regenerated 2026-07-04 via `/architecture-map`. Portable companion to `../../architecture-map.html`.
 
-**Vantus** (repo/internal "warroom") is a content-operations dashboard, mid-pivot into a self-serve social-analytics + AI-ideation product. React 19 + Vite 8 (Node 22) · Supabase · Netlify Functions · Anthropic Claude. Live at **usevantus.com**, auto-deploys on push to `main`.
+**Vantus** (repo/internal "warroom") is Cloud Scenic's **agency fulfillment + billing OS** — a multi-tenant client book running content delivery end to end: pipeline with approvals, an AI QC gate, deliverables ledger, monthly report mailer, Stripe billing, and a client vault. React 19 + Vite 8 (Node 22) · Supabase · Netlify Functions · Anthropic Claude. Live at **usevantus.com**, auto-deploys on push to `main`.
 
-**Since the last map (2026-06-03):** the whole **Idea Engine** feature shipped, and a two-part **security/OAuth hardening batch** landed — so most of the old bug registry is now fixed.
+**Since the last map (2026-06-04):** the whole fulfillment pivot shipped — Setup, Ledger, Reports, Client Analytics, Operations, Billing + live Stripe, CRM home — and six pages/agents were removed. Then the 7/2 Danny-spec build landed the **QC Agent** (hybrid vision + deterministic fact-checking), **Facts of Record**, and the **monthly report cron**; 7/3 added the **Client Vault** (Stripe-vaulted cards) and a full live test campaign (27/31 green) that also fixed three bugs and two silent config outages.
 
 **View the interactive map:** open `../../architecture-map.html`, or `python3 -m http.server 4747` → `http://localhost:4747/architecture-map.html`.
 
@@ -12,33 +12,29 @@
 
 ## Notable findings from this map
 
-- **The security batch shipped — the map is much greener.** Fixed: rate limits on all functions, CID write repair + missing migrations, notify HTML-escaping, chat model/max_tokens validation, **OAuth token encryption (AES-256-GCM at rest)**, real deauth/data-deletion with Meta `signed_request` verification + a `data_deletion_requests` audit table, dropped the wide-open `profiles` policy, and CORS now 403s non-allowlisted origins. Remaining items are mostly feature-quality, centered on the new Idea Engine.
-- **The Idea Engine is the new hot path — and it leans on Opus 4.8.** `muse_idea_list`, `muse_film_brief`, and `muse_ig_ideas` all call **Opus 4.8**. With `getSyncedDigest` + serial Tavily research stacked on the same request, slow runs risk the **26s Netlify function timeout** — the biggest live risk now (Fix #2).
-- **The Idea Engine writes to the DB from the browser.** `IdeaEngineRoute` inserts `content_items` directly via the sb client with a **client-generated `Date.now()` id** and only attaches `client_id` when present — collision/orphan risk. The film-brief call also has **no timeout guard**, so a slow Opus brief hangs the modal (Fixes #3, #4).
-- **The headline feature still has its scoping bug.** `scrappy_analyze_performance` ("Why these won") surfaces reasons across multiple posts and ranks by raw views — should target the true top performer(s) with one metric. Operator-flagged (Fix #1).
-- **Model split is now 3-tier:** Haiku 4.5 (most handlers) · **Opus 4.8** (the three Muse-creative actions) · Sonnet 4.6 (frontend chat). Three handlers still inline their own Anthropic fetch instead of the shared `ai()`.
-- **Multi-tenant reads everything.** `App.jsx` subscribes to ALL `content_items` (filtered only at render) and `getSyncedDigest` reads every row via service role — fine single-tenant, a leak risk once a second client is onboarded (Fixes #6, #9).
-- **Dead code still present:** `muse_from_brief` (no caller) + `QuickActionsDashboard` (imported, never rendered) (Fix #7).
-
----
+- **Dead code (3 files):** `QuickActionsDashboard.jsx`, `PlaceholderPage.jsx`, `TypingTask.jsx` are imported at `App.jsx:20/25/26` but rendered nowhere — they ship in the bundle for nothing. Only dead files in `src/`; everything else has live importers.
+- **The QC spine is real and proven.** Save into "Need Content Approval" → auto `qc_review` → Google Drive image fetch → sonnet vision + deterministic price/phone/offer-window checks → blocked gates in the Ledger and the edit modal. Verified live 7/3, including reading a wrong price off an attached image.
+- **Two config outages were invisible for weeks.** Drive upload NEVER worked in production until 7/3 (`usevantus.com` was missing from the Google OAuth client's origins — zero items ever had files) and ALL email was dead until 7/3 (Resend domain unverified; the earlier API-key fix wasn't enough). Neither surfaced an error anywhere a human looked.
+- **Same silent-fallback smell remains in one place:** `_lib/crypto.js:7` stores OAuth tokens in PLAINTEXT if `TOKEN_ENC_KEY` is unset — no startup alarm. Worth a hard fail.
+- **Invoice email overlap:** the branded Resend invoice email only sends when Stripe FAILS (`BillingRoute.jsx:104-112`). With Stripe live, clients only ever get Stripe's own hosted-invoice email.
+- **status vs stage drift:** approvals advance `status` but not `stage` (`src/core/approvals.js:45-47`) — observed diverging live on 7/3. "Posted" is also a runtime-only status missing from `STATUSES` (`src/utils/constants.js:33`).
+- **Model tiering is half-done:** ideation actions moved to sonnet-4-6 and only `scrappy_analyze_performance` uses opus-4-8 (`agent-action.js:1582`) — but `muse_write_content` (captions, a client-facing deliverable) is still on haiku. The agreed rule: tier by who sees the output.
+- **Mobile audit (7/4):** zero horizontal overflow at any viewport including 320px stress — but pinch-zoom is disabled app-wide (`index.html:5`), micro-labels render at 8px, and Setup has 51–94 sub-40px tap targets.
 
 ## Cluster overview
 
-| Cluster | What lives here | Key nodes |
-|---|---|---|
-| **Client** | React entry + root | `main.jsx`, `App.jsx` |
-| **Routes** | Nav-switched screens | Dashboard, Content, Agents, **Analytics**, **Idea Engine (new)**, Settings |
-| **UI / Apps** | Components + feature apps | ConnectedAccountsCard, AgentChatPage, CIDPage, … |
-| **Core / Services** | Shared client logic | `apiFetch`, `supabaseClient`, `routeTask`, `memory` |
-| **Server** | Netlify Functions | **agent-action** (15 actions), chat, notify, oauth-*, sync-*, `_lib` (requireUser, rateLimit, **oauth**, **crypto-new**) |
-| **Data** | Supabase tables | clients, profiles, client_users, content_items, agent_events, notifications, connected_accounts, connected_account_tokens (encrypted), account_posts, oauth_states, **data_deletion_requests (new)**, cid_library, cid_performance |
-| **External** | Third-party APIs | Anthropic (3-tier), Tavily, Apify, Unsplash, Resend, Slack, n8n, Meta/IG, TikTok, Google/YouTube, Drive |
+| Cluster | What lives there |
+|---|---|
+| **Client (browser)** | `App.jsx` root (auth gate, realtime, QC auto-trigger) · EditContentModal (SOP gates + Drive upload) · Ledger (approval surface) · Setup/Facts · Vault · Billing · Idea Engine · analytics pages · agent chat · 3 dead components |
+| **Server entry** | `netlify.toml` `/api/*` redirects · two daily crons (13:00 + 14:00 UTC) · provider webhooks (Stripe, Meta, TikTok, Google) |
+| **Netlify Functions** | `agent-action.js` (16-action dispatcher, 1,753 lines) with `qc_review` inside · chat proxy · notify fan-out · billing-stripe (create + vault + webhook) · report mailer · task chaser · 3 sync + 11 OAuth functions · `_lib/` middleware |
+| **Supabase data** | 18 tables (content_items, clients+facts, approvals, notifications, client_reports, client_vault, invoices, tasks/team, social graph ×4, cid ×2, identity ×2, deletion log) + 2 storage buckets |
+| **External APIs** | Anthropic (3 model tiers) · Google Drive · Resend · Slack · Stripe · Instagram/TikTok/YouTube · Tavily/Apify/Unsplash · n8n |
 
----
+## Files in this folder
 
-## Navigation
-- [critical-path.md](critical-path.md) — the Idea Engine + agent-action spines
-- [nodes.md](nodes.md) — every node catalogued
-- [known-bugs.md](known-bugs.md) — severity-ranked, file:line cited (0 HIGH / 7 MED / 7 LOW)
-- [roadmap.md](roadmap.md) — 11 numbered fixes
+- [critical-path.md](critical-path.md) — the QC gate flow, step by step with file:line
+- [nodes.md](nodes.md) — every node catalogued by cluster
+- [known-bugs.md](known-bugs.md) — severity-ranked bug registry
+- [roadmap.md](roadmap.md) — numbered fixes with approach
 - [open-items.md](open-items.md) — the working checkbox punch-list
