@@ -18,7 +18,6 @@ const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.s
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const TAVILY_KEY = process.env.TAVILY_API_KEY;
-const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://cloudscenic.app.n8n.cloud/webhook/11138e92-248c-4562-be17-5e07b9da928c";
 // Production: https://cloudscenic.app.n8n.cloud/webhook/11138e92-248c-4562-be17-5e07b9da928c
 // Test:       https://cloudscenic.app.n8n.cloud/webhook-test/11138e92-248c-4562-be17-5e07b9da928c
 
@@ -975,8 +974,6 @@ Return ONLY a valid JSON array (no markdown, no backticks, no explanation):
     preview: items.map(i => `• [${i.format}] "${i.title}" — ${i.description}`).join("\n"),
   };
 }
-
-// ─── N8N WEBHOOK TRIGGER ──────────────────────────────────────────────────────
 
 // ─── SCRAPPY: HOOK ANALYSIS ───────────────────────────────────────────────────
 // NOTE: Requires cid_library table in Supabase with columns:

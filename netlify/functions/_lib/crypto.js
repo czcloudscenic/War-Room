@@ -1,7 +1,6 @@
 const crypto = require("crypto");
 
 const PREFIX = "v1";
-let warnedMissingKey = false;
 
 function getKey() {
   const raw = process.env.TOKEN_ENC_KEY;
@@ -17,11 +16,9 @@ function encrypt(text) {
   if (text == null) return null;
   const key = getKey();
   if (!key) {
-    if (!warnedMissingKey) {
-      console.warn("[token-crypto] TOKEN_ENC_KEY unset; storing OAuth tokens as plaintext");
-      warnedMissingKey = true;
-    }
-    return text;
+    // Never silently store secrets in plaintext. Fail loudly so the operator
+    // sets TOKEN_ENC_KEY in Netlify rather than shipping unencrypted tokens.
+    throw new Error("TOKEN_ENC_KEY is unset — refusing to store OAuth tokens unencrypted. Set a 32-byte base64 key in Netlify env.");
   }
 
   const iv = crypto.randomBytes(12);
