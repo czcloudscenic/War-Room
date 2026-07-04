@@ -38,6 +38,7 @@ const ReportsRoute = React.lazy(() => import('./ui/routes/ReportsRoute.jsx'));
 const OperationsRoute = React.lazy(() => import('./ui/routes/OperationsRoute.jsx'));
 const ClientAnalyticsRoute = React.lazy(() => import('./ui/routes/ClientAnalyticsRoute.jsx'));
 const BillingRoute = React.lazy(() => import('./ui/routes/BillingRoute.jsx'));
+const VaultRoute = React.lazy(() => import('./ui/routes/VaultRoute.jsx'));
 const IdeaEngineRoute = React.lazy(() => import('./ui/routes/IdeaEngineRoute.jsx'));
 
 // Warm the lazy route chunks in the background after first paint so navigating
@@ -50,6 +51,7 @@ function prefetchRoutes() {
   import('./ui/routes/OperationsRoute.jsx');
   import('./ui/routes/ClientAnalyticsRoute.jsx');
   import('./ui/routes/BillingRoute.jsx');
+  import('./ui/routes/VaultRoute.jsx');
   import('./ui/routes/IdeaEngineRoute.jsx');
   import('./ui/agents/TeamBroadcast.jsx');
   import('./apps/skills/SkillsPage.jsx');
@@ -1336,6 +1338,10 @@ try {
 
     {activeNav === "billing" && (
       <BillingRoute isMobile={isMobile} clients={clients} />
+    )}
+
+    {activeNav === "vault" && (
+      <VaultRoute isMobile={isMobile} clients={clients} />
     )}
 
     {/* AGENTS */}

@@ -54,11 +54,93 @@ exports.handler = async (event) => {
 
   let body;
   try { body = JSON.parse(event.body || "{}"); } catch { return { statusCode: 400, headers: cors, body: JSON.stringify({ error: "Bad JSON" }) }; }
+
+  // Vault — card-on-file via Stripe-hosted Checkout (mode=setup). Card data
+  // never touches Vantus; we store only brand/last4/expiry + Stripe ids.
+  if (body.action === "vault_link") {
+    if (!body.client_id) return { statusCode: 400, headers: cors, body: JSON.stringify({ error: "Missing client_id" }) };
+    return handleVaultLink(body.client_id, stripe, cors, event);
+  }
+  if (body.action === "vault_sync") {
+    if (!body.client_id) return { statusCode: 400, headers: cors, body: JSON.stringify({ error: "Missing client_id" }) };
+    return handleVaultSync(body.client_id, stripe, cors);
+  }
+
   if (body.action !== "create") return { statusCode: 400, headers: cors, body: JSON.stringify({ error: "Unknown action" }) };
   if (!body.invoice_id) return { statusCode: 400, headers: cors, body: JSON.stringify({ error: "Missing invoice_id" }) };
 
   return handleCreate(body.invoice_id, stripe, cors);
 };
+
+// ── Vault: resolve or create the Stripe customer for a client ────────────────
+async function vaultCustomer(clientId, stripe) {
+  const vault = (await (await sbREST(`client_vault?client_id=eq.${clientId}&select=stripe_customer_id,billing_email,legal_name`)).json())?.[0] || {};
+  let customerId = vault.stripe_customer_id
+    || (await (await sbREST(`stripe_customers?client_id=eq.${clientId}&select=stripe_customer_id`)).json())?.[0]?.stripe_customer_id
+    || null;
+  if (!customerId) {
+    const client = (await (await sbREST(`clients?id=eq.${clientId}&select=name,primary_email`)).json())?.[0];
+    if (!client) throw new Error("Client not found");
+    const customer = await stripe.customers.create({
+      name: vault.legal_name || client.name || undefined,
+      email: vault.billing_email || client.primary_email || undefined,
+      metadata: { vantus_client_id: String(clientId) },
+    });
+    customerId = customer.id;
+    await sbREST("stripe_customers", { method: "POST", headers: { Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ client_id: clientId, stripe_customer_id: customerId }) });
+  }
+  await sbREST("client_vault", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates" },
+    body: JSON.stringify({ client_id: clientId, stripe_customer_id: customerId, updated_at: new Date().toISOString() }),
+  });
+  return customerId;
+}
+
+// ── Vault: hosted card-entry link (Stripe Checkout, mode=setup) ──────────────
+async function handleVaultLink(clientId, stripe, cors, event) {
+  try {
+    const customerId = await vaultCustomer(clientId, stripe);
+    const origin = (event.headers?.origin && /usevantus\.com|netlify\.app/.test(event.headers.origin))
+      ? event.headers.origin : "https://usevantus.com";
+    const session = await stripe.checkout.sessions.create({
+      mode: "setup",
+      customer: customerId,
+      payment_method_types: ["card"],
+      success_url: `${origin}/?vault=saved`,
+      cancel_url: `${origin}/?vault=cancelled`,
+      metadata: { vantus_client_id: String(clientId) },
+    });
+    return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, url: session.url }) };
+  } catch (e) {
+    return { statusCode: 500, headers: cors, body: JSON.stringify({ error: e.message }) };
+  }
+}
+
+// ── Vault: pull the newest card from Stripe into client_vault ────────────────
+async function handleVaultSync(clientId, stripe, cors) {
+  try {
+    const customerId = await vaultCustomer(clientId, stripe);
+    const pms = await stripe.paymentMethods.list({ customer: customerId, type: "card", limit: 10 });
+    const pm = (pms.data || []).sort((a, b) => b.created - a.created)[0];
+    if (!pm) return { statusCode: 404, headers: cors, body: JSON.stringify({ error: "No card on file at Stripe yet — add one first." }) };
+    // Default it for future off-session charges/invoices.
+    await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: pm.id } });
+    const card = {
+      stripe_payment_method_id: pm.id,
+      card_brand: pm.card?.brand || null,
+      card_last4: pm.card?.last4 || null,
+      card_exp_month: pm.card?.exp_month || null,
+      card_exp_year: pm.card?.exp_year || null,
+      card_synced_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    await sbREST(`client_vault?client_id=eq.${clientId}`, { method: "PATCH", body: JSON.stringify(card) });
+    return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, ...card }) };
+  } catch (e) {
+    return { statusCode: 500, headers: cors, body: JSON.stringify({ error: e.message }) };
+  }
+}
 
 // ── Create + finalize + send a hosted Stripe invoice ──────────────────────────
 async function handleCreate(invoiceId, stripe, cors) {
