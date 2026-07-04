@@ -131,12 +131,12 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
                     </div>
                   </div>
                   <label style={label}>Services in scope</label>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {SERVICE_LIBRARY.map(s => {
                       const on = scope.includes(s);
                       return (
                         <button type="button" key={s} onClick={() => patchClient(c.id, { service_scope: on ? scope.filter(x => x !== s) : [...scope, s] })}
-                          style={{ fontSize: 11, padding: "5px 10px", borderRadius: 20, cursor: "pointer", fontFamily: "Inter, sans-serif",
+                          style={{ fontSize: 12.5, padding: "0 14px", minHeight: 44, display: "inline-flex", alignItems: "center", borderRadius: 22, cursor: "pointer", fontFamily: "Inter, sans-serif",
                             background: on ? "rgba(42,171,255,0.15)" : "rgba(255,255,255,0.04)",
                             border: on ? "1px solid rgba(42,171,255,0.4)" : "1px solid rgba(255,255,255,0.1)",
                             color: on ? "#2AABFF" : "rgba(255,255,255,0.5)" }}>{s}</button>

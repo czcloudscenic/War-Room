@@ -17,13 +17,10 @@ import { DEFAULT_APPS, loadApps } from './apps/apps.config.js';
 import AppPlaceholder from './ui/shared/AppPlaceholder.jsx';
 
 // ── Extracted UI components (Phase 3) ──
-import QuickActionsDashboard from './ui/dashboard/QuickActionsDashboard.jsx';
 import AppsPage from './ui/apps/AppsPage.jsx';
 import EditContentModal from './ui/pipeline/EditContentModal.jsx';
 import LoginScreen from './ui/layout/LoginScreen.jsx';
 import SettingsPage from './ui/settings/SettingsPage.jsx';
-import TypingTask from './ui/shared/TypingTask.jsx';
-import PlaceholderPage from './ui/shared/PlaceholderPage.jsx';
 import AddClientModal from './ui/clients/AddClientModal.jsx';
 import DashboardRoute from './ui/routes/DashboardRoute.jsx';
 import ClientsRoute from './ui/routes/ClientsRoute.jsx';
@@ -173,8 +170,21 @@ function App() {
     if (approved.length > 0) {
       setSession(s);
       setRole("client");
-      setClientIds(approved.map(r => r.client_id));
+      const clientScope = approved.map(r => r.client_id);
+      setClientIds(clientScope);
       setPendingInvite(null);
+
+      // Defense in depth: load ONLY this client's content, explicitly scoped.
+      // RLS already bounds what a client can SELECT, but scoping here means a
+      // client's browser never holds another tenant's rows even if a policy
+      // regressed. (Admins intentionally load all clients — Ledger/Reports/
+      // Client Analytics are cross-client by design; per-page scoped fetches
+      // for those remain the tracked larger refactor.)
+      try {
+        const { data: items } = await sb
+          .from("content_items").select("*").in("client_id", clientScope).order("id");
+        if (items) setContent(items.map(r => ({ ...r, platforms: r.platforms || [] })));
+      } catch (e) { console.warn("[auth] client content_items threw", e); }
 
       // Stamp first_login_at if it's never been set (silent best-effort)
       const needsStamp = approved.filter(r => !r.first_login_at).map(r => r.id);
@@ -930,7 +940,7 @@ try {
       {/* Client switcher: tap to open client picker drawer */}
       <button
         onClick={() => setClientPickerOpen(o => !o)}
-        style={{ flex:1, display:"flex", alignItems:"center", gap:8, padding:"4px 8px", background:"transparent", border:"none", cursor:"pointer", minWidth:0, textAlign:"left", fontFamily:"Inter, sans-serif" }}
+        style={{ flex:1, display:"flex", alignItems:"center", gap:8, padding:"4px 8px", minHeight:44, background:"transparent", border:"none", cursor:"pointer", minWidth:0, textAlign:"left", fontFamily:"Inter, sans-serif" }}
       >
         <div style={{ width:24, height:24, borderRadius:6, background: currentClient?.logo_url ? "rgba(255,255,255,0.05)" : (currentClient?.brand_color || "#222"), display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", flexShrink:0, padding: currentClient?.logo_url ? 2 : 0, boxSizing:"border-box" }}>
           {currentClient?.logo_url ? (
@@ -941,7 +951,7 @@ try {
         </div>
         <div style={{ flex:1, minWidth:0, overflow:"hidden" }}>
           <div style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", letterSpacing:-0.2, lineHeight:1.1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{currentClient?.name || "Vantus"}</div>
-          <div style={{ fontSize:8, color:"rgba(255,255,255,0.35)", fontFamily:"'Geist Mono',monospace", letterSpacing:1.2, textTransform:"uppercase", marginTop:1 }}>Tap to switch ▾</div>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontFamily:"'Geist Mono',monospace", letterSpacing:1.2, textTransform:"uppercase", marginTop:1 }}>Tap to switch ▾</div>
         </div>
       </button>
       {/* Mobile notification bell */}
@@ -953,7 +963,7 @@ try {
           }
           setNotifOpen(o => !o);
         }}
-        style={{ position:"relative", background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"rgba(255,255,255,0.85)", width:34, height:34, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0 }}>
+        style={{ position:"relative", background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"rgba(255,255,255,0.85)", width:44, height:44, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0 }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         {notifications.filter(n=>!n.read).length > 0 && (
           <span style={{ position:"absolute", top:-4, right:-4, width:14, height:14, borderRadius:"50%", background:"#ff453a", fontSize:8, fontWeight:700, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -962,7 +972,7 @@ try {
         )}
       </button>
       <button onClick={() => setMobileNavOpen(o => !o)}
-        style={{ background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#f5f5f7", width:34, height:34, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:18, flexShrink:0 }}>
+        style={{ background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#f5f5f7", width:44, height:44, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:18, flexShrink:0 }}>
         {mobileNavOpen ? "×" : "≡"}
       </button>
     </div>

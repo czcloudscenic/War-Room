@@ -21,7 +21,6 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
   const [brandVoice, setBrandVoice] = useState(editingClient?.brand_voice_md || "");
   const [primaryEmail, setPrimaryEmail] = useState(editingClient?.primary_email || "");
   const [brandColor, setBrandColor] = useState(editingClient?.brand_color || "#2AABFF");
-  const [slackChannel, setSlackChannel] = useState(editingClient?.slack_channel_id || "");
   const [slackWebhook, setSlackWebhook] = useState(editingClient?.slack_webhook_url || "");
   const [n8nWebhook, setN8nWebhook] = useState(editingClient?.n8n_webhook_url || "");
   const [logoUrl, setLogoUrl] = useState(editingClient?.logo_url || "");
@@ -91,7 +90,6 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
         brand_voice_md: brandVoice.trim() || null,
         brand_color: brandColor || null,
         primary_email: primaryEmail.trim() || null,
-        slack_channel_id: slackChannel.trim() || null,
         slack_webhook_url: slackWebhook.trim() || null,
         n8n_webhook_url: n8nWebhook.trim() || null,
         logo_url: finalLogoUrl,
@@ -307,10 +305,6 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
             <label style={labelStyle}>Slack Webhook URL</label>
             <input value={slackWebhook} onChange={e => setSlackWebhook(e.target.value)} placeholder="https://hooks.slack.com/services/T.../B.../..." style={inputStyle} />
             <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:4, marginBottom:12 }}>Incoming webhook for this client's channel. Falls back to global if blank.</div>
-
-            <label style={labelStyle}>Slack Channel ID <span style={{ color:"rgba(255,255,255,0.25)" }}>(deprecated)</span></label>
-            <input value={slackChannel} onChange={e => setSlackChannel(e.target.value)} placeholder="C0AM0UU4G4R" style={inputStyle} />
-            <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:4, marginBottom:12 }}>Legacy — only used if you set up a Slack bot later.</div>
 
             <label style={labelStyle}>n8n Webhook URL</label>
             <input value={n8nWebhook} onChange={e => setN8nWebhook(e.target.value)} placeholder="https://...n8n.cloud/webhook/..." style={inputStyle} />
