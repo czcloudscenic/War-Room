@@ -16,6 +16,7 @@ export const STATUS_COLOR = {
   "Approved":                   "#2AABFF",
   "Ready For Schedule":         "#8b5cf6",
   "Scheduled":                  "#64d2ff",
+  "Posted":                     "#30d158",
   "Scrapped":                   "#ff453a",
 };
 
@@ -28,9 +29,12 @@ export const STAGE_SHORT = {
   "Approved":                   "Approved",
   "Ready For Schedule":         "Ready to Schedule",
   "Scheduled":                  "Scheduled",
+  "Posted":                     "Posted",
 };
 
-export const STATUSES = ["Ready For Copy Creation", "Need Copy Approval", "Ready For Content Creation", "Need Content Approval", "Needs Revisions", "Approved", "Ready For Schedule", "Scheduled", "Scrapped"];
+// "Posted" is a terminal runtime status set by markPosted (core/approvals.js);
+// listing it here makes it selectable in the edit modal and keeps status filters honest.
+export const STATUSES = ["Ready For Copy Creation", "Need Copy Approval", "Ready For Content Creation", "Need Content Approval", "Needs Revisions", "Approved", "Ready For Schedule", "Scheduled", "Posted", "Scrapped"];
 export const FORMATS = ["Reel", "Graphics (IMG)", "Carousel", "Thread", "Story", "YouTube", "Short"];
 
 // Pillars + campaigns are per-client. These are placeholder defaults shown only when

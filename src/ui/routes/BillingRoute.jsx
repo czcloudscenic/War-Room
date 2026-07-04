@@ -58,14 +58,18 @@ export default function BillingRoute({ isMobile, clients = [] }) {
     return { outstanding, overdue, paid30 };
   }, [invoices]);
 
-  // Manual invoice-sent email (used when Stripe isn't wired or errors).
-  async function emailInvoice(data) {
+  // Invoice-sent notify. Default (Stripe not wired / errored) emails the client
+  // the branded invoice + rings bell + Slack. With emailClient:false (Stripe
+  // succeeded and already emailed its hosted invoice) it only rings bell + Slack
+  // so the team sees it, without sending the client a second email.
+  async function emailInvoice(data, emailClient = true) {
     return apiFetch("/api/notify", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         type: "invoice_sent",
         client_id: data.client_id,
+        emailClient,
         item: {
           id: data.id, number: data.number, amount: data.amount, currency: data.currency,
           due_date: data.due_date, description: (data.line_items?.[0]?.description) || "", title: `Invoice ${data.number}`,
@@ -104,8 +108,11 @@ export default function BillingRoute({ isMobile, clients = [] }) {
           if (res.ok) {
             const j = await res.json().catch(() => ({}));
             if (j.stripe_invoice_id) setInvoices(prev => (prev || []).map(x => x.id === data.id ? { ...x, stripe_invoice_id: j.stripe_invoice_id } : x));
+            // Stripe emailed its own hosted invoice — notify the team (bell + Slack)
+            // without re-emailing the client.
+            await emailInvoice(data, false);
           } else {
-            await emailInvoice(data); // 501 not-wired or Stripe error → manual email
+            await emailInvoice(data); // 501 not-wired or Stripe error → branded email + notify
           }
         } catch {
           await emailInvoice(data);

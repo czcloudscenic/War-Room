@@ -37,6 +37,17 @@ function escapeHtml(s) {
 
 // Persist the notification to Supabase. Unique constraint on (type, content_item_id)
 // dedupes when multiple admin clients fire /api/notify simultaneously.
+// Dedupe key: collapses the SAME state-change fired by multiple callers/tabs into
+// one row, while letting a genuine re-approval after a revision through. When the
+// item carries revision_count (approval/revision notifies), the key is cycle-aware
+// so approve → revise → re-approve produces a NEW notification. Types without a
+// revision_count (invoice_sent, report_*) keep the old type:id behavior; items
+// with no id get a per-call unique key (matches the old NULLs-distinct semantics).
+function dedupeKeyFor(type, item) {
+  if (item?.id == null) return `${type}:none:${Date.now()}:${Math.round(Math.random() * 1e6)}`;
+  return `${type}:${item.id}` + (item?.revision_count != null ? `:r${item.revision_count}` : "");
+}
+
 async function insertNotification({ type, item, message, client_id }) {
   if (!SERVICE_KEY) return { ok: false, error: "SUPABASE_SERVICE_KEY not set" };
   try {
@@ -51,6 +62,7 @@ async function insertNotification({ type, item, message, client_id }) {
       body: JSON.stringify({
         type,
         content_item_id: item?.id ? String(item.id) : null,
+        dedupe_key: dedupeKeyFor(type, item),
         client_id: client_id || item?.client_id || null,
         recipient_email: null,                   // null = broadcast to all admins
         payload: { item, message },
@@ -76,7 +88,7 @@ function fmtMoney(n, currency) {
 // falling back to the admin list if none is on file. Also persists a bell
 // notification and mirrors to Slack. Kept separate from the approval path so
 // each stays simple. When Stripe is wired, it can take over native delivery.
-async function handleInvoiceSent({ cors, item, client_id }) {
+async function handleInvoiceSent({ cors, item, client_id, emailClient = true }) {
   const results = [];
 
   // Resolve client name + billing email + webhooks in one round-trip.
@@ -102,16 +114,20 @@ async function handleInvoiceSent({ cors, item, client_id }) {
   const dueLabel = item.due_date
     ? new Date(item.due_date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
     : "upon receipt";
-  const message = `🧾 Invoice ${number} for ${amountLabel} sent to ${clientName || "client"} · due ${dueLabel}`;
+  const via = emailClient ? "" : " (via Stripe)";
+  const message = `🧾 Invoice ${number} for ${amountLabel} sent to ${clientName || "client"}${via} · due ${dueLabel}`;
 
   // Persist bell notification (broadcast to admins).
   results.push({ channel: "supabase", ...(await insertNotification({ type: "invoice_sent", item: { ...item, client_id }, message, client_id })) });
 
-  // Email — to the client if we have their address, else the admin list.
+  // Email — to the client if we have their address, else the admin list. Skipped
+  // when Stripe already delivered its own hosted-invoice email (emailClient:false).
   const RESEND_KEY = process.env.RESEND_API_KEY;
   const toClient = !!clientEmail;
   const recipients = clientEmail ? [clientEmail] : ADMIN_EMAILS;
-  if (RESEND_KEY) {
+  if (!emailClient) {
+    results.push({ channel: "email", ok: true, skipped: "stripe-delivered" });
+  } else if (RESEND_KEY) {
     const safeNumber = escapeHtml(number);
     const safeClient = escapeHtml(clientName || "there");
     const safeDesc = escapeHtml(item.description || "");
@@ -173,7 +189,7 @@ async function handleInvoiceSent({ cors, item, client_id }) {
             { type: "mrkdwn", text: `*Client*\n${escapeHtml(clientName || "—")}` },
             { type: "mrkdwn", text: `*Amount*\n${escapeHtml(amountLabel)}` },
             { type: "mrkdwn", text: `*Due*\n${escapeHtml(dueLabel)}` },
-            { type: "mrkdwn", text: `*Delivered to*\n${toClient ? "client" : "team (no client email)"}` },
+            { type: "mrkdwn", text: `*Delivered to*\n${!emailClient ? "client (via Stripe)" : (toClient ? "client" : "team (no client email)")}` },
           ] },
         ] }),
       });
@@ -198,11 +214,13 @@ exports.handler = async (event) => {
   let body;
   try { body = JSON.parse(event.body); } catch { return { statusCode: 400, headers: cors, body: "Bad JSON" }; }
 
-  const { type, item, client_id } = body;
+  const { type, item, client_id, emailClient } = body;
   if (!type || !item) return { statusCode: 400, headers: cors, body: "Missing type or item" };
 
   // Invoice-sent has its own recipient (the client) + template — handle and return.
-  if (type === "invoice_sent") return handleInvoiceSent({ cors, item, client_id });
+  // emailClient:false means Stripe already emailed the client its hosted invoice;
+  // we only ring the bell + Slack so the team knows, without a duplicate email.
+  if (type === "invoice_sent") return handleInvoiceSent({ cors, item, client_id, emailClient });
 
   const isApproved = type === "approved";
   const emoji      = isApproved ? "✅" : "🔄";

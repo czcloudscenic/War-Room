@@ -42,8 +42,9 @@ export async function recordApproval({ item, decision, stage, feedback, approver
   });
   if (aErr) throw new Error('approval write failed: ' + aErr.message);
 
-  // 2. advance the item
-  const patch = { status, updated_at: new Date().toISOString() };
+  // 2. advance the item. stage mirrors status everywhere else (App.jsx handleSave
+  // sets stage: updated.status); patch both or boards keyed on stage mis-bucket.
+  const patch = { status, stage: status, updated_at: new Date().toISOString() };
   if (decision === 'revision_requested') patch.revision_count = (Number(item?.revision_count) || 0) + 1;
   const { error: uErr } = await sb.from('content_items').update(patch).eq('id', itemId);
   if (uErr) throw new Error('status update failed: ' + uErr.message);
@@ -54,8 +55,11 @@ export async function recordApproval({ item, decision, stage, feedback, approver
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
+        // revision_count makes the notify dedupe cycle-aware (approve → revise →
+        // re-approve re-notifies). Must match the value the App.jsx realtime
+        // detector reads from the row, or the two callers won't dedupe together.
         type: decision === 'revision_requested' ? 'revision_requested' : 'approved',
-        item: { id: itemId, title: item?.title, status },
+        item: { id: itemId, title: item?.title, status, revision_count: patch.revision_count ?? (Number(item?.revision_count) || 0) },
         client_id: clientId,
         feedback: feedback || null,
       }),
@@ -76,7 +80,7 @@ export async function setLedgerFields(itemId, fields) {
 /** The Friday "did it post?" action — stamp proof of publication. */
 export async function markPosted(itemId) {
   const { error } = await sb.from('content_items')
-    .update({ status: 'Posted', posted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .update({ status: 'Posted', stage: 'Posted', posted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq('id', itemId);
   if (error) throw new Error(error.message);
 }
