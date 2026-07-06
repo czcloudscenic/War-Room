@@ -36,6 +36,9 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
   const [approvalRule, setApprovalRule] = useState(editingClient?.approval_rule || "internal");
   const [retainerAmount, setRetainerAmount] = useState(editingClient?.retainer_amount ?? "");
   const [retainerStatus, setRetainerStatus] = useState(editingClient?.retainer_status || "active");
+  const [postsPerWeek, setPostsPerWeek] = useState(editingClient?.posts_per_week ?? "");
+  const [shootLeadTimeDays, setShootLeadTimeDays] = useState(editingClient?.shoot_lead_time_days ?? 14);
+  const [contentTrackingEnabled, setContentTrackingEnabled] = useState(!!editingClient?.content_tracking_enabled);
   const toggleService = (s) => setServices(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
   const joinArr = (a) => (Array.isArray(a) ? a.join("\n") : "");
   const toArr = (s) => s.split("\n").map(x => x.trim()).filter(Boolean);
@@ -81,6 +84,16 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
     setError("");
     if (!name.trim()) { setError("Client name is required."); return; }
     if (!slug.trim()) { setError("Slug is required."); return; }
+    const parsedPostsPerWeek = postsPerWeek === "" ? null : Number(postsPerWeek);
+    const parsedShootLeadTimeDays = shootLeadTimeDays === "" ? 14 : Number(shootLeadTimeDays);
+    if (postsPerWeek !== "" && (!Number.isFinite(parsedPostsPerWeek) || parsedPostsPerWeek < 0)) {
+      setError("Posts/week must be zero or higher.");
+      return;
+    }
+    if (!Number.isFinite(parsedShootLeadTimeDays) || parsedShootLeadTimeDays < 1) {
+      setError("Shoot lead time must be at least 1 day.");
+      return;
+    }
     setSaving(true);
     try {
       const finalLogoUrl = await uploadLogoIfNeeded();
@@ -99,6 +112,9 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
         approval_rule: approvalRule,
         retainer_amount: retainerAmount === "" ? null : Number(retainerAmount),
         retainer_status: retainerStatus,
+        posts_per_week: parsedPostsPerWeek,
+        shoot_lead_time_days: parsedShootLeadTimeDays,
+        content_tracking_enabled: contentTrackingEnabled,
         brand_pillars: toArr(brandPillars),
         brand_dos: toArr(brandDos),
         brand_donts: toArr(brandDonts),
@@ -282,6 +298,26 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
           <label style={labelStyle}>Cadence</label>
           <input value={cadence} onChange={e => setCadence(e.target.value)} placeholder="1 shoot/mo · 2 reels/wk · 2 stories/wk" style={inputStyle} />
           <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", margin:"4px 0 14px" }}>What they get each cycle.</div>
+
+          {isEdit && (
+            <div style={{ marginBottom:14, padding:"12px", background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10 }}>
+              <div style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.55)", marginBottom:12 }}>Content runway</div>
+              <div style={{ display:"flex", gap:12, marginBottom:12 }}>
+                <div style={{ flex:1 }}>
+                  <label style={labelStyle}>Posts / week</label>
+                  <input type="number" min="0" step="0.1" value={postsPerWeek} onChange={e => setPostsPerWeek(e.target.value)} placeholder="3" style={inputStyle} />
+                </div>
+                <div style={{ flex:1 }}>
+                  <label style={labelStyle}>Shoot lead days</label>
+                  <input type="number" min="1" step="1" value={shootLeadTimeDays} onChange={e => setShootLeadTimeDays(e.target.value)} placeholder="14" style={inputStyle} />
+                </div>
+              </div>
+              <label style={{ display:"flex", alignItems:"center", gap:9, cursor:"pointer", color:"rgba(255,255,255,0.72)", fontSize:12 }}>
+                <input type="checkbox" checked={contentTrackingEnabled} onChange={e => setContentTrackingEnabled(e.target.checked)} style={{ width:16, height:16, accentColor:"#2AABFF" }} />
+                Track this client in Content Runway
+              </label>
+            </div>
+          )}
 
           <div style={{ display:"flex", gap:12 }}>
             <div style={{ flex:1 }}>
