@@ -2,6 +2,23 @@
 
 > Numbering matches the green FIXES badges in `architecture-map.html` and the punch-list in [open-items.md](open-items.md).
 
+## Status (2026-07-04, deployed `a8ff98b`)
+
+| Fix | Status |
+|-----|--------|
+| #1 Mobile a11y pack | ✅ **shipped + live** |
+| #2 Muse model tiering | ◻ open (separate ask, not greenlit) |
+| #3 Pipeline-state hygiene | ✅ **shipped + live** (stage sync, Posted, notify dedupe — migration run; `publish_date` deferred) |
+| #4 Split agent-action.js | ◻ open |
+| #5 Stripe create-path + email | ◐ email overlap shipped · **create-path proof still owed** |
+| #6 Dead-code + dead-schema sweep | ✅ **shipped + live** (slack_channel_id dropped) |
+| #7 Client scoping | ◐ client half + RLS shipped · **admin per-page refactor open** |
+| #8 Security batch | ◐ crypto hard-fail shipped · password rotation + CSP open |
+| #9 QC v2 video frames | ◻ NOT greenlit |
+| #10 Team roster emails | ◻ open (data entry) |
+
+The specs below are unchanged as the working detail for each item.
+
 ## #1 — Mobile accessibility pack
 **Touches:** `index.html:5`, App.jsx header controls, `src/ui/routes/SetupRoute.jsx` chips/rows, favicon/app icons.
 - Delete `maximum-scale=1.0, user-scalable=no` from the viewport meta (keep `viewport-fit=cover`)

@@ -147,12 +147,6 @@ N('svc','client','apiFetch + supabaseClient','shared plumbing',50,858,280,44,'se
   path:'src/services/apiFetch.js · src/services/supabaseClient.js',
   notes:['apiFetch stamps Authorization: Bearer <access_token> on 26+ call sites'],
   tag:['overview','all']}),
-N('dead-ui','client','QuickActionsDashboard · PlaceholderPage · TypingTask','DEAD, zero render sites',50,924,280,48,'service',{
-  role:'Three components imported by App.jsx but never rendered anywhere; they still ship in the bundle.',
-  plain:'Leftover parts still bolted to the app that nothing displays. Safe to delete; they cost bundle size and reader confusion.',
-  path:'src/ui/dashboard/QuickActionsDashboard.jsx · src/ui/shared/PlaceholderPage.jsx · src/ui/shared/TypingTask.jsx',
-  notes:['Imported at App.jsx:20,25,26 — no JSX usage anywhere','Only dead files in src/ — everything else has live importers'],
-  tag:['all']}),
 
 /* ENTRY */
 N('redirects','entry','netlify.toml','/api/* redirects',430,270,180,52,'route',{critical:true,
@@ -257,7 +251,7 @@ N('clientsT','data','clients','tenants + facts of record',1070,178,240,52,'db',{
   role:'Tenant roster + brand voice + scope/retainer + client_facts JSONB (hours/locations/prices/offers) that QC exact-matches against.',
   plain:'One row per client — their brand voice, what they pay, and the facts of record (real prices, hours, phone numbers) QC uses to catch mistakes.',
   path:'supabase/migrations/20260523_clients_multitenant.sql (+scope, +facts)',
-  notes:['facts_owner default Sebastian; facts_updated_at drives the >30d staleness warning','slack_channel_id column deprecated (superseded by slack_webhook_url, never dropped)'],
+  notes:['facts_owner default Sebastian; facts_updated_at drives the >30d staleness warning','slack routing via slack_webhook_url; deprecated slack_channel_id dropped in migration 20260704'],
   tag:['overview','qc','reports','all']}),
 N('approvalsT','data','approvals','decision audit trail',1070,256,240,44,'db',{
   role:'Who approved/kicked-back what, when, at which stage, with what feedback.',
@@ -443,34 +437,33 @@ const edges = [
 ];
 
 /* ─────────────── FIXES + KNOWN_BUGS registries ─────────────── */
+/* Post-sweep (2026-07-04, deployed): #1 a11y, #3 pipeline-state, #6 dead-code +
+   slack_channel_id drop, #5 email-half, #7 client-half, #8 crypto-half all
+   SHIPPED + LIVE. Migration 20260704 run. Only open work below. */
 const FIXES = {
-  'app':          [{n:7,t:'Client-scope the global content fetch + realtime before a second heavy client (App.jsx:476, 491)'}],
-  'editmodal':    [{n:1,t:'Mobile a11y pack rides here too: modal inputs are part of the 44px tap-target sweep'}],
-  'approvals-core':[{n:3,t:'Patch stage alongside status in recordApproval (:45-47); decide on “Posted” in STATUSES'}],
-  'setup':        [{n:1,t:'Setup is the worst mobile page: 51-94 sub-40px controls (chips 50×25) — enlarge in the a11y pack'},{n:10,t:'Fill team roster emails so chase digests reach real people'}],
-  'billing-ui':   [{n:5,t:'Prove the Stripe create-path with the first real invoice; resolve Resend-vs-Stripe email overlap'}],
-  'agent-action': [{n:2,t:'Tier muse_write_content + calendar/brief generators haiku → sonnet (client-facing output rule)'},{n:4,t:'Split the 1,753-line monolith along action-family seams'},{n:6,t:'Delete dead N8N_WEBHOOK_URL constant (line 21)'}],
-  'qc':           [{n:9,t:'QC v2: client-side video frame sampling at upload (v1 caption/facts only)'}],
-  'dead-ui':      [{n:6,t:'Delete QuickActionsDashboard, PlaceholderPage, TypingTask + their App.jsx imports (20, 25, 26)'}],
-  'clientsT':     [{n:6,t:'Drop deprecated clients.slack_channel_id column in a cleanup migration'}],
-  'redirects':    [{n:8,t:'Tighten CSP style-src once inline styles are factored out'}],
-  'libs':         [{n:8,t:'Rotate Supabase admin password out of git history when fully off password login'}],
-  'anthropic':    [{n:2,t:'Same tiering fix as agent-action — one-line model param per action'}],
+  'app':          [{n:7,t:'#7 admin half: give Ledger/Reports/Client-Analytics their own scoped fetches before the next heavy client (App.jsx:476, 491). Client half + RLS already shipped.'}],
+  'billing-ui':   [{n:5,t:'#5 proof half: send the first real (small) invoice to validate the Stripe create-path + webhook paid-sync. Email-overlap half shipped.'}],
+  'agent-action': [{n:2,t:'#2 Tier muse_write_content + calendar/brief generators haiku → sonnet (separate ask, not greenlit in this sweep)'},{n:4,t:'#4 Split the 1,753-line monolith along action-family seams'}],
+  'qc':           [{n:9,t:'#9 QC v2: client-side video frame sampling at upload (NOT greenlit — propose before building)'}],
+  'redirects':    [{n:8,t:'#8 CSP half: tighten style-src once inline styles are factored out'}],
+  'libs':         [{n:8,t:'#8 Rotate Supabase admin password out of git history when fully off password login'}],
+  'anthropic':    [{n:2,t:'#2 Same tiering fix as agent-action — one-line model param per action'}],
+  'setup':        [{n:10,t:'#10 Fill team roster emails so chase digests reach real people (Setup §4 data entry)'}],
 };
 
+/* 2026-07-04 sweep FIXED + DEPLOYED (a8ff98b live on usevantus.com), so removed
+   from this registry: approvals stage-drift, notifications permanent-dedupe
+   (migration 20260704 RUN — dedupe_key index now live), index.html viewport
+   pinch-zoom, Setup sub-40px targets, "Posted" missing from STATUSES, crypto
+   plaintext fallback (now hard-fails), dead-ui components, Resend/Stripe email
+   overlap. What remains is partials + accepted-tradeoff low items. */
 const KNOWN_BUGS = {
-  'approvals-core':[{sev:'med',ref:'approvals.js:45-47',t:'Approval advances status but not stage — rows drift (seen live 7/3: status Approved, stage Need Content Approval). Any view keyed on stage mis-buckets.'}],
-  'app':          [{sev:'med',ref:'App.jsx:476,491',t:'Fetches and subscribes to ALL clients\' content_items; scoping happens only at render. Fine for admins, but one missed filter = cross-client bleed (one already found+fixed in agent chat 7/3).'}],
-  'notificationsT':[{sev:'med',ref:'20260523_notifications.sql:21',t:'unique(type, content_item_id) is permanent — an item approved, kicked back, and re-approved never notifies the second time (bell suppressed since May; Slack/email joined 7/3 via the dedupe gate).'}],
-  'billing-ui':   [{sev:'med',ref:'BillingRoute.jsx:104-112',t:'Resend invoice email only fires when Stripe FAILS. With Stripe live, clients get Stripe\'s hosted-invoice email and the branded Vantus email never sends — surprising, likely unintended overlap.'}],
-  'redirects':    [{sev:'med',ref:'index.html:5',t:'Viewport meta sets maximum-scale=1.0 + user-scalable=no — pinch-zoom disabled app-wide (mobile audit 7/4). Compounds the 8px micro-labels.'}],
-  'setup':        [{sev:'med',ref:'SetupRoute.jsx (mobile audit 7/4)',t:'51-94 sub-40px tap targets at phone widths (service chips 50×25, row deletes). Usable but fiddly on the page most likely to be poked from a phone.'}],
-  'content':      [{sev:'low',ref:'20260526_content_items_baseline.sql:47',t:'publish_date is TEXT, not a date column — no DB-level validation or range queries.'},{sev:'low',ref:'constants.js:33',t:'"Posted" status is set at runtime (markPosted) but absent from STATUSES — status filters silently exclude posted items.'}],
-  'libs':         [{sev:'low',ref:'_lib/rateLimit.js',t:'In-memory sliding window — cold starts reset all counters. Accepted tradeoff, documented.'},{sev:'med',ref:'_lib/crypto.js:7',t:'Token crypto silently falls back to PLAINTEXT storage if TOKEN_ENC_KEY is unset — no startup alarm.'}],
-  'dead-ui':      [{sev:'low',ref:'App.jsx:20,25,26',t:'Three imported-never-rendered components ship in the bundle.'}],
-  'billingfn':    [{sev:'med',ref:'billing-stripe.js:64',t:'Live-key invoice create-path has never run against a real invoice — first real send is the validation.'}],
-  'qc':           [{sev:'low',ref:'agent-action.js:333',t:'Video assets not frame-checked (v1 limit) — warning emitted, human must eyeball on-video text.'}],
-  'opsT':         [{sev:'low',ref:'Setup §4 / team_members',t:'Roster emails blank — the 14:00 UTC chase cron has nobody real to email.'}],
+  'app':          [{sev:'low',ref:'App.jsx:476,491',t:'#7 admin half: admin app still holds every client\'s content_items in one array, scoped at render. Doubly-safe now (RLS + explicit client-half scope shipped) — not a defect today; per-page scoped fetches deferred until the next heavy client.'}],
+  'billingfn':    [{sev:'med',ref:'billing-stripe.js:64',t:'#5 proof: live-key invoice create-path has never run against a real invoice — first real send is the validation. Email-overlap half already fixed.'}],
+  'content':      [{sev:'low',ref:'20260526_content_items_baseline.sql:47',t:'publish_date is TEXT, not a date column — no DB-level validation or range queries. Deferred: live conversion on rows with empty-string values carries real risk for a cosmetic gain.'}],
+  'libs':         [{sev:'low',ref:'_lib/rateLimit.js',t:'In-memory sliding window — cold starts reset all counters. Accepted tradeoff at current scale; durable store is a later infra change.'}],
+  'qc':           [{sev:'low',ref:'agent-action.js:333',t:'#9 Video assets not frame-checked (v1 limit) — warning emitted, human must eyeball on-video text. v2 not greenlit.'}],
+  'opsT':         [{sev:'low',ref:'Setup §4 / team_members',t:'#10 Roster emails blank — the 14:00 UTC chase cron has nobody real to email. Data entry, not code.'}],
 };
 
 /* ───────────────────────── RENDER ───────────────────────── */
@@ -635,17 +628,16 @@ function showNode(n){
 function showDefault(){
   sb.innerHTML = `
   <h2>Vantus — 2026-07-04</h2>
-  <p>Agency fulfillment + billing OS for Cloud Scenic. ${nodes.length} nodes · ${edges.length} wires · 5 clusters. Red spine = the QC gate flow (the headline feature, verified live 7/3).</p>
+  <p>Agency fulfillment + billing OS for Cloud Scenic. ${nodes.length} nodes · ${edges.length} wires · 5 clusters. Red spine = the QC gate flow (the headline feature, verified live 7/3). <strong>State: 2026-07-04 sweep shipped + deployed</strong> (commit a8ff98b live on usevantus.com, HTTP 200; migration 20260704 run).</p>
   <h3>Notable findings from this map</h3>
   <ul>
-    <li><strong>Dead code (3 files):</strong> QuickActionsDashboard, PlaceholderPage, TypingTask — imported at App.jsx:20/25/26, rendered nowhere, shipped in the bundle.</li>
     <li><strong>The QC spine is real and proven:</strong> save → auto qc_review → Drive image fetch → sonnet vision + deterministic price/phone/offer checks → blocked gates in Ledger/modal. 27/31 test checklist green (7/3).</li>
-    <li><strong>Two config outages were invisible for weeks:</strong> Drive upload NEVER worked in prod until 7/3 (OAuth origin missing) and ALL email was dead until 7/3 (Resend domain unverified). Neither surfaced an error anywhere a human looked.</li>
-    <li><strong>Silent-fallback smell:</strong> _lib/crypto.js stores OAuth tokens in PLAINTEXT if TOKEN_ENC_KEY is unset — same "silently degraded" class as the two outages above.</li>
-    <li><strong>Invoice email overlap:</strong> the branded Resend invoice email only sends when Stripe FAILS (BillingRoute.jsx:104-112) — with Stripe live, clients only ever get Stripe's own email.</li>
-    <li><strong>status vs stage drift:</strong> approvals advance status but not stage (approvals.js:45-47) — observed diverging live on 7/3.</li>
-    <li><strong>Model tiering half-done:</strong> client-facing muse_write_content still on haiku; ideation moved to sonnet; opus only for performance analysis (agent-action.js:1582).</li>
-    <li><strong>Mobile audit 7/4:</strong> zero overflow at any viewport (clean layout), but pinch-zoom is disabled app-wide (index.html:5), 8px micro-labels, and Setup has 51-94 tiny tap targets.</li>
+    <li><strong>Fixed + live in the 7/4 sweep (10 items):</strong> dead code deleted (3 components + N8N const), crypto now hard-fails instead of storing plaintext tokens, approvals patch stage alongside status, "Posted" added to STATUSES, notification dedupe made cycle-aware (re-approvals notify again — migration run), Resend/Stripe email overlap resolved, slack_channel_id column dropped, mobile a11y pack (pinch-zoom restored, 44px tap targets, apple-touch-icon).</li>
+    <li><strong>Two config outages were invisible for weeks, fixed 7/3:</strong> Drive upload NEVER worked in prod until 7/3 (OAuth origin missing) and ALL email was dead until 7/3 (Resend domain unverified). Neither surfaced an error anywhere a human looked — worth spot-checking they held.</li>
+    <li><strong>Still owed — Stripe proof (#5):</strong> the live invoice create-path (billing-stripe.js:64) has never run against a real invoice. Send one small real invoice to validate the webhook paid-sync before billing a client through it.</li>
+    <li><strong>Still owed — admin scoping (#7):</strong> the admin app holds every client's content_items in one array, scoped at render. Doubly-safe now (RLS + client-half scope shipped) — not a defect, but give the admin routes their own scoped fetches before the next heavy client.</li>
+    <li><strong>Security remainder (#8):</strong> crypto hard-fail done; still open — rotate the Supabase admin password out of git history once fully off password login, and tighten CSP style-src.</li>
+    <li><strong>Model tiering (#2, not greenlit):</strong> client-facing muse_write_content still on haiku; ideation moved to sonnet; opus only for performance analysis (agent-action.js:1582).</li>
   </ul>
   <h3>Legend</h3>
   <div class="legend">

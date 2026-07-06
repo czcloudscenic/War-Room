@@ -3,7 +3,7 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-07-04 (post map-bug sweep) · **Open:** 3 bugs + partials
+**Snapshot:** 2026-07-04 (post-sweep, DEPLOYED) · **Open:** 3 bugs + partials
 
 ```
 🔴 High:   0    │   ✅ Fixed this pass: 10 items (3 commits)
@@ -11,14 +11,14 @@
 🟢 Low:    3    │   📋 Fixes shipped: #1, #3, #6, + partial #5/#7/#8
 ```
 
-> ⚠️ The interactive `architecture-map.html` still shows the pre-sweep bug badges — regenerate via `/architecture-map` to refresh it. This punch-list is current.
+> ✅ **Shipped + live.** Commit `a8ff98b` deployed to usevantus.com (HTTP 200); migration `20260704_notify_dedupe_and_cleanup.sql` run against prod (dedupe_key index live, slack_channel_id dropped). The interactive `architecture-map.html` badges are now synced to this list.
 
 ---
 
 ## ✅ Fixed in the 2026-07-04 sweep (commits 340377c, 7f8bfdb, ed8bd1e)
 
 - [x] **approvals.js — status/stage drift.** recordApproval + markPosted now patch `stage` alongside `status`. → Fix #3
-- [x] **notifications — re-approvals never re-notified.** New migration moves the unique index to a cycle-aware `dedupe_key` (includes revision_count); notify.js computes it, approvals.js passes it. Approve → revise → re-approve now notifies again; same-cycle double-fires still collapse. → Fix #3 · **needs migration run**
+- [x] **notifications — re-approvals never re-notified.** New migration moves the unique index to a cycle-aware `dedupe_key` (includes revision_count); notify.js computes it, approvals.js passes it. Approve → revise → re-approve now notifies again; same-cycle double-fires still collapse. → Fix #3 · **migration run 2026-07-04 (live)**
 - [x] **BillingRoute.jsx — invoice email overlap.** On Stripe success the team now gets bell + Slack (via `emailClient:false`) without the client getting a second email; the branded Resend email remains the fallback when Stripe isn't wired. → Fix #5 (email half)
 - [x] **index.html:5 — pinch-zoom disabled.** Removed `maximum-scale`/`user-scalable=no`; added apple-touch-icon + favicon. → Fix #1
 - [x] **SetupRoute + App.jsx header — sub-44px tap targets.** Service chips, bell, hamburger, and client switcher all at 44px; 8px label → 10px. → Fix #1
