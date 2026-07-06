@@ -37,6 +37,7 @@ const ClientAnalyticsRoute = React.lazy(() => import('./ui/routes/ClientAnalytic
 const BillingRoute = React.lazy(() => import('./ui/routes/BillingRoute.jsx'));
 const VaultRoute = React.lazy(() => import('./ui/routes/VaultRoute.jsx'));
 const IdeaEngineRoute = React.lazy(() => import('./ui/routes/IdeaEngineRoute.jsx'));
+const RunwayRoute = React.lazy(() => import('./ui/routes/RunwayRoute.jsx'));
 
 // Warm the lazy route chunks in the background after first paint so navigating
 // between pages is instant (no per-click chunk fetch + Suspense flash). Keeps the
@@ -50,6 +51,7 @@ function prefetchRoutes() {
   import('./ui/routes/BillingRoute.jsx');
   import('./ui/routes/VaultRoute.jsx');
   import('./ui/routes/IdeaEngineRoute.jsx');
+  import('./ui/routes/RunwayRoute.jsx');
   import('./ui/agents/TeamBroadcast.jsx');
   import('./apps/skills/SkillsPage.jsx');
 }
@@ -1336,6 +1338,10 @@ try {
 
     {activeNav === "reports" && (
       <ReportsRoute isMobile={isMobile} clients={clients} content={content} />
+    )}
+
+    {activeNav === "runway" && (
+      <RunwayRoute isMobile={isMobile} clients={clients} content={content} />
     )}
 
     {activeNav === "operations" && (

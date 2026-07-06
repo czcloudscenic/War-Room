@@ -142,6 +142,15 @@
   schedule = "0 13 * * *"
   timeout = 26
 
+# Daily content-runway check — measures every tracked client's scheduled queue
+# (Sprout) + pipeline inventory, alerts #content + email, auto-creates/completes
+# "Book shoot" tasks. Monday run adds the all-clients digest. 15:00 UTC (~8am PT).
+# esbuild so it can require the shared ESM math module (src/utils/runway.mjs).
+[functions."content-runway-check"]
+  schedule = "0 15 * * *"
+  timeout = 26
+  node_bundler = "esbuild"
+
 [functions."apify-scrape"]
   timeout = 26
 
