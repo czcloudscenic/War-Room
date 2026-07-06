@@ -60,11 +60,12 @@ async function slackPost(payload) {
 }
 
 // ── Sprout Social (graceful: any failure → nulls → content_items model) ───────
-// Endpoint shapes verified against the live token before first deploy; adjust
-// SPROUT_BASE/paths here if the verification pass (task: Sprout capability)
-// lands on different routes. Everything is wrapped — Sprout being down or
-// unverified must never kill the run.
-const SPROUT_BASE = "https://api.sproutsocial.com/v2";
+// Verified against the live token 2026-07-06: v1 API, customer 2001000.
+// analytics/posts WORKS (sent posts incl. Stories → measured burn).
+// The scheduled queue is NOT exposed by the public API (publishing/posts is a
+// draft-CREATE endpoint only), so queueEndDate stays null and runway comes from
+// pipeline inventory ÷ burn. Everything wrapped — Sprout down must never kill a run.
+const SPROUT_BASE = "https://api.sproutsocial.com/v1";
 let _sproutCustomerId = null;
 
 async function sproutFetch(path, init = {}) {
@@ -109,24 +110,10 @@ async function sproutSignals(profileIds, now) {
       if (n > 0) out.burnPerDay = n / 14;
     } catch (e) { console.log("[runway] sprout burn unavailable:", e.message); }
 
-    // Scheduled queue: latest scheduled send time = the day the queue dies.
-    // NOTE: path confirmed/adjusted by the token verification pass.
-    try {
-      const sched = await sproutFetch(`/${cid}/publishing/messages`, {
-        method: "POST",
-        body: JSON.stringify({
-          filters: [
-            `customer_profile_id.eq(${profileIds.join(", ")})`,
-            `send_time.in(${fmt(now)}...${fmt(now + 90 * 86400000)})`,
-          ],
-          fields: ["send_time"],
-          page: 1,
-        }),
-      });
-      const times = (Array.isArray(sched?.data) ? sched.data : [])
-        .map(p => Date.parse(p.send_time)).filter(t => !Number.isNaN(t));
-      if (times.length) out.queueEndDate = new Date(Math.max(...times)).toISOString();
-    } catch (e) { console.log("[runway] sprout schedule unavailable:", e.message); }
+    // Scheduled queue: intentionally absent — Sprout's public API doesn't list
+    // the publishing calendar (verified 2026-07-06; drafts-create only). If they
+    // ever ship it, populate out.queueEndDate here and the rest of the system
+    // (runway.mjs queue path, alert cards, digest) lights up unchanged.
   } catch (e) { console.log("[runway] sprout skipped:", e.message); }
   return out;
 }
