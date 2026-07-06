@@ -436,3 +436,32 @@ Cloud Scenic OS lives at `~/Desktop/Software builds/Cloud Scenic OS/` — separa
 - `docs/REFACTOR_PLAN.md` — pre-existing refactor roadmap.
 - `START HERE.md` — quick-orient nav for cold opens.
 - `CODEX_NOTES.md` — Codex's report from the Fix #2 split run (2026-05-26).
+
+---
+## 2026-07-04 — harness restart snapshot (recorded by Counsel)
+> The Nerve Center multiplexer was shut down and came back **blank** on 2026-07-04; the live agent sessions in its tabs were lost (in-flight, uncommitted-to-chat context is gone — only on-disk state survives). This block records the exact repo state at restart so a cold-started agent can resume without stepping on uncommitted work. **Run `git status` yourself before acting — treat the list below as a starting point, not gospel.**
+- Branch `main` · HEAD `a8ff98b` (2026-07-04, "docs(map): update punch-list — 10 map bugs fixed in the 2026-07-04 sweep").
+- The narrative above (dated 2026-07-03) predates that 07-04 map-bug commit — treat this repo as **one commit ahead of the prose**.
+- Untracked at restart (NOT committed): `COUNSEL_HANDOFF_2026-07-01.md`, `ripped out features/`.
+- No tracked-file modifications pending. Owned by the Vantus terminal — Counsel only recorded state, did not edit the narrative.
+
+---
+## 2026-07-06 — post-crash recovery + map sync (Vantus terminal, closing)
+Cold-started after a terminal crash. On-disk state was intact; no work lost. Verified the build (`npm run build` clean, 98 modules), then closed out the loose threads from the 2026-07-04 sweep:
+
+**Shipped to prod (usevantus.com, HTTP 200):**
+- Pushed the 5 sweep commits that were sitting local-only → HEAD `a8ff98b` deployed on Netlify.
+- Ran migration `20260704_notify_dedupe_and_cleanup.sql` against prod (via Supabase SQL editor): `notifications.dedupe_key` cycle-aware index is live (re-approvals notify again), deprecated `clients.slack_channel_id` column dropped.
+- Confirmed `TOKEN_ENC_KEY` already exists in Netlify — the crypto hard-fail change (encrypt() throws when key unset) is a no-op in prod; existing OAuth tokens were already encrypted with it. **Do NOT rotate that key** or already-stored tokens become undecryptable.
+
+**Architecture map refreshed** → committed + pushed as `dc55cbf` (docs-only):
+- HTML `FIXES`/`KNOWN_BUGS` badges were pre-sweep (showed all 10 fixed bugs as open) — rewritten to show only genuinely-open work. Removed the `dead-ui` node (its 3 components were deleted in the sweep). Findings panel + `slack_channel_id` note updated.
+- `known-bugs.md`: 10 fixed bugs moved to a "Fixed in the 7/4 sweep" section. `open-items.md`: marked DEPLOYED, migration marked run. `roadmap.md`: added a shipped/partial/open status table.
+
+**Still open (nothing blocking — tracked partials):**
+- **#5 Stripe** — the one real unproven thing: `billing-stripe.js:64` live invoice create-path has never run against a real invoice. Send one small controlled invoice to validate webhook paid-sync before billing a client through it. (Email-overlap half already fixed.)
+- **#7 admin scoping** — client boundary is doubly-safe now (RLS + client-half scope); give Ledger/Reports/Client-Analytics their own scoped fetches before the next heavy client.
+- **#8 security** — crypto done; still open: rotate the Supabase admin password out of git history once fully off password login, tighten CSP style-src.
+- **Spot-check owed:** the two 7/3 config outages (Google OAuth Drive origin, Resend domain) were reportedly fixed in-console — verify they held; neither surfaces an error where a human looks.
+
+**Repo state at close:** `main` == `origin/main` (level, `dc55cbf`). Uncommitted/untracked and deliberately left: `HANDOFF.md` (this note + Counsel's restart note), `COUNSEL_HANDOFF_2026-07-01.md`, `ripped out features/`. Both push PATs used this session were one-shot — revoke at https://github.com/settings/tokens if not already done.
