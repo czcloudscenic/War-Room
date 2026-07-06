@@ -34,7 +34,7 @@ const RESEND_KEY   = process.env.RESEND_API_KEY;
 const SLACK        = process.env.CONTENT_SLACK_WEBHOOK_URL || process.env.SLACK_WEBHOOK_URL;
 const SPROUT_TOKEN = process.env.SPROUT_API_TOKEN;
 const TEST_KEY     = process.env.CRON_TEST_KEY || "";
-const ALERT_EMAILS = (process.env.RUNWAY_ALERT_EMAILS || "cz@cloudscenic.com,ss@cloudscenic.com")
+const ALERT_EMAILS = (process.env.RUNWAY_ALERT_EMAILS || "cz@cloudscenic.com,ss@cloudscenic.com,dv@cloudscenic.com")
   .split(",").map(s => s.trim()).filter(Boolean);
 
 const SEV_META = {
@@ -85,29 +85,36 @@ async function sproutCustomerId() {
   return _sproutCustomerId;
 }
 
-// Returns { queueEndDate, burnPerDay } for a client's profile ids, nulls on any gap.
+// Returns { queueEndDate, burnPerDay, lastPostAt, noPosts14d } for a client's
+// profile ids, nulls on any gap. lastPostAt powers drought (deadzone) detection.
 async function sproutSignals(profileIds, now) {
-  const out = { queueEndDate: null, burnPerDay: null };
+  const out = { queueEndDate: null, burnPerDay: null, lastPostAt: null, noPosts14d: false };
   if (!SPROUT_TOKEN || !Array.isArray(profileIds) || !profileIds.length) return out;
   try {
     const cid = await sproutCustomerId();
     const fmt = (ms) => new Date(ms).toISOString().slice(0, 10);
 
-    // Burn: sent posts, trailing 14 days, across the client's profiles.
+    // Burn + last-post: sent posts, trailing 14 days, across the client's profiles.
     try {
       const sent = await sproutFetch(`/${cid}/analytics/posts`, {
         method: "POST",
         body: JSON.stringify({
           filters: [
             `customer_profile_id.eq(${profileIds.join(", ")})`,
-            `created_time.in(${fmt(now - 14 * 86400000)}...${fmt(now)})`,
+            `created_time.in(${fmt(now - 14 * 86400000)}...${fmt(now + 86400000)})`,
           ],
           fields: ["created_time"],
           page: 1,
         }),
       });
-      const n = Array.isArray(sent?.data) ? sent.data.length : 0;
-      if (n > 0) out.burnPerDay = n / 14;
+      const times = (Array.isArray(sent?.data) ? sent.data : [])
+        .map(p => Date.parse(p.created_time)).filter(t => !Number.isNaN(t));
+      if (times.length > 0) {
+        out.burnPerDay = times.length / 14;
+        out.lastPostAt = new Date(Math.max(...times)).toISOString();
+      } else {
+        out.noPosts14d = true; // mapped profiles, dead silent for 14+ days
+      }
     } catch (e) { console.log("[runway] sprout burn unavailable:", e.message); }
 
     // Scheduled queue: intentionally absent — Sprout's public API doesn't list
@@ -124,26 +131,48 @@ function fmtDays(d) {
   return d < 10 ? `${Math.round(d * 10) / 10}d` : `${Math.round(d)}d`;
 }
 
+function fmtGap(d) {
+  if (d == null) return null;
+  return d < 1 ? "several times a day" : d < 1.5 ? "about daily" : `every ~${Math.round(d)} days`;
+}
+
 function alertBlocks(name, snap, testBanner) {
   const meta = SEV_META[snap.severity];
-  const buffer = `${snap.inventory.ready} ready + ${snap.inventory.production} in production unscheduled`;
+  const isDrought = snap.mode === "drought";
   const burnLabel = snap.burn.perDay != null
     ? `${Math.round(snap.burn.perDay * 10) / 10}/day (${snap.burn.source === "sprout" ? "Sprout measured" : snap.burn.source === "posted_at" ? "measured" : "cadence est."})`
     : "—";
+  const sinceLabel = snap.drought?.daysSincePost != null
+    ? `${snap.drought.floor ? "14+" : Math.round(snap.drought.daysSincePost * 10) / 10} days ago`
+    : "unknown";
+
+  const fields = isDrought
+    ? [
+        { type: "mrkdwn", text: `*Posting stopped:*\nlast post ${sinceLabel}` },
+        { type: "mrkdwn", text: `*Normal rhythm:*\n${fmtGap(snap.drought?.expectedGapDays) || "no baseline"}` },
+        { type: "mrkdwn", text: `*Burn:*\n${burnLabel}` },
+        { type: "mrkdwn", text: `*Book a shoot:*\nNOW — content is dead` },
+      ]
+    : [
+        { type: "mrkdwn", text: `*Runway:*\n${fmtDays(snap.runwayDays)}${snap.queueEndDate ? ` (queue dies ${snap.queueEndDate.slice(0, 10)})` : ""}` },
+        { type: "mrkdwn", text: `*Book a shoot by:*\n${snap.bookBy || "NOW"}` },
+        { type: "mrkdwn", text: `*Burn:*\n${burnLabel}` },
+        { type: "mrkdwn", text: `*Pipeline buffer:*\n${snap.inventory.ready} ready + ${snap.inventory.production} in production` },
+      ];
+
+  const headline = isDrought
+    ? `${meta.emoji} ${name} stopped posting — last post ${sinceLabel}${testBanner ? " [TEST]" : ""}`
+    : `${meta.emoji} ${meta.label} — ${name}: ${fmtDays(snap.runwayDays)} left, book by ${snap.bookBy || "NOW"}${testBanner ? " [TEST]" : ""}`;
+
   return {
+    // top-level text = Slack's notification/preview line (attachment-only
+    // messages preview as empty — the "Pre view empty" bug)
+    text: headline,
     attachments: [{
       color: meta.color,
       blocks: [
-        { type: "header", text: { type: "plain_text", text: `${meta.emoji} ${meta.label} — ${name}${testBanner ? " [TEST]" : ""}`, emoji: true } },
-        {
-          type: "section",
-          fields: [
-            { type: "mrkdwn", text: `*Runway:*\n${fmtDays(snap.runwayDays)}${snap.queueEndDate ? ` (queue dies ${snap.queueEndDate.slice(0, 10)})` : ""}` },
-            { type: "mrkdwn", text: `*Book a shoot by:*\n${snap.bookBy || "NOW"}` },
-            { type: "mrkdwn", text: `*Burn:*\n${burnLabel}` },
-            { type: "mrkdwn", text: `*Pipeline buffer:*\n${buffer}` },
-          ],
-        },
+        { type: "header", text: { type: "plain_text", text: `${meta.emoji} ${isDrought ? "POSTING STOPPED" : meta.label} — ${name}${testBanner ? " [TEST]" : ""}`, emoji: true } },
+        { type: "section", fields },
         { type: "context", elements: [{ type: "mrkdwn", text: `Last shoot: ${snap.lastShoot || "none logged"} · lead time ${snap.leadTimeDays}d · Vantus content runway` }] },
       ],
     }],
@@ -192,7 +221,12 @@ async function sendAlertEmail(fired, testBanner) {
   } catch (e) { console.log("[runway] alert email failed:", e.message); }
 }
 
-async function sendDigest(snapshots, isTest) {
+const DIGEST_META = {
+  monday: { emoji: "📆", title: "Monday content runway digest", footerAllGreen: "All clients green. Nothing needs booking this week.", footer: "Book-by dates above are the last responsible day to schedule a shoot." },
+  friday: { emoji: "🔔", title: "Friday runway check — in case we missed it", footerAllGreen: "All clear going into the weekend.", footer: "Anything red/yellow above survived the week unhandled — deal with it before Monday." },
+};
+
+async function sendDigest(snapshots, isTest, variant = "monday") {
   const rank = { empty: 0, critical: 1, warning: 2 };
   const sorted = [...snapshots].sort((a, b) => {
     const ra = a.snap.severity ? rank[a.snap.severity] : (a.snap.configured ? 3 : 4);
@@ -200,18 +234,25 @@ async function sendDigest(snapshots, isTest) {
     return ra - rb || (a.snap.runwayDays ?? 1e9) - (b.snap.runwayDays ?? 1e9);
   });
   const lines = sorted.map(({ name, snap }) => {
-    if (!snap.configured) return `⚪ *${name}* — unconfigured (set posts/week or map Sprout)`;
+    if (snap.mode === "drought") {
+      const since = snap.drought?.floor ? "14+" : Math.round(snap.drought?.daysSincePost ?? 0);
+      return `🔴 *${name}* — posting STOPPED (last post ${since}d ago) · no inventory logged · book a shoot NOW`;
+    }
+    if (!snap.configured) return `⚪ *${name}* — untracked (log a shoot or set posts/week to start runway math)`;
     const dot = snap.severity === "empty" || snap.severity === "critical" ? "🔴" : snap.severity === "warning" ? "🟡" : "🟢";
     return `${dot} *${name}* — ${fmtDays(snap.runwayDays)} runway · ${snap.inventory.ready} ready / ${snap.inventory.production} in prod · burn ${snap.burn.perDay != null ? (Math.round(snap.burn.perDay * 10) / 10) + "/day" : "—"}${snap.severity ? ` · *book by ${snap.bookBy}*` : ""}`;
   });
   const allGreen = sorted.every(s => !s.snap.severity && s.snap.configured);
+  const meta = DIGEST_META[variant] || DIGEST_META.monday;
+  const title = `${meta.emoji} ${meta.title}${isTest ? " [TEST]" : ""}`;
   await slackPost({
+    text: title,
     attachments: [{
       color: allGreen ? "#30d158" : "#ff9f0a",
       blocks: [
-        { type: "header", text: { type: "plain_text", text: `📆 Monday content runway digest${isTest ? " [TEST]" : ""}`, emoji: true } },
+        { type: "header", text: { type: "plain_text", text: title, emoji: true } },
         { type: "section", text: { type: "mrkdwn", text: lines.join("\n") || "_no tracked clients_" } },
-        { type: "context", elements: [{ type: "mrkdwn", text: allGreen ? "All clients green. Nothing needs booking this week." : "Book-by dates above are the last responsible day to schedule a shoot." }] },
+        { type: "context", elements: [{ type: "mrkdwn", text: allGreen ? meta.footerAllGreen : meta.footer }] },
       ],
     }],
   });
@@ -231,7 +272,10 @@ exports.handler = async (event) => {
 
   const now = Date.now();
   const today = new Date(now).toISOString().slice(0, 10);
-  const isMonday = new Date(now).getUTCDay() === 1;
+  // Two weekly touchpoints (cron fires 15:00 UTC = same calendar day in PT):
+  // Monday = the update, Friday = the "in case we missed it" pass.
+  const utcDow = new Date(now).getUTCDay();
+  const digestVariant = utcDow === 1 ? "monday" : utcDow === 5 ? "friday" : null;
 
   // Tracked clients + their items + alert state, three reads.
   const cRes = await sb(`clients?select=id,name,slug,posts_per_week,shoot_lead_time_days,content_tracking_enabled,sprout_profile_ids,n8n_webhook_url&status=eq.active&content_tracking_enabled=is.true`);
@@ -314,17 +358,25 @@ exports.handler = async (event) => {
       const tRes = await sb(`tasks?client_id=eq.${c.id}&source=eq.ai_ops&status=neq.done&reason=like.runway*&select=id&limit=1`);
       const open = tRes.ok ? await tRes.json() : [];
       if (!open.length) {
+        const sinceLabel = snap.drought?.daysSincePost != null
+          ? `${snap.drought.floor ? "14+" : Math.round(snap.drought.daysSincePost)}d since last post`
+          : null;
+        const desc = snap.mode === "drought"
+          ? `Posting has STOPPED (${sinceLabel}; normal rhythm ${snap.burn.perDay != null ? Math.round(snap.burn.perDay * 10) / 10 + "/day" : "unknown"}). No inventory logged in Vantus — book a shoot and log it via Content Runway → Log shoot. Auto-created by content-runway-check; completes itself when posting resumes or inventory lands.`
+          : `Content runway ${fmtDays(snap.runwayDays)} (${snap.severity}). Pipeline buffer: ${snap.inventory.ready} ready + ${snap.inventory.production} in production. Auto-created by content-runway-check; completes itself when the queue extends.`;
         await sb("tasks", {
           method: "POST",
           body: JSON.stringify({
             title: `Book shoot: ${c.name}`,
-            description: `Content runway ${fmtDays(snap.runwayDays)} (${snap.severity}). Pipeline buffer: ${snap.inventory.ready} ready + ${snap.inventory.production} in production. Auto-created by content-runway-check; completes itself when the queue extends.`,
+            description: desc,
             status: "backlog",
             priority: snap.severity === "warning" ? "high" : "urgent",
             client_id: c.id,
             due_date: snap.bookBy || today,
             source: "ai_ops",
-            reason: `runway ${snap.severity}: ${fmtDays(snap.runwayDays)} left, lead time ${snap.leadTimeDays}d`,
+            reason: snap.mode === "drought"
+              ? `runway drought: ${sinceLabel || "posting stopped"}`
+              : `runway ${snap.severity}: ${fmtDays(snap.runwayDays)} left, lead time ${snap.leadTimeDays}d`,
           }),
         });
         results.tasksCreated.push(c.name);
@@ -341,7 +393,9 @@ exports.handler = async (event) => {
   }
 
   if (fired.length && (!isTest || testFire)) await sendAlertEmail(fired, isTest);
-  if ((isMonday && !isTest) || qs.digest === "1") await sendDigest(snapshots, isTest);
+  if ((digestVariant && !isTest) || qs.digest === "1") {
+    await sendDigest(snapshots, isTest, qs.digest === "1" ? (qs.variant || "monday") : digestVariant);
+  }
 
   const body = { tracked: clients.length, ...results };
   if (isTest) body.snapshots = snapshots.map(({ name, snap }) => ({ name, ...snapshotJson(snap) }));
@@ -351,6 +405,7 @@ exports.handler = async (event) => {
 
 function snapshotJson(snap) {
   return {
+    mode: snap.mode,
     runway_days: snap.runwayDays != null ? Math.round(snap.runwayDays * 10) / 10 : null,
     queue_end_date: snap.queueEndDate ? String(snap.queueEndDate).slice(0, 10) : null,
     inventory_ready: snap.inventory.ready,
@@ -359,5 +414,7 @@ function snapshotJson(snap) {
     burn_source: snap.burn.source,
     severity: snap.severity,
     book_by: snap.bookBy,
+    days_since_post: snap.drought?.daysSincePost != null ? Math.round(snap.drought.daysSincePost * 10) / 10 : null,
+    posting_stalled: !!snap.drought?.stalled,
   };
 }

@@ -103,6 +103,26 @@ export function refireDue(severity, lastAlertAt, now) {
   return now - last >= gapDays * DAY_MS;
 }
 
+// ── drought (deadzone) detection ──
+// The Sprout-only signal for clients with no logged inventory: how long since
+// they last posted vs their normal gap. Stalled = posting stopped = content is
+// dying/dead NOW, regardless of what the (empty) pipeline claims.
+export function droughtInfo({ lastPostAt, noPosts14d, burnPerDay, now }) {
+  if (noPosts14d) {
+    // mapped profiles, zero posts in the trailing window — mega-drought
+    return { daysSincePost: 14, expectedGapDays: null, stalled: true, floor: true };
+  }
+  if (!lastPostAt) return { daysSincePost: null, expectedGapDays: null, stalled: false, floor: false };
+  const ts = typeof lastPostAt === "number" ? lastPostAt : Date.parse(lastPostAt);
+  if (Number.isNaN(ts)) return { daysSincePost: null, expectedGapDays: null, stalled: false, floor: false };
+  const daysSincePost = (now - ts) / DAY_MS;
+  const expectedGapDays = burnPerDay && burnPerDay > 0 ? 1 / burnPerDay : null;
+  // stalled when the silence is 2x their normal rhythm (never under 3 days,
+  // so weekend gaps don't cry wolf); no rhythm baseline → 7-day default
+  const threshold = expectedGapDays != null ? Math.max(3, 2 * expectedGapDays) : 7;
+  return { daysSincePost, expectedGapDays, stalled: daysSincePost >= threshold, floor: false };
+}
+
 // Most recent shoot batch, from LogShootModal's campaign convention
 // ("Shoot YYYY-MM-DD"), falling back to nothing (null) — display-only.
 export function lastShootDate(items) {
@@ -131,17 +151,38 @@ export function clientRunway(client, items, opts = {}) {
   });
 
   const scheduledRunwayDays = queueRunwayDays(opts.sproutQueueEndDate, now);
-  const invRunwayDays = inventoryRunwayDays(inventory.total, burn.perDay);
+  // A pipeline with ZERO rows is missing data, not zero inventory — don't
+  // declare "0 pieces left" for a client nobody has logged yet. Predictive
+  // runway turns on with the first logged shoot; until then drought detection
+  // (below) is the alarm.
+  const hasPipelineData = (items || []).length > 0;
+  const invRunwayDays = hasPipelineData ? inventoryRunwayDays(inventory.total, burn.perDay) : null;
 
   // Sprout's queue-end is the hard signal when we have it; the pipeline
   // inventory is the buffer shown alongside, not a reprieve from the alert
   // (unscheduled pieces still need someone to schedule them).
   const effectiveRunwayDays = scheduledRunwayDays != null ? scheduledRunwayDays : invRunwayDays;
-  const severity = severityFor(effectiveRunwayDays, leadTime);
+  let severity = severityFor(effectiveRunwayDays, leadTime);
+  let mode = effectiveRunwayDays == null ? null
+    : scheduledRunwayDays != null ? "queue" : "inventory";
+
+  // Drought fallback: no runway model available (or it reads healthy while
+  // posting has actually stopped) → the deadzone signal wins.
+  const drought = droughtInfo({
+    lastPostAt: opts.sproutLastPostAt,
+    noPosts14d: opts.sproutNoPosts14d,
+    burnPerDay: burn.perDay,
+    now,
+  });
+  if (drought.stalled && (effectiveRunwayDays == null || severity == null)) {
+    severity = "empty";
+    mode = "drought";
+  }
 
   return {
     tracked: !!client?.content_tracking_enabled,
-    configured: effectiveRunwayDays != null,
+    configured: effectiveRunwayDays != null || mode === "drought",
+    mode,                                   // 'queue' | 'inventory' | 'drought' | null
     inventory,
     burn,                                   // { perDay, source }
     scheduledRunwayDays,
@@ -149,8 +190,9 @@ export function clientRunway(client, items, opts = {}) {
     runwayDays: effectiveRunwayDays,
     severity,                               // null | warning | critical | empty
     leadTimeDays: leadTime,
-    bookBy: bookByDate(now, effectiveRunwayDays, leadTime),
+    bookBy: mode === "drought" ? null : bookByDate(now, effectiveRunwayDays, leadTime),
     queueEndDate: opts.sproutQueueEndDate ?? null,
     lastShoot: lastShootDate(items),
+    drought,                                // { daysSincePost, expectedGapDays, stalled, floor }
   };
 }
