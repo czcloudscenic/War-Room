@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { clientRunway } from '../../utils/runway.mjs';
 
 // ── Clients CRM home ──────────────────────────────────────────────────────────
 // All-clients fulfillment dashboard. Each client is a workspace card showing
@@ -10,6 +11,10 @@ import React, { useMemo } from 'react';
 // client_contacts), this page upgrades to use those fields where present.
 
 const ACCENT = "#2AABFF";
+const RUNWAY_GREEN = "#30d158";
+const RUNWAY_AMBER = "#ff9f0a";
+const RUNWAY_RED = "#ff453a";
+const RUNWAY_DIM = "rgba(255,255,255,0.3)";
 
 // Status buckets — mirror DashboardRoute exactly so counts agree across the app.
 const NEED_ATTENTION = ["Need Copy Approval", "Need Content Approval", "Needs Revisions"];
@@ -64,6 +69,30 @@ function clientStats(client, content) {
   };
 }
 
+function runwayColor(snap) {
+  if (!snap.configured) return RUNWAY_DIM;
+  if (snap.severity === "critical" || snap.severity === "empty") return RUNWAY_RED;
+  if (snap.severity === "warning") return RUNWAY_AMBER;
+  return RUNWAY_GREEN;
+}
+
+function fmtRunwayBadge(days) {
+  if (days == null) return "—";
+  return days < 10 ? `${days.toFixed(1)}d` : `${Math.round(days)}d`;
+}
+
+function RunwayBadge({ snap }) {
+  const color = runwayColor(snap);
+  return (
+    <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"2px 7px", background:"rgba(255,255,255,0.035)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, lineHeight:1 }}>
+      <span style={{ width:5, height:5, borderRadius:"50%", background:color }} />
+      <span style={{ fontSize:9.5, fontWeight:700, color, fontFamily:"'Geist Mono', monospace" }}>
+        {snap.configured ? fmtRunwayBadge(snap.runwayDays) : "set cadence"}
+      </span>
+    </span>
+  );
+}
+
 function StatChip({ value, label, color }) {
   const dim = !value;
   return (
@@ -76,6 +105,11 @@ function StatChip({ value, label, color }) {
 
 function ClientCard({ client, content, isActive, onOpen, onEdit }) {
   const s = useMemo(() => clientStats(client, content), [client, content]);
+  const runwaySnap = useMemo(() => {
+    if (!client.content_tracking_enabled) return null;
+    const items = content.filter(x => x.client_id === client.id);
+    return clientRunway(client, items, { now: Date.now() });
+  }, [client, content]);
   const statusColor = client.status === "active" ? "#30d158" : client.status === "paused" ? "#ff9f0a" : "rgba(255,255,255,0.3)";
   const accent = client.brand_color || ACCENT;
   const last = relTime(s.last);
@@ -101,10 +135,11 @@ function ClientCard({ client, content, isActive, onOpen, onEdit }) {
         </div>
         <div style={{ minWidth:0, flex:1 }}>
           <div style={{ fontSize:15, fontWeight:600, color:"#f5f5f7", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{client.name}</div>
-          <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:3 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:3, flexWrap:"wrap" }}>
             <div style={{ width:5, height:5, borderRadius:"50%", background:statusColor }} />
             <span style={{ fontSize:10, color:"rgba(255,255,255,0.45)", textTransform:"capitalize" }}>{client.status || "active"}</span>
             {last && <span style={{ fontSize:10, color:"rgba(255,255,255,0.28)" }}>· {last}</span>}
+            {runwaySnap && <RunwayBadge snap={runwaySnap} />}
           </div>
         </div>
       </div>
