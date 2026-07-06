@@ -295,7 +295,13 @@ exports.handler = async (event) => {
   for (const c of clients) {
     const own = items.filter(i => i.client_id === c.id);
     const sprout = await sproutSignals(c.sprout_profile_ids, now);
-    const snap = R.clientRunway(c, own, { now, sproutQueueEndDate: sprout.queueEndDate, sproutBurnPerDay: sprout.burnPerDay });
+    const snap = R.clientRunway(c, own, {
+      now,
+      sproutQueueEndDate: sprout.queueEndDate,
+      sproutBurnPerDay: sprout.burnPerDay,
+      sproutLastPostAt: sprout.lastPostAt,
+      sproutNoPosts14d: sprout.noPosts14d,
+    });
     snapshots.push({ name: c.name, client: c, snap });
 
     const state = states.get(c.id);
