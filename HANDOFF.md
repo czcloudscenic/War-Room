@@ -1,5 +1,24 @@
 # Vantus Handoff Brief
 
+## 2026-07-08 session — Creative OS handoff processed: email "bug" root-caused (non-bug), rogue secret found
+
+**No code changes. NOT pushed: `4e9260e` + `ed263c1` (runway drought detection + Sprout last-post signals) still await Christian's push.**
+
+**Context:** the Creative OS agent's 7/7 live cleanup (3 ghost clients archived → 5 active book, placeholder retainers Dynasty $20k / Parlour $2k / VitalLyfe $8k, 3/3 team roster, Facts of Record 4/5, Dynasty report recipient saved) handed over 3 items. Full handoff kit filed at `~/Desktop/Software builds/CS_CreativeOS_ChrisKit_v1/` (read its `CHRIS_HANDOFF.md`).
+
+**Item 2 CLOSED — "Setup shows no-client-email for Dynasty" is a NON-BUG, do not "fix" it:**
+- Verified end-to-end: warning (`FactsAndReports.jsx:246`), data source (`App.jsx` `select("*")` — confirmed present in the LIVE bundle downloaded from usevantus.com), and mailer (`send-monthly-reports.js:136` → `c.primary_email || OWNER_EMAIL`) all read the same correct column `clients.primary_email`.
+- DB queried via service key: dynasty row HAS `hello@dynastystaffusa.com`. The warning the auditor saw belongs to **Parlour Bar** (`primary_email` NULL, recurring lane) — the row below Dynasty. It's truthful. **Open data gap: Parlour Bar needs a real primary_email from Christian** (don't scrape a generic info@).
+- Auto-send confirmed double-gated: every client's `report_schedule` is NULL (cron skips) AND per 7/3 the Resend-domain + placeholder-retainer blockers stand. Keep off until retainers are real.
+
+**SECURITY — rogue secret in Netlify env:** a variable whose NAME is a raw Resend API key (`re_jEHHfr94_...`) exists alongside the real `RESEND_API_KEY`. No repo references. Deletion was permission-blocked twice in this harness; **Christian: run `npx netlify env:unset "re_jEHHfr94_CkaXNz6Vd23p9JoapccsqsnH"` and rotate that key in Resend.**
+
+**Still on Christian (from the handoff):** (1) Gemini billing toggle in AI Studio — VL portal's `gemini-proxy` returns 429, blocks all 7 generators; account action, Danny's card. (2) Social OAuth connects in Setup for @DynastyStaffing / @Parlor.Bar / @Vital.Lyfe; the 3 cloud.scenic agency accounts stay Unassigned on purpose. Chrome extension wasn't connected this session, so neither guided browser task ran.
+
+**Schema note worth keeping:** two Supabase projects by design — `wjcstqqihtebkpyuacop` = Vantus (app), `wbryunphevoixgjalcvx` = VitalLyfe generator context (`brand-context.js`). Don't cross-wire.
+
+---
+
 ## 2026-07-03 session — full test campaign (27/31), config fixes, data wipe, Client Vault
 
 **All pushed + deployed; migration `20260703_client_vault.sql` applied by Christian.** Latest on `main`: `8e5c002` + this handoff commit.
