@@ -4,6 +4,30 @@
 
 ---
 
+## 🔧 Open action queue — 2026-07-09 (three lanes)
+
+Triaged out of the 7/8 Creative OS kit handoff + a Netlify credit-hold on git-triggered deploys (worked around via CLI deploy this session). Almost everything open is Christian-only account/billing/data work.
+
+**Claude Code (me, `main`) — cleanup**
+- [x] Untrack `.netlify/functions/manifest.json` (was committed before `.gitignore` rule; stops the phantom dirty state every session).
+- [x] CLI-deploy proven as the workaround while Netlify server builds are credit-blocked (`netlify deploy --build --prod`).
+- [x] Netlify diagnosis: site is on the **free Personal team `cz-mwalysu`**, NOT the Cloud Scenic **Pro** team. No card failure. Build minutes fine (6 used) → tripped cap is bandwidth/usage. Real fix = **transfer usevantus.com to the Cloud Scenic Pro team** (`cloudscenic`, dv@).
+
+**Codex — thin right now**
+- No real code task. Email "no client email" warning is a NON-bug (`FactsAndReports.jsx:246` already keys off `!c.primary_email`); mailer already falls back to owner + Slack notice.
+- Optional (flag only): make `send-monthly-reports.js` hard-refuse when `primary_email` missing instead of owner-fallback. Low value.
+
+**Christian — human-only (account / billing / secrets / data)**
+- [ ] Flip **Gemini billing** in Google AI Studio → clears `429 quota exceeded`, revives all 7 VL generators.
+- [ ] Clear **Netlify credit hold** on `majestic-cassata` → restores git-triggered auto-deploy.
+- [ ] Unset + rotate the **rogue Resend-key-named env var** (7/8 security flag).
+- [ ] **Revoke the GitHub PAT** exposed in the 7/9 session chat.
+- [ ] Connect **per-client social OAuth**: `@DynastyStaffing`, `@Parlor.Bar`, `@Vital.Lyfe` (needs client logins).
+- [ ] Enter **real retainer numbers** (replace Dynasty $20k / Parlour $2k / VitalLyfe $8k placeholders; gates Dynasty auto-send).
+- [ ] Data check: any client showing the email warning just needs its `primary_email` set (code is correct).
+
+---
+
 ## ✅ Shipped & live (usevantus.com)
 
 **Fulfillment OS**
