@@ -1,5 +1,34 @@
 # Vantus Handoff Brief
 
+## 2026-07-09 session — runway work pushed + shipped, Netlify deploy failure root-caused (wrong team), repo cleanup
+
+**Live state:** the 3 runway/handoff commits (`4e9260e` drought detection + Mon/Fri digests + Slack fix + Danny-on-emails, `ed263c1` Sprout last-post signals, `7787d05` 7/8 handoff) were **pushed to `origin/main` + deployed live** to usevantus.com this session. Runway drought work is now in production.
+
+**🔴 Netlify auto-deploy is BLOCKED — root cause found (not a code bug, not a failed card):**
+- A git-triggered deploy (commit `ed9c2f1`) failed with **"Skipped due to account credit usage exceeded."** Netlify skipped the build entirely — never compiled.
+- Diagnosed via Netlify API: **usevantus.com lives on the free Personal team `cz-mwalysu`, NOT the Cloud Scenic Pro team.** `payment_failed: None` on both teams. Build minutes barely used (6 of the period) → the tripped cap is **bandwidth/usage**, and the Personal plan has `block_builds_when_usage_exceeded: true`, which hard-blocks git builds.
+- **The real fix = transfer the site to the Cloud Scenic Pro team** (`cloudscenic`, billed dv@) — already paid, higher limits, won't hard-block. Netlify → site → Site config → General → Danger zone → **Transfer site**. Upgrading the free team is the fallback.
+- **Workaround that WORKS meanwhile:** `netlify deploy --build --prod` — builds locally on the Mac (~6s) and uploads the artifact, bypassing Netlify's build infra entirely. That's how the runway work got live this session. Use it for every deploy until the team transfer is done.
+
+**Repo cleanup (2 commits sitting LOCAL, NOT pushed — deliberately held):**
+- `a9e273e` — **untracked `.netlify/functions/manifest.json`** (`git rm --cached`). It was committed before the `.gitignore:8 .netlify/` rule, so it showed dirty every session from a regenerated build timestamp. Now silenced.
+- `9a8727c` — **`VANTUS_TODO.md` 7/9 three-lane action queue** (Claude Code / Codex / Christian) + the Netlify diagnosis, at the top of the file.
+- **Holding the push on purpose:** these are pure housekeeping (zero runtime impact — the live site already has everything). Pushing now would just trigger another failed Netlify build + need a fresh PAT. Push them with the next real deploy AFTER the team transfer, so they build clean. (Local `origin/main` tracking ref reads "ahead 5" because the earlier push went to an explicit PAT URL, which doesn't update the ref — true state is 4 on remote, 2 pending.)
+
+**🔒 Rogue Resend secret — now fully identified (still Christian's to rotate):** the rogue env var's **NAME is literally a live Resend key** — `re_jEHHfr94_CkaXNz6Vd23p9JoapccsqsnH` — pasted into the name field instead of the value. Env var names aren't masked, so the key is **exposed in plaintext = compromised.** Delete that var in Netlify **and rotate the key in Resend** (revoke `re_jEHHfr94…` at resend.com/api-keys, generate new, set as the *value* of `RESEND_API_KEY`), then redeploy. The correct `RESEND_API_KEY` var also exists — leave it, just update its value.
+
+**Open items — the honest triage (everything real is Christian's, ~20–35 min solo):**
+1. **Transfer usevantus.com → Cloud Scenic Pro team** (unblocks auto-deploy). 3–5 min.
+2. **Delete rogue var + rotate Resend key** (security). 5–8 min.
+3. **Flip Gemini billing** in AI Studio → revives all 7 VL generators (429 quota). 5–15 min.
+4. **Revoke the GitHub PAT** exposed in this session's chat. 1 min.
+5. Connect per-client social OAuth (@DynastyStaffing / @Parlor.Bar / @Vital.Lyfe) — gated on client logins, not on Christian's time.
+6. Enter real retainer numbers (replace Dynasty $20k / Parlour $2k / VitalLyfe $8k placeholders).
+7. Data check: any "no client email" warning → set that client's `primary_email` (code is correct; it's a data gap — Parlour Bar is the known one).
+- **Codex has nothing real here.** The only candidate (email-warning hardening) is unnecessary — code already reads `primary_email` correctly and the mailer already falls back to owner + Slack notice.
+
+---
+
 ## 2026-07-08 session — Creative OS handoff processed: email "bug" root-caused (non-bug), rogue secret found
 
 **No code changes. NOT pushed: `4e9260e` + `ed263c1` (runway drought detection + Sprout last-post signals) still await Christian's push.**
