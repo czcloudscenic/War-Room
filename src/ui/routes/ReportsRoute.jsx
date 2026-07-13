@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { sb } from '../../services/supabaseClient.js';
+import { useSupabaseRows } from '../../utils/hooks.js';
 
 // ── Fulfillment Reports ───────────────────────────────────────────────────────
 // The accountability scoreboard over the ledger. Answers "are we delivering well?"
@@ -10,6 +11,10 @@ import { sb } from '../../services/supabaseClient.js';
 const ACCENT = "#2AABFF";
 const NEED_ATTENTION = ["Need Copy Approval", "Need Content Approval", "Needs Revisions"];
 const SHIPPED = ["Approved", "Scheduled", "Posted"];
+// KPI window (Fix #7): this page fetches its own slim rows instead of riding the
+// global content blob; all rates below are measured over this window.
+const WINDOW_DAYS = 90;
+const windowStartISO = () => new Date(Date.now() - WINDOW_DAYS * 86400000).toISOString();
 
 function pct(n, d) { return d ? Math.round((n / d) * 100) : 0; }
 function clientName(clients, id) { const c = (clients || []).find(x => x?.id === id); return c ? (c.name || "—") : "Unassigned"; }
@@ -28,24 +33,27 @@ function KpiCard({ value, suffix, label, sub, color }) {
   );
 }
 
-export default function ReportsRoute({ isMobile, clients = [], content = [] }) {
-  const [approvals, setApprovals] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function ReportsRoute({ isMobile, clients = [] }) {
   const safeClients = clients || [];
-  const safeContent = content || [];
-  const safeApprovals = approvals || [];
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await sb.from("approvals").select("id,content_item_id,client_id,approver_email,decision,stage,feedback,created_at").order("created_at", { ascending: false });
-      if (!cancelled) { if (!error && Array.isArray(data)) setApprovals(data); setLoading(false); }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  // Scoped self-fetches (Fix #7): slim columns, bounded windows/limits — this
+  // page no longer consumes the all-clients content blob.
+  const { rows: items, loading: itemsLoading } = useSupabaseRows(
+    () => sb.from("content_items")
+      .select("id,client_id,status,posted_at,publish_date,revision_count,created_at")
+      .gte("created_at", windowStartISO())
+      .order("created_at", { ascending: false }),
+    []
+  );
+  const { rows: safeApprovals, loading: loading } = useSupabaseRows(
+    () => sb.from("approvals")
+      .select("id,content_item_id,client_id,approver_email,decision,stage,feedback,created_at,content_items(title)")
+      .order("created_at", { ascending: false })
+      .limit(20),
+    []
+  );
 
   const k = useMemo(() => {
-    const items = content || [];
     const shipped = items.filter(x => SHIPPED.includes(x?.status));
     const posted = items.filter(x => x?.posted_at);
     // On-time: posted on or before its scheduled publish_date
@@ -67,11 +75,11 @@ export default function ReportsRoute({ isMobile, clients = [], content = [] }) {
       avgRevisions: items.length ? (revs / items.length).toFixed(1) : "0",
       revised,
     };
-  }, [content]);
+  }, [items]);
 
   const perClient = useMemo(() => {
     const allClients = clients || [];
-    const allContent = content || [];
+    const allContent = items || [];
     return allClients.map(c => {
       const items = allContent.filter(x => x?.client_id === c?.id);
       const shipped = items.filter(x => SHIPPED.includes(x?.status));
@@ -86,10 +94,12 @@ export default function ReportsRoute({ isMobile, clients = [], content = [] }) {
         cadence: c?.cadence || null,
       };
     }).filter(r => (r?.total || 0) > 0).sort((a, b) => (b?.total || 0) - (a?.total || 0));
-  }, [clients, content]);
+  }, [clients, items]);
 
   const decisions = safeApprovals.slice(0, 12);
-  const itemTitle = (id) => { const it = safeContent.find(x => x?.id === id); return it ? (it.title || "Untitled") : id; };
+  // Title comes embedded via the approvals→content_items FK, so decisions on
+  // items outside the KPI window still resolve.
+  const itemTitle = (a) => a?.content_items ? (a.content_items.title || "Untitled") : (a?.content_item_id || "—");
   const decColor = (d) => d === "approved" ? "#30d158" : d === "revision_requested" ? "#f97316" : "#ff453a";
   const decLabel = (d) => d === "approved" ? "Approved" : d === "revision_requested" ? "Revisions" : "Rejected";
 
@@ -101,10 +111,14 @@ export default function ReportsRoute({ isMobile, clients = [], content = [] }) {
       <div style={{ marginBottom: isMobile ? 22 : 32, paddingBottom: isMobile ? 18 : 26, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
         <div style={{ fontSize: 9, color: "rgba(255,255,255,0.55)", fontWeight: 600, letterSpacing: 3, textTransform: "uppercase", fontFamily: "'Geist Mono', monospace", marginBottom: 12 }}>Cloud Scenic / Fulfillment Reports</div>
         <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: isMobile ? 34 : 46, fontWeight: 400, fontStyle: "italic", color: "#fff", margin: 0, letterSpacing: -1, lineHeight: 1 }}>Reports</h1>
-        <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", margin: "12px 0 0" }}>How well the team is delivering — quality, reliability, and throughput across every client.</p>
+        <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", margin: "12px 0 0" }}>How well the team is delivering — quality, reliability, and throughput across every client. Last {WINDOW_DAYS} days.</p>
       </div>
 
       {/* headline KPIs */}
+      {itemsLoading ? (
+        <div style={{ padding: "34px 16px", textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.4)", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, marginBottom: 24 }}>Loading…</div>
+      ) : (
+      <>
       <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
         <KpiCard value={k.firstPassRate} suffix="%" label="First-pass approval" sub={`${k.shipped} shipped, ${k.revised} needed revisions`} color={k.firstPassRate >= 70 ? "#30d158" : "#f59e0b"} />
         <KpiCard value={k.onTimeRate} suffix="%" label="On-time delivery" sub={`${k.posted} posted`} color={k.onTimeRate >= 80 ? "#30d158" : "#f59e0b"} />
@@ -114,7 +128,7 @@ export default function ReportsRoute({ isMobile, clients = [], content = [] }) {
 
       {/* throughput strip */}
       <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
-        <KpiCard value={k.total} label="Total deliverables" color="#fff" />
+        <KpiCard value={k.total} label={`Total deliverables · ${WINDOW_DAYS}d`} color="#fff" />
         <KpiCard value={k.inFlight} label="In production" color="#ff375f" />
         <KpiCard value={k.shipped} label="Shipped" color="#2AABFF" />
         <KpiCard value={k.posted} label="Posted (proof)" color="#30d158" />
@@ -123,7 +137,7 @@ export default function ReportsRoute({ isMobile, clients = [], content = [] }) {
       <div style={{ display: "flex", gap: 18, flexWrap: isMobile ? "wrap" : "nowrap" }}>
         {/* per-client */}
         <div style={{ flex: 1.4, minWidth: 280 }}>
-          <div style={{ ...head, marginBottom: 10 }}>By client</div>
+          <div style={{ ...head, marginBottom: 10 }}>By client · last {WINDOW_DAYS} days</div>
           <div style={{ background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
             <div style={{ display: "flex", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <div style={{ ...head, ...col(2) }}>Client</div>
@@ -163,7 +177,7 @@ export default function ReportsRoute({ isMobile, clients = [], content = [] }) {
             ) : decisions.map((a, i) => (
               <div key={a?.id} style={{ padding: "11px 16px", borderBottom: i < decisions.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <span style={{ fontSize: 12, color: "#f5f5f7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{itemTitle(a?.content_item_id)}</span>
+                  <span style={{ fontSize: 12, color: "#f5f5f7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{itemTitle(a)}</span>
                   <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: decColor(a?.decision), flexShrink: 0 }}>{decLabel(a?.decision)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 3 }}>
@@ -176,6 +190,8 @@ export default function ReportsRoute({ isMobile, clients = [], content = [] }) {
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

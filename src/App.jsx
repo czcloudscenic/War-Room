@@ -60,6 +60,12 @@ function prefetchRoutes() {
 const ADMIN_EMAILS = ["cz@cloudscenic.com","dv@cloudscenic.com","ss@cloudscenic.com"];
 const ALLOWED_DOMAIN = "cloudscenic.com";
 
+// Working-set bound (Fix #7, admin half): admins load all unposted work plus
+// items posted within this window. Older posted rows stay in the DB untouched —
+// an all-time History view is the future home for them if ever needed.
+const ACTIVE_CONTENT_DAYS = 90;
+const activeContentCutoff = () => new Date(Date.now() - ACTIVE_CONTENT_DAYS * 86400000).toISOString();
+
 function App() {
   const [session, setSession] = useState(null);
   const [role, setRole]       = useState(null);
@@ -142,7 +148,9 @@ function App() {
 
       try {
         const { data: items, error: itemsErr } = await sb
-          .from("content_items").select("*").order("id");
+          .from("content_items").select("*")
+          .or(`posted_at.is.null,posted_at.gte.${activeContentCutoff()}`)
+          .order("id");
         if (itemsErr) console.warn("[auth] content_items error", itemsErr);
         if (items) setContent(items.map(r => ({ ...r, platforms: r.platforms || [] })));
       } catch (e) { console.warn("[auth] content_items threw", e); }
@@ -179,9 +187,9 @@ function App() {
       // Defense in depth: load ONLY this client's content, explicitly scoped.
       // RLS already bounds what a client can SELECT, but scoping here means a
       // client's browser never holds another tenant's rows even if a policy
-      // regressed. (Admins intentionally load all clients — Ledger/Reports/
-      // Client Analytics are cross-client by design; per-page scoped fetches
-      // for those remain the tracked larger refactor.)
+      // regressed. (Admins load all clients' active work, recency-bounded —
+      // Reports/Client Analytics fetch their own scoped rows; Ledger rides the
+      // bounded blob by design.)
       try {
         const { data: items } = await sb
           .from("content_items").select("*").in("client_id", clientScope).order("id");
@@ -485,7 +493,9 @@ if (!sb) return;
 
 // If no content was passed in from App (standalone mode or content not yet loaded), load it ourselves
 if (!contentProp || contentProp.length === 0) {
-  sb.from("content_items").select("*").order("id")
+  sb.from("content_items").select("*")
+    .or(`posted_at.is.null,posted_at.gte.${activeContentCutoff()}`)
+    .order("id")
     .then(({ data, error }) => {
       if (error) { setDbStatus("error"); return; }
       if (data && data.length > 0) {
@@ -499,7 +509,12 @@ if (!contentProp || contentProp.length === 0) {
   setDbStatus("live");
 }
 
-// Realtime subscription always runs
+// Realtime subscription always runs. Intentionally unfiltered: the handlers
+// below only patch/append existing state (UPDATE maps over loaded rows → no-op
+// for rows outside the ACTIVE_CONTENT_DAYS bound; INSERTs are new work, never
+// old-posted; DELETE filter is a no-op if the row isn't held), so the bounded
+// working set self-maintains. Remaining client-half of Fix #7: a
+// `client_id=eq.` filter for portal users on client switch.
 const channel = sb.channel("content_changes")
   .on("postgres_changes", { event: "*", schema: "public", table: "content_items" },
     (payload) => {
@@ -1337,7 +1352,7 @@ try {
     )}
 
     {activeNav === "reports" && (
-      <ReportsRoute isMobile={isMobile} clients={clients} content={content} />
+      <ReportsRoute isMobile={isMobile} clients={clients} />
     )}
 
     {activeNav === "runway" && (

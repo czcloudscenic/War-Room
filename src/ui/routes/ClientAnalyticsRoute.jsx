@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { sb } from '../../services/supabaseClient.js';
+import { useSupabaseRows } from '../../utils/hooks.js';
 
 // ── Client Analytics ──────────────────────────────────────────────────────────
 // The agency owner view — one screen answering "how's the business doing?" MRR,
@@ -47,29 +48,36 @@ function Bar({ label, value, total, color }) {
   );
 }
 
-export default function ClientAnalyticsRoute({ isMobile, clients = [], content = [] }) {
-  const [accounts, setAccounts] = useState([]);
-  const [posts, setPosts] = useState([]);
-  const [invoices, setInvoices] = useState([]);
-  const [loading, setLoading] = useState(true);
+// Reach/engagement window (Fix #7): account_posts is the biggest table in the
+// app — fetch only the metric fields actually summed, bounded to this window.
+const REACH_DAYS = 90;
+// Invoices: trend renders 6 months; 7 months of rows covers issued-late edges.
+const INVOICE_MONTHS = 7;
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const [acc, pst, inv] = await Promise.all([
-        sb.from("connected_accounts").select("id, client_id, platform"),
-        sb.from("account_posts").select("account_id, metrics"),
-        sb.from("invoices").select("amount, status, issued_at, sent_at, paid_at, created_at"),
-      ]);
-      if (!cancelled) {
-        if (Array.isArray(acc.data)) setAccounts(acc.data);
-        if (Array.isArray(pst.data)) setPosts(pst.data);
-        if (Array.isArray(inv.data)) setInvoices(inv.data);
-        setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+export default function ClientAnalyticsRoute({ isMobile, clients = [], content = [] }) {
+  const { rows: accounts, loading: accLoading } = useSupabaseRows(
+    () => sb.from("connected_accounts").select("id, client_id, platform"),
+    []
+  );
+  const { rows: posts, loading: postLoading } = useSupabaseRows(
+    () => sb.from("account_posts")
+      .select("account_id, reach:metrics->>reach, likes:metrics->>likes, comments:metrics->>comments, saved:metrics->>saved, shares:metrics->>shares")
+      .gte("posted_at", new Date(Date.now() - REACH_DAYS * 86400000).toISOString())
+      .order("posted_at", { ascending: false })
+      .limit(5000),
+    []
+  );
+  const { rows: invoices, loading: invLoading } = useSupabaseRows(
+    () => {
+      const from = new Date();
+      from.setMonth(from.getMonth() - INVOICE_MONTHS);
+      return sb.from("invoices")
+        .select("amount, status, issued_at, sent_at, paid_at, created_at")
+        .gte("created_at", from.toISOString());
+    },
+    []
+  );
+  const loading = accLoading || postLoading || invLoading;
 
   // MRR / revenue trend — last 6 months of billed revenue from invoices.
   // Honest time-series (we don't retain retainer history), so the chart tracks
@@ -112,9 +120,10 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
     let totalReach = 0, totalEng = 0;
     for (const p of safePosts) {
       const cid = acctClient.get(p?.account_id);
-      const m = p?.metrics || {};
-      const reach = Number(m.reach) || 0;
-      const eng = (Number(m.likes) || 0) + (Number(m.comments) || 0) + (Number(m.saved) || 0) + (Number(m.shares) || 0);
+      // Fields arrive pre-projected from metrics->>… as text; Number() both parses
+      // and zero-fills missing keys (same behavior as the old jsonb unpack).
+      const reach = Number(p?.reach) || 0;
+      const eng = (Number(p?.likes) || 0) + (Number(p?.comments) || 0) + (Number(p?.saved) || 0) + (Number(p?.shares) || 0);
       totalReach += reach; totalEng += eng;
       if (cid) reachByClient[cid] = (reachByClient[cid] || 0) + reach;
     }
@@ -159,7 +168,7 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
 
       {/* stat cards */}
       <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
-        <StatCard value={fmtNum(roll.totalReach)} label="Total reach" sub={`${fmtNum(roll.totalEng)} engagements`} color="#fff" big />
+        <StatCard value={fmtNum(roll.totalReach)} label={`Total reach · ${REACH_DAYS}d`} sub={`${fmtNum(roll.totalEng)} engagements · last ${REACH_DAYS} days`} color="#fff" big />
         <StatCard value={fmtMoney(roll.mrr)} label="MRR" sub={`${roll.activeCount} active clients`} color="#30d158" big />
         <StatCard value={`${onTrackPct}%`} label="Deliverables on-track" sub={`${roll.deliverables} total`} color={onTrackPct >= 80 ? "#30d158" : "#f59e0b"} big />
         <StatCard value={`${roll.avgHealth}%`} label="Clients green" sub={`${roll.overdue} overdue items`} color={roll.avgHealth >= 70 ? "#30d158" : "#f59e0b"} big />
@@ -223,7 +232,7 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
           <div style={{ ...head, flex: 2 }}>Client</div>
           <div style={{ ...head, flex: 1, textAlign: "right" }}>MRR</div>
           <div style={{ ...head, flex: 1, textAlign: "right" }}>Deliverables</div>
-          <div style={{ ...head, flex: 1, textAlign: "right" }}>Reach</div>
+          <div style={{ ...head, flex: 1, textAlign: "right" }}>Reach {REACH_DAYS}d</div>
           <div style={{ ...head, flex: 0.8, textAlign: "right" }}>Health</div>
         </div>
         {roll.perClient.length === 0 ? (
