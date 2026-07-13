@@ -175,7 +175,14 @@
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     # CSP — locked down to the actual origins this app talks to.
     # If a new external service is added (e.g. another Anthropic-style API), update
-    # connect-src here. 'unsafe-inline' on style-src is required by inline styled-jsx
-    # patterns across the React tree; tighten further when those are factored out.
+    # connect-src here. style-src has NO 'unsafe-inline' (2026-07-12): React
+    # style={{}} props set styles via CSSOM and are not governed by style-src;
+    # the one runtime <style> injection (LoginScreen) was moved into globals.css.
+    # If a future dependency injects <style> tags it will surface as a console
+    # CSP violation — prefer bundled CSS over re-adding 'unsafe-inline'.
+    # The sha256 hash allowlists the <style> tag Google Identity Services
+    # (index.html gsi/client, used by the Drive-upload token client) injects for
+    # its in-page button — a button this app never renders, so if Google rotates
+    # that CSS the only regression is a harmless console violation returning.
     # img-src includes data:/blob: for inline previews and the Supabase storage host.
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://wjcstqqihtebkpyuacop.supabase.co https://images.unsplash.com https://*.cdninstagram.com https://*.fbcdn.net https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.ytimg.com https://*.googleusercontent.com; media-src 'self' https://wjcstqqihtebkpyuacop.supabase.co; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://wjcstqqihtebkpyuacop.supabase.co wss://wjcstqqihtebkpyuacop.supabase.co https://api.anthropic.com https://api.resend.com https://api.stripe.com https://api.tavily.com https://api.apify.com https://cloudscenic.app.n8n.cloud https://hooks.slack.com https://accounts.google.com https://open.tiktokapis.com https://oauth2.googleapis.com https://www.googleapis.com; frame-ancestors 'self'; frame-src https://accounts.google.com; base-uri 'self'; form-action 'self' https://www.instagram.com https://api.instagram.com https://www.tiktok.com https://open.tiktokapis.com https://accounts.google.com https://oauth2.googleapis.com"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' https://fonts.googleapis.com 'sha256-CJ02OVqT7p9v9HDCMKiouj0TJ0ooW7ybXUHymIEqyeE='; img-src 'self' data: blob: https://wjcstqqihtebkpyuacop.supabase.co https://images.unsplash.com https://*.cdninstagram.com https://*.fbcdn.net https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.ytimg.com https://*.googleusercontent.com; media-src 'self' https://wjcstqqihtebkpyuacop.supabase.co; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://wjcstqqihtebkpyuacop.supabase.co wss://wjcstqqihtebkpyuacop.supabase.co https://api.anthropic.com https://api.resend.com https://api.stripe.com https://api.tavily.com https://api.apify.com https://cloudscenic.app.n8n.cloud https://hooks.slack.com https://accounts.google.com https://open.tiktokapis.com https://oauth2.googleapis.com https://www.googleapis.com; frame-ancestors 'self'; frame-src https://accounts.google.com; base-uri 'self'; form-action 'self' https://www.instagram.com https://api.instagram.com https://www.tiktok.com https://open.tiktokapis.com https://accounts.google.com https://oauth2.googleapis.com"

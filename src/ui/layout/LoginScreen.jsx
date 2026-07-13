@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useIsMobile } from '../../utils/hooks.js';
 import { sb } from '../../services/supabaseClient.js';
 
@@ -22,70 +22,8 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [urlError, setUrlError] = useState(parseUrlError());
 
-  useEffect(() => {
-    if (document.getElementById('lg-css')) return;
-    const s = document.createElement('style');
-    s.id = 'lg-css';
-    s.textContent = `
-      .lg-box {
-        background: rgba(255,255,255,0.04);
-        backdrop-filter: blur(52px);
-        -webkit-backdrop-filter: blur(52px);
-        box-shadow: 4px 4px 28px rgba(0,0,0,0.35),
-                    inset 0 1px 1px rgba(255,255,255,0.15);
-        position: relative;
-        overflow: hidden;
-        border-radius: 24px;
-      }
-      .lg-box::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        padding: 0.8px;
-        border-radius: 24px;
-        background: linear-gradient(160deg,
-          rgba(255,255,255,0.55) 0%,
-          rgba(255,255,255,0.18) 25%,
-          transparent 45%,
-          transparent 55%,
-          rgba(255,255,255,0.18) 75%,
-          rgba(255,255,255,0.55) 100%
-        );
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        pointer-events: none;
-      }
-      .lg-google-btn {
-        width: 100%;
-        padding: 14px 16px;
-        font-size: 14px;
-        font-weight: 600;
-        color: #1f1f1f;
-        letter-spacing: 0.2px;
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-        font-family: Inter, sans-serif;
-        background: #ffffff;
-        box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), 0 6px 24px rgba(0,0,0,0.28);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        transition: transform 0.15s, background 0.2s, box-shadow 0.2s;
-      }
-      .lg-google-btn:hover:not(:disabled) {
-        transform: scale(1.02);
-        background: #f5f5f7;
-        box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), 0 10px 28px rgba(0,0,0,0.35);
-      }
-      .lg-google-btn:active:not(:disabled) { transform: scale(0.98); }
-      .lg-google-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-      .lg-google-icon { width: 18px; height: 18px; flex-shrink: 0; }
-    `;
-    document.head.appendChild(s);
-  }, []);
+  // .lg-* styles live in src/styles/globals.css (moved out of a runtime <style>
+  // injection so CSP style-src doesn't need 'unsafe-inline').
 
   const handleGoogleSignIn = async () => {
     setLoading(true); setError("");
