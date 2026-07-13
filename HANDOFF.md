@@ -499,3 +499,18 @@ Cold-started after a terminal crash. On-disk state was intact; no work lost. Ver
 - **Spot-check owed:** the two 7/3 config outages (Google OAuth Drive origin, Resend domain) were reportedly fixed in-console — verify they held; neither surfaces an error where a human looks.
 
 **Repo state at close:** `main` == `origin/main` (level, `dc55cbf`). Uncommitted/untracked and deliberately left: `HANDOFF.md` (this note + Counsel's restart note), `COUNSEL_HANDOFF_2026-07-01.md`, `ripped out features/`. Both push PATs used this session were one-shot — revoke at https://github.com/settings/tokens if not already done.
+
+---
+## 2026-07-12 — Hardening sprint (Fix #7 admin half + CSP + stash truth + integration probes)
+
+**Shipped (4 local commits on `main`, awaiting founder push+deploy — repo is now 7 ahead of origin incl. the 3 held 7/9 commits):**
+- `4fe5c97` **Fix #7 (admin half) DONE.** `useSupabaseRows` hook in `src/utils/hooks.js`; ReportsRoute + ClientAnalyticsRoute fetch their own slim windowed rows (90d; approvals limit 20 w/ `content_items(title)` embed; `account_posts` projected via `metrics->>` — jsonb blob no longer ships); global content blob bounded to `posted_at.is.null OR >= 90d` (`ACTIVE_CONTENT_DAYS`, App.jsx). Ledger deliberately keeps riding the bounded blob (realtime + optimistic-overrides interplay). Realtime channel unchanged — patch-only handlers self-maintain the bound. Query syntax validated against live PostgREST (anon 200s). Remaining client half: portal-user `client_id=eq.` re-subscribe.
+- `3758a98` **CSP: `'unsafe-inline'` dropped from style-src (Fix #8).** The old "styled-jsx" comment was wrong — no styled-jsx exists, and React `style={{}}` goes through CSSOM (not governed by style-src). Real consumers: LoginScreen's runtime `<style>` injection (moved into `globals.css`) and the GIS button stylesheet (sha256-allowlisted; unused by our UI anyway). Verified on a draft deploy: login pixel-identical, console zero violations.
+- `d8f7b0c` **Stash truth + credential redaction.** `stash@{0}` was never the Higgsfield WIP — those files were untracked and plain `git stash` skipped them; they're gone (Fix #9 = moot, fresh build if ever wanted). Actual stash contents (portal.html rewrite + 2 nav one-liners) archived on `archive/portal-html-wip-2026-05-26`, stash dropped. Leaked password literal redacted from all current-tree docs.
+
+**Integration probes — all three "reportedly fixed" integrations are BROKEN in prod (see VANTUS_TODO 🚨 block for fixes):**
+1. **Stripe:** `STRIPE_SECRET_KEY` is not a Stripe-shaped value in ANY Netlify context (prod 20 chars, dev 64) — Stripe returns 401. The known-bugs "key is live" claim was wrong. Fix #5 proof invoice is blocked until the real key is set.
+2. **Resend:** `RESEND_API_KEY` equally invalid (not `re_`-shaped, API rejects) → all outbound email dead. The rogue env var NAMED `re_jEHHfr94_…` still exists — treat that value as burned, rotate in Resend, set the new key, delete the rogue var.
+3. **Google OAuth:** live probe of the GIS popup URL → Google still serves `origin_mismatch` for `https://usevantus.com` (client `844741925554-i2j0…`). The 7/3 console fix never took. Drive upload has never worked in prod.
+
+**Deploy note:** these 4 commits are safe to deploy independently of the key fixes (nothing depends on Stripe/Resend/OAuth). `netlify deploy --build --prod` after founder review; git auto-deploy still credit-blocked.

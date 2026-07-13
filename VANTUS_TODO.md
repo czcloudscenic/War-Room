@@ -1,6 +1,27 @@
 # Vantus — Status Board
 
-> Updated 2026-07-01. Status: ✅ shipped+live · ◐ built, needs data/verify · ☐ not started · ⏸ parked
+> Updated 2026-07-12. Status: ✅ shipped+live · ◐ built, needs data/verify · ☐ not started · ⏸ parked
+
+---
+
+## 🚨 Hardening-sprint findings — 2026-07-12 (verified, not assumed)
+
+The 7/12 spot-checks probed every "reportedly fixed" integration. **All three are broken in prod right now:**
+
+**Christian — 10-minute console session fixes all of it:**
+- [ ] **Stripe key is INVALID.** `STRIPE_SECRET_KEY` in Netlify is a 20-char non-Stripe-shaped value (dev context: 64-char, also invalid) — Stripe API returns 401. Billing "Create & send" would error today. Paste the real `sk_live_…` (Stripe dashboard → API keys) into Netlify env, all contexts.
+- [ ] **Resend key is INVALID → ALL email still dead.** `RESEND_API_KEY` (20-char, not `re_`-shaped) is rejected by Resend. Meanwhile the env list still contains the rogue var **named** `re_jEHHfr94_…` — that looks like the real key pasted as a NAME (7/8 flag, still unresolved). Fix: in Resend, rotate/create a key; put the new value in `RESEND_API_KEY`; DELETE the rogue-named var. Do not reuse the leaked `re_jEHHfr94_…` value — it's burned (visible in env listings + session logs).
+- [ ] **Google OAuth origin NEVER got fixed.** Live probe of the exact GIS popup URL: Google still returns `origin_mismatch` — "register the JavaScript origin" — for `https://usevantus.com` on client `844741925554-i2j0…`. Drive upload has never worked in prod. Fix: Google Cloud Console → Credentials → that OAuth client → Authorized JavaScript origins → add `https://usevantus.com` (and `https://majestic-cassata-aa16e9.netlify.app` if drafts should work).
+- [ ] **Rotate Supabase cz/dv/ss account passwords** (dashboard, 2 min). The leaked literal was redacted from docs 7/12; rotation retires it for good.
+- [ ] **One-shot PAT** → push 6 held local commits (3 from 7/9 + Fix #7 + docs + CSP).
+
+**Shipped this sprint (7/12, local commits awaiting push+deploy):**
+- [x] **Fix #7 (admin half)** — Reports + Client Analytics fetch their own slim 90-day-windowed rows; global content blob bounded to unposted + posted ≤90d; `account_posts` jsonb no longer ships to the browser. (`4fe5c97`)
+- [x] **CSP hardened** — `'unsafe-inline'` dropped from style-src (the styled-jsx justification was wrong; LoginScreen's runtime style injection moved to globals.css, GIS button stylesheet hash-allowlisted). Verified zero violations on a draft deploy. (`3758a98`)
+- [x] **Stash cleared** — `stash@{0}` was NOT Higgsfield (that WIP was untracked, never stashed, and is lost); the portal.html rewrite it held is archived on `archive/portal-html-wip-2026-05-26`. Fix #9 resolved as moot. (`d8f7b0c`)
+- [x] **Credential literal redacted** from HANDOFF + architecture-map docs. (`d8f7b0c`)
+
+**Blocked until keys fixed:** the controlled $1 Stripe proof invoice (Fix #5) — pointless until `STRIPE_SECRET_KEY` is real; Resend domain-verified check — API rejects the stored key before it can even list domains.
 
 ---
 
