@@ -63,15 +63,14 @@ The specs below are unchanged as the working detail for each item.
 **Unblocks:** nothing downstream — pure hygiene, 30 minutes.
 
 ## #7 — Client-scope the global content fetch + realtime
-**Touches:** `src/App.jsx:476` (fetch), `:491` (subscription).
-- Fetch per currentClient (or per clientIds for portal users) and re-subscribe with a `client_id=eq.` filter on client switch
-- Prerequisite thinking: several admin pages (Ledger, Reports, Analytics) legitimately need all-clients data — give them their own scoped fetches rather than the global blob
-**Unblocks:** removes the whole cross-client-bleed bug class (one instance already bitten 7/3).
+**Admin half ✅ DONE 2026-07-12** (commit `4fe5c97`): Reports + Client Analytics fetch their own slim, windowed rows (`useSupabaseRows` in `src/utils/hooks.js`); Ledger deliberately rides the global blob, now bounded to unposted + posted ≤90d (`ACTIVE_CONTENT_DAYS` in App.jsx); `account_posts` no longer ships its jsonb blob to the browser. Realtime stays unfiltered by design — patch-only handlers self-maintain the bounded set.
+**Remaining (client half):** portal users — fetch per clientIds and re-subscribe with a `client_id=eq.` filter on client switch.
+**Unblocks:** payload no longer scales with all-time agency volume; safe to onboard the next heavy client.
 
 ## #8 — Security debt batch
 **Touches:** `netlify/functions/_lib/crypto.js:7`, git history creds, `netlify.toml:172` CSP.
 - Make crypto hard-fail (or Slack-alarm) when TOKEN_ENC_KEY is unset instead of silently storing plaintext
-- Rotate the Supabase admin password that exists in git history (Cloudai25%) once fully off password login
+- Rotate the Supabase admin password that exists in git history (literal redacted from docs 2026-07-12) — password login already fully off; rotate cz/dv/ss in the dashboard
 - Tighten `style-src 'unsafe-inline'` when inline styles get factored out (long tail)
 **Unblocks:** closes the "silently degraded security" class.
 

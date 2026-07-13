@@ -315,7 +315,7 @@ Every invocation writes one row to `agent_events` via SERVICE_KEY (success/error
 
 **Function-level auth: live.** All 5 protected functions reject anon callers via `_lib/requireUser.js`. (cid-scrape.js was deleted 2026-05-26 PM in the closed-by-removal cleanup — was the only function on the legacy bearer-token pattern.)
 
-**Email/password auth: DISABLED 2026-05-26 PM.** Supabase Auth → Providers → Email toggle flipped off. Leaked `Cloudai25%` password from git history is now genuinely inert — only Google OAuth remains for cz/dv/ss admin sign-in. Magic-link fallback also disabled (acceptable since Google is the intended path).
+**Email/password auth: DISABLED 2026-05-26 PM.** Supabase Auth → Providers → Email toggle flipped off. The admin password leaked in git history (pre-`9fb1e10` setup.js — literal redacted from docs 2026-07-12) is now genuinely inert — only Google OAuth remains for cz/dv/ss admin sign-in. Magic-link fallback also disabled (acceptable since Google is the intended path). Remaining: rotate the cz/dv/ss account passwords in the Supabase dashboard to fully retire the value.
 
 **Client-side auth injection: live.** `src/services/apiFetch.js` attaches the access token on every protected call (26 sites). `AgentChatPage` now also passes `currentClient.id` as `client_id` so the backend resolves brand voice correctly (fixed 2026-05-26 — Move 1 was silently using fallback before this prop wiring).
 
@@ -340,27 +340,13 @@ Every invocation writes one row to `agent_events` via SERVICE_KEY (success/error
 - **n8n:** `clients.n8n_webhook_url` column. `notify.js` reads it in the same Supabase fetch as Slack (one roundtrip pulls both); falls back to global env. (Fix #7, commit `2bb8958`)
 - **Brand voice:** `clients.brand_voice_md` column. `agent-action.js getBrandContext(client_id)` reads it per request, passes to every handler. Per-request override via `payload.voiceOverride`. (Move 1 / Fix #3, commit `767cb93`)
 
-## Dirty / Stashed WIP (intentional)
+## Dirty / Stashed WIP — CORRECTED 2026-07-12 (stash cleared)
 
-**All Higgsfield + sync-cortex WIP lives in `stash@{0}` (label: "pre-codex-fix2 wip").** Stashed before Codex ran the App.jsx split so Codex would refactor against a clean tree; never popped back. Working tree is clean apart from anything new this session.
+**The stash is gone; this section previously misdescribed it.** `stash@{0}` ("pre-codex-fix2 wip") was inspected on 2026-07-12: it contained ONLY tracked changes — `public/portal.html` (1,920-line WIP diff), one-line edits to `src/apps/apps.config.js` + `src/utils/constants.js`, and `.netlify/` build noise. The untracked files earlier versions of this section listed (`HiggsfieldStudio.jsx`, `higgsfield.js`, `scripts/sync-cortex.mjs`, `.claude/` config) were **never in the stash** — plain `git stash` doesn't capture untracked files — and they no longer exist on disk or in any commit. That WIP is lost; treat any future Higgsfield Studio or sync-cortex work as a fresh build.
 
-Inspect with `git stash show -u stash@{0}`. Contents:
-- `src/apps/higgsfield/HiggsfieldStudio.jsx` (untracked) — Higgsfield Studio frontend, half-built
-- `netlify/functions/higgsfield.js` (untracked) — Higgsfield backend
-- `src/apps/apps.config.js` (M) — Higgsfield added to DEFAULT_APPS
-- `src/utils/constants.js` (M) — CREATIVE/Higgsfield section in nav
-- `public/portal.html` (M) — 1,920-line WIP diff
-- `scripts/sync-cortex.mjs` (untracked) — Counsel's Move 1 sync stub
-- `.claude/commands/*.md` + `.claude/settings.json` (untracked) — local dev config
-- `.netlify/` function zips + `netlify.toml` snapshot + `logo/vantus_icon_*.png` (untracked) — incidental build/asset noise, not feature work
+What survived is archived on branch **`archive/portal-html-wip-2026-05-26`** (the stash commit, unpopped). The stash itself was dropped. Re-evaluate portal.html from that branch only if the old client-portal page is ever wanted; it predates the React-side hardening.
 
 `src/ui/layout/PasswordGate.jsx` from earlier HANDOFFs was never created (no git history, not in stash). Drop the mention if it comes up again.
-
-When resuming Higgsfield:
-1. `git stash pop` — expect conflicts on `src/utils/constants.js` and `src/apps/apps.config.js` if Codex's split touched them; resolve manually.
-2. Re-evaluate `public/portal.html` (1,920-line diff predates the React-side hardening; may be partly stale).
-3. Ship Higgsfield as one commit: `HiggsfieldStudio.jsx` + `higgsfield.js` + `apps.config.js` edit + `constants.js` edit + the import + render in `src/App.jsx`.
-4. `sync-cortex.mjs` can ship separately once the wiki schema is signed off (see [[project_cortex_vantus_bridge]]).
 
 ## Session log
 
@@ -392,7 +378,7 @@ Massive session. Closed half the open punch-list in one afternoon.
 | Commit | What |
 | --- | --- |
 | `a22df04` | `chore(cleanup)`: close cid_posts dead chain + document email/password auth disable. Live SQL probe confirmed `cid_posts` table never existed; `cid-scrape.js` + `003_cid_posts.sql` deleted; arch map + 5 markdown bundle files synced; +88/-171 lines |
-| (out-of-band) | **Supabase Auth → Providers → Email** toggle flipped off in dashboard. Cloudai25% leak in git history now inert. Only Google OAuth path remains. |
+| (out-of-band) | **Supabase Auth → Providers → Email** toggle flipped off in dashboard. Leaked admin password (literal redacted 2026-07-12) in git history now inert. Only Google OAuth path remains. |
 | (out-of-band) | **Netlify env var `CID_BEARER_TOKEN`** deleted — orphaned after cid-scrape removal. |
 | Codex on `codex/grunt-2026-05-27` | `refactor(agent-action)`: Fix #4 — split 1,317-line monolith into 16 handler files under `netlify/functions/agent-action/handlers/`. agent-action.js now 309-line router. 19 commits, build green after each. CODEX_NOTES.md has full report. **Awaiting founder review + merge.** |
 
@@ -435,7 +421,7 @@ Repo tidy, component extraction, security audit, Move 2 + Move 3 deployed, custo
 - **Fix #13** — Per-user client assignments. Counsel + main both flagged as ambiguous: could mean access (already done via `client_users.status='approved'`), role-per-client (add `assignment_role` column), or primary-contact-per-client (different concept). **Defer until the actual pain forces the question** — small team + one flagship client doesn't surface this yet.
 
 **Decision-bound:**
-- **Fix #9** — Ship or delete Higgsfield. UI + function are stashed in `stash@{0}` (not in working tree — see Dirty / Stashed WIP). To ship: pop stash, resolve conflicts on `apps.config.js`/`constants.js`, commit all 5 files together (UI + backend + apps.config edit + constants edit + App.jsx import/render). To abandon: `git stash drop stash@{0}` (deletes the Higgsfield WIP permanently — confirm first). Decision is the work; code change is small either way.
+- **Fix #9 — RESOLVED 2026-07-12 (moot).** The Higgsfield WIP never existed in the stash: `HiggsfieldStudio.jsx` / `higgsfield.js` / `sync-cortex.mjs` were **untracked**, and the plain `git stash` (no `-u`) only captured tracked changes. The untracked files are gone from disk and were never committed anywhere — the WIP is lost. What the stash actually held (a 1,920-line `public/portal.html` rewrite + 2 one-line nav registrations + `.netlify/` build noise) is archived on branch `archive/portal-html-wip-2026-05-26`; stash dropped. `main` has zero Higgsfield references, so nothing dangles. If Higgsfield Studio is ever wanted, it's a fresh build, not a resume.
 
 **Polish:**
 - **Vantus-bot Slack app** for agent-attributed messages (currently posts as signed-in user via MCP).

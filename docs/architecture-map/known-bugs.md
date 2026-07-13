@@ -12,7 +12,7 @@
 
 - **`netlify/functions/billing-stripe.js:64` — the live invoice create-path has never run against a real invoice.** Webhook is verified, key is live, but `handleCreate` is unproven. First real invoice is the validation; do it deliberately, not on a client deadline. The email-overlap half of Fix #5 is done. → Fix #5 (proof half)
 
-- **`src/App.jsx:476, 491` — the admin app holds every client's content_items in one array**, scoped at render. The client boundary is now doubly-safe (RLS + explicit client-half scope shipped in the 7/4 sweep), so this is no longer a live cross-client-bleed risk — what remains is the tracked refactor to give Ledger/Reports/Client-Analytics their own scoped fetches before onboarding the next heavy client. → Fix #7 (admin half)
+- ~~admin app holds every client's all-time content_items in one array~~ **CLOSED 2026-07-12** (commit `4fe5c97`): Reports/Client-Analytics fetch their own windowed rows; the shared blob is bounded to unposted + posted ≤90d; account_posts jsonb no longer ships to the browser. → Fix #7 (admin half) ✅
 
 ## 🟢 LOW
 

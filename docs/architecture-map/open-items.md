@@ -32,9 +32,8 @@
 
 ## 🟡 MED — still open (partials)
 
-- [ ] **App.jsx:143 — admin loads ALL clients' content; cross-client views not per-page-scoped.**
-  The client boundary is now doubly-safe (RLS + explicit scope). What remains: the admin app holds every client's rows in one array, and Ledger/Reports/Client Analytics filter at render. Not a defect today — the tracked refactor is giving those pages their own scoped fetches before onboarding the next heavy client.
-  → Touches: `src/App.jsx`, admin route components · Fix #7 (admin half)
+- [x] **App.jsx — admin per-page scoping SHIPPED 2026-07-12** (commit `4fe5c97`).
+  Reports + Client Analytics fetch their own slim windowed rows (90d); global blob bounded to unposted + posted ≤90d; Ledger rides the bounded blob by design; account_posts jsonb no longer shipped to the browser. → Fix #7 (admin half) ✅. Remaining client half: portal-user `client_id=eq.` realtime filter.
 
 - [ ] **billing-stripe.js:64 — live invoice create-path never proven.**
   Not a code fix — send one real (small, controlled) invoice and confirm the webhook paid-sync. The email-overlap half is now fixed; this is the remaining validation.
@@ -59,7 +58,7 @@
 - [ ] **#4** — Split agent-action.js monolith (unchanged)
 - [~] **#5** — Stripe: email overlap ✅ · create-path proof still owed
 - [x] **#6** — Dead-code + dead-schema sweep ✅
-- [~] **#7** — Client scoping: client half ✅ · admin per-page refactor still open
+- [~] **#7** — Client scoping: client half ✅ · admin per-page refactor ✅ (2026-07-12) · portal realtime filter open
 - [~] **#8** — Security: crypto hard-fail ✅ · password rotation + CSP tightening still open
 - [ ] **#9** — QC v2 video frame sampling (NOT greenlit)
 - [ ] **#10** — Team roster emails (data entry)
@@ -75,7 +74,7 @@ Adds `notifications.dedupe_key`, backfills it, swaps the unique index onto it, a
 - **`TOKEN_ENC_KEY`** must be set in Netlify (32-byte base64). crypto.js now hard-fails without it, so connecting a NEW social account will error until it's set. Already-connected (plaintext) accounts still sync.
 
 ### When fully off password login → rotate credentials
-- Supabase admin password (`Cloudai25%`) — present in git history.
+- Supabase admin password — present in git history (pre-`9fb1e10` setup.js; literal redacted from docs 2026-07-12). Rotate the cz/dv/ss account passwords in the Supabase dashboard to retire it.
 
 ---
 
@@ -83,7 +82,7 @@ Adds `notifications.dedupe_key`, backfills it, swaps the unique index onto it, a
 
 1. **Run the 20260704 migration** — unblocks the re-approval notify fix already shipped in code.
 2. **#5 Stripe proof** — send one real invoice before a client deadline forces it.
-3. **#7 admin scoping** — schedule ahead of the next active-client onboard.
+3. **#7 admin scoping** — ✅ shipped 2026-07-12; safe to onboard the next heavy client.
 4. **#2 model tiering** — one-line-per-action quality bump (separate greenlight).
 5. **#4 monolith split** — after #2 so its diff stays small.
 
