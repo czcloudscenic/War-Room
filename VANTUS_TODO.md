@@ -1,19 +1,31 @@
 # Vantus — Status Board
 
-> Updated 2026-07-12. Status: ✅ shipped+live · ◐ built, needs data/verify · ☐ not started · ⏸ parked
+> Updated 2026-07-18. Status: ✅ shipped+live · ◐ built, needs data/verify · ☐ not started · ⏸ parked
 
 ---
 
-## 🚨 Hardening-sprint findings — 2026-07-12 (verified, not assumed)
+## 🚨 Re-verified live state — 2026-07-18 (Netlify env re-audited today)
 
-The 7/12 spot-checks probed every "reportedly fixed" integration. **All three are broken in prod right now:**
+Re-audited the linked Netlify env (names + length/prefix only; value reads are classifier-blocked, as intended). **State changed since 7/12 — the three keys are now EMPTY, not malformed.** Someone cleared the bad values but never pasted good ones, so all three integrations are still dead, and the security item is still open:
 
-**Christian — 10-minute console session fixes all of it:**
-- [ ] **Stripe key is INVALID.** `STRIPE_SECRET_KEY` in Netlify is a 20-char non-Stripe-shaped value (dev context: 64-char, also invalid) — Stripe API returns 401. Billing "Create & send" would error today. Paste the real `sk_live_…` (Stripe dashboard → API keys) into Netlify env, all contexts.
-- [ ] **Resend key is INVALID → ALL email still dead.** `RESEND_API_KEY` (20-char, not `re_`-shaped) is rejected by Resend. Meanwhile the env list still contains the rogue var **named** `re_jEHHfr94_…` — that looks like the real key pasted as a NAME (7/8 flag, still unresolved). Fix: in Resend, rotate/create a key; put the new value in `RESEND_API_KEY`; DELETE the rogue-named var. Do not reuse the leaked `re_jEHHfr94_…` value — it's burned (visible in env listings + session logs).
-- [ ] **Google OAuth origin NEVER got fixed.** Live probe of the exact GIS popup URL: Google still returns `origin_mismatch` — "register the JavaScript origin" — for `https://usevantus.com` on client `844741925554-i2j0…`. Drive upload has never worked in prod. Fix: Google Cloud Console → Credentials → that OAuth client → Authorized JavaScript origins → add `https://usevantus.com` (and `https://majestic-cassata-aa16e9.netlify.app` if drafts should work).
-- [ ] **Rotate Supabase cz/dv/ss account passwords** (dashboard, 2 min). The leaked literal was redacted from docs 7/12; rotation retires it for good.
-- [ ] **One-shot PAT** → push 6 held local commits (3 from 7/9 + Fix #7 + docs + CSP).
+- `RESEND_API_KEY` → **empty** (was a bad 20-char value on 7/12). Email still dead.
+- `STRIPE_SECRET_KEY` → **empty** (was bad 20/64-char). Billing "Create & send" still errors.
+- `STRIPE_WEBHOOK_SECRET` → **empty**. Paid-sync webhook can't verify signatures.
+- Rogue var **named** `re_jEHHfr94_CkaXNz6Vd23p9JoapccsqsnH` → **STILL PRESENT** (now empty-valued). Its NAME is a burned Resend key, visible in every env listing = compromised. Delete the var + revoke that key in Resend.
+- Healthy for reference: `SUPABASE_SERVICE_KEY` is the new `sb_…` format (len 41); Anthropic/Slack/Tavily/Apify/Meta/TikTok/YT/Google keys all present and correctly shaped.
+
+Verified today: repo **builds clean** (`npm run build`, 219ms, 533KB bundle); site **still on the free `cz-mwalysu` team** (auto-deploy still credit-blocked); **9 commits** now sit local-only awaiting a PAT push.
+
+**Christian — ~15-minute console session clears the whole board:**
+- [ ] **Paste real `STRIPE_SECRET_KEY`** (`sk_live_…`, Stripe → API keys) + **`STRIPE_WEBHOOK_SECRET`** into Netlify env, all contexts. Both are empty now.
+- [ ] **Paste real `RESEND_API_KEY`** (`re_…`, generate fresh in Resend). Currently empty.
+- [ ] **Delete the rogue `re_jEHHfr94_…` env var** AND revoke that key in Resend (it's exposed in plaintext as a var name).
+- [ ] **Register Google OAuth JS origin** — Google Cloud Console → Credentials → client `844741925554-…` → Authorized JavaScript origins → add `https://usevantus.com` (+ `https://majestic-cassata-aa16e9.netlify.app` for drafts). Live probe on 7/12 still returned `origin_mismatch`; Drive upload has never worked in prod.
+- [ ] **Transfer usevantus.com → Cloud Scenic Pro team** (Netlify → site → Site config → General → Danger zone → Transfer site). Unblocks git auto-deploy; retires the manual CLI-deploy workaround. 3–5 min.
+- [ ] **Flip Gemini billing** in AI Studio → clears 429, revives the 7 VL generators.
+- [ ] **Rotate Supabase cz/dv/ss account passwords** (dashboard, 2 min) — retires the old leaked literal.
+- [ ] **Revoke the GitHub PAT** exposed in a prior session's chat.
+- [ ] **One-shot PAT** → I push the 9 held local commits (3 from 7/9 + Fix #7 + docs + CSP + handoffs).
 
 **Shipped this sprint (7/12, local commits awaiting push+deploy):**
 - [x] **Fix #7 (admin half)** — Reports + Client Analytics fetch their own slim 90-day-windowed rows; global content blob bounded to unposted + posted ≤90d; `account_posts` jsonb no longer ships to the browser. (`4fe5c97`)
