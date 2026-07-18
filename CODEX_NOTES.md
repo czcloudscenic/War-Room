@@ -124,3 +124,53 @@ Built: `RunwayRoute.jsx` now renders summary tiles, worst-first table, mobile ca
 Built: `LogShootModal.jsx` bulk-inserts shoot stub rows into `content_items` with snake_case fields.
 Built: `ClientsRoute.jsx` shows runway badges and `AddClientModal.jsx` edits runway cadence/tracking fields.
 TODO: Counsel still owns NAV/App wiring/deploy; branch was not pushed per Christian's no-push instruction.
+
+## 2026-07-18 agent-action router split
+
+Branch: `codex/grunt-2026-07-18`
+Worktree: `/private/tmp/vantus-grunt-2026-07-18`
+
+### Changed
+
+- Reduced `netlify/functions/agent-action.js` to a CommonJS router that preserves the existing auth, CORS, rate-limit, dispatch, event-log, Slack, timing-log, and error paths.
+- Moved shared constants and helpers to `netlify/functions/agent-action/_shared.js`.
+- Moved all 16 action handlers into six agent-group modules under `netlify/functions/agent-action/handlers/`:
+  - `qc.js`: `qc_review`, with its three private fact-check/JSON helpers.
+  - `muse.js`: seven Muse handlers, with `_researchDigest` and Muse-only prompt constants/maps.
+  - `scrappy.js`: four Scrappy handlers, with Tavily/search, median/engagement, and synced-digest helpers.
+  - `sean.js`: `sean_briefing`.
+  - `cid.js`: `cid_build_brief` and `cid_ab_variations`.
+  - `ops.js`: `ops_assign`.
+- No private helper crossed agent groups, so none were duplicated or promoted. The existing `REST` constant is used directly by both Muse and Scrappy; it remains defined once and is now exported from `_shared.js` alongside the brief's listed shared values.
+- All original source ranges were compared with `main` and are present byte-for-byte in their destination files; only CommonJS import/export wrappers were added.
+
+### Final line counts
+
+- `netlify/functions/agent-action.js`: 158
+- `netlify/functions/agent-action/_shared.js`: 254
+- `netlify/functions/agent-action/handlers/qc.js`: 222
+- `netlify/functions/agent-action/handlers/muse.js`: 510
+- `netlify/functions/agent-action/handlers/scrappy.js`: 464
+- `netlify/functions/agent-action/handlers/sean.js`: 55
+- `netlify/functions/agent-action/handlers/cid.js`: 140
+- `netlify/functions/agent-action/handlers/ops.js`: 30
+
+The router is below the estimated 250-300 lines because the preserved router/dispatcher block plus imports totals 158 lines; no filler or behavior-bearing code was retained to reach an estimate.
+
+### Verification
+
+- Syntax command passed for the router, `_shared.js`, and all six handler modules:
+  `find netlify/functions/agent-action.js netlify/functions/agent-action -name '*.js' -exec node --check {} \;`
+- Load/resolve smoke test passed: `router loads OK`.
+- Direct export check passed: `all 16 handlers exported and callable`.
+- Router coverage passed: `router coverage OK: 16 cases`; every required action key occurs exactly once and `default:` remains present.
+- Source-integrity comparison passed: `source integrity OK: all original ranges preserved byte-for-byte`.
+- `npm run build` passed with Vite 8.1.2: 101 modules transformed, final run built in 145 ms.
+- `git diff --check` passed.
+
+### Skipped / untouched
+
+- The May branch was inspected only as a structural reference; nothing was merged or cherry-picked from it.
+- No other `netlify/functions/` file, `src/` file, prompt, model, token cap, rate limit, dependency, environment file, secret, migration, deployment, paid API, remote, or live checkout state was changed.
+- Existing architecture-map artifacts were not regenerated because this brief explicitly limits modified files to the router split and this report.
+- No push or PR was performed.
