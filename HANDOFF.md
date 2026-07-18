@@ -1,5 +1,27 @@
 # Vantus Handoff Brief
 
+## 2026-07-18 session — env re-audit (keys now EMPTY not malformed), agent-action.js monolith split (Codex, reviewed+merged)
+
+**Nothing pushed, nothing deployed.** `main` is now **18 commits ahead of `origin`** (9 held from 7/9–7/13 + this session's board doc + Codex's 9-commit refactor). All builds clean. Everything ships the moment a one-shot PAT arrives.
+
+**🔑 Live env re-audited today — state CHANGED since 7/12.** Re-checked the linked Netlify env (names + length/prefix only; value reads are classifier-blocked, as intended). The three integrations the 7/12 sprint found *malformed* are now **empty** — someone cleared the bad values but never pasted good ones, so all three are still dead:
+- `STRIPE_SECRET_KEY` → **empty** (was bad 20/64-char). Billing "Create & send" still errors.
+- `STRIPE_WEBHOOK_SECRET` → **empty**. Paid-sync can't verify signatures.
+- `RESEND_API_KEY` → **empty** (was bad 20-char). All email still dead.
+- Rogue var **named** `re_jEHHfr94_CkaXNz6Vd23p9JoapccsqsnH` → **STILL PRESENT** (now empty-valued). Its NAME is a burned Resend key visible in every env listing = compromised. Delete the var + revoke that key in Resend.
+- Healthy: `SUPABASE_SERVICE_KEY` is the new `sb_…` format (len 41); Anthropic/Slack/Tavily/Apify/Meta/TikTok/YT/Google keys all present + correctly shaped. Full re-verified checklist is at the top of `VANTUS_TODO.md` (updated 7/18).
+
+**🧱 agent-action.js monolith split — SHIPPED to `main` (local), reviewed byte-for-byte.** The Fix #4 handler-split (speced May, branch never merged) never landed and the file had grown to **1,750 lines**. Briefed Codex (`/tmp/codex-brief-agent-action-split.md`); it ran in its own worktree on `codex/grunt-2026-07-18`, split into a **158-line router** + `agent-action/_shared.js` + six agent modules (`handlers/{qc,muse,scrappy,sean,cid,ops}.js`), 9 incremental commits.
+- **Reviewed, not trusted:** line-level multiset diff of the original vs the split = **zero original logic lines lost** (only import/export boilerplate added); all **16 action cases route** with exact original signatures; `node --check` + router load-smoke + `npm run build` all green; scope confined to the 7 new files + CODEX_NOTES.
+- **Gotcha worth keeping:** `npm run build` (Vite) only bundles `src/` — it does **NOT** touch `netlify/functions/`, so a green build proves nothing about a function refactor. Verify functions with `node --check` + a `require()` load smoke test instead. The brief carried this; future function-refactor briefs must too.
+- Fast-forward merged (preserves the 9 granular commits for bisect); worktree removed.
+
+**Next clean Codex target (not started):** App.jsx → hooks state extraction (1,444 lines, no `src/hooks/` yet). Riskier than the agent-action split — it *can* change behavior — so write a state-cluster map prep first before handing it off.
+
+**Christian's ~15-min console session still clears the whole board** (full checklist in `VANTUS_TODO.md`): paste real Stripe (x2) + Resend keys; delete the rogue Resend var + revoke it; register `https://usevantus.com` as a Google OAuth JS origin; transfer usevantus.com → Cloud Scenic Pro team (unblocks auto-deploy); flip Gemini billing; rotate Supabase passwords; revoke the old exposed PAT; hand over one PAT → push the 18 held commits.
+
+---
+
 ## 2026-07-09 session — runway work pushed + shipped, Netlify deploy failure root-caused (wrong team), repo cleanup
 
 **Live state:** the 3 runway/handoff commits (`4e9260e` drought detection + Mon/Fri digests + Slack fix + Danny-on-emails, `ed263c1` Sprout last-post signals, `7787d05` 7/8 handoff) were **pushed to `origin/main` + deployed live** to usevantus.com this session. Runway drought work is now in production.
