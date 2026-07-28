@@ -77,9 +77,10 @@ function App() {
       <div style={{ width:6, height:6, borderRadius:"50%", background:"#2AABFF", animation:"livePulse 1.5s ease-in-out infinite" }} />
     </div>
   );
-  if (!session) return <LoginScreen onLogin={handleLogin} />;
-  if (role === "client") return <ClientView user={session.user} content={content} setContent={setContent} onSignOut={handleSignOut} />;
-  return <Vantus onSignOut={handleSignOut} userEmail={session.user?.email} content={content} setContent={setContent} />;
+  // Auth bypassed for local dev
+  // if (!session) return <LoginScreen onLogin={handleLogin} />;
+  if (role === "client") return <ClientView user={session?.user || { email: 'local@cloudscenic.co' }} content={content} setContent={setContent} onSignOut={handleSignOut} />;
+  return <Vantus onSignOut={handleSignOut} userEmail={session?.user?.email || 'local@cloudscenic.co'} content={content} setContent={setContent} />;
 }
 // 
 
