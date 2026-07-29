@@ -1,6 +1,17 @@
 # Vantus Handoff Brief
 
-## 2026-07-29 late session — Software OPS merged; ⚠️ the push AUTO-DEPLOYED the whole backlog
+## 2026-07-29 night session — migrations APPLIED + verified on prod; feature pack proven live; stress-test kit shipped
+
+**Closes the ⚠️ from the late-session entry below: there is no migration exposure anymore.**
+
+- **Christian pasted the migration bundle the same evening.** Verified directly against prod Supabase, 13/13 green: all 4 new tables (approval_tokens / content_comments / stuck_alert_state / intake_requests), all 4 new columns (clients.included_revisions, clients.intake_token backfilled for every active client, team_members.monthly_cost, content_items.review_video_path), the review-media bucket, and the **revision-count trigger fires** (tested with a real approvals insert, then cleaned).
+- **One-click approval flow proven END-TO-END against prod DB** (on the QC test item, fully cleaned + restored after): GET renders confirm page → POST records the decision → item advanced to Needs Revisions → trigger bumped revision_count → audit row `stage='client'` → notification carried the cycle-aware dedupe_key + client_id → BOTH tokens consumed (sibling invalidation) → replayed link says "Already recorded" → no premature cap alert at round 1 of 2. 8/8 assertions.
+- **Intake proven live:** greet endpoint returns the client name, honeypot fake-succeeds and writes nothing, real POST stages a row + rings the bell. Both crons 403 unauthenticated on prod (chase-overdue-tasks was publicly invocable before this pack).
+- **Stress-test kit shipped (`7d30c7b`):** `STRESS-TEST.md` (repo root) is the team's per-feature walkthrough — portal setup via a personal-Gmail invite, the internal-item scoping tripwire, two-browser realtime, caps to R2/2, intake promote, token rotation, margin entry. **Seeded prod fixture: client "ZZ Stress Test"** (slug `zz-stress`, approval_rule client, id `31749476-…`) with 3 items — copy-gate + content-gate (client-mode, appear in the portal) + one internal-mode negative control. **Delete ZZ + finally archive QC Test Kitchen after the team's pass** — both will (correctly) trip the stuck-item cron within days.
+- **Still not exercised anywhere:** (1) the portal in a real browser with a client Google login — the whole backend is proven, the React surface isn't; first item on STRESS-TEST.md. (2) Real emails — `RESEND_API_KEY` still empty; every send logs `[email dry-run]`. (3) Stripe create-path. The 7/18 Christian-console board is otherwise unchanged.
+- Two-agent repo etiquette now standing: **`git pull` before every commit**; pushes are keyless AND auto-deploy — a push IS a prod deploy.
+
+## 2026-07-29 late session — Software OPS merged; ⚠️ the push AUTO-DEPLOYED the whole backlog — ⚠️ RESOLVED: migrations applied + verified same night (see entry above)
 
 **Written by the Dynasty agent (cross-repo session, Christian directing).**
 
@@ -39,7 +50,7 @@
   M-pack sweeps absorbed the dynasty.js dev-scrub mid-flight; reconciled).
   `git pull` before committing, and stop assuming pushes are blocked on PATs.
 
-## 2026-07-29 session — Timeliner-inspired feature pack (7 milestones, all local, NOT pushed/deployed — ⚠️ SUPERSEDED: deployed by the late session above)
+## 2026-07-29 session — Timeliner-inspired feature pack (7 milestones — SUPERSEDED: deployed by the late session, migrations applied + verified in the night session above; architecture facts below remain current)
 
 **Built the full 6-feature pack on localhost per the approved plan** (`~/.claude/plans/lets-plan-to-make-rippling-petal.md`): client approval portal + one-click email approvals, timestamped video review comments, revision caps, stuck-item bottleneck cron, per-client margin view, public intake form. Commits `46c4d6b` (M0) → `0073f13` (M7), interleaved cleanly with the other terminal's Dynasty module (`2326c28`, `d186295`). **Nothing pushed, nothing deployed. Localhost only.**
 
