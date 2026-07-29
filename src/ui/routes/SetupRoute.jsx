@@ -148,6 +148,29 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
                       );
                     })}
                   </div>
+                  {/* Public intake link — how this client submits new requests. */}
+                  <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={label}>Intake link</span>
+                    {cval(c, "intake_token") ? (
+                      <>
+                        <button type="button"
+                          onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/intake?t=${cval(c, "intake_token")}`); }}
+                          style={{ fontSize: 11.5, padding: "6px 12px", borderRadius: 8, cursor: "pointer", background: "rgba(48,209,88,0.08)", border: "1px solid rgba(48,209,88,0.3)", color: "#30d158", fontFamily: "Inter, sans-serif", fontWeight: 600 }}>
+                          Copy link
+                        </button>
+                        <button type="button"
+                          onClick={() => { if (window.confirm(`Rotate ${c.name}'s intake token? Every previously shared link stops working.`)) patchClient(c.id, { intake_token: crypto.randomUUID() }); }}
+                          style={{ fontSize: 11.5, padding: "6px 12px", borderRadius: 8, cursor: "pointer", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.55)", fontFamily: "Inter, sans-serif" }}>
+                          Rotate
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" onClick={() => patchClient(c.id, { intake_token: crypto.randomUUID() })}
+                        style={{ fontSize: 11.5, padding: "6px 12px", borderRadius: 8, cursor: "pointer", background: "rgba(42,171,255,0.08)", border: "1px solid rgba(42,171,255,0.3)", color: "#2AABFF", fontFamily: "Inter, sans-serif", fontWeight: 600 }}>
+                        Generate link
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}

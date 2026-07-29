@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>New Request — Cloud Scenic</title>
+  <link rel="stylesheet" href="/intake.css">
+</head>
+<body>
+  <main class="card">
+    <header class="head">
+      <div class="kicker">Cloud Scenic</div>
+      <h1 id="heading">New content request</h1>
+      <p id="subheading" class="sub">Tell us what you need — it lands straight in the production pipeline.</p>
+    </header>
+
+    <div id="invalid" class="body hidden">
+      <p>This intake link isn't valid anymore. Ask your Cloud Scenic contact for a fresh one.</p>
+    </div>
+
+    <div id="thanks" class="body hidden">
+      <p class="big">✅ Got it — thank you!</p>
+      <p>Your request is with the team. You'll see it move once it's scheduled into production.</p>
+      <button type="button" id="another" class="secondary">Submit another request</button>
+    </div>
+
+    <form id="form" class="body">
+      <div class="row2">
+        <label>Your name
+          <input name="submitter_name" type="text" maxlength="120" autocomplete="name">
+        </label>
+        <label>Your email
+          <input name="submitter_email" type="email" maxlength="200" autocomplete="email">
+        </label>
+      </div>
+
+      <label>What kind of content?
+        <select name="request_type">
+          <option>Reel</option>
+          <option>Short</option>
+          <option>Graphics (IMG)</option>
+          <option>Carousel</option>
+          <option>Story</option>
+          <option>Thread</option>
+          <option>YouTube</option>
+          <option>Other</option>
+        </select>
+      </label>
+
+      <label>Title <span class="req">*</span>
+        <input name="title" type="text" maxlength="200" placeholder="e.g. July promo reel for the new menu" required>
+      </label>
+
+      <label>Describe it
+        <textarea name="description" maxlength="4000" rows="5" placeholder="What's the goal, the vibe, anything that must be in it…"></textarea>
+      </label>
+
+      <div class="row2">
+        <label>When do you need it?
+          <input name="target_date" type="text" maxlength="40" placeholder="e.g. by Aug 15, ASAP…">
+        </label>
+        <label>Reference links
+          <input name="links" type="text" maxlength="1000" placeholder="https://… (space-separated)">
+        </label>
+      </div>
+
+      <!-- honeypot: humans never see this; bots fill it -->
+      <label class="hp" aria-hidden="true">Website
+        <input name="website" type="text" tabindex="-1" autocomplete="off">
+      </label>
+
+      <p id="error" class="error hidden"></p>
+      <button type="submit" id="submit">Send request</button>
+      <p class="fine">Goes straight to the Cloud Scenic production team.</p>
+    </form>
+  </main>
+  <script src="/intake.js"></script>
+</body>
+</html>

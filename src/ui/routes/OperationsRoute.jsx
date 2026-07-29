@@ -33,17 +33,69 @@ export default function OperationsRoute({ isMobile, clients = [] }) {
   const [err, setErr] = useState(null);
   const [adding, setAdding] = useState(false);
   const [nm, setNm] = useState({ name: "", role: "", skills: "" });
+  const [intakes, setIntakes] = useState([]);
+  const [intakeBusy, setIntakeBusy] = useState(null);
   const safeClients = clients || [];
   const safeTeam = team || [];
   const safeTasks = tasks || [];
   const safeAssignments = assignments || [];
+  const safeIntakes = intakes || [];
 
   const loadTeam = useCallback(async () => { const { data } = await sb.from("team_members").select("*").eq("active", true).order("name"); if (Array.isArray(data)) setTeam(data); }, []);
   const loadTasks = useCallback(async () => { const { data } = await sb.from("tasks").select("*").order("score", { ascending: false }); if (Array.isArray(data)) setTasks(data); }, []);
-  useEffect(() => { loadTeam(); loadTasks(); }, [loadTeam, loadTasks]);
+  const loadIntakes = useCallback(async () => { const { data } = await sb.from("intake_requests").select("*").eq("status", "new").order("created_at", { ascending: false }); if (Array.isArray(data)) setIntakes(data); }, []);
+  useEffect(() => { loadTeam(); loadTasks(); loadIntakes(); }, [loadTeam, loadTasks, loadIntakes]);
 
   const memberById = (id) => safeTeam.find(m => m?.id === id);
   const clientName = (id) => { const c = safeClients.find(x => x?.id === id); return c ? c.name : null; };
+
+  // ── Intake triage: promote builds a REAL content item (admin session — RLS
+  // allows admin INSERT) using the same conventions as App.jsx handleSave:
+  // app-generated text id, whitelisted snake_case fields. Dismiss just marks it.
+  const FORMAT_BY_TYPE = { "Reel": "Reel", "Short": "Short", "Graphics (IMG)": "Graphics (IMG)", "Carousel": "Carousel", "Story": "Story", "Thread": "Thread", "YouTube": "YouTube" };
+  async function promoteIntake(req) {
+    setIntakeBusy(req.id); setErr(null);
+    try {
+      const client = safeClients.find(c => c?.id === req.client_id);
+      const format = FORMAT_BY_TYPE[req.request_type] || "Reel";
+      const links = Array.isArray(req.links) && req.links.length ? `\n\nReference links:\n${req.links.join("\n")}` : "";
+      const item = {
+        id: `${client?.slug || "intake"}-${Date.now()}`,
+        title: req.title || (req.description || "Client request").slice(0, 80),
+        description: `${req.description || ""}${links}\n\n— Intake from ${req.submitter_name || "client"}${req.submitter_email ? ` (${req.submitter_email})` : ""}${req.target_date ? ` · wanted: ${req.target_date}` : ""}`.trim(),
+        campaign: "",
+        status: "Ready For Copy Creation",
+        stage: "Ready For Copy Creation",
+        format,
+        platform: "instagram",
+        type: format === "YouTube" ? "youtube" : format === "Short" ? "short" : format === "Carousel" ? "carousel" : format === "Graphics (IMG)" ? "graphic" : format === "Story" ? "story" : format === "Thread" ? "thread" : "reel",
+        platforms: ["IG"],
+        pillar: "",
+        script: "",
+        caption: "",
+        cta: "",
+        seo_keywords: "",
+        hashtags: "",
+        start_week: 1,
+        duration: 1,
+        notes: "",
+        files: [],
+        client_id: req.client_id,
+        approval_mode: client?.approval_rule || "internal",
+      };
+      const { error: insErr } = await sb.from("content_items").insert(item);
+      if (insErr) throw new Error(insErr.message);
+      const { error: upErr } = await sb.from("intake_requests").update({ status: "promoted", promoted_item_id: item.id }).eq("id", req.id);
+      if (upErr) throw new Error(upErr.message);
+      setIntakes(prev => prev.filter(x => x.id !== req.id));
+    } catch (e) { setErr(`Promote failed: ${e.message}`); } finally { setIntakeBusy(null); }
+  }
+  async function dismissIntake(req) {
+    setIntakeBusy(req.id);
+    await sb.from("intake_requests").update({ status: "dismissed" }).eq("id", req.id);
+    setIntakes(prev => prev.filter(x => x.id !== req.id));
+    setIntakeBusy(null);
+  }
 
   async function runAssign() {
     if (!taskDump.trim()) return;
@@ -107,12 +159,53 @@ export default function OperationsRoute({ isMobile, clients = [] }) {
           <div style={{ display: "flex", gap: 8 }}>
             <TabBtn id="assign" label="AI Assign" />
             <TabBtn id="tasks" label={`Tasks${safeTasks.length ? ` · ${safeTasks.filter(t => t?.status !== "done").length}` : ""}`} />
+            <TabBtn id="intake" label={`Intake${safeIntakes.length ? ` · ${safeIntakes.length}` : ""}`} />
             <TabBtn id="team" label={`Team · ${safeTeam.length}`} />
           </div>
         </div>
       </div>
 
       {err && <div style={{ marginBottom: 14, padding: "9px 13px", borderRadius: 9, background: "rgba(255,69,58,0.1)", border: "1px solid rgba(255,69,58,0.3)", color: "#ff453a", fontSize: 12 }}>{err}</div>}
+
+      {/* ── INTAKE TRIAGE ── */}
+      {tab === "intake" && (
+        <div>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", margin: "0 0 14px" }}>
+            Requests submitted through each client's public intake link. Promote sends one into the pipeline as a real content item; Dismiss archives it.
+          </p>
+          {safeIntakes.length === 0 ? (
+            <div style={{ padding: "36px 20px", textAlign: "center", border: "1px dashed rgba(255,255,255,0.14)", borderRadius: 12, color: "rgba(255,255,255,0.4)", fontSize: 13 }}>
+              No new requests. Share a client's intake link from Setup → Retainers &amp; scope.
+            </div>
+          ) : safeIntakes.map(req => (
+            <div key={req.id} style={{ marginBottom: 12, padding: "14px 18px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: "#f5f5f7" }}>{req.title || "Untitled request"}</span>
+                {req.request_type && <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: ACCENT, background: "rgba(42,171,255,0.1)", padding: "2px 8px", borderRadius: 12 }}>{req.request_type}</span>}
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>{clientName(req.client_id) || "—"}</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginLeft: "auto" }}>{fmtDate(req.created_at)}</span>
+              </div>
+              {req.description && <div style={{ fontSize: 12.5, lineHeight: 1.55, color: "rgba(255,255,255,0.7)", marginBottom: 8, whiteSpace: "pre-wrap" }}>{req.description}</div>}
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 10 }}>
+                {[req.submitter_name, req.submitter_email, req.target_date && `wanted: ${req.target_date}`].filter(Boolean).join(" · ")}
+                {Array.isArray(req.links) && req.links.length > 0 && (
+                  <span> · {req.links.map((l, i) => <a key={i} href={l} target="_blank" rel="noreferrer" style={{ color: ACCENT, marginRight: 6 }}>link{req.links.length > 1 ? ` ${i + 1}` : ""}</a>)}</span>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button disabled={intakeBusy === req.id} onClick={() => promoteIntake(req)}
+                  style={{ padding: "8px 18px", borderRadius: 9, border: "none", background: ACCENT, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", opacity: intakeBusy === req.id ? 0.5 : 1 }}>
+                  {intakeBusy === req.id ? "Promoting…" : "→ Promote to pipeline"}
+                </button>
+                <button disabled={intakeBusy === req.id} onClick={() => dismissIntake(req)}
+                  style={{ padding: "8px 14px", borderRadius: 9, background: "transparent", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── AI ASSIGN ── */}
       {tab === "assign" && (
