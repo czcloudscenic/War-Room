@@ -13,6 +13,9 @@ export default defineConfig({
       '/api': {
         target: apiProxyTarget,
         changeOrigin: true,
+        // dev-only (server.proxy never ships): drop the localhost Origin so
+        // requireUser's prod-origin allowlist doesn't 403 proxied dev calls
+        configure: (proxy) => proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('origin')),
       },
     },
   },

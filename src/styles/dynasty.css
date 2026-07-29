@@ -62,6 +62,18 @@
 .dynops .counter .cv { font-size: 22px; font-weight: 750; color: var(--accent-bright); margin-top: 4px; line-height: 1.1; }
 .dynops .counter .foot { font-size: 11px; color: var(--dim); margin-top: 3px; }
 
+/* Software OPS client grid — one badge card per client agent */
+.dynops .ops-clients { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 18px; }
+.dynops .ops-client { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; text-align: left; padding: 18px; background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--radius); cursor: pointer; font-family: inherit; color: var(--text); transition: border-color 0.12s, transform 0.12s; }
+.dynops .ops-client:hover:not(:disabled) { border-color: var(--accent-bright); transform: translateY(-1px); }
+.dynops .ops-client.off { opacity: 0.45; cursor: default; }
+.dynops .ops-client-badge { font-size: 10px; font-weight: 750; letter-spacing: 1.2px; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; background: var(--accent-bright); color: var(--accent-ink); }
+.dynops .ops-client.off .ops-client-badge { background: var(--card-2); color: var(--dim); border: 1px solid var(--line); }
+.dynops .ops-client-name { font-size: 15.5px; font-weight: 700; line-height: 1.25; }
+.dynops .ops-client-desc { font-size: 12.5px; color: var(--dim); }
+.dynops .ops-client-status { font-size: 11px; color: var(--dim2); margin-top: 4px; letter-spacing: 0.3px; }
+.dynops .ops-client-status.live { color: var(--accent-bright); }
+
 /* module tab row (replaces the standalone center's sidebar) */
 .dynops .dyn-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 14px 0 18px; }
 .dynops .dyn-tab { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--dim); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }

@@ -19,13 +19,14 @@ const TABS = [
   { k: "data", label: "Data & Audit" },
 ];
 
-export default function DynastyRoute() {
+export default function DynastyRoute({ onBack }) {
   const [tab, setTab] = useState("capture");
   return (
     <div className="dynops">
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+        {onBack && <button className="act" onClick={onBack} style={{ marginRight: 2 }}>← Clients</button>}
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "var(--dim)" }}>
-          Software OPS · Dynasty Employer Pipeline
+          Dynasty Employer Pipeline
         </div>
         <a href="https://cloudscenic-ops-center.netlify.app" target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: "var(--dim2)" }}>
           standalone center ↗
