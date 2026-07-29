@@ -38,6 +38,7 @@ const BillingRoute = React.lazy(() => import('./ui/routes/BillingRoute.jsx'));
 const VaultRoute = React.lazy(() => import('./ui/routes/VaultRoute.jsx'));
 const IdeaEngineRoute = React.lazy(() => import('./ui/routes/IdeaEngineRoute.jsx'));
 const RunwayRoute = React.lazy(() => import('./ui/routes/RunwayRoute.jsx'));
+const DynastyRoute = React.lazy(() => import('./ui/routes/DynastyRoute.jsx'));
 
 // Warm the lazy route chunks in the background after first paint so navigating
 // between pages is instant (no per-click chunk fetch + Suspense flash). Keeps the
@@ -1063,7 +1064,7 @@ try {
         {NAV.map(({ section, items }) => (
           <div key={section}>
             <div style={{ padding:"10px 20px 4px", fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.25)", letterSpacing:2, textTransform:"uppercase", fontFamily:"'Geist Mono',monospace" }}>{section}</div>
-            {items.map(item => (
+            {items.filter(item => !item.adminOnly || role === "admin").map(item => (
               <React.Fragment key={item.id}>
                 <button onClick={() => { setActiveNav(item.id); setMobileNavOpen(false); }}
                   style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"13px 20px", background: activeNav===item.id ? "rgba(42,171,255,0.08)" : "none", border:"none", borderLeft: activeNav===item.id ? "2px solid #2AABFF" : "2px solid transparent", color: activeNav===item.id ? "#2AABFF" : "rgba(255,255,255,0.65)", fontSize:13, fontWeight: activeNav===item.id ? 600 : 400, cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>
@@ -1304,7 +1305,7 @@ try {
       {NAV.map(group => (
         <div key={group.section} style={{ padding:"12px 0 0" }}>
           {!sidebarCollapsed && <div style={{ padding:"0 16px 5px", fontSize:9, color:"rgba(255,255,255,0.4)", letterSpacing:2, fontWeight:600, textTransform:"uppercase" }}>{group.section}</div>}
-          {group.items.map(item => (
+          {group.items.filter(item => !item.adminOnly || role === "admin").map(item => (
             <React.Fragment key={item.id}>
               <div style={{ padding:sidebarCollapsed?"0":"0 8px 1px" }}>
                 <button onClick={() => setActiveNav(item.id)} title={sidebarCollapsed?item.label:undefined}
@@ -1389,6 +1390,13 @@ try {
 
     {activeNav === "vault" && (
       <VaultRoute isMobile={isMobile} clients={clients} />
+    )}
+
+    {/* DYNASTY — Cloud Scenic control surface for the Dynasty pipeline.
+        Admin-only: first role-gated route in the app; /api/dynasty enforces
+        the same server-side. */}
+    {activeNav === "dynasty" && role === "admin" && (
+      <DynastyRoute />
     )}
 
     {/* AGENTS */}

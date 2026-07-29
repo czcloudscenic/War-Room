@@ -43,6 +43,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/dynasty"
+  to = "/.netlify/functions/dynasty"
+  status = 200
+
+[[redirects]]
   from = "/api/oauth/data-deletion-status"
   to = "/.netlify/functions/oauth-data-deletion-status"
   status = 200

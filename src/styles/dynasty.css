@@ -1,0 +1,74 @@
+/* Dynasty control module — transplanted from the Cloud Scenic Control Center
+   (dynasty-leads/ops/src/styles.css, monochrome theme). Every rule is scoped
+   under .dynops so nothing leaks into Vantus's inline-style world; the vars
+   live on .dynops, not :root, for the same reason. Vantus norm is inline
+   styles (docs/UI_RULES.md) — a scoped sheet keeps this port 1:1 with the
+   standalone center, which stays deployed in parallel. */
+
+.dynops {
+  --bg: #0a0a0a; --panel: #101010; --card: #151515; --card-2: #1c1c1c;
+  --line: #2c2c2c; --line-soft: #1f1f1f;
+  --text: #f4f4f4; --dim: #9c9c9c; --dim2: #565656;
+  --accent: #f4f4f4; --accent-bright: #ffffff; --accent-ink: #0a0a0a;
+  --ok: #f4f4f4; --warn: #d9a05b; --bad: #d96b5b;
+  --radius: 12px;
+  color: var(--text);
+}
+.dynops * { box-sizing: border-box; }
+.dynops a { color: var(--accent-bright); text-decoration: none; }
+.dynops .mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+.dynops .h1 { font-size: 24px; font-weight: 750; margin: 0; }
+.dynops .h1sub { color: var(--dim); font-size: 13.5px; margin-top: 4px; }
+.dynops .card { background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 16px 18px; }
+.dynops .grid { display: grid; gap: 14px; }
+.dynops .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.dynops .sub { color: var(--dim); font-size: 12.5px; }
+.dynops .ct { font-weight: 650; font-size: 15px; }
+.dynops .cs { color: var(--dim); font-size: 12.5px; margin-top: 2px; }
+
+.dynops .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 15px; border-radius: 9px; border: none; background: var(--accent-bright); color: var(--accent-ink); font-family: inherit; font-weight: 650; font-size: 13.5px; cursor: pointer; }
+.dynops .btn:hover:not(:disabled) { background: #dcdcdc; }
+.dynops .btn:disabled { opacity: 0.55; cursor: default; }
+.dynops .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
+.dynops .act { padding: 6px 11px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--text); font-family: inherit; font-size: 12.5px; cursor: pointer; }
+.dynops .act:hover { border-color: var(--accent); }
+.dynops .act.bad:hover { border-color: var(--bad); color: var(--bad); }
+.dynops .din { padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font-family: inherit; font-size: 13.5px; width: 100%; }
+.dynops select.din { cursor: pointer; }
+
+.dynops .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.dynops .stat { background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 14px 16px; }
+.dynops .stat .l { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.dynops .stat .n { font-size: 26px; font-weight: 750; margin-top: 5px; }
+.dynops .stat .n.accent { color: var(--accent-bright); }
+.dynops .stat .foot { font-size: 11px; color: var(--dim); margin-top: 3px; }
+
+.dynops table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dynops th { text-align: left; color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 10px; border-bottom: 1px solid var(--line-soft); }
+.dynops td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); }
+.dynops .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: var(--card-2); border: 1px solid var(--line); color: var(--dim); }
+.dynops .tag.warn { color: var(--warn); border-color: rgba(217,160,91,0.4); background: rgba(217,160,91,0.1); }
+.dynops .bar { height: 8px; background: var(--card-2); border-radius: 5px; overflow: hidden; }
+.dynops .bar > span { display: block; height: 100%; background: var(--accent-bright); }
+.dynops .banner { padding: 11px 14px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.22); font-size: 13px; margin-bottom: 14px; }
+.dynops .banner.warn { background: rgba(217,160,91,0.08); border-color: rgba(217,160,91,0.3); }
+
+.dynops .dropzone { border: 1.5px dashed var(--line); border-radius: 12px; padding: 26px; text-align: center; color: var(--dim); cursor: pointer; }
+.dynops .dropzone:hover { border-color: var(--accent); color: var(--text); }
+.dynops .counters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.dynops .counter { background: var(--card); border: 1px solid var(--line-soft); border-radius: 12px; padding: 12px 14px; }
+.dynops .counter .l { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.4px; }
+.dynops .counter .cv { font-size: 22px; font-weight: 750; color: var(--accent-bright); margin-top: 4px; line-height: 1.1; }
+.dynops .counter .foot { font-size: 11px; color: var(--dim); margin-top: 3px; }
+
+/* module tab row (replaces the standalone center's sidebar) */
+.dynops .dyn-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 14px 0 18px; }
+.dynops .dyn-tab { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--dim); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.dynops .dyn-tab:hover { color: var(--text); }
+.dynops .dyn-tab.on { background: var(--accent-bright); color: var(--accent-ink); border-color: var(--accent-bright); }
+
+@media (max-width: 820px) {
+  .dynops .stats, .dynops .counters { grid-template-columns: 1fr 1fr; }
+  .dynops .grid[style*="1fr 1fr"] { grid-template-columns: 1fr !important; }
+}
