@@ -45,6 +45,18 @@ export default function BillingRoute({ isMobile, clients = [] }) {
   const clientName = (id) => { const c = safeClients.find(x => x?.id === id); return c ? c.name : "—"; };
   const activeMRR = safeClients.filter(c => c?.status === "active").reduce((s, c) => s + (Number(c?.retainer_amount) || 0), 0);
 
+  // Whole-agency margin: MRR vs total team monthly cost (per-client allocation
+  // lives in Client Analytics; this tile is the simple top-line read).
+  const [teamCost, setTeamCost] = useState(null);
+  useEffect(() => {
+    sb.from("team_members").select("monthly_cost").eq("active", true)
+      .then(({ data }) => {
+        if (!Array.isArray(data)) return;
+        setTeamCost(data.reduce((s, m) => s + (Number(m?.monthly_cost) || 0), 0));
+      });
+  }, []);
+  const netMargin = teamCost != null && activeMRR > 0 ? ((activeMRR - teamCost) / activeMRR) * 100 : null;
+
   const stats = useMemo(() => {
     let outstanding = 0, overdue = 0, paid30 = 0;
     const now = Date.now();
@@ -150,6 +162,12 @@ export default function BillingRoute({ isMobile, clients = [] }) {
         <StatCard value={fmtMoney(stats.paid30)} label="Paid (30d)" sub="last 30 days" color="#30d158" />
         <StatCard value={fmtMoney(stats.overdue)} label="Overdue" sub={stats.overdue ? "chase ASAP" : "all current"} color={stats.overdue ? "#ff453a" : "rgba(255,255,255,0.4)"} />
         <StatCard value={fmtMoney(activeMRR)} label="MRR" sub="active retainers" color="#2AABFF" />
+        <StatCard
+          value={netMargin == null || !teamCost ? "—" : `${Math.round(netMargin)}%`}
+          label="Est. net margin"
+          sub={!teamCost ? "set team costs in Setup" : `MRR − ${fmtMoney(teamCost)} team cost`}
+          color={netMargin == null || !teamCost ? "rgba(255,255,255,0.4)" : netMargin >= 50 ? "#30d158" : netMargin >= 20 ? "#ff9f0a" : "#ff453a"}
+        />
       </div>
 
       <div style={{ ...head, marginBottom: 10 }}>Recent invoices</div>

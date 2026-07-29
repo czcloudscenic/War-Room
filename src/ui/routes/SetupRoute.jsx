@@ -59,7 +59,7 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
     let cancelled = false;
     (async () => {
       const [tm, acc] = await Promise.all([
-        sb.from("team_members").select("id, name, role, email, skills, status, color, active").order("created_at"),
+        sb.from("team_members").select("id, name, role, email, skills, status, color, active, monthly_cost").order("created_at"),
         sb.from("connected_accounts").select("id, platform, handle, display_name, avatar_url, client_id").order("id"),
       ]);
       if (cancelled) return;
@@ -302,6 +302,9 @@ function TeamEditor({ team = [], setTeam }) {
           <input defaultValue={m?.name} onBlur={e => e.target.value.trim() && e.target.value !== m?.name && patch(m?.id, { name: e.target.value.trim() })} placeholder="Name" style={{ ...input, width: 130, padding: "7px 10px", fontSize: 13 }} />
           <input defaultValue={m?.role || ""} onBlur={e => e.target.value !== (m?.role || "") && patch(m?.id, { role: e.target.value.trim() || null })} placeholder="Role" style={{ ...input, width: 120, padding: "7px 10px", fontSize: 13 }} />
           <input defaultValue={m?.email || ""} onBlur={e => e.target.value !== (m?.email || "") && patch(m?.id, { email: e.target.value.trim() || null })} placeholder="email@…" style={{ ...input, flex: 1, minWidth: 150, padding: "7px 10px", fontSize: 13, border: m?.email ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,159,10,0.35)" }} />
+          <input type="number" min="0" defaultValue={m?.monthly_cost ?? ""} title="Monthly cost ($) — powers the margin view in Client Analytics/Billing"
+            onBlur={e => { const v = e.target.value === "" ? null : Number(e.target.value); if (v !== (m?.monthly_cost ?? null)) patch(m?.id, { monthly_cost: v }); }}
+            placeholder="$/mo" style={{ ...input, width: 90, padding: "7px 10px", fontSize: 13 }} />
           <button type="button" onClick={() => del(m)} title="Remove" style={{ width: 30, height: 30, borderRadius: 8, background: "transparent", border: "1px solid rgba(255,69,58,0.3)", color: "#ff453a", cursor: "pointer", fontSize: 13 }}>×</button>
         </div>
       ))}

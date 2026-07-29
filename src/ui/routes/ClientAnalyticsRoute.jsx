@@ -72,12 +72,54 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
       const from = new Date();
       from.setMonth(from.getMonth() - INVOICE_MONTHS);
       return sb.from("invoices")
-        .select("amount, status, issued_at, sent_at, paid_at, created_at")
+        .select("client_id, amount, status, issued_at, sent_at, paid_at, created_at")
         .gte("created_at", from.toISOString());
     },
     []
   );
+  // Margin inputs — own queries on purpose: the App.jsx working set prunes
+  // posted items older than 90d unpredictably mid-window, so delivered-item
+  // allocation math needs its own consistent fetch.
+  const { rows: teamCosts } = useSupabaseRows(
+    () => sb.from("team_members").select("id, monthly_cost").eq("active", true),
+    []
+  );
+  const { rows: delivered } = useSupabaseRows(
+    () => sb.from("content_items")
+      .select("client_id, assigned_to, status, posted_at")
+      .in("status", ["Posted", "Scheduled"])
+      .or(`posted_at.gte.${new Date(Date.now() - 90 * 86400000).toISOString()},posted_at.is.null`),
+    []
+  );
   const loading = accLoading || postLoading || invLoading;
+
+  // Per-client cost allocation: each member's monthly cost splits across the
+  // clients they delivered for (proportional to delivered items, 90d window).
+  // Members with costs but no delivered items surface as "unallocated".
+  const costAlloc = useMemo(() => {
+    const costs = (teamCosts || []).filter(m => Number(m?.monthly_cost) > 0);
+    const byMember = new Map();
+    for (const d of (delivered || [])) {
+      if (!d?.assigned_to || !d?.client_id) continue;
+      if (!byMember.has(d.assigned_to)) byMember.set(d.assigned_to, new Map());
+      const per = byMember.get(d.assigned_to);
+      per.set(d.client_id, (per.get(d.client_id) || 0) + 1);
+    }
+    const allocated = {};
+    let totalAllocated = 0;
+    for (const m of costs) {
+      const per = byMember.get(m.id);
+      if (!per) continue;
+      const total = [...per.values()].reduce((a, b) => a + b, 0);
+      for (const [cid, n] of per) {
+        const share = (Number(m.monthly_cost) * n) / total;
+        allocated[cid] = (allocated[cid] || 0) + share;
+        totalAllocated += share;
+      }
+    }
+    const totalCost = costs.reduce((s, m) => s + Number(m.monthly_cost), 0);
+    return { allocated, totalCost, unallocated: totalCost - totalAllocated, hasCosts: costs.length > 0 };
+  }, [teamCosts, delivered]);
 
   // MRR / revenue trend — last 6 months of billed revenue from invoices.
   // Honest time-series (we don't retain retainer history), so the chart tracks
@@ -142,19 +184,24 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
 
     const perClient = active.map(c => {
       const items = safeContent.filter(x => x?.client_id === c?.id);
+      const clientMrr = Number(c?.retainer_amount) || 0;
+      const cost = costAlloc.allocated[c?.id] || 0;
       return {
         id: c?.id, name: c?.name, color: c?.brand_color || ACCENT,
-        mrr: Number(c?.retainer_amount) || 0,
+        mrr: clientMrr,
         lane: c?.lane || "recurring",
         health: c?.health || "green",
         deliverables: items.length,
         overdue: items.filter(isOverdue).length,
         reach: reachByClient[c?.id] || 0,
+        cost,
+        margin: clientMrr - cost,
+        marginPct: clientMrr > 0 ? ((clientMrr - cost) / clientMrr) * 100 : null,
       };
     }).sort((a, b) => (b?.mrr || 0) - (a?.mrr || 0));
 
     return { totalReach, totalEng, mrr, retainerRev, projectRev, overdue, inReview, onTrack, avgHealth, activeCount: active.length, perClient, deliverables: safeContent.length };
-  }, [accounts, posts, clients, content]);
+  }, [accounts, posts, clients, content, costAlloc]);
 
   const onTrackPct = pct(roll.onTrack, roll.onTrack + roll.inReview + roll.overdue);
 
@@ -231,6 +278,7 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
         <div style={{ display: "flex", gap: 12, padding: "10px 18px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
           <div style={{ ...head, flex: 2 }}>Client</div>
           <div style={{ ...head, flex: 1, textAlign: "right" }}>MRR</div>
+          <div style={{ ...head, flex: 1, textAlign: "right" }}>Margin</div>
           <div style={{ ...head, flex: 1, textAlign: "right" }}>Deliverables</div>
           <div style={{ ...head, flex: 1, textAlign: "right" }}>Reach {REACH_DAYS}d</div>
           <div style={{ ...head, flex: 0.8, textAlign: "right" }}>Health</div>
@@ -245,6 +293,11 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
               <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", fontFamily: "'Geist Mono', monospace" }}>{c.lane}</span>
             </div>
             <div style={{ flex: 1, textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 12.5, color: "#30d158" }}>{fmtMoney(c.mrr)}</div>
+            <div style={{ flex: 1, textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 12.5,
+              color: !costAlloc.hasCosts || c.marginPct == null ? "rgba(255,255,255,0.35)" : c.marginPct >= 50 ? "#30d158" : c.marginPct >= 20 ? "#ff9f0a" : "#ff453a" }}
+              title={c.cost ? `Allocated team cost ${fmtMoney(Math.round(c.cost))}` : "No delivered items allocated in the window"}>
+              {!costAlloc.hasCosts ? "—" : c.marginPct == null ? "—" : `${Math.round(c.marginPct)}%`}
+            </div>
             <div style={{ flex: 1, textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 12.5, color: c.overdue ? "#ff453a" : "rgba(255,255,255,0.7)" }}>{c.deliverables}{c.overdue ? ` · ${c.overdue}!` : ""}</div>
             <div style={{ flex: 1, textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 12.5, color: "rgba(255,255,255,0.7)" }}>{fmtNum(c.reach)}</div>
             <div style={{ flex: 0.8, display: "flex", justifyContent: "flex-end" }}>
@@ -253,6 +306,17 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
           </div>
         ))}
       </div>
+      {costAlloc.hasCosts ? (
+        costAlloc.unallocated > 0.5 && (
+          <div style={{ marginTop: 10, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+            Unallocated team cost: {fmtMoney(Math.round(costAlloc.unallocated))}/mo (members with no delivered items in the last 90d — not attributed to any client above).
+          </div>
+        )
+      ) : (
+        <div style={{ marginTop: 10, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+          Margin needs team costs — set "$/mo" per member in Setup → Team roster.
+        </div>
+      )}
       {loading && <div style={{ marginTop: 14, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Loading social reach…</div>}
     </div>
   );
