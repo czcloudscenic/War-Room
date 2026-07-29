@@ -10,14 +10,20 @@
 // and shaped for content-approval events).
 //
 // Idempotent-ish: one notification row per (task, day) via the notifications
-// unique index on (type, content_item_id), so a same-day re-run won't double-post
-// the in-app bell. Email is best-effort and not deduped (the cron fires once/day).
+// dedupe_key unique index, so a same-day re-run won't double-post the in-app
+// bell. Email is best-effort and not deduped (the cron fires once/day).
+//
+// Invocation gate (same shape as send-monthly-reports): scheduled runs carry
+// next_run in the body; manual runs need ?test=1&key=<CRON_TEST_KEY>. test=1
+// alone is a DRY RUN (reports what it would chase, sends nothing); add &fire=1
+// to actually send.
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
 const RESEND_KEY   = process.env.RESEND_API_KEY;
 const SLACK        = process.env.SLACK_WEBHOOK_URL;
 const OWNER_EMAIL  = process.env.OPS_OWNER_EMAIL || "dv@cloudscenic.com"; // Danny
+const TEST_KEY     = process.env.CRON_TEST_KEY || "";
 
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -74,17 +80,30 @@ async function sendEmail(to, subject, rows, heading) {
   }
 }
 
-exports.handler = async () => {
+exports.handler = async (event) => {
   if (!SERVICE_KEY) {
     console.error("[chase] SUPABASE_SERVICE_KEY not set — aborting");
     return { statusCode: 500, body: "SUPABASE_SERVICE_KEY not set" };
   }
 
+  // ── Invocation gate: scheduled runs only, unless a keyed test call ──
+  const qs = event?.queryStringParameters || {};
+  let scheduled = false;
+  try { scheduled = !!JSON.parse(event?.body || "{}").next_run; } catch {}
+  const isTest = qs.test === "1";
+  if (!scheduled && !isTest) {
+    return { statusCode: 403, body: "scheduled invocations only (use ?test=1&key=...)" };
+  }
+  if (isTest && TEST_KEY && qs.key !== TEST_KEY) {
+    return { statusCode: 403, body: "bad test key" };
+  }
+  const dryRun = isTest && qs.fire !== "1";
+
   const today = new Date().toISOString().slice(0, 10);
 
   // Overdue = has a due_date strictly before today AND not done.
-  // Embed assignee (email/name) + client (name) in one round-trip.
-  const q = `tasks?select=id,title,status,priority,due_date,assignee_id,assignee:team_members(name,email),client:clients(name)` +
+  // Embed assignee (email/name) + client (id/name) in one round-trip.
+  const q = `tasks?select=id,title,status,priority,due_date,assignee_id,client_id,assignee:team_members(name,email),client:clients(name)` +
             `&status=neq.done&due_date=lt.${today}&due_date=not.is.null&order=due_date.asc`;
   const res = await sb(q);
   if (!res.ok) {
@@ -99,10 +118,16 @@ exports.handler = async () => {
     return { statusCode: 200, body: "no overdue tasks" };
   }
 
+  if (dryRun) {
+    console.log(`[chase] DRY RUN — ${overdue.length} overdue task(s), nothing sent`);
+    return { statusCode: 200, body: JSON.stringify({ ok: true, dryRun: true, overdue }) };
+  }
+
   const results = [];
 
-  // ── In-app notifications (bell) — one row per task/day, deduped by the
-  //    (type, content_item_id) unique index. Best-effort. ──
+  // ── In-app notifications (bell) — one row per task/day via the dedupe_key
+  //    unique index. client_id is set so the bell's client-scoped channel
+  //    actually receives these. Best-effort. ──
   for (const t of overdue) {
     const assignee = t.assignee?.name || "Unassigned";
     await sb("notifications", {
@@ -110,8 +135,10 @@ exports.handler = async () => {
       headers: { Prefer: "resolution=ignore-duplicates" },
       body: JSON.stringify({
         type: "task_overdue",
-        content_item_id: `task:${t.id}:${today}`, // dedupe key: once per task per day
-        recipient_email: null,                     // broadcast to admins
+        content_item_id: `task:${t.id}`,
+        dedupe_key: `task_overdue:${t.id}:${today}`, // once per task per day
+        client_id: t.client_id || null,
+        recipient_email: null,                        // broadcast to admins
         payload: {
           item: { id: t.id, title: t.title, status: t.status, priority: t.priority, due_date: t.due_date, assignee, client: t.client?.name || null },
           message: `⏰ Overdue: "${t.title}" — ${daysOverdue(t.due_date)}d past due (${assignee})`,

@@ -44,10 +44,19 @@ export async function recordApproval({ item, decision, stage, feedback, approver
 
   // 2. advance the item. stage mirrors status everywhere else (App.jsx handleSave
   // sets stage: updated.status); patch both or boards keyed on stage mis-bucket.
+  // revision_count is NOT patched here: the approvals_bump_revision DB trigger
+  // (20260729_revision_caps.sql) increments it atomically on the audit insert,
+  // covering every writer (admin session, service-key portal decisions).
   const patch = { status, stage: status, updated_at: new Date().toISOString() };
-  if (decision === 'revision_requested') patch.revision_count = (Number(item?.revision_count) || 0) + 1;
   const { error: uErr } = await sb.from('content_items').update(patch).eq('id', itemId);
   if (uErr) throw new Error('status update failed: ' + uErr.message);
+
+  // The count the row holds after the trigger ran — used for the cycle-aware
+  // notify dedupe key, which must match what the App.jsx realtime detector
+  // reads off the updated row.
+  const revisionCount = decision === 'revision_requested'
+    ? (Number(item?.revision_count) || 0) + 1
+    : (Number(item?.revision_count) || 0);
 
   // 3. notify (best-effort — never block the decision on a failed webhook)
   try {
@@ -59,14 +68,14 @@ export async function recordApproval({ item, decision, stage, feedback, approver
         // re-approve re-notifies). Must match the value the App.jsx realtime
         // detector reads from the row, or the two callers won't dedupe together.
         type: decision === 'revision_requested' ? 'revision_requested' : 'approved',
-        item: { id: itemId, title: item?.title, status, revision_count: patch.revision_count ?? (Number(item?.revision_count) || 0) },
+        item: { id: itemId, title: item?.title, status, revision_count: revisionCount },
         client_id: clientId,
         feedback: feedback || null,
       }),
     });
   } catch { /* noop — Slack/email is a courtesy, not a gate */ }
 
-  return { status, revision_count: patch.revision_count ?? item?.revision_count };
+  return { status, revision_count: revisionCount };
 }
 
 /** Inline ledger edits — assign owner / set due date. */

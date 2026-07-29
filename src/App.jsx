@@ -66,6 +66,22 @@ const ALLOWED_DOMAIN = "cloudscenic.com";
 const ACTIVE_CONTENT_DAYS = 90;
 const activeContentCutoff = () => new Date(Date.now() - ACTIVE_CONTENT_DAYS * 86400000).toISOString();
 
+// Bell rendering per notification type. Anything not listed falls back to a
+// neutral label instead of the old binary approved/red-"Revisions requested".
+const NOTIF_META = {
+  approved:             { label: "Approved",            color: "#2AABFF" },
+  revision_requested:   { label: "Revisions requested", color: "#ff453a" },
+  approval_requested:   { label: "Sent for approval",   color: "#bf5af2" },
+  revision_cap_reached: { label: "Revision cap reached", color: "#ff9f0a" },
+  item_stuck:           { label: "Item stuck",          color: "#ff9f0a" },
+  task_overdue:         { label: "Task overdue",        color: "#ff9f0a" },
+  intake_received:      { label: "New intake request",  color: "#30d158" },
+  client_comment:       { label: "Client comment",      color: "#64d2ff" },
+  invoice_sent:         { label: "Invoice sent",        color: "#30d158" },
+  client_invite_first_login: { label: "Client signed in", color: "#bf5af2" },
+};
+const notifMeta = (type) => NOTIF_META[type] || { label: String(type || "Update").replace(/_/g, " "), color: "rgba(255,255,255,0.5)" };
+
 function App() {
   const [session, setSession] = useState(null);
   const [role, setRole]       = useState(null);
@@ -1152,9 +1168,9 @@ try {
                   )}
                   {notifications.slice(0,10).map(n => (
                     <div key={n.id} style={{ padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", gap:12, alignItems:"flex-start" }}>
-                      <div style={{ width:6, height:6, borderRadius:"50%", background: n.type==="approved" ? "#2AABFF" : "#ff453a", marginTop:4, flexShrink:0 }} />
+                      <div style={{ width:6, height:6, borderRadius:"50%", background: notifMeta(n.type).color, marginTop:4, flexShrink:0 }} />
                       <div style={{ flex:1 }}>
-                        <div style={{ fontSize:11, fontWeight:600, color:"rgba(255,255,255,0.9)", lineHeight:1.4 }}>{n.type==="approved" ? "Approved" : "Revisions requested"}</div>
+                        <div style={{ fontSize:11, fontWeight:600, color:"rgba(255,255,255,0.9)", lineHeight:1.4 }}>{notifMeta(n.type).label}</div>
                         <div style={{ fontSize:10, color:"rgba(255,255,255,0.65)", marginTop:2 }}>{n.item?.title}</div>
                         {n.item?.client_note && <div style={{ fontSize:9, color:"rgba(255,100,80,0.9)", marginTop:3, fontStyle:"italic" }}>"{n.item.client_note}"</div>}
                         <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)", marginTop:4 }}>{new Date(n.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
