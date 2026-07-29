@@ -25,7 +25,7 @@ export default function DynastyRoute() {
     <div className="dynops">
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: "var(--dim)" }}>
-          Dynasty · Employer Pipeline Control
+          Software OPS · Dynasty Employer Pipeline
         </div>
         <a href="https://cloudscenic-ops-center.netlify.app" target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: "var(--dim2)" }}>
           standalone center ↗
