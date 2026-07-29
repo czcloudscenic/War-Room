@@ -156,6 +156,13 @@
   schedule = "0 13 * * *"
   timeout = 26
 
+# Daily stuck-item bottleneck check — flags items sitting past their per-status
+# threshold, creates/completes "Unstick" tasks, re-sends client approval links.
+# 16:00 UTC (~9am PT), an hour after the runway check.
+[functions."check-stuck-items"]
+  schedule = "0 16 * * *"
+  timeout = 26
+
 # Daily content-runway check — measures every tracked client's scheduled queue
 # (Sprout) + pipeline inventory, alerts #content + email, auto-creates/completes
 # "Book shoot" tasks. Monday run adds the all-clients digest. 15:00 UTC (~8am PT).
