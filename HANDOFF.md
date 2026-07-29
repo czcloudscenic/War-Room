@@ -1,6 +1,45 @@
 # Vantus Handoff Brief
 
-## 2026-07-29 session — Timeliner-inspired feature pack (7 milestones, all local, NOT pushed/deployed)
+## 2026-07-29 late session — Software OPS merged; ⚠️ the push AUTO-DEPLOYED the whole backlog
+
+**Written by the Dynasty agent (cross-repo session, Christian directing).**
+
+- **Software OPS is LIVE on usevantus.com** (commits `d186295`, `2326c28`, `260c4b1`).
+  Admin-only nav section: client grid (Dynasty live + 2 standby slots) → the
+  Dynasty pipeline's four ops pages inside Vantus, via a new `/api/dynasty`
+  proxy (`netlify/functions/dynasty.js`: requireUser admin + rate limit +
+  action allowlist → dynasty-lead-finder with `x-passcode` from env
+  `DYNASTY_ADMIN_PASSCODE`/`DYNASTY_API_BASE`, set in Netlify UI). Pages in
+  `src/ui/dynasty/*`, styles scoped `.dynops`, grid in `SoftwareOpsRoute.jsx`
+  (registry-driven). Gate = `isOpsAdmin` (role admin OR ADMIN_EMAILS) — do NOT
+  simplify to `role==="admin"`; profiles.role overrides cz@ to "agency".
+  The standalone center (cloudscenic-ops-center.netlify.app) stays deployed in
+  parallel; dynasty-leads repo untouched. Dynasty audit rows from Vantus show
+  actor "Admin" (break-glass) — known tradeoff.
+- **⚠️ THE PUSH SHIPPED EVERYTHING MAIN WAS HOLDING.** Christian ordered
+  "merge it to vantus"; pushes are now KEYLESS (SSH key on czcloudscenic +
+  global insteadOf — the one-shot-PAT era is over, update all assumptions),
+  and Netlify auto-deploy is ON. So `260c4b1` took the 7/9–7/13 held commits,
+  the Codex agent-action split, AND the M0–M7 feature pack live — **the ⛔
+  migration gate above is now live-without-migrations.**
+- **Exposure read (why this is survivable tonight):** every new email send
+  site is Resend-key-guarded and the key is EMPTY → dry-run only, nothing can
+  email clients. The portal branch is a security IMPROVEMENT (approved
+  client_users no longer fall through to the admin shell). Approval/intake
+  paths only 500 if someone exercises them before migrations. **Hard
+  deadline: `check-stuck-items` cron fires 16:00 UTC (9am PT) daily** and
+  will hit missing tables.
+- **DO FIRST NEXT SESSION (or Christian tonight): apply the migration bundle**
+  — `/tmp/vantus-m0-migrations-2026-07-29.sql` (19.8KB, additive+idempotent,
+  already staged for TextEdit paste into Supabase). After that, the deployed
+  state is fully supported and M8 regression can proceed as written below.
+  Rollback alternative (loses Software OPS too): restore the prior production
+  deploy in the Netlify UI.
+- Coordination note: two agents committed to this repo today (this terminal's
+  M-pack sweeps absorbed the dynasty.js dev-scrub mid-flight; reconciled).
+  `git pull` before committing, and stop assuming pushes are blocked on PATs.
+
+## 2026-07-29 session — Timeliner-inspired feature pack (7 milestones, all local, NOT pushed/deployed — ⚠️ SUPERSEDED: deployed by the late session above)
 
 **Built the full 6-feature pack on localhost per the approved plan** (`~/.claude/plans/lets-plan-to-make-rippling-petal.md`): client approval portal + one-click email approvals, timestamped video review comments, revision caps, stuck-item bottleneck cron, per-client margin view, public intake form. Commits `46c4d6b` (M0) → `0073f13` (M7), interleaved cleanly with the other terminal's Dynasty module (`2326c28`, `d186295`). **Nothing pushed, nothing deployed. Localhost only.**
 
