@@ -13,6 +13,7 @@ import { OPS_INIT } from './data/seed.ops.js';
 import { getMemory, setMemory, buildSystemPrompt, updateAgentMemory } from './core/memory.js';
 import { AGENT_KEYWORDS, ROUTE_PROMPTS } from './core/agentRegistry.js';
 import { routeTask } from './core/routeTask.js';
+import { maybeNotifyApprovalRequested } from './core/approvals.js';
 import { DEFAULT_APPS, loadApps } from './apps/apps.config.js';
 import AppPlaceholder from './ui/shared/AppPlaceholder.jsx';
 
@@ -554,6 +555,10 @@ const channel = sb.channel("content_changes")
             body: JSON.stringify({ type, item: payload.new, client_id: payload.new?.client_id }),
           }).catch(() => {});
         }
+        // Client-mode items reaching an approval gate → issue one-click links.
+        // Covers status changes made in OTHER tabs/paths; the acting tab also
+        // fires from handleSave — notify's cycle-aware dedupe collapses them.
+        maybeNotifyApprovalRequested(payload.new, oldStatus);
       }
       if (payload.eventType === "INSERT") {
         // Guard against handleSave's optimistic append — both fire for one create.
@@ -775,6 +780,8 @@ if (isNewItem) {
     sb.from("content_items").insert(item)
       .then(({ error }) => { if (error) console.warn("Supabase insert error:", error.message); });
   }
+  // A brand-new item can be created straight at an approval gate.
+  maybeNotifyApprovalRequested(item, null);
 } else {
   const before = content.find(x => x.id === item.id);
   setContent(prev => prev.map(x => x.id === item.id ? item : x));
@@ -782,6 +789,9 @@ if (isNewItem) {
     sb.from("content_items").update(item).eq("id", item.id)
       .then(({ error }) => { if (error) console.warn("Supabase save error:", error.message); });
   }
+  // Client-mode item just reached an approval gate → one-click links go out.
+  // (Realtime detector covers other tabs; notify dedupe collapses the two.)
+  maybeNotifyApprovalRequested(item, before?.status);
   // QC auto-trigger: the moment a deliverable lands at the content-approval gate,
   // the QC agent reviews it (fire-and-forget; result flows back via realtime).
   if (before && before.status !== "Need Content Approval" && item.status === "Need Content Approval") {

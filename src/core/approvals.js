@@ -78,6 +78,38 @@ export async function recordApproval({ item, decision, stage, feedback, approver
   return { status, revision_count: revisionCount };
 }
 
+/**
+ * Fire the approval-request notification when an item ENTERS a client approval
+ * gate (Need Copy/Content Approval) and the item is client-approvable. The
+ * backend issues one-click tokens + emails the client; dedupe is cycle-aware
+ * so this and the App.jsx realtime detector collapse to one send.
+ * Fire-and-forget: never blocks the save that triggered it.
+ */
+const NEED_APPROVAL_STATUSES = ['Need Copy Approval', 'Need Content Approval'];
+export function maybeNotifyApprovalRequested(item, prevStatus) {
+  const status = item?.status;
+  if (!NEED_APPROVAL_STATUSES.includes(status)) return;
+  if (status === prevStatus) return;
+  if (item?.approval_mode !== 'client') return;
+  apiFetch('/api/notify', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      type: 'approval_requested',
+      item: {
+        id: item.id,
+        title: item.title,
+        status,
+        campaign: item.campaign,
+        platform: item.platform,
+        revision_count: Number(item.revision_count) || 0,
+        client_id: item.client_id,
+      },
+      client_id: item.client_id || null,
+    }),
+  }).catch(() => { /* courtesy, not a gate */ });
+}
+
 /** Inline ledger edits — assign owner / set due date. */
 export async function setLedgerFields(itemId, fields) {
   const { error } = await sb.from('content_items')

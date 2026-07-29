@@ -9,6 +9,7 @@
 
 const { requireUser, unauthorized, cors: makeCors } = require("./_lib/requireUser");
 const { rateLimit, tooManyRequests } = require("./_lib/rateLimit");
+const { issueApprovalRequest } = require("./_lib/approvalRequest");
 
 const ADMIN_EMAILS = [
   "cz@cloudscenic.com",
@@ -200,6 +201,68 @@ async function handleInvoiceSent({ cors, item, client_id, emailClient = true }) 
   return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, message, results }) };
 }
 
+// ── Approval-request (item entered a Need-*-Approval gate with
+//    approval_mode='client') ─────────────────────────────────────────────────
+// Rings the bell, issues the two one-click tokens, emails the client the
+// Approve / Request-changes links (via _lib/approvalRequest), mirrors to Slack.
+// Dedupe is cycle-aware (revision_count) so a kicked-back item re-sent for
+// approval generates a fresh request — but two admin tabs seeing the same flip
+// collapse to one.
+async function handleApprovalRequested({ cors, item, client_id }) {
+  const results = [];
+
+  const message = `👀 Sent for client approval: "${item.title}"`;
+  const dbResult = await insertNotification({ type: "approval_requested", item, message, client_id });
+  results.push({ channel: "supabase", ...dbResult });
+  if (dbResult.deduped) {
+    return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, deduped: true, results }) };
+  }
+
+  // Tokens + client-facing email (created even when Resend is keyless, so the
+  // one-click flow is testable end-to-end).
+  try {
+    const issue = await issueApprovalRequest({ item, clientId: client_id || item?.client_id });
+    results.push({ channel: "approval-request", ok: issue.ok, tokens: issue.tokens, emails: issue.emails, error: issue.error, sub: issue.results });
+  } catch (e) {
+    results.push({ channel: "approval-request", ok: false, error: e.message });
+  }
+
+  // Internal Slack mirror (per-client webhook override, else global).
+  let SLACK = process.env.SLACK_WEBHOOK_URL;
+  let clientName = null;
+  if (client_id && SERVICE_KEY) {
+    try {
+      const cRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/clients?id=eq.${client_id}&select=name,slack_webhook_url`,
+        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      );
+      const row = cRes.ok ? (await cRes.json())?.[0] : null;
+      if (row?.slack_webhook_url) SLACK = row.slack_webhook_url;
+      clientName = row?.name || null;
+    } catch (e) { console.warn("[notify] approval-request client lookup failed:", e.message); }
+  }
+  if (SLACK) {
+    try {
+      const r = await fetch(SLACK, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocks: [
+          { type: "header", text: { type: "plain_text", text: "👀 Sent for client approval", emoji: true } },
+          { type: "section", fields: [
+            { type: "mrkdwn", text: `*Title*\n${escapeHtml(item.title)}` },
+            { type: "mrkdwn", text: `*Client*\n${escapeHtml(clientName || "—")}` },
+            { type: "mrkdwn", text: `*Gate*\n${escapeHtml(item.status || "—")}` },
+            { type: "mrkdwn", text: `*Round*\n${Number(item.revision_count) > 0 ? `Revision ${item.revision_count}` : "First pass"}` },
+          ] },
+          { type: "context", elements: [{ type: "mrkdwn", text: "Vantus · one-click links emailed to the client" }] },
+        ] }),
+      });
+      results.push({ channel: "slack", ok: r.ok });
+    } catch (e) { results.push({ channel: "slack", ok: false, error: e.message }); }
+  }
+
+  return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, message, results }) };
+}
+
 exports.handler = async (event) => {
   const cors = { ...makeCors(event), "Content-Type": "application/json" };
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers: cors, body: "" };
@@ -221,6 +284,13 @@ exports.handler = async (event) => {
   // emailClient:false means Stripe already emailed the client its hosted invoice;
   // we only ring the bell + Slack so the team knows, without a duplicate email.
   if (type === "invoice_sent") return handleInvoiceSent({ cors, item, client_id, emailClient });
+
+  // Approval-request: admin-triggered only (fires from handleSave / the realtime
+  // detector in admin tabs when a client-mode item reaches an approval gate).
+  if (type === "approval_requested") {
+    if (auth.user.role !== "admin") return { statusCode: 403, headers: cors, body: JSON.stringify({ error: "Admins only" }) };
+    return handleApprovalRequested({ cors, item, client_id });
+  }
 
   const isApproved = type === "approved";
   const emoji      = isApproved ? "✅" : "🔄";

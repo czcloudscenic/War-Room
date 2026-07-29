@@ -26,6 +26,15 @@ const ADMIN_DOMAIN = "cloudscenic.com";
 const ALLOWED_ORIGIN_RE = /^https:\/\/(?:usevantus\.com|(?:[a-z0-9-]+--)?majestic-cassata-aa16e9\.netlify\.app)$/i;
 const FALLBACK_ORIGIN = "https://usevantus.com";
 
+// localhost is allowed ONLY outside production (netlify dev sets CONTEXT=dev),
+// so local portal/browser testing works without ever widening the prod list.
+const DEV_ORIGIN_RE = /^https?:\/\/localhost(?::\d+)?$/i;
+
+function isAllowedOrigin(origin) {
+  if (ALLOWED_ORIGIN_RE.test(origin)) return true;
+  return process.env.CONTEXT !== "production" && DEV_ORIGIN_RE.test(origin);
+}
+
 function originFor(event) {
   return event?.headers?.origin || event?.headers?.Origin || "";
 }
@@ -37,12 +46,12 @@ function isStateChanging(event) {
 
 function isForbiddenOrigin(event) {
   const origin = originFor(event);
-  return Boolean(origin && isStateChanging(event) && !ALLOWED_ORIGIN_RE.test(origin));
+  return Boolean(origin && isStateChanging(event) && !isAllowedOrigin(origin));
 }
 
 function cors(event) {
   const origin = originFor(event);
-  const allow = ALLOWED_ORIGIN_RE.test(origin) ? origin : FALLBACK_ORIGIN;
+  const allow = isAllowedOrigin(origin) ? origin : FALLBACK_ORIGIN;
   return {
     "Access-Control-Allow-Origin": allow,
     "Access-Control-Allow-Headers": "Content-Type, Authorization",

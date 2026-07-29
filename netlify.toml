@@ -21,6 +21,15 @@
   to = "/.netlify/functions/notify"
   status = 200
 
+# Approval decisions — portal POSTs (session) + one-click email links (token).
+# GET renders the confirm page; POST executes. force=true so the GET link never
+# falls through to the SPA.
+[[redirects]]
+  from = "/api/approval"
+  to = "/.netlify/functions/approval-decision"
+  status = 200
+  force = true
+
 # Stripe — app creates hosted invoices; Stripe posts payment webhooks. Same fn.
 [[redirects]]
   from = "/api/billing/stripe"
