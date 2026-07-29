@@ -1,5 +1,25 @@
 # Vantus Handoff Brief
 
+## 2026-07-29 session — Timeliner-inspired feature pack (7 milestones, all local, NOT pushed/deployed)
+
+**Built the full 6-feature pack on localhost per the approved plan** (`~/.claude/plans/lets-plan-to-make-rippling-petal.md`): client approval portal + one-click email approvals, timestamped video review comments, revision caps, stuck-item bottleneck cron, per-client margin view, public intake form. Commits `46c4d6b` (M0) → `0073f13` (M7), interleaved cleanly with the other terminal's Dynasty module (`2326c28`, `d186295`). **Nothing pushed, nothing deployed. Localhost only.**
+
+**⛔ GATE — Christian must apply the migration bundle before ANY of this deploys or is browser-tested:** 7 additive+idempotent files `supabase/migrations/20260729_*.sql`, combined paste-ready at `/tmp/vantus-m0-migrations-2026-07-29.sql` (opened in TextEdit). Adds: approval_tokens (RLS, zero policies = service-key only), content_comments (+realtime publication), review-media storage bucket + `content_items.review_video_path`, `clients.included_revisions` + **revision-count trigger** (fixes the old race/bypass — approvals.js no longer bumps the counter itself) + `content_items.updated_at` touch trigger, stuck_alert_state, `team_members.monthly_cost`, `clients.intake_token` + intake_requests.
+
+**Key architecture facts for pickup:**
+- `/api/approval` (`approval-decision.js`): GET = confirm page ONLY (email-scanner-safe), POST = execute (single-use token, siblings invalidated) or portal-session mode. All writes via SERVICE_KEY because approvals INSERT is admin-only RLS. Emits the SAME notify type + cycle-aware dedupe_key as the App.jsx realtime detector — first writer wins, no double fan-out.
+- Approval-request emails fire via notify type `approval_requested` (from handleSave + the realtime detector) when a `approval_mode='client'` item ENTERS Need Copy/Content Approval; `_lib/approvalRequest.js` issues the two tokens + emails `clients.primary_email`. **Every new send site is Resend-key-guarded (dry-run logs when keyless)** — tokens still get created, so the flow tests end-to-end without the key.
+- Portal: App.jsx now has the missing `role==='client'` branch → `src/ui/client/ClientPortal.jsx` (approved clients used to fall through to the FULL ADMIN SHELL with only RLS scoping them — closed).
+- Review video lives in the `review-media` bucket (public-read, unguessable paths) because Drive can't serve first-party video (webViewLink=HTML page, /preview iframe CSP-blocked + no currentTime). `ReviewPanel.jsx` is shared by EditContentModal + portal.
+- `check-stuck-items` cron (16:00 UTC): per-status thresholds on `updated_at`, auto Unstick tasks, re-sends client approval links as the nudge. Dry-run verified live — correctly flagged the QC Test Kitchen leftover ("TEST-QC price check", 25d stuck).
+- `chase-overdue-tasks` finally got an invocation gate (was publicly invocable!), a working dedupe_key, and client_id (its bell rows never rendered before).
+- requireUser now allows localhost origins ONLY when `CONTEXT !== 'production'` (netlify dev testing).
+- Intake: `/intake?t=<per-client token>` static page (CSP-safe external css/js) → staged `intake_requests` → Operations → Intake tab promote/dismiss. Setup Section 1 has copy/rotate link buttons.
+
+**Remaining before deploy (M8):** (1) Christian applies migrations; (2) browser-test the portal end-to-end with a non-@cloudscenic Google identity approved in client_users against a disposable test client; (3) once the real Resend key is pasted, render-check the 5 new email templates (all in/via `_lib/emailTemplates.js`); (4) full regression (admin login, Ledger approve/revise, crons `?test=1`); (5) deploy via `netlify deploy --build --prod` (site still on the free team). The 7/18 board (empty Stripe/Resend keys, rogue env var, OAuth origin, team transfer) is UNCHANGED and still gates the integrations.
+
+---
+
 ## 2026-07-18 session — env re-audit (keys now EMPTY not malformed), agent-action.js monolith split (Codex, reviewed+merged)
 
 **Nothing pushed, nothing deployed.** `main` is now **18 commits ahead of `origin`** (9 held from 7/9–7/13 + this session's board doc + Codex's 9-commit refactor). All builds clean. Everything ships the moment a one-shot PAT arrives.
