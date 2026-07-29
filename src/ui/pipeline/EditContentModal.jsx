@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useIsMobile } from '../../utils/hooks.js';
 import { STATUSES, FORMATS, PILLARS_LIST, PLATFORMS_LIST, CAMPAIGNS } from '../../utils/constants.js';
+import { sb } from '../../services/supabaseClient.js';
+import ReviewPanel from '../shared/ReviewPanel.jsx';
 
 export default function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew = false }) {
   const isMobile = useIsMobile();
@@ -118,6 +120,30 @@ setUploading(false);
   };
 
   const removeFile = (f) => set("files", (form.files || []).filter(x => x.driveId !== f.driveId));
+
+  //  REVIEW CUT (Supabase Storage) — the web-ready mp4 the review player uses.
+  // Drive stays the archival home; Drive links can't play in a first-party
+  // <video> (webViewLink is an HTML page, /preview iframe is CSP-blocked and
+  // exposes no currentTime), so timestamped comments need this copy.
+  const [reviewUploading, setReviewUploading] = useState(false);
+  const [reviewMsg, setReviewMsg] = useState("");
+  const reviewRef = useRef(null);
+  const handleReviewUpload = async (e) => {
+const file = e.target.files[0];
+if (!file || !sb) return;
+setReviewUploading(true); setReviewMsg("Uploading review cut…");
+try {
+  const ext = (file.name.split(".").pop() || "mp4").toLowerCase();
+  const path = `${form.id}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await sb.storage.from("review-media").upload(path, file, { contentType: file.type || "video/mp4" });
+  if (error) throw error;
+  set("review_video_path", path);
+  setReviewMsg(`✓ ${file.name} ready for review`);
+} catch (err) {
+  setReviewMsg("Upload failed: " + (err.message || err.error_description || String(err)));
+}
+setReviewUploading(false);
+  };
   const [previewFile, setPreviewFile] = React.useState(null);
   const getPreviewUrl = (f) => {
 if (!f.url) return null;
@@ -306,6 +332,26 @@ return f.url; // direct URL (Supabase storage etc.)
         </div>
       </div>
     </div>
+
+    {/* Review cut + comment thread (existing items only — needs a row id) */}
+    {!isNew && (
+      <div style={{ marginBottom:28 }}>
+        <label style={labelStyle}>Review</label>
+        <div style={{ border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"16px 18px", background:"#0f0d0e" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom: form.review_video_path ? 12 : 0 }}>
+            <input ref={reviewRef} type="file" style={{ display:"none" }} onChange={handleReviewUpload} accept="video/mp4,video/webm,video/quicktime" />
+            <button onClick={() => reviewRef.current?.click()} disabled={reviewUploading}
+              style={{ fontSize:12, fontWeight:600, color:"#f5f5f7", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"8px 16px", cursor:reviewUploading?"not-allowed":"pointer", fontFamily:"Inter, sans-serif" }}>
+              {reviewUploading ? "Uploading…" : form.review_video_path ? "Replace review cut" : "+ Upload review cut"}
+            </button>
+            {reviewMsg
+              ? <span style={{ fontSize:11, color: reviewMsg.startsWith("✓") ? "#30d158" : "#ff453a" }}>{reviewMsg}</span>
+              : <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>Web-ready H.264 mp4 — powers the timestamped review player (client portal too)</span>}
+          </div>
+          <ReviewPanel item={form} role="admin" />
+        </div>
+      </div>
+    )}
 
     {/* SOP Gate */}
     {sopGates.length > 0 && (

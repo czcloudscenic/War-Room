@@ -7,6 +7,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { apiFetch } from '../../services/apiFetch';
+import ReviewPanel from '../shared/ReviewPanel.jsx';
 
 const isImage = (f) => /\.(png|jpe?g|gif|webp|avif)$/i.test(f?.name || '');
 
@@ -110,6 +111,14 @@ export default function PortalItemCard({ item, client, accent = '#2AABFF', showC
             ))}
           </div>
         )}
+
+        {/* Review player + timestamped feedback thread */}
+        <div style={{ margin: '0 0 16px', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
+            {item.review_video_path ? 'Review & comment' : 'Feedback thread'}
+          </div>
+          <ReviewPanel item={item} role="client" accent={accent} />
+        </div>
 
         {/* Decision row */}
         {mode !== 'changes' ? (

@@ -263,6 +263,67 @@ async function handleApprovalRequested({ cors, item, client_id }) {
   return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, message, results }) };
 }
 
+// ── Client comment (portal feedback thread) ──────────────────────────────────
+// Bell + Slack only — every comment is its own event (dedupe on the comment id,
+// which the client's insert already created). No email; comments are chatter,
+// not decisions.
+async function handleClientComment({ cors, item, client_id }) {
+  const results = [];
+  const tc = item.timecode != null ? ` @ ${Math.floor(item.timecode / 60)}:${String(Math.floor(item.timecode % 60)).padStart(2, "0")}` : "";
+  const message = `💬 ${item.author || "Client"} commented on "${item.title}"${tc}`;
+
+  if (SERVICE_KEY) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+        method: "POST",
+        headers: {
+          apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`,
+          "Content-Type": "application/json", Prefer: "resolution=ignore-duplicates",
+        },
+        body: JSON.stringify({
+          type: "client_comment",
+          content_item_id: item?.id ? String(item.id) : null,
+          dedupe_key: `client_comment:${item?.id}:${item?.comment_id || Date.now()}`,
+          client_id: client_id || null,
+          recipient_email: null,
+          payload: { item, message },
+        }),
+      });
+      const deduped = res.status === 409;
+      results.push({ channel: "supabase", ok: res.ok || deduped, deduped });
+      if (deduped) return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, deduped: true, results }) };
+    } catch (e) {
+      results.push({ channel: "supabase", ok: false, error: e.message });
+    }
+  }
+
+  let SLACK = process.env.SLACK_WEBHOOK_URL;
+  if (client_id && SERVICE_KEY) {
+    try {
+      const cRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/clients?id=eq.${client_id}&select=slack_webhook_url`,
+        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      );
+      const row = cRes.ok ? (await cRes.json())?.[0] : null;
+      if (row?.slack_webhook_url) SLACK = row.slack_webhook_url;
+    } catch { /* global fallback */ }
+  }
+  if (SLACK) {
+    try {
+      const r = await fetch(SLACK, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocks: [
+          { type: "section", text: { type: "mrkdwn", text: `💬 *${escapeHtml(item.author || "Client")}* on *${escapeHtml(item.title)}*${tc}\n_"${escapeHtml((item.body || "").slice(0, 300))}"_` } },
+          { type: "context", elements: [{ type: "mrkdwn", text: "Vantus · portal comment" }] },
+        ] }),
+      });
+      results.push({ channel: "slack", ok: r.ok });
+    } catch (e) { results.push({ channel: "slack", ok: false, error: e.message }); }
+  }
+
+  return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, message, results }) };
+}
+
 exports.handler = async (event) => {
   const cors = { ...makeCors(event), "Content-Type": "application/json" };
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers: cors, body: "" };
@@ -290,6 +351,14 @@ exports.handler = async (event) => {
   if (type === "approval_requested") {
     if (auth.user.role !== "admin") return { statusCode: 403, headers: cors, body: JSON.stringify({ error: "Admins only" }) };
     return handleApprovalRequested({ cors, item, client_id });
+  }
+
+  // Portal comment: clients fire this for their own client_id only.
+  if (type === "client_comment") {
+    if (auth.user.role === "client" && !auth.user.client_ids.includes(client_id)) {
+      return { statusCode: 403, headers: cors, body: JSON.stringify({ error: "Not your client" }) };
+    }
+    return handleClientComment({ cors, item, client_id });
   }
 
   const isApproved = type === "approved";
