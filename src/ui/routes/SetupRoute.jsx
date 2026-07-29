@@ -129,6 +129,11 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
                         <option value="recurring">Recurring retainer</option><option value="brief">Brief / project</option>
                       </select>
                     </div>
+                    <div style={{ width: 150 }}>
+                      <label style={label}>Included revisions</label>
+                      <input type="number" min="0" defaultValue={c.included_revisions ?? 2} placeholder="2" style={input}
+                        onBlur={e => { const v = e.target.value === "" ? null : Number(e.target.value); if (v !== (c.included_revisions ?? null)) patchClient(c.id, { included_revisions: v }); }} />
+                    </div>
                   </div>
                   <label style={label}>Services in scope</label>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>

@@ -75,6 +75,26 @@ export async function recordApproval({ item, decision, stage, feedback, approver
     });
   } catch { /* noop — Slack/email is a courtesy, not a gate */ }
 
+  // 4. Revision-cap check (soft — flags, never blocks). The portal/one-click
+  // path does the same check server-side in approval-decision.js.
+  if (decision === 'revision_requested' && clientId) {
+    try {
+      const { data: c } = await sb.from('clients').select('included_revisions, name').eq('id', clientId).single();
+      const cap = c?.included_revisions != null ? Number(c.included_revisions) : null;
+      if (cap != null && revisionCount >= cap) {
+        await apiFetch('/api/notify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            type: 'revision_cap_reached',
+            item: { id: itemId, title: item?.title, revision_count: revisionCount, cap, client: c?.name },
+            client_id: clientId,
+          }),
+        });
+      }
+    } catch { /* courtesy, not a gate */ }
+  }
+
   return { status, revision_count: revisionCount };
 }
 

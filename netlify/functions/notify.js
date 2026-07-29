@@ -263,6 +263,67 @@ async function handleApprovalRequested({ cors, item, client_id }) {
   return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, message, results }) };
 }
 
+// ── Revision cap reached ──────────────────────────────────────────────────────
+// An item just consumed its last included revision round (or went over).
+// Bell (amber) + Slack + admin email — the "bill the extra round?" prompt.
+async function handleRevisionCapReached({ cors, item, client_id }) {
+  const results = [];
+  const over = Number(item.revision_count) > Number(item.cap);
+  const message = `⚠️ "${item.title}" is on revision round ${item.revision_count} of ${item.cap} included${over ? " — OVER the cap" : ""}${item.client ? ` (${item.client})` : ""}`;
+
+  const dbResult = await insertNotification({ type: "revision_cap_reached", item, message, client_id });
+  results.push({ channel: "supabase", ...dbResult });
+  if (dbResult.deduped) {
+    return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, deduped: true, results }) };
+  }
+
+  let SLACK = process.env.SLACK_WEBHOOK_URL;
+  if (client_id && SERVICE_KEY) {
+    try {
+      const cRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/clients?id=eq.${client_id}&select=slack_webhook_url`,
+        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      );
+      const row = cRes.ok ? (await cRes.json())?.[0] : null;
+      if (row?.slack_webhook_url) SLACK = row.slack_webhook_url;
+    } catch { /* global fallback */ }
+  }
+  if (SLACK) {
+    try {
+      const r = await fetch(SLACK, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocks: [
+          { type: "section", text: { type: "mrkdwn", text: `⚠️ *Revision cap${over ? " exceeded" : " reached"}*\n*${escapeHtml(item.title)}* — round ${item.revision_count} of ${item.cap} included${item.client ? ` · ${escapeHtml(item.client)}` : ""}\n_Extra rounds may be billable — check the scope._` } },
+          { type: "context", elements: [{ type: "mrkdwn", text: "Vantus · revision tracking" }] },
+        ] }),
+      });
+      results.push({ channel: "slack", ok: r.ok });
+    } catch (e) { results.push({ channel: "slack", ok: false, error: e.message }); }
+  }
+
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  if (RESEND_KEY) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: "Vantus <notifications@cloudscenic.com>",
+          to: ADMIN_EMAILS,
+          subject: `⚠️ Revision cap ${over ? "exceeded" : "reached"}: "${item.title}"`,
+          html: `<p style="font-family:-apple-system,Inter,sans-serif;font-size:14px;color:#1d1d1f;">${escapeHtml(message)}. Extra rounds may be billable — check the client's scope in Vantus.</p>`,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      results.push({ channel: "email", ok: res.ok, id: data.id, error: data.message });
+    } catch (e) { results.push({ channel: "email", ok: false, error: e.message }); }
+  } else {
+    results.push({ channel: "email", ok: false, error: "RESEND_API_KEY not set" });
+  }
+
+  return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, message, results }) };
+}
+
 // ── Client comment (portal feedback thread) ──────────────────────────────────
 // Bell + Slack only — every comment is its own event (dedupe on the comment id,
 // which the client's insert already created). No email; comments are chatter,
@@ -351,6 +412,13 @@ exports.handler = async (event) => {
   if (type === "approval_requested") {
     if (auth.user.role !== "admin") return { statusCode: 403, headers: cors, body: JSON.stringify({ error: "Admins only" }) };
     return handleApprovalRequested({ cors, item, client_id });
+  }
+
+  // Revision cap: admin sessions only (the service-key decision endpoint does
+  // its own server-side check for portal/one-click kickbacks).
+  if (type === "revision_cap_reached") {
+    if (auth.user.role !== "admin") return { statusCode: 403, headers: cors, body: JSON.stringify({ error: "Admins only" }) };
+    return handleRevisionCapReached({ cors, item, client_id });
   }
 
   // Portal comment: clients fire this for their own client_id only.

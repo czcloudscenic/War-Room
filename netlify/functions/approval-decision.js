@@ -217,6 +217,42 @@ async function executeDecision({ item, decision, gate, feedback, approverEmail, 
     }));
   }
 
+  // 4. Revision-cap check (soft flag; the admin-session path does the same via
+  //    /api/notify). Bell + Slack line — admins already got the revision email.
+  if (decision === "revision_requested" && item.client_id) {
+    try {
+      const cRes = await sb(`clients?id=eq.${item.client_id}&select=included_revisions,name,slack_webhook_url`);
+      const row = cRes.ok ? (await cRes.json())?.[0] : null;
+      const cap = row?.included_revisions != null ? Number(row.included_revisions) : null;
+      if (cap != null && revisionCount >= cap) {
+        const over = revisionCount > cap;
+        const capMsg = `⚠️ "${item.title}" is on revision round ${revisionCount} of ${cap} included${over ? " — OVER the cap" : ""}${row?.name ? ` (${row.name})` : ""}`;
+        await sb("notifications", {
+          method: "POST",
+          headers: { Prefer: "resolution=ignore-duplicates" },
+          body: JSON.stringify({
+            type: "revision_cap_reached",
+            content_item_id: String(item.id),
+            dedupe_key: `revision_cap_reached:${item.id}:r${revisionCount}`,
+            client_id: item.client_id,
+            recipient_email: null,
+            payload: { item: { id: item.id, title: item.title, revision_count: revisionCount, cap, client: row?.name }, message: capMsg },
+          }),
+        });
+        const capSlack = row?.slack_webhook_url || process.env.SLACK_WEBHOOK_URL;
+        if (capSlack) {
+          await fetch(capSlack, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ blocks: [
+              { type: "section", text: { type: "mrkdwn", text: `⚠️ *Revision cap${over ? " exceeded" : " reached"}*\n${esc(capMsg)}\n_Extra rounds may be billable — check the scope._` } },
+              { type: "context", elements: [{ type: "mrkdwn", text: "Vantus · revision tracking" }] },
+            ] }),
+          }).catch(() => {});
+        }
+      }
+    } catch (e) { console.warn("[approval-decision] cap check failed:", e.message); }
+  }
+
   return { newStatus, revisionCount, results };
 }
 

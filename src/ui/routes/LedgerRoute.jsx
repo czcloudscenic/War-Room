@@ -182,7 +182,19 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
                 <div onClick={() => { setExpandedId(open ? null : item.id); setErr(null); }} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 18px", borderBottom: (i < rows.length - 1 || open) ? "1px solid rgba(255,255,255,0.05)" : "none", flexWrap: isMobile ? "wrap" : "nowrap", cursor: "pointer", background: open ? "rgba(255,255,255,0.02)" : "transparent" }}>
                   <div style={col(2.4)}>
                     <div style={{ fontSize: 13, color: "#f5f5f7", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title || "Untitled"}</div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace", marginTop: 2 }}>{[item.type, item.platform].filter(Boolean).join(" · ") || "—"}{item.revision_count ? ` · rev ${item.revision_count}` : ""}</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace", marginTop: 2 }}>
+                      {[item.type, item.platform].filter(Boolean).join(" · ") || "—"}
+                      {(() => {
+                        // Revision badge vs the client's included_revisions cap:
+                        // grey under, amber at, red over. No cap set → plain count.
+                        const revs = Number(item.revision_count) || 0;
+                        if (!revs) return null;
+                        const c = safeClients.find(x => x?.id === item.client_id);
+                        const cap = c?.included_revisions != null ? Number(c.included_revisions) : null;
+                        const color = cap == null ? "rgba(255,255,255,0.4)" : revs > cap ? "#ff453a" : revs === cap ? "#ff9f0a" : "rgba(255,255,255,0.4)";
+                        return <span style={{ color, fontWeight: cap != null && revs >= cap ? 700 : 400 }}>{` · R${revs}${cap != null ? `/${cap}` : ""}`}</span>;
+                      })()}
+                    </div>
                   </div>
                   <div style={{ ...col(1.2), display: "flex", alignItems: "center", gap: 7 }}>
                     <div style={{ width: 6, height: 6, borderRadius: "50%", background: clientColor(safeClients, item.client_id), flexShrink: 0 }} />

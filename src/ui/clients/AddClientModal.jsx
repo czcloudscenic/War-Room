@@ -36,6 +36,7 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
   const [approvalRule, setApprovalRule] = useState(editingClient?.approval_rule || "internal");
   const [retainerAmount, setRetainerAmount] = useState(editingClient?.retainer_amount ?? "");
   const [retainerStatus, setRetainerStatus] = useState(editingClient?.retainer_status || "active");
+  const [includedRevisions, setIncludedRevisions] = useState(editingClient?.included_revisions ?? 2);
   const [postsPerWeek, setPostsPerWeek] = useState(editingClient?.posts_per_week ?? "");
   const [shootLeadTimeDays, setShootLeadTimeDays] = useState(editingClient?.shoot_lead_time_days ?? 14);
   const [contentTrackingEnabled, setContentTrackingEnabled] = useState(!!editingClient?.content_tracking_enabled);
@@ -112,6 +113,7 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
         approval_rule: approvalRule,
         retainer_amount: retainerAmount === "" ? null : Number(retainerAmount),
         retainer_status: retainerStatus,
+        included_revisions: includedRevisions === "" ? null : Number(includedRevisions),
         posts_per_week: parsedPostsPerWeek,
         shoot_lead_time_days: parsedShootLeadTimeDays,
         content_tracking_enabled: contentTrackingEnabled,
@@ -331,6 +333,10 @@ export default function AddClientModal({ onClose, onCreated, onUpdated, editingC
                 <option value="pending">Pending</option>
                 <option value="none">None</option>
               </select>
+            </div>
+            <div style={{ flex:1 }}>
+              <label style={labelStyle}>Included revisions</label>
+              <input type="number" min="0" value={includedRevisions} onChange={e => setIncludedRevisions(e.target.value)} placeholder="2" style={inputStyle} />
             </div>
           </div>
         </div>
