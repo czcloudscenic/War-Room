@@ -177,6 +177,17 @@ return f.url; // direct URL (Supabase storage etc.)
       </div>
     </div>
 
+    {/* Approval routing — who signs this item off at the approval gates.
+        'client' surfaces it in the client portal + emails one-click links. */}
+    <div style={{ marginBottom:18 }}>
+      <label style={labelStyle}>Approval</label>
+      <select style={selectStyle} value={form.approval_mode || "internal"} onChange={e => set("approval_mode", e.target.value)}>
+        <option value="internal">Internal — team approves</option>
+        <option value="client">Client — portal + one-click email</option>
+        <option value="auto">Auto — no approval gate</option>
+      </select>
+    </div>
+
     {/* Platforms */}
     <div style={{ marginBottom:18 }}>
       <label style={labelStyle}>Platforms</label>

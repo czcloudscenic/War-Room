@@ -16,6 +16,7 @@ import { routeTask } from './core/routeTask.js';
 import { maybeNotifyApprovalRequested } from './core/approvals.js';
 import { DEFAULT_APPS, loadApps } from './apps/apps.config.js';
 import AppPlaceholder from './ui/shared/AppPlaceholder.jsx';
+import ClientPortal from './ui/client/ClientPortal.jsx';
 
 // ── Extracted UI components (Phase 3) ──
 import AppsPage from './ui/apps/AppsPage.jsx';
@@ -383,9 +384,13 @@ function App() {
   if (!session) return <LoginScreen />;
   // External-client invite still pending admin approval (Fix #2.6c, 2026-05-25)
   if (pendingInvite) return <PendingApprovalScreen email={pendingInvite.email} onSignOut={handleSignOut} />;
-  // External-client portal (ClientView) was ripped 2026-06-01 ahead of the
-  // self-serve IG-analyzer pivot. Approved external clients now see the main
-  // Vantus app — RLS on content_items already scopes them to their own rows.
+  // Approved external clients get the slim approval portal — never the admin
+  // shell. (The old full-CRUD ClientView was ripped 2026-06-01; from then until
+  // this branch landed, approved clients fell through to the admin app with
+  // only RLS scoping them.)
+  if (role === "client") {
+    return <ClientPortal session={session} clientIds={clientIds} onSignOut={handleSignOut} />;
+  }
   return <Vantus onSignOut={handleSignOut} userEmail={session.user.email} userId={session.user.id} content={content} setContent={setContent} />;
 }
 
@@ -686,6 +691,8 @@ type: "reel",
 stage: "Ready For Copy Creation",
 campaign: "",
 status: "Ready For Copy Creation",
+// Approval routing defaults to the client's configured rule (Setup → approval_rule).
+approval_mode: currentClient?.approval_rule || "internal",
 format: "Reel",
 pillar: "",
 platforms: ["IG"],
