@@ -1,11 +1,29 @@
 // ── Constants ──
 
 export const NAV = [
-  { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"clients", label:"Clients" }, { id:"setup", label:"Setup" }, { id:"ledger", label:"Ledger" }, { id:"reports", label:"Reports" }, { id:"clientanalytics", label:"Client Analytics" }, { id:"operations", label:"Operations" }, { id:"agents", label:"Agents" }, { id:"dynasty", label:"Software OPS", adminOnly:true }]},
+  { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"approvals", label:"Approvals" }, { id:"clients", label:"Clients" }, { id:"setup", label:"Setup" }, { id:"ledger", label:"Ledger" }, { id:"reports", label:"Reports" }, { id:"clientanalytics", label:"Client Analytics" }, { id:"operations", label:"Operations" }, { id:"agents", label:"Agents" }, { id:"dynasty", label:"Software OPS", adminOnly:true }]},
   { section:"CONTENT", items:[{ id:"ideas", label:"Idea Engine" }, { id:"content", label:"Pipeline" }, { id:"runway", label:"Content Runway" }]},
   { section:"FINANCE", items:[{ id:"billing", label:"Billing" }, { id:"vault", label:"Vault" }]},
   { section:"APPS", items:[{ id:"apps", label:"Apps" }, { id:"settings", label:"Settings" }]},
 ];
+
+// Bell + digest rendering per notification type. Anything not listed falls back
+// to a neutral label. `role` buckets the type for the per-role digest filter
+// (Phase A): founder = client relationship moments, ops = pipeline mechanics,
+// finance = money. One map, two renderings (bell panel + NotificationDigest).
+export const NOTIF_META = {
+  approved:             { label: "Approved",            color: "#2AABFF", role: "founder" },
+  revision_requested:   { label: "Revisions requested", color: "#ff453a", role: "founder" },
+  approval_requested:   { label: "Sent for approval",   color: "#bf5af2", role: "ops" },
+  revision_cap_reached: { label: "Revision cap reached", color: "#ff9f0a", role: "founder" },
+  item_stuck:           { label: "Item stuck",          color: "#ff9f0a", role: "ops" },
+  task_overdue:         { label: "Task overdue",        color: "#ff9f0a", role: "ops" },
+  intake_received:      { label: "New intake request",  color: "#30d158", role: "ops" },
+  client_comment:       { label: "Client comment",      color: "#64d2ff", role: "founder" },
+  invoice_sent:         { label: "Invoice sent",        color: "#30d158", role: "finance" },
+  client_invite_first_login: { label: "Client signed in", color: "#bf5af2", role: "founder" },
+};
+export const notifMeta = (type) => NOTIF_META[type] || { label: String(type || "Update").replace(/_/g, " "), color: "rgba(255,255,255,0.5)", role: "ops" };
 
 export const STATUS_COLOR = {
   "Ready For Copy Creation":    "#f59e0b",

@@ -1,11 +1,23 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Card from '../../ui/shared/Card.jsx';
+import { sb } from '../../services/supabaseClient.js';
+
+// Briefs live in the skill_briefs table (20260805_activation migration) — the
+// old localStorage store meant "agents without skills" was uncheckable and a
+// deployed brief only existed in one browser. Any localStorage briefs found on
+// first load are imported once (flagged via vantus_skill_briefs_imported so two
+// admins don't double-import), then the DB is the only source.
+
+const LS_KEY = "vantus_skill_briefs";
+const LS_IMPORTED_FLAG = "vantus_skill_briefs_imported";
+
+// DB row → the shape this UI always used
+const rowToBrief = (r) => ({ id: r.id, title: r.title, desc: r.description || "", content: r.content || "", target: r.agent_name, ts: Date.parse(r.created_at) || Date.now() });
 
 export default function SkillsPage({ agents }) {
   const AGENT_COLORS = { Sean:"#2AABFF", Muse:"#ff375f", Scrappy:"#5e5ce6" };
-  const [briefs, setBriefs] = useState(() => {
-try { return JSON.parse(localStorage.getItem("vantus_skill_briefs") || "[]"); } catch { return []; }
-  });
+  const [briefs, setBriefs] = useState([]);
+  const [loadErr, setLoadErr] = useState(null);
   const [form, setForm] = useState({ title:"", desc:"", content:"", target:"All Agents" });
   const [expanded, setExpanded] = useState(null);
   const [deploying, setDeploying] = useState(false);
@@ -16,25 +28,67 @@ try { return JSON.parse(localStorage.getItem("vantus_skill_briefs") || "[]"); } 
   const TARGETS = ["All Agents", ...agents.map(a => a.name)];
   const agentCount = agents.length;
 
-  const deploy = () => {
-if (!form.title.trim() || !form.content.trim() || deploying) return;
-setDeploying(true);
-setTimeout(() => {
-  const brief = { id:`brief-${Date.now()}`, ...form, ts:Date.now() };
-  const updated = [brief, ...briefs];
-  setBriefs(updated);
-  try { localStorage.setItem("vantus_skill_briefs", JSON.stringify(updated.slice(0,50))); } catch {}
-  setDeployedId(brief.id);
-  setForm({ title:"", desc:"", content:"", target:"All Agents" });
-  setDeploying(false);
-  setTimeout(() => setDeployedId(null), 4000);
-}, 1000);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await sb.from("skill_briefs").select("*").order("created_at", { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        setLoadErr("Couldn't load briefs — is the 20260805_activation migration applied?");
+        console.warn("[skills] load error", error);
+        return;
+      }
+      let rows = data || [];
+
+      // One-time import of the old localStorage briefs into the DB.
+      let legacy = [];
+      try {
+        if (!localStorage.getItem(LS_IMPORTED_FLAG)) legacy = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+      } catch {}
+      if (legacy.length > 0) {
+        const inserts = legacy.map(b => ({
+          agent_name: b.target || "All Agents",
+          title: b.title || "Untitled brief",
+          description: b.desc || null,
+          content: b.content || null,
+          created_at: b.ts ? new Date(b.ts).toISOString() : new Date().toISOString(),
+        }));
+        const { data: imported, error: impErr } = await sb.from("skill_briefs").insert(inserts).select();
+        if (!impErr && Array.isArray(imported)) {
+          rows = [...imported, ...rows];
+          try { localStorage.setItem(LS_IMPORTED_FLAG, "1"); } catch {}
+          console.log(`[skills] imported ${imported.length} localStorage brief(s) into skill_briefs`);
+        } else if (impErr) {
+          console.warn("[skills] localStorage import failed", impErr);
+        }
+      }
+      if (!cancelled) setBriefs(rows.map(rowToBrief).sort((a, b) => b.ts - a.ts));
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const deploy = async () => {
+    if (!form.title.trim() || !form.content.trim() || deploying) return;
+    setDeploying(true);
+    const { data, error } = await sb.from("skill_briefs").insert({
+      agent_name: form.target,
+      title: form.title.trim(),
+      description: form.desc.trim() || null,
+      content: form.content,
+    }).select().single();
+    setDeploying(false);
+    if (error) { setLoadErr("Deploy failed: " + error.message); return; }
+    const brief = rowToBrief(data);
+    setBriefs(prev => [brief, ...prev]);
+    setDeployedId(brief.id);
+    setForm({ title:"", desc:"", content:"", target:"All Agents" });
+    setTimeout(() => setDeployedId(null), 4000);
   };
 
-  const deleteBrief = (id) => {
-const updated = briefs.filter(b => b.id !== id);
-setBriefs(updated);
-try { localStorage.setItem("vantus_skill_briefs", JSON.stringify(updated)); } catch {}
+  const deleteBrief = async (id) => {
+    setBriefs(prev => prev.filter(b => b.id !== id));
+    const { error } = await sb.from("skill_briefs").delete().eq("id", id);
+    if (error) console.warn("[skills] delete error", error);
   };
 
   return (
@@ -43,6 +97,7 @@ try { localStorage.setItem("vantus_skill_briefs", JSON.stringify(updated)); } ca
   <div style={{ marginBottom:32 }}>
     <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:32, fontWeight:700, color:"#f5f5f7", marginBottom:4, letterSpacing:-1 }}>Agent Skills</h1>
     <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", margin:0 }}>Write a skill brief and deploy it to a specific agent or broadcast to all {agentCount}. Agents receive it as a capability update.</p>
+    {loadErr && <p style={{ fontSize:12, color:"#ff453a", margin:"10px 0 0" }}>{loadErr}</p>}
   </div>
 
   {/*  BRIEF BUILDER  */}

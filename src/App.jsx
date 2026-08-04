@@ -7,7 +7,7 @@ import './styles/globals.css';
 import { sb, DB_CONNECTED } from './services/supabaseClient.js';
 import { apiFetch } from './services/apiFetch.js';
 import { getIsMobile, useIsMobile } from './utils/hooks.js';
-import { NAV } from './utils/constants.js';
+import { NAV, notifMeta } from './utils/constants.js';
 import { AGENTS_BASE, ACTION_COLORS } from './data/seed.agents.js';
 import { OPS_INIT } from './data/seed.ops.js';
 import { getMemory, setMemory, buildSystemPrompt, updateAgentMemory } from './core/memory.js';
@@ -30,6 +30,7 @@ import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
 
 const SkillsPage = React.lazy(() => import('./apps/skills/SkillsPage.jsx'));
+const ApprovalsRoute = React.lazy(() => import('./ui/routes/ApprovalsRoute.jsx'));
 const TeamBroadcast = React.lazy(() => import('./ui/agents/TeamBroadcast.jsx'));
 const SetupRoute = React.lazy(() => import('./ui/routes/SetupRoute.jsx'));
 const LedgerRoute = React.lazy(() => import('./ui/routes/LedgerRoute.jsx'));
@@ -46,6 +47,7 @@ const SoftwareOpsRoute = React.lazy(() => import('./ui/routes/SoftwareOpsRoute.j
 // between pages is instant (no per-click chunk fetch + Suspense flash). Keeps the
 // small initial bundle for fast login, then pre-downloads everything while idle.
 function prefetchRoutes() {
+  import('./ui/routes/ApprovalsRoute.jsx');
   import('./ui/routes/SetupRoute.jsx');
   import('./ui/routes/LedgerRoute.jsx');
   import('./ui/routes/ReportsRoute.jsx');
@@ -69,21 +71,8 @@ const ALLOWED_DOMAIN = "cloudscenic.com";
 const ACTIVE_CONTENT_DAYS = 90;
 const activeContentCutoff = () => new Date(Date.now() - ACTIVE_CONTENT_DAYS * 86400000).toISOString();
 
-// Bell rendering per notification type. Anything not listed falls back to a
-// neutral label instead of the old binary approved/red-"Revisions requested".
-const NOTIF_META = {
-  approved:             { label: "Approved",            color: "#2AABFF" },
-  revision_requested:   { label: "Revisions requested", color: "#ff453a" },
-  approval_requested:   { label: "Sent for approval",   color: "#bf5af2" },
-  revision_cap_reached: { label: "Revision cap reached", color: "#ff9f0a" },
-  item_stuck:           { label: "Item stuck",          color: "#ff9f0a" },
-  task_overdue:         { label: "Task overdue",        color: "#ff9f0a" },
-  intake_received:      { label: "New intake request",  color: "#30d158" },
-  client_comment:       { label: "Client comment",      color: "#64d2ff" },
-  invoice_sent:         { label: "Invoice sent",        color: "#30d158" },
-  client_invite_first_login: { label: "Client signed in", color: "#bf5af2" },
-};
-const notifMeta = (type) => NOTIF_META[type] || { label: String(type || "Update").replace(/_/g, " "), color: "rgba(255,255,255,0.5)" };
+// NOTIF_META moved to utils/constants.js (Phase A) — the bell panel and the
+// cross-client NotificationDigest render from the same map, one spine.
 
 function App() {
   const [session, setSession] = useState(null);
@@ -1364,6 +1353,20 @@ try {
         agents={agents}
         selectedAgent={selectedAgent}
         setSelectedAgent={setSelectedAgent}
+        clients={clients}
+        content={content}
+        setActiveNav={setActiveNav}
+      />
+    )}
+
+    {/* APPROVALS — internal inbox (Phase A). Edit reuses EditContentModal via setEditingItem. */}
+    {activeNav === "approvals" && (
+      <ApprovalsRoute
+        isMobile={isMobile}
+        clients={clients}
+        content={content}
+        currentUser={{ id: userId, email: userEmail }}
+        onEdit={(item) => { setEditingItem(item); setIsNewItem(false); }}
       />
     )}
 

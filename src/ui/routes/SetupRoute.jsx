@@ -134,6 +134,20 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
                       <input type="number" min="0" defaultValue={c.included_revisions ?? 2} placeholder="2" style={input}
                         onBlur={e => { const v = e.target.value === "" ? null : Number(e.target.value); if (v !== (c.included_revisions ?? null)) patchClient(c.id, { included_revisions: v }); }} />
                     </div>
+                    {/* Phase A landing spots: account owner + posting cadence feed the
+                        activation checklist ("missing owners" / "cadence unset"). */}
+                    <div style={{ width: 170 }}>
+                      <label style={label}>Account owner</label>
+                      <select value={cval(c, "owner_team_member_id") || ""} style={input} onChange={e => patchClient(c.id, { owner_team_member_id: e.target.value || null })}>
+                        <option value="">— Unassigned —</option>
+                        {safeTeam.map(m => <option key={m?.id} value={m?.id}>{m?.name || m?.email}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ width: 110 }}>
+                      <label style={label}>Posts / week</label>
+                      <input type="number" min="0" step="0.5" defaultValue={c.posts_per_week ?? ""} placeholder="—" style={input}
+                        onBlur={e => { const v = e.target.value === "" ? null : Number(e.target.value); if (v !== (c.posts_per_week ?? null)) patchClient(c.id, { posts_per_week: v }); }} />
+                    </div>
                   </div>
                   <label style={label}>Services in scope</label>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>

@@ -245,6 +245,25 @@ export function MonthlyReports({ clients = [] }) {
               </label>
               {!c.primary_email && <span style={{ fontSize: 10, color: "#ff9f0a" }}>no client email on file — set primary_email or it mails the team</span>}
             </div>
+            {/* Phase A: explicit report recipients (clients.report_recipients).
+                Empty = falls back to primary_email, same as before. */}
+            <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ ...label, marginBottom: 0, whiteSpace: "nowrap" }}>Recipients</span>
+              <input
+                defaultValue={Array.isArray(c.report_recipients) ? c.report_recipients.join(", ") : ""}
+                placeholder={c.primary_email ? `defaults to ${c.primary_email}` : "email, email, …"}
+                style={{ ...input, flex: 1, minWidth: 220, padding: "7px 10px", fontSize: 13 }}
+                onBlur={e => {
+                  const list = e.target.value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+                  const prev = Array.isArray(c.report_recipients) ? c.report_recipients : [];
+                  if (JSON.stringify(list) !== JSON.stringify(prev)) {
+                    sb.from("clients").update({ report_recipients: list }).eq("id", c.id).then(({ error }) => {
+                      if (error) console.warn("[reports] recipients save error", error);
+                    });
+                  }
+                }}
+              />
+            </div>
             {msg && msg.id === c.id && <div style={{ fontSize: 11.5, marginTop: 8, color: msg.ok ? "#30d158" : "#ff453a" }}>{msg.text}</div>}
             {rows.length > 0 && (
               <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>

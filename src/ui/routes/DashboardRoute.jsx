@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { AGENT_TASKS } from '../../data/seed.agents.js';
+import { bookActivation } from '../../core/activation.js';
 import ActivityFeed from '../dashboard/ActivityFeed.jsx';
+import ActivationBoard, { useActivationData } from '../dashboard/ActivationBoard.jsx';
+import CommandView from '../dashboard/CommandView.jsx';
 import CommandInput from '../dashboard/CommandInput.jsx';
 import OpsBoard from '../dashboard/OpsBoard.jsx';
 import AgentAvatar from '../shared/AgentAvatar.jsx';
@@ -17,7 +20,21 @@ export default function DashboardRoute({
   agents,
   selectedAgent,
   setSelectedAgent,
+  clients,
+  content,
+  setActiveNav,
 }) {
+  // ── Activation state (Phase A) ──
+  // While the book is under-configured, the KPI grid is replaced by the
+  // ActivationBoard: zeros presented as KPIs are the dashboard's biggest lie.
+  const { accounts, clientUsers, skillBriefs, loaded: activationLoaded } = useActivationData();
+  const book = useMemo(() => bookActivation(clients, content, {
+    accounts, clientUsers, skillBriefs,
+    agentNames: (agents || []).map(a => a.name),
+  }), [clients, content, accounts, clientUsers, skillBriefs, agents]);
+  const [peekKpis, setPeekKpis] = useState(false);
+  const showActivation = activationLoaded && !book.activated && !peekKpis;
+
   return (
     <div style={{ animation:"fadeIn 0.4s ease" }}>
       {/*  HERO  */}
@@ -36,8 +53,29 @@ export default function DashboardRoute({
         </div>
       </div>
 
+      {/*  ACTIVATION STATE — replaces the KPI grid while the book is under-configured  */}
+      {showActivation && (
+        <ActivationBoard
+          isMobile={isMobile}
+          book={book}
+          loaded={activationLoaded}
+          setActiveNav={setActiveNav}
+          onPeek={() => setPeekKpis(true)}
+        />
+      )}
+      {peekKpis && activationLoaded && !book.activated && (
+        <button onClick={() => setPeekKpis(false)}
+          style={{ marginBottom: 16, fontSize: 10, fontWeight: 700, fontFamily: "'Geist Mono', monospace", letterSpacing: 1, textTransform: "uppercase", padding: "7px 13px", borderRadius: 8, background: "rgba(255,159,10,0.08)", border: "1px solid rgba(255,159,10,0.3)", color: "#ff9f0a", cursor: "pointer" }}>
+          ← Back to activation view ({book.openActionCount} open)
+        </button>
+      )}
+
+      {/*  FOUNDER COMMAND VIEW — the daily "what needs attention" tiers.
+          Below the activation board while configuring, at the top once live. */}
+      <CommandView isMobile={isMobile} clients={clients} content={content} setActiveNav={setActiveNav} />
+
       {/*  EMPTY-STATE BANNER — appears for freshly-created clients with no content yet  */}
-      {currentClient && clientContent.length === 0 && (
+      {!showActivation && currentClient && clientContent.length === 0 && (
         <div style={{ marginBottom: isMobile ? 20 : 32, padding: isMobile ? "20px 22px" : "26px 30px", background: "rgba(42,171,255,0.05)", border: "1px solid rgba(42,171,255,0.18)", borderRadius: 14 }}>
           <div style={{ fontSize:9, fontWeight:700, letterSpacing:2, color:"rgba(42,171,255,0.7)", textTransform:"uppercase", marginBottom:8 }}>Empty Dashboard</div>
           <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 22 : 26, fontStyle:"italic", color:"#f5f5f7", fontWeight:400, marginBottom:8, letterSpacing:-0.5 }}>
@@ -50,6 +88,7 @@ export default function DashboardRoute({
       )}
 
       {/*  METRIC GRID — 2x2 on mobile, asymmetric on desktop  */}
+      {!showActivation && (
       <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1.4fr 1fr 1fr", gridTemplateRows:"auto", gap: isMobile ? 10 : 14, marginBottom: isMobile ? 24 : 44 }}>
         {isMobile ? (
           <>
@@ -70,6 +109,7 @@ export default function DashboardRoute({
           </>
         )}
       </div>
+      )}
 
       {/*  QUICK ACTIONS  */}
       <div style={{ marginBottom: isMobile ? 24 : 44 }}>

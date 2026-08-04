@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { clientRunway } from '../../utils/runway.mjs';
+import { setupScore } from '../../core/activation.js';
 
 // ── Clients CRM home ──────────────────────────────────────────────────────────
 // All-clients fulfillment dashboard. Each client is a workspace card showing
@@ -35,20 +36,9 @@ function relTime(ts) {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-// Workspace setup completeness — an honest readout of how configured a client is.
-// Prefers a real onboarding_progress column once the migration adds it.
-function setupScore(client, hasContent, hasProof) {
-  if (typeof client.onboarding_progress === "number") {
-    return Math.max(0, Math.min(100, Math.round(client.onboarding_progress)));
-  }
-  let s = 0;
-  if (client.brand_voice_md && client.brand_voice_md.trim().length > 20) s += 25;
-  if (client.logo_url)      s += 15;
-  if (client.primary_email) s += 15;
-  if (hasContent)           s += 20;
-  if (hasProof)             s += 25; // approved or scheduled work = live production
-  return s;
-}
+// Workspace setup % now comes from core/activation.js — the one checklist the
+// Dashboard's activation state also renders, so the two can never disagree.
+// (The old ad-hoc brand/logo/email/content weights lived here until Phase A.)
 
 function clientStats(client, content) {
   const items = content.filter(x => x.client_id === client.id);
@@ -65,7 +55,10 @@ function clientStats(client, content) {
     total: items.length,
     approved, scheduled, attention, production,
     last: lastTs || null,
-    setup: setupScore(client, items.length > 0, approved + scheduled > 0),
+    // Grid render path has no accounts/client_users loaded; the checklist's
+    // client-only checks still dominate the score and onboarding_progress
+    // overrides win. Dashboard's ActivationBoard shows the fully-fed number.
+    setup: setupScore(client, items),
   };
 }
 
