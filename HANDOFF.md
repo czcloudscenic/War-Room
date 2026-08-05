@@ -1,8 +1,21 @@
 # Vantus Handoff Brief
 
+## 2026-08-05 — Phase A sits COMMITTED + UNPUSHED (`f6e198d`); go-live is a 3-step sequence
+
+**Current state:** local main is 1 commit ahead of origin (`f6e198d`, the full Phase A build below). Working tree otherwise clean except the pre-existing `netlify/functions/dynasty.js` modification (Dynasty terminal's, untouched) and untracked `deno.lock`. Nothing applied to prod yet — neither SQL nor code.
+
+**Go-live sequence, in order (a push IS a prod deploy):**
+1. Apply `supabase/migrations/20260805_activation.sql` in the Supabase SQL editor (project wjcs…). Idempotent; adds `clients.report_recipients`, `clients.owner_team_member_id`, `skill_briefs`.
+2. `git push origin main` after review — Netlify auto-deploys.
+3. First login will show the Dashboard in ACTIVATION STATE with everything red — that is the feature working, not a regression. It stays that way until the data entry lands (Danny's side: 17 skill briefs via Apps → Skills, Facts of Record, retainer numbers, cadence; plus per-client owner in Setup §1).
+
+**Danny call (estimate handoff) still pending.** `VANTUS-PHASE-A-ESTIMATE.md` (repo root, in the commit) carries the three open questions: rule-based vs AI-written approvals rationale (+2-3d), explicit approval-mode confirmation flag (+0.5d), email digests gated on RESEND_API_KEY (his console item). Also tell him: the skill-brief deploy task DEPENDS on step 1 above — briefs deployed before the migration land in a browser's localStorage, not the system (the app auto-imports them after, but don't rely on it across machines).
+
+**Out-of-repo context:** the Vantus marketing site is a separate repo at `~/vantus-site`, LIVE at https://vantus-site.netlify.app (future-facing positioning, waitlist Netlify form registered, no pricing per the spec's no-external-selling gate). Its GitHub repo (`czcloudscenic/vantus-site`) still needs to be created + pushed — no `gh` CLI on this machine.
+
 ## 2026-08-04 — Phase A (v3 spec) BUILT: activation dashboard, approvals inbox, command view, digest. ⚠️ MIGRATION GATE before push
 
-**Danny's VANTUS-V3-BUILD-SPEC.md (frozen 7/31) reviewed → estimate in `VANTUS-PHASE-A-ESTIMATE.md` (repo root) → Christian green-lit → Phase A implemented this session. Committed locally, NOT pushed.**
+**Danny's VANTUS-V3-BUILD-SPEC.md (frozen 7/31) reviewed → estimate in `VANTUS-PHASE-A-ESTIMATE.md` (repo root) → Christian green-lit → Phase A implemented this session. Committed locally in `f6e198d`, NOT pushed.**
 
 - **⚠️ DEPLOY ORDER (the whole risk of this drop):** apply `supabase/migrations/20260805_activation.sql` in the Supabase SQL editor FIRST, then push. It adds `clients.report_recipients`, `clients.owner_team_member_id`, and the new `skill_briefs` table (admin-domain RLS). The app tolerates the missing table (warns, shows an error line on Skills) but the activation checklist and Skills page only go fully live after the migration. Idempotent, additive, safe to re-run.
 - **Activation state (spec §3.A.1):** `src/core/activation.js` — 11 per-client checks computed only from real columns (contact, brand voice, Facts of Record via the existing `factsFilled()`, retainer [brief-lane exempt], cadence, approval-mode-with-approver, connected account, report recipients, account owner, content flowing, owner+due hygiene) + agents-without-briefs at book level. `ActivationBoard.jsx` replaces the Dashboard KPI grid while under-configured: score ring, next-5 actions (deep-link via setActiveNav), deficiency groups, per-client score strip, "View KPIs anyway" peek. `ClientsRoute.setupScore` now delegates to the same module — grid % and dashboard checklist can't disagree.
