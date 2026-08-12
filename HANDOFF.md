@@ -1,6 +1,22 @@
 # Vantus Handoff Brief
 
-## 2026-08-05 — Phase A sits COMMITTED + UNPUSHED (`f6e198d`); go-live is a 3-step sequence
+## 2026-08-12 — Phase A LIVE on prod (go-live sequence completed 8/7); critical path is the Danny call + his data entry
+
+**Go-live executed 8/7, in order and clean:** migration `20260805_activation.sql` applied by Christian in the Supabase SQL editor → `f6e198d` + `f5db0c3` pushed → Netlify deploy `6a7631ee…` went **ready** at 12:28pm. usevantus.com now serves the activation dashboard, approvals inbox, command view, and notification digest. The 8/5 entry's sequence is fully discharged; there is no migration exposure.
+
+**Standing reminder for whoever logs in first:** the Dashboard opens in ACTIVATION STATE with everything red. That is the feature working. It stays red until Danny's data entry lands (17 skill briefs via Apps → Skills — now writing to the real `skill_briefs` table, not localStorage — plus Facts of Record, retainers, cadence, per-client owner, report recipients, approval modes). "View KPIs anyway" shows the old grid.
+
+**Open board (non-code):**
+- Danny call — hand off `VANTUS-PHASE-A-ESTIMATE.md`, get answers on: AI-written approval rationale (+2-3d), explicit approval-mode-confirmed flag (+0.5d), `RESEND_API_KEY` (all email still `[email dry-run]`).
+- Browser stress-test pass — Phase A surfaces AND the client portal have never been exercised in a real browser (`STRESS-TEST.md`).
+- Post-pass cleanup: delete client "ZZ Stress Test" (slug `zz-stress`) + archive QC Test Kitchen; both will correctly trip the stuck-item cron.
+- Console loose ends: rogue Resend-named env var (7/8), `vantus-site` GitHub repo not yet created/pushed, Dynasty passcode rotation (`temppass`).
+
+**Coding backlog = v3 spec Phases B–E** (spec lives OUTSIDE the repo at `~/Downloads/VANTUS-V3-BUILD-SPEC.md`). Doctrine order: B (TRUTH — publish verification receipts, version/approval lineage, decision log + decision debt, exception engine, generalized audit trail, source-of-truth registry, freshness/stale gating, backup discipline) → C (Danny's views: health bars, bottleneck panel, receipts-grade activity rail [ship List View first], Growth v1, content merge, client workspace shell that retires Setup and fixes the Open button, WORK destination) → D (Scope Sentinel agent, Stripe, vault hardening, Profitability Lite) → E (interpreter/steward/rights clock/office). **Phase B is veto-safe and can start now; Phase C waits on Danny's Section 8 vetoes.** Phase B adds several new tables — same migration-before-push discipline applies.
+
+**Working tree:** `netlify/functions/dynasty.js` carries an uncommitted dev-only tweak (drops the localhost Origin header under `netlify dev` so the origin allowlist doesn't block local POSTs; prod untouched). It is the Dynasty terminal's change — leave it for that lane to commit. `deno.lock` untracked.
+
+## 2026-08-05 — Phase A sits COMMITTED + UNPUSHED (`f6e198d`); go-live is a 3-step sequence — ✅ DISCHARGED 8/7, see entry above
 
 **Current state:** local main is 1 commit ahead of origin (`f6e198d`, the full Phase A build below). Working tree otherwise clean except the pre-existing `netlify/functions/dynasty.js` modification (Dynasty terminal's, untouched) and untracked `deno.lock`. Nothing applied to prod yet — neither SQL nor code.
 
