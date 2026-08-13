@@ -174,3 +174,28 @@ The router is below the estimated 250-300 lines because the preserved router/dis
 - No other `netlify/functions/` file, `src/` file, prompt, model, token cap, rate limit, dependency, environment file, secret, migration, deployment, paid API, remote, or live checkout state was changed.
 - Existing architecture-map artifacts were not regenerated because this brief explicitly limits modified files to the router split and this report.
 - No push or PR was performed.
+
+## 2026-08-13 TRUTH layer UI pack
+
+Branch: `codex/grunt-2026-08-13`
+
+### Changed
+
+- Added `src/ui/truth/AuditTrailPanel.jsx`, a reusable embedded audit history panel with actor chips, value changes, reasons, relative timestamps, and missing-table fallback.
+- Added `src/ui/truth/DecisionLogRoute.jsx`, including open debt ranking, decided history, client filtering/fallback lookup, create/edit/delete actions, and inline decision recording.
+- Added `src/ui/truth/FreshnessBadge.jsx` with the exported `freshnessState` threshold helper.
+- Added `src/ui/truth/BackupsCard.jsx` with latest export/restore status, run history, the static restore checklist, and restore-test logging.
+- All data surfaces fail to quiet inline states when their Phase B tables are unavailable.
+
+### Validation
+
+- `npm run build` passed before each of the four per-file UI commits.
+- `git diff --check` passed for all four UI files.
+- No new dependencies, CSS files, migrations, environment files, or secrets were added or edited by this lane.
+
+### Skipped / untouched
+
+- No App wiring or integration edits were made.
+- Parallel-lane changes already present in the shared worktree, including `src/App.jsx`, core files, Netlify files, `supabase/migrations/20260813_truth.sql`, `TruthDrawer.jsx`, and `TruthRegistryCard.jsx`, were left untouched.
+- No deployment, paid API call, push, or PR was performed.
+- `CODEX_NOTES.md` is the sole existing-file edit from this lane because the repository contract requires an end-of-session summary; the task deliverables themselves remain new files under `src/ui/truth/` only.
