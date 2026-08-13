@@ -199,3 +199,27 @@ Branch: `codex/grunt-2026-08-13`
 - Parallel-lane changes already present in the shared worktree, including `src/App.jsx`, core files, Netlify files, `supabase/migrations/20260813_truth.sql`, `TruthDrawer.jsx`, and `TruthRegistryCard.jsx`, were left untouched.
 - No deployment, paid API call, push, or PR was performed.
 - `CODEX_NOTES.md` is the sole existing-file edit from this lane because the repository contract requires an end-of-session summary; the task deliverables themselves remain new files under `src/ui/truth/` only.
+
+## 2026-08-13 Content Intel v1.1 UI pack
+
+Branch: `codex/grunt-2026-08-13b`
+
+### Changed
+
+- Added `src/ui/intel/BenchmarksCard.jsx` with client benchmark reads, manual percent editing, per-bar default resets, and control-post send/save rate calibration.
+- Added `src/ui/intel/PillarsEditor.jsx` with the production TOF/MOF/BOF defaults, editable pillar rows, validation, delete confirmation, dirty tracking, and client persistence.
+- Added `src/ui/intel/IdeaPromoteButton.jsx` with inline confirmation, the complete `content_items` pipeline payload, idea status update, and success/error states.
+- Empty, unavailable, and write-error paths render quiet inline lines rather than breaking their host surface.
+
+### Validation
+
+- Fetched latest `origin/main` and branched from Content Intel commit `28da133`.
+- `npm run build` passed before each of the three per-file commits and before this summary commit.
+- All three unwired JSX files compiled directly with the repository's installed Rolldown binary.
+- `git diff --check` passed for the scoped UI files and final branch diff.
+
+### Skipped / untouched
+
+- No App, constants, ContentIntelRoute, migration, dependency, environment, deployment, paid API, remote, or production data changes were made.
+- Existing dirty Netlify artifacts and `deno.lock` in the shared checkout were preserved untouched.
+- No push or PR was performed.
