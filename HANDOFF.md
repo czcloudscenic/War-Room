@@ -1,6 +1,22 @@
 # Vantus Handoff Brief
 
-## 2026-08-13 — Phase B (TRUTH) BUILT + Codex UI pack MERGED. ⚠️ MIGRATION GATE: `20260813_truth.sql` in the Supabase editor BEFORE push.
+## 2026-08-13 (later) — Content Intel (Studio Intel port) BUILT + committed. ⚠️ MIGRATION GATE: `20260813_content_analysis.sql` BEFORE push. Phase B browser stress test PASSED same day.
+
+**Stress test first:** Phase B verified in a real browser against prod (Playwright, admin magic-link session): Decisions CRUD loop, TruthDrawer receipts, live approval minted immutable v1 + approved_version_id, stale-facts hard gate blocked scheduling, block-reason save → Ledger flag → founder digest with SLA-paused marker, 3 audit rows verified in DB, Settings cards render. Test artifacts cleaned (decision row deleted; ZZ fixture kept for the team's portal pass). Known pre-existing wart: one CSP inline-style console error on load. Not exercised: Mark-posted URL prompt, the two Phase B crons (fire on schedule).
+
+**Then the port (per Studio's STUDIO-INTEL-TO-VANTUS guide):** per-client Content Intel — reads the IG posts the sync already lands in `account_posts`, computes send/save/follow/hook-hold rates vs per-client benchmarks, plus two AI actions (ideas from live performance, winners/losers scoring). Nothing auto-posts, ever.
+
+- **⚠️ DEPLOY ORDER:** `supabase/migrations/20260813_content_analysis.sql` in the Supabase editor FIRST (staged in TextEdit). Tables: `content_analysis` (**account_post_id is BIGINT — the guide assumed uuid, but account_posts.id is bigserial; fixed**), `content_ideas`, `content_benchmarks`, + `clients.content_pillars` jsonb. RLS admin-domain; portal users see nothing.
+- **Handler:** `agent-action/handlers/intel.js` (house CJS, `ai()`/`sbGet` from _shared) — `intel_score_content`, `intel_generate_ideas`, `intel_set_idea_status` (the taste-loop write). Wired into the dispatcher **admin-only** (service-key writes bypass RLS; portal sessions get 403). `intel` prefix → Scrappy in AGENT_PREFIX_MAP; agent_events logging is automatic. Brand context = `brand.voice` (getBrandContext), replacing Studio's personal KNOWLEDGE block; to run Christian's own account, paste his KNOWLEDGE text into that client's brand_voice_md.
+- **Cron:** `intel-refresh` (15:30 UTC) — nightly deterministic rate recompute for every IG-connected client, zero AI spend; rewritten from the guide's Functions-2.0 style to the house CJS + next_run gate. AI reads stay on-demand.
+- **Sync delta:** `sync-instagram.js` REELS/VIDEO metric list now requests `ig_reels_avg_watch_time` (stored raw ms in metrics jsonb; readMetrics divides) + Studio's degrade-retry (one unsupported metric no longer loses ALL insights for that media — previously it did).
+- **UI:** `ContentIntelRoute.jsx` — new "Content Intel" nav under CONTENT: benchmark bars ("bars to beat", Studio defaults until a client has `content_benchmarks` rows), ranked table with ▲/▼ vs bars, Run analysis / Generate ideas, idea queue with Approve/Kill. Guide's foreign palette + fictional `useSupabaseRows(table, options)` signature replaced with house style + the real query-builder hook. Browser-safe math copy in `src/utils/contentMetrics.js` (handler keeps its own — change together).
+- **Deliberately dropped from the guide:** comments ingestion (Vantus doesn't ingest comments; re-addable later), the transcript clip scorer (excluded by the guide itself), Studio's IG_ACCESS_TOKEN/IG_USER_ID env (per-client tokens in connected_accounts are the right shape), Netlify env changes (none needed), CSP changes (all new calls are server-side or same-origin).
+- **Known-null by design:** `follow_rate` (IG doesn't expose per-media follows) and `hook_hold` (no duration source yet — was null in Studio too).
+- **Verify after migration+push:** cron dry-run `/.netlify/functions/intel-refresh?test=1&key=<CRON_TEST_KEY>`; `intel_score_content` on a client with synced IG posts (CloudScenic); ideas land as drafts; portal user sees zero rows.
+- Committed on main, NOT pushed (push on Christian's go).
+
+## 2026-08-13 — Phase B (TRUTH) BUILT + Codex UI pack MERGED. ⚠️ MIGRATION GATE: `20260813_truth.sql` in the Supabase editor BEFORE push. — ✅ SHIPPED same day: migration applied+verified 12/12, pushed on Christian's go, deploy ready. Stress test passed (see entry above).
 
 **Christian verified Phase A in the browser this morning ("looks good") and ordered Phase B.** All eight §3.B workstreams implemented; Codex built the presentational pack in parallel on `codex/grunt-2026-08-13` (5 clean commits, new-files-only) and it is merged + wired. Build clean. Committed on main, NOT pushed — main is now 4 commits ahead of origin.
 

@@ -33,6 +33,7 @@ const AGENT_PREFIX_MAP = {
   scrappy: "Scrappy",
   cid: "Scrappy",  // CID actions are Scrappy's domain
   qc: "QC",
+  intel: "Scrappy", // Content Intel (Studio port) is analyst work — Scrappy's domain
 };
 function deriveAgentName(actionKey) {
   const prefix = (actionKey || "").split("_")[0];

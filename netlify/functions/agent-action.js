@@ -45,6 +45,7 @@ const {
 const { sean_briefing } = require("./agent-action/handlers/sean");
 const { cid_build_brief, cid_ab_variations } = require("./agent-action/handlers/cid");
 const { ops_assign } = require("./agent-action/handlers/ops");
+const { intel_generate_ideas, intel_score_content, intel_set_idea_status } = require("./agent-action/handlers/intel");
 
 exports.handler = async (event) => {
   const cors = makeCors(event);
@@ -97,6 +98,20 @@ exports.handler = async (event) => {
       case "muse_film_brief":        result = await muse_film_brief(payload, brand); break;
       case "scrappy_analyze_performance": result = await scrappy_analyze_performance(payload, brand); break;
       case "ops_assign":             result = await ops_assign(payload); break;
+      // Content Intel (Studio Intel port) — admin-only: service-key writes
+      // bypass RLS, so portal sessions must not reach these.
+      case "intel_generate_ideas":
+      case "intel_score_content":
+      case "intel_set_idea_status": {
+        if (auth.user.role !== "admin") {
+          return { statusCode: 403, headers: cors, body: JSON.stringify({ error: "admin only" }) };
+        }
+        const intelPayload = { ...payload, client_id: payload.client_id || client_id };
+        if (action === "intel_generate_ideas") result = await intel_generate_ideas(intelPayload, brand);
+        else if (action === "intel_score_content") result = await intel_score_content(intelPayload, brand);
+        else result = await intel_set_idea_status(intelPayload);
+        break;
+      }
       default:
         await logAgentEvent({
           agent_name: "Unknown",

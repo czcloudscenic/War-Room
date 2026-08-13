@@ -82,7 +82,9 @@ function metricsForType(mediaType) {
   // IMAGE / CAROUSEL_ALBUM / VIDEO / REELS
   const t = (mediaType || "").toUpperCase();
   if (t === "REELS" || t === "VIDEO") {
-    return ["reach", "likes", "comments", "saved", "shares", "total_interactions", "views"];
+    // ig_reels_avg_watch_time: Content Intel's watch-time signal. Arrives in
+    // MILLISECONDS; stored raw — readMetrics() (intel) divides by 1000.
+    return ["reach", "likes", "comments", "saved", "shares", "total_interactions", "views", "ig_reels_avg_watch_time"];
   }
   if (t === "CAROUSEL_ALBUM") {
     return ["reach", "likes", "comments", "saved", "shares", "total_interactions"];
@@ -91,11 +93,17 @@ function metricsForType(mediaType) {
   return ["reach", "likes", "comments", "saved", "shares", "total_interactions"];
 }
 
-async function fetchInsights(mediaId, mediaType, accessToken) {
+// Minimal set every media type accepts — the degrade retry when the full list
+// 400s (Studio's ig.js pattern; before this, one unsupported metric lost ALL
+// insights for that media).
+const SAFE_METRICS = ["reach", "likes", "comments", "saved"];
+
+async function fetchInsights(mediaId, mediaType, accessToken, metricList = null) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), INSIGHTS_TIMEOUT_MS);
   try {
-    const metrics = metricsForType(mediaType).join(",");
+    const list = metricList || metricsForType(mediaType);
+    const metrics = list.join(",");
     const data = await graphGet(`/${mediaId}/insights`, accessToken, { metric: metrics }, { signal: controller.signal });
     const out = {};
     for (const m of data.data || []) {
@@ -105,6 +113,11 @@ async function fetchInsights(mediaId, mediaType, accessToken) {
     }
     return out;
   } catch (e) {
+    if (!metricList) {
+      // unsupported metric for this media type → retry with the minimal safe set
+      clearTimeout(timeout);
+      return fetchInsights(mediaId, mediaType, accessToken, SAFE_METRICS);
+    }
     console.warn(`[sync-ig] insights failed for ${mediaId} (${mediaType}):`, e.message);
     return {};
   } finally {
@@ -228,6 +241,8 @@ exports.handler = async (event) => {
       shares: insights.shares ?? null,
       total_interactions: insights.total_interactions ?? null,
       views: insights.views ?? null,
+      // Content Intel watch-time signal (REELS/VIDEO only; raw ms from the API)
+      ig_reels_avg_watch_time: insights.ig_reels_avg_watch_time ?? null,
     };
     // Engagement rate (rough): (likes + comments + saves + shares) / reach
     if (metrics.reach && metrics.reach > 0) {

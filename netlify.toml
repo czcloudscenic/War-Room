@@ -199,6 +199,13 @@
   schedule = "0 11 * * *"
   timeout = 26
 
+# Nightly Content Intel refresh — recomputes content_analysis rates from
+# account_posts for every client with a connected IG account. Deterministic
+# only, no AI spend. 15:30 UTC (~8:30am PT), after content-runway-check.
+[functions."intel-refresh"]
+  schedule = "30 15 * * *"
+  timeout = 26
+
 [functions."apify-scrape"]
   timeout = 26
 
