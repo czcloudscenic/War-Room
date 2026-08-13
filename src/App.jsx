@@ -34,6 +34,7 @@ import ContentRoute from './ui/routes/ContentRoute.jsx';
 
 const SkillsPage = React.lazy(() => import('./apps/skills/SkillsPage.jsx'));
 const ApprovalsRoute = React.lazy(() => import('./ui/routes/ApprovalsRoute.jsx'));
+const DecisionLogRoute = React.lazy(() => import('./ui/truth/DecisionLogRoute.jsx'));
 const TeamBroadcast = React.lazy(() => import('./ui/agents/TeamBroadcast.jsx'));
 const SetupRoute = React.lazy(() => import('./ui/routes/SetupRoute.jsx'));
 const LedgerRoute = React.lazy(() => import('./ui/routes/LedgerRoute.jsx'));
@@ -51,6 +52,7 @@ const SoftwareOpsRoute = React.lazy(() => import('./ui/routes/SoftwareOpsRoute.j
 // small initial bundle for fast login, then pre-downloads everything while idle.
 function prefetchRoutes() {
   import('./ui/routes/ApprovalsRoute.jsx');
+  import('./ui/truth/DecisionLogRoute.jsx');
   import('./ui/routes/SetupRoute.jsx');
   import('./ui/routes/LedgerRoute.jsx');
   import('./ui/routes/ReportsRoute.jsx');
@@ -1389,6 +1391,11 @@ try {
         currentUser={{ id: userId, email: userEmail }}
         onEdit={(item) => { setEditingItem(item); setIsNewItem(false); }}
       />
+    )}
+
+    {/* DECISIONS — client decision log + decision debt (Phase B, Codex UI pack) */}
+    {activeNav === "decisions" && (
+      <DecisionLogRoute clients={clients} activeClientId={currentClient?.id || null} />
     )}
 
     {/* CLIENTS — CRM home */}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '../../utils/hooks.js';
 import ConnectedAccountsCard from './ConnectedAccountsCard.jsx';
 import TruthRegistryCard from '../truth/TruthRegistryCard.jsx';
+import BackupsCard from '../truth/BackupsCard.jsx';
 
 const STORAGE_KEY = 'vantus_settings';
 
@@ -266,6 +267,9 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
+
+          {/* Backup discipline (Phase B) — export health, restore checklist, restore-test log */}
+          <BackupsCard />
         </div>
 
         {/* ── RIGHT COL: Connected Accounts + AI Engine + Team ── */}
