@@ -63,7 +63,7 @@ exports.handler = async (event) => {
   const statusList = statuses.map(s => `"${s}"`).join(",");
 
   // One read each: candidate items, client lookups, open alert states.
-  const iRes = await sb(`content_items?select=id,title,status,client_id,updated_at,approval_mode,revision_count,due_date&status=in.(${encodeURIComponent(statusList)})`);
+  const iRes = await sb(`content_items?select=id,title,status,client_id,updated_at,approval_mode,revision_count,due_date,block_reason,block_external,block_escalation_date&status=in.(${encodeURIComponent(statusList)})`);
   if (!iRes.ok) return { statusCode: 500, body: `content_items query failed (${iRes.status})` };
   const items = await iRes.json();
 
@@ -98,6 +98,17 @@ exports.handler = async (event) => {
     const ageDays = (now - new Date(item.updated_at || 0).getTime()) / 86400000;
     const state = states.get(item.id);
     states.delete(item.id); // whatever remains afterward is stale state to clear
+
+    // Phase B exception engine: a legitimate EXTERNAL wait pauses the SLA
+    // clock (client delay ≠ our failure, R10) — until its escalation date, if
+    // one is set, after which the alarm rings again.
+    if (item.block_reason && item.block_external) {
+      const escalation = item.block_escalation_date ? new Date(item.block_escalation_date + "T00:00:00Z").getTime() : null;
+      if (!escalation || now < escalation) {
+        if (state && !dryRun) await clearState(state, `SLA paused — external wait (${item.block_reason})`);
+        continue;
+      }
+    }
 
     // Not stuck (fresh, or it moved and re-aged) → close any open alert.
     if (!(ageDays >= threshold)) {

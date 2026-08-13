@@ -8,6 +8,8 @@
 
 import { sb } from '../services/supabaseClient';
 import { apiFetch } from '../services/apiFetch';
+import { captureApprovedVersion } from './versions.js';
+import { logAudit } from './audit.js';
 
 /** Next content_items.status for an approval at a given gate. */
 function nextStatus(decision, stage) {
@@ -50,6 +52,13 @@ export async function recordApproval({ item, decision, stage, feedback, approver
   const patch = { status, stage: status, updated_at: new Date().toISOString() };
   const { error: uErr } = await sb.from('content_items').update(patch).eq('id', itemId);
   if (uErr) throw new Error('status update failed: ' + uErr.message);
+
+  // 2b. Lineage (Phase B): an approval captures THE version that was approved
+  // as an immutable content_versions row and points approved_version_id at it.
+  // Best-effort — the decision stands even if the receipt write fails.
+  if (decision === 'approved') {
+    await captureApprovedVersion(item, { stage, approverEmail: approver?.email });
+  }
 
   // The count the row holds after the trigger ran — used for the cycle-aware
   // notify dedupe key, which must match what the App.jsx realtime detector
@@ -138,10 +147,28 @@ export async function setLedgerFields(itemId, fields) {
   if (error) throw new Error(error.message);
 }
 
-/** The Friday "did it post?" action — stamp proof of publication. */
-export async function markPosted(itemId) {
+/**
+ * The "did it post?" action — Phase B: nothing is marked posted without
+ * evidence. Requires the live URL; stamps the full verification receipt
+ * (live_url + verified_at + verification_source) alongside posted_at, and
+ * writes the publish audit row.
+ *   markPosted(itemId, { liveUrl, source: 'manual'|'account_posts'|'agent', actor, clientId })
+ */
+export async function markPosted(itemId, { liveUrl, source = 'manual', actor = null, clientId = null } = {}) {
+  const url = (liveUrl || '').trim();
+  if (!url) throw new Error('A live URL is required to mark an item posted — evidence, not vibes.');
+  const nowIso = new Date().toISOString();
   const { error } = await sb.from('content_items')
-    .update({ status: 'Posted', stage: 'Posted', posted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .update({
+      status: 'Posted', stage: 'Posted', posted_at: nowIso, updated_at: nowIso,
+      verification_status: 'verified', live_url: url, verified_at: nowIso, verification_source: source,
+    })
     .eq('id', itemId);
   if (error) throw new Error(error.message);
+  // Published items are on the mandatory audit list (§3.B.5).
+  logAudit({
+    entityType: 'content_item', entityId: itemId, clientId,
+    field: 'status', oldValue: 'Scheduled/Approved', newValue: 'Posted',
+    actor, reason: `verified posted — ${url}`,
+  });
 }

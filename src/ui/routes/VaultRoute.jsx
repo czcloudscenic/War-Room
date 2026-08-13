@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
 import { apiFetch } from '../../services/apiFetch.js';
+import { auditDiff } from '../../core/audit.js';
 
 // ── Client Vault ──────────────────────────────────────────────────────────────
 // Per-client billing profile: legal/contact/address details (manual inputs)
@@ -48,6 +49,18 @@ function ClientVaultCard({ client, row, onSaved, isMobile, open, onToggle }) {
     setBusy(null);
     if (error) { setMsg({ bad: true, text: error.message.includes("client_vault") ? "Table missing — run the 20260703_client_vault migration first." : error.message }); return; }
     setDirty(false); setMsg({ text: "Saved" });
+    // Credentials/billing identity are on the mandatory audit list (§3.B.5).
+    // Values are NOT logged — the audit row records that the vault changed and
+    // which fields, never the contents.
+    const changedKeys = PROFILE_KEYS.filter(k => JSON.stringify(row?.[k] ?? null) !== JSON.stringify(patch[k] ?? null));
+    if (changedKeys.length) {
+      auditDiff({
+        entityType: "vault", entityId: client.id, clientId: client.id,
+        before: Object.fromEntries(changedKeys.map(k => [k, row?.[k] != null ? "(set)" : "(empty)"])),
+        after: Object.fromEntries(changedKeys.map(k => [k, patch[k] != null ? "(set)" : "(empty)"])),
+        fields: changedKeys, reason: `vault fields changed: ${changedKeys.join(", ")}`,
+      });
+    }
     onSaved();
   };
 

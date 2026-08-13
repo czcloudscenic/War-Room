@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { recordApproval, setLedgerFields, markPosted } from '../../core/approvals.js';
 import { apiFetch } from '../../services/apiFetch.js';
+import TruthDrawer from '../truth/TruthDrawer.jsx';
 
 // ── Deliverables Ledger ───────────────────────────────────────────────────────
 // The system-of-record + the approval surface. Every deliverable as one row: who
@@ -57,6 +58,7 @@ function SummaryStat({ value, label, color }) {
 
 export default function LedgerRoute({ isMobile, clients = [], content = [], team = [], currentUser }) {
   const [expandedId, setExpandedId] = useState(null);
+  const [receiptsItem, setReceiptsItem] = useState(null); // TruthDrawer target
   const [overrides, setOverrides] = useState({});   // id → patched fields (optimistic UI)
   const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState(null);
@@ -108,8 +110,16 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
       setErr("QC has blocked this item — it can't be marked posted until the factual issue is resolved and QC re-run.");
       return;
     }
+    // Phase B: nothing is marked posted without evidence — the live URL is the receipt.
+    const liveUrl = window.prompt("Live URL of the published post (required — the receipt that it actually went out):", item.live_url || "");
+    if (liveUrl == null) return; // cancelled
+    if (!liveUrl.trim()) { setErr("A live URL is required to mark an item posted."); return; }
     setBusy(item.id); setErr(null);
-    try { await markPosted(item.id); patch(item.id, { status: "Posted", posted_at: new Date().toISOString() }); setExpandedId(null); }
+    try {
+      await markPosted(item.id, { liveUrl: liveUrl.trim(), source: "manual", actor: currentUser, clientId: item.client_id || null });
+      patch(item.id, { status: "Posted", posted_at: new Date().toISOString(), verification_status: "verified", live_url: liveUrl.trim(), verified_at: new Date().toISOString(), verification_source: "manual" });
+      setExpandedId(null);
+    }
     catch (e) { setErr(e.message); } finally { setBusy(null); }
   }
   async function doDue(item, due) {
@@ -205,6 +215,10 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
                   <div style={{ ...col(0.7), fontSize: 11.5, fontFamily: "'Geist Mono', monospace", color: overdue ? "#ff453a" : "rgba(255,255,255,0.6)" }}>{fmtDate(item.due_date) || "—"}</div>
                   <div style={{ ...col(0.7), fontSize: 11.5, fontFamily: "'Geist Mono', monospace", color: item.posted_at ? "#30d158" : "rgba(255,255,255,0.6)" }}>{item.posted_at ? "✓ live" : (fmtDate(item.publish_date) || "—")}</div>
                   <div style={{ ...col(1.2), display: "flex", gap: 6, justifyContent: isMobile ? "flex-start" : "flex-end", flexWrap: "wrap" }}>
+                    {item.block_reason && <Flag label={`blocked · ${String(item.block_reason).replace(/_/g, " ")}${item.block_external ? " · SLA paused" : ""}`} color="#f97316" />}
+                    {item.status === "Posted" && item.verification_status === "verified" && <Flag label="verified" color="#30d158" />}
+                    {item.verification_status === "awaiting" && <Flag label="unverified" color="#ff9f0a" />}
+                    {["failed", "wrong_asset"].includes(item.verification_status) && <Flag label={item.verification_status === "failed" ? "publish failed" : "wrong asset"} color="#ff453a" />}
                     {item.qc_status === "blocked" && <Flag label="qc blocked" color="#ff453a" />}
                     {item.qc_status === "flagged" && <Flag label="qc flags" color="#ff9f0a" />}
                     {item.qc_status === "pass" && <Flag label="qc pass" color="#30d158" />}
@@ -227,6 +241,7 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
                       <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="What needs to change? (required to request revisions)" rows={2} style={{ width: "100%", padding: "8px 11px", borderRadius: 8, background: "#161314", border: "1px solid rgba(255,255,255,0.12)", color: "#f5f5f7", fontSize: 12.5, fontFamily: "Inter, sans-serif", resize: "vertical", outline: "none" }} />
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignSelf: "flex-end" }}>
+                      <button onClick={() => setReceiptsItem(item)} style={btn("rgba(255,255,255,0.06)", "rgba(255,255,255,0.75)")}>Receipts</button>
                       <button disabled={working} onClick={() => doQC(item)} style={btn("rgba(100,210,255,0.12)", "#64d2ff")}>{item.qc_status === "running" ? "QC running…" : "Run QC"}</button>
                       <button disabled={working} onClick={() => doRevision(item)} style={btn("rgba(249,115,22,0.15)", "#f97316")}>Request revisions</button>
                       <button disabled={working} onClick={() => doApprove(item)} style={btn(ACCENT)}>{working ? "…" : "Approve"}</button>
@@ -266,6 +281,8 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
           })}
         </div>
       )}
+
+      {receiptsItem && <TruthDrawer item={view(receiptsItem)} clients={safeClients} onClose={() => setReceiptsItem(null)} />}
     </div>
   );
 }

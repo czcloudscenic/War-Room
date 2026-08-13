@@ -9,6 +9,7 @@
 // CommandView can deep-link the fix.
 
 import { clientRunway } from '../utils/runway.mjs';
+import { blockReasonMeta } from './truth.js';
 
 const DAY_MS = 86400000;
 const GATE_STATUSES = ['Need Copy Approval', 'Need Content Approval'];
@@ -103,12 +104,39 @@ export function commandDigest({ clients = [], content = [], tasks = [], invoices
       });
     }
 
-    const age = item.updated_at ? (now - Date.parse(item.updated_at)) / DAY_MS : 0;
-    if ((item.status === 'Needs Revisions' || GATE_STATUSES.includes(item.status)) && age >= STUCK_AFTER_DAYS) {
+    // Explicit block state (Phase B exception engine) beats the age heuristic:
+    // it carries WHY, WHO owns the unblock, and whether the SLA clock is paused.
+    if (item.block_reason && !['Posted', 'Scrapped'].includes(item.status)) {
+      const meta = blockReasonMeta(item.block_reason);
       blocked.push({
-        label: `${clientName}: "${item.title || 'Untitled'}" stuck ${Math.floor(age)}d in ${item.status}`,
-        detail: item.approval_mode === 'client' && GATE_STATUSES.includes(item.status) ? 'In the client\'s court — chase it' : 'Internal — unstick it',
-        nav: GATE_STATUSES.includes(item.status) ? 'approvals' : 'content', clientName,
+        label: `${clientName}: "${item.title || 'Untitled'}" blocked — ${meta?.label || item.block_reason}`,
+        detail: `${item.block_owner ? `Owner: ${item.block_owner}` : 'No unblock owner set'}${item.block_external ? ' · external wait, SLA paused' : ' · internal'}${item.block_escalation_date ? ` · escalate by ${item.block_escalation_date}` : ''}`,
+        nav: 'ledger', clientName,
+      });
+    } else {
+      const age = item.updated_at ? (now - Date.parse(item.updated_at)) / DAY_MS : 0;
+      if ((item.status === 'Needs Revisions' || GATE_STATUSES.includes(item.status)) && age >= STUCK_AFTER_DAYS) {
+        blocked.push({
+          label: `${clientName}: "${item.title || 'Untitled'}" stuck ${Math.floor(age)}d in ${item.status}`,
+          detail: item.approval_mode === 'client' && GATE_STATUSES.includes(item.status) ? 'In the client\'s court — chase it' : 'Internal — unstick it',
+          nav: GATE_STATUSES.includes(item.status) ? 'approvals' : 'content', clientName,
+        });
+      }
+    }
+
+    // Publish truth (§3.B.1): failed/wrong-asset receipts are critical; a past
+    // publish date with no receipt is at-risk until verified.
+    if (['failed', 'wrong_asset'].includes(item.verification_status)) {
+      critical.push({
+        label: `${clientName}: "${item.title || 'Untitled'}" publish ${item.verification_status === 'failed' ? 'FAILED' : 'used the wrong asset'}`,
+        detail: 'Verification receipt says this did not go out as approved — fix and re-verify',
+        nav: 'ledger', clientName,
+      });
+    } else if (item.verification_status === 'awaiting') {
+      atRisk.push({
+        label: `${clientName}: "${item.title || 'Untitled'}" past publish date, no receipt`,
+        detail: 'Confirm it posted and record the live URL (Ledger → Mark posted)',
+        nav: 'ledger', clientName,
       });
     }
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
 import { setLedgerFields } from '../../core/approvals.js';
+import { auditDiff } from '../../core/audit.js';
 import { FactsOfRecord, MonthlyReports, factsFilled } from '../settings/FactsAndReports.jsx';
 
 // ── Setup / Data-Entry ────────────────────────────────────────────────────────
@@ -75,6 +76,11 @@ export default function SetupRoute({ isMobile, clients = [], content = [] }) {
   async function patchClient(id, fields) {
     setClientOv(prev => ({ ...prev, [id]: { ...prev[id], ...fields } }));
     await sb.from("clients").update(fields).eq("id", id);
+    // Phase B mandatory audit (§3.B.5): scope, pricing, approval modes,
+    // recipients, ownership — one row per changed field, best-effort.
+    const AUDITED = ["retainer_amount", "retainer_status", "approval_rule", "cadence", "service_scope", "report_recipients", "owner_team_member_id", "included_revisions", "posts_per_week", "lane"];
+    const before = (clients || []).find(c => c?.id === id) || {};
+    auditDiff({ entityType: "client", entityId: id, clientId: id, before, after: { ...before, ...fields }, fields: AUDITED.filter(f => f in fields), reason: "Setup edit" });
   }
   async function patchAccount(id, client_id) {
     setAccounts(prev => (prev || []).map(a => a?.id === id ? { ...a, client_id } : a));

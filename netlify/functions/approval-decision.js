@@ -94,7 +94,7 @@ async function loadTokenContext(token) {
   if (new Date(tokenRow.expires_at).getTime() < Date.now()) {
     return { fail: infoPage(410, "Link expired", "This review link has expired. Ask the team to re-send the item for approval.") };
   }
-  const iRes = await sb(`content_items?id=eq.${encodeURIComponent(tokenRow.content_item_id)}&select=id,title,status,client_id,revision_count,approval_mode,campaign,platform`);
+  const iRes = await sb(`content_items?id=eq.${encodeURIComponent(tokenRow.content_item_id)}&select=id,title,status,client_id,revision_count,approval_mode,campaign,platform,caption,script,cta,hashtags,files,review_video_path`);
   const item = iRes.ok ? (await iRes.json())?.[0] : null;
   if (!item) {
     return { fail: infoPage(410, "Item unavailable", "This item no longer exists.") };
@@ -141,6 +141,37 @@ async function executeDecision({ item, decision, gate, feedback, approverEmail, 
   if (!uRes.ok) {
     const txt = await uRes.text();
     throw new Error(`status update failed ${uRes.status}: ${txt.slice(0, 200)}`);
+  }
+
+  // 2b. Lineage (Phase B): an approval captures THE approved version as an
+  //     immutable content_versions row + points approved_version_id at it.
+  //     Mirrors src/core/versions.js captureApprovedVersion — change together.
+  //     Best-effort: the decision stands even if the receipt write fails.
+  if (decision === "approved") {
+    try {
+      const vRes = await sb(`content_versions?content_item_id=eq.${encodeURIComponent(item.id)}&select=version_no&order=version_no.desc&limit=1`);
+      const maxNo = vRes.ok ? (((await vRes.json())?.[0]?.version_no) || 0) : 0;
+      const snap = {
+        title: item.title ?? null, caption: item.caption ?? null, script: item.script ?? null,
+        cta: item.cta ?? null, hashtags: item.hashtags ?? null, files: item.files || [],
+        review_video_path: item.review_video_path ?? null,
+      };
+      const ins = await sb("content_versions", {
+        method: "POST", headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          content_item_id: item.id, client_id: item.client_id || null, version_no: maxNo + 1,
+          ...snap, snapshot: snap, source: "approval", created_by: approverEmail || null,
+          approved_stage: actorIsClient ? "client" : gate, approved_by: approverEmail || null,
+          approved_at: new Date().toISOString(),
+        }),
+      });
+      const vRow = ins.ok ? (await ins.json())?.[0] : null;
+      if (vRow?.id) {
+        await sb(`content_items?id=eq.${encodeURIComponent(item.id)}`, {
+          method: "PATCH", body: JSON.stringify({ approved_version_id: vRow.id }),
+        });
+      }
+    } catch (e) { console.warn("[approval-decision] version capture failed:", e.message); }
   }
 
   // 3. Fan-out — same type + dedupe key the realtime detector produces, so an
@@ -350,7 +381,7 @@ async function handleSessionDecision(event, cors) {
     return { statusCode: 400, headers: cors, body: JSON.stringify({ error: "itemId and decision (approved|revision_requested) required" }) };
   }
 
-  const iRes = await sb(`content_items?id=eq.${encodeURIComponent(itemId)}&select=id,title,status,client_id,revision_count,approval_mode,campaign,platform,client_note`);
+  const iRes = await sb(`content_items?id=eq.${encodeURIComponent(itemId)}&select=id,title,status,client_id,revision_count,approval_mode,campaign,platform,client_note,caption,script,cta,hashtags,files,review_video_path`);
   const item = iRes.ok ? (await iRes.json())?.[0] : null;
   if (!item) return { statusCode: 404, headers: cors, body: JSON.stringify({ error: "Item not found" }) };
 

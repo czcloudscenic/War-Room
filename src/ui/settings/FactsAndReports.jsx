@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
+import { factsFreshness } from '../../core/truth.js';
+import { logAudit } from '../../core/audit.js';
 
 // ── Facts of Record + Monthly Reports (Setup sections 5 & 6) ──────────────────
 // Facts of Record: the per-client source of truth the QC agent exact-matches
@@ -52,6 +54,8 @@ export function FactsOfRecord({ clients = [] }) {
 function ClientFactsCard({ client, open, onToggle }) {
   const [facts, setFacts] = useState(() => ({ ...emptyFacts(), ...(client.client_facts || {}) }));
   const [savedAt, setSavedAt] = useState(client.facts_updated_at || null);
+  const [reviewedAt, setReviewedAt] = useState(client.facts_last_reviewed_at || null);
+  const [freq, setFreq] = useState(client.facts_review_frequency_days || 30);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
@@ -61,21 +65,47 @@ function ClientFactsCard({ client, open, onToggle }) {
     if (!dirty) {
       setFacts({ ...emptyFacts(), ...(client.client_facts || {}) });
       setSavedAt(client.facts_updated_at || null);
+      setReviewedAt(client.facts_last_reviewed_at || null);
+      setFreq(client.facts_review_frequency_days || 30);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client.client_facts, client.facts_updated_at]);
+  }, [client.client_facts, client.facts_updated_at, client.facts_last_reviewed_at, client.facts_review_frequency_days]);
 
   const upd = (fn) => { setFacts(f => { const n = structuredClone(f); fn(n); return n; }); setDirty(true); };
   const stale = staleDays(savedAt);
   const filled = factsFilled({ client_facts: facts });
+  // Phase B freshness: per-client review cycle; stale facts BLOCK client-facing
+  // work downstream (truthGates in the edit modal), so the badge here is the fix.
+  const fresh = factsFreshness({ facts_last_reviewed_at: reviewedAt, facts_updated_at: savedAt, facts_review_frequency_days: freq, facts_owner: client.facts_owner });
 
   async function save() {
     setSaving(true); setErr(null);
-    const facts_updated_at = new Date().toISOString();
-    const { error } = await sb.from("clients").update({ client_facts: facts, facts_updated_at }).eq("id", client.id);
+    const nowIso = new Date().toISOString();
+    // Editing facts counts as reviewing them — both stamps move together.
+    const { error } = await sb.from("clients").update({
+      client_facts: facts, facts_updated_at: nowIso, facts_last_reviewed_at: nowIso,
+      facts_review_frequency_days: Number(freq) > 0 ? Number(freq) : 30,
+    }).eq("id", client.id);
     if (error) setErr(error.message);
-    else { setSavedAt(facts_updated_at); setDirty(false); }
+    else {
+      setSavedAt(nowIso); setReviewedAt(nowIso); setDirty(false);
+      // Facts of Record are on the mandatory audit list (§3.B.5).
+      logAudit({ entityType: "fact", entityId: client.id, clientId: client.id, field: "client_facts", oldValue: "(previous facts)", newValue: JSON.stringify(facts).slice(0, 300), reason: "Facts of Record edited" });
+    }
     setSaving(false);
+  }
+
+  // Confirm the facts are still correct WITHOUT editing them — resets the
+  // freshness clock so downstream client-facing work stays unblocked.
+  async function markReviewed() {
+    setErr(null);
+    const nowIso = new Date().toISOString();
+    const { error } = await sb.from("clients").update({ facts_last_reviewed_at: nowIso }).eq("id", client.id);
+    if (error) setErr(error.message);
+    else {
+      setReviewedAt(nowIso);
+      logAudit({ entityType: "fact", entityId: client.id, clientId: client.id, field: "facts_last_reviewed_at", newValue: nowIso, reason: "Facts reviewed — confirmed still correct" });
+    }
   }
 
   const rowStyle = { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" };
@@ -85,7 +115,8 @@ function ClientFactsCard({ client, open, onToggle }) {
       <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", cursor: "pointer" }}>
         <div style={{ width: 8, height: 8, borderRadius: "50%", background: client.brand_color || ACCENT, flexShrink: 0 }} />
         <span style={{ fontSize: 14, fontWeight: 600, color: "#f5f5f7", flex: 1 }}>{client.name}</span>
-        {filled && stale != null && stale > 30 && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#ff9f0a", background: "rgba(255,159,10,0.1)", border: "1px solid rgba(255,159,10,0.3)", borderRadius: 4, padding: "2px 7px", textTransform: "uppercase", letterSpacing: 0.5 }}>stale · {stale}d</span>}
+        {filled && fresh.state === "stale" && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#ff453a", background: "rgba(255,69,58,0.1)", border: "1px solid rgba(255,69,58,0.3)", borderRadius: 4, padding: "2px 7px", textTransform: "uppercase", letterSpacing: 0.5 }}>stale{fresh.days != null ? ` · ${fresh.days}d` : ""} — blocks scheduling</span>}
+        {filled && fresh.state === "due" && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#ff9f0a", background: "rgba(255,159,10,0.1)", border: "1px solid rgba(255,159,10,0.3)", borderRadius: 4, padding: "2px 7px", textTransform: "uppercase", letterSpacing: 0.5 }}>review due</span>}
         {filled
           ? <span style={{ fontSize: 10.5, fontFamily: "'Geist Mono', monospace", color: "#30d158" }}>{savedAt ? `updated ${new Date(savedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "on file"}</span>
           : <span style={{ fontSize: 10.5, fontFamily: "'Geist Mono', monospace", color: "rgba(255,159,10,0.8)" }}>no facts — QC runs typo/brand only</span>}
@@ -139,6 +170,20 @@ function ClientFactsCard({ client, open, onToggle }) {
             <label style={label}>Operational facts (one per line — parking, delivery radius, staffing claims…)</label>
             <textarea style={{ ...input, minHeight: 64, resize: "vertical" }} value={(facts.operational_facts || []).join("\n")}
               onChange={e => upd(f => { f.operational_facts = e.target.value.split("\n").map(s => s.trim()).filter(Boolean); })} />
+          </div>
+
+          {/* Freshness cycle (Phase B): review cadence + explicit re-confirm.
+              Stale facts hard-block client-facing scheduling downstream. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+            <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 1, color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace" }}>Review every</span>
+            <input type="number" min="1" style={{ ...input, width: 64 }} value={freq} onChange={e => { setFreq(e.target.value); setDirty(true); }} />
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>days</span>
+            <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.45)", flex: 1 }}>
+              {reviewedAt ? `last reviewed ${new Date(reviewedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "never reviewed"}
+            </span>
+            <button type="button" onClick={markReviewed} style={{ fontSize: 11, fontWeight: 600, padding: "7px 13px", borderRadius: 8, border: "1px solid rgba(48,209,88,0.35)", background: "rgba(48,209,88,0.1)", color: "#30d158", cursor: "pointer" }}>
+              Still correct — mark reviewed
+            </button>
           </div>
 
           {err && <div style={{ fontSize: 11.5, color: "#ff453a" }}>{err}</div>}

@@ -185,6 +185,20 @@
   timeout = 26
   node_bundler = "esbuild"
 
+# Daily publish-verification sweep (Phase B truth) — flags past-due items with
+# no publish receipt, auto-verifies items whose platform_post_id matches the
+# account_posts mirror. 16:30 UTC, after check-stuck-items.
+[functions."verify-publishes"]
+  schedule = "30 16 * * *"
+  timeout = 26
+
+# Nightly encrypted export of the operational core to the private `backups`
+# bucket + backup_runs ledger row (Phase B backup discipline). Requires
+# BACKUP_ENC_KEY (32-byte base64) in Netlify env — logs a FAILED run without it.
+[functions."backup-export"]
+  schedule = "0 11 * * *"
+  timeout = 26
+
 [functions."apify-scrape"]
   timeout = 26
 

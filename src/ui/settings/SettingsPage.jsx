@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '../../utils/hooks.js';
 import ConnectedAccountsCard from './ConnectedAccountsCard.jsx';
+import TruthRegistryCard from '../truth/TruthRegistryCard.jsx';
 
 const STORAGE_KEY = 'vantus_settings';
 
@@ -272,6 +273,9 @@ export default function SettingsPage() {
 
           {/* Connected Accounts Card (Instagram / TikTok / YouTube / LinkedIn) */}
           <ConnectedAccountsCard S={S} />
+
+          {/* Source-of-truth registry (Phase B) */}
+          <TruthRegistryCard S={S} />
 
           {/* AI Engine Card */}
           <div style={S.card}>

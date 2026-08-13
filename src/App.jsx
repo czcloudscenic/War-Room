@@ -14,6 +14,9 @@ import { getMemory, setMemory, buildSystemPrompt, updateAgentMemory } from './co
 import { AGENT_KEYWORDS, ROUTE_PROMPTS } from './core/agentRegistry.js';
 import { routeTask } from './core/routeTask.js';
 import { maybeNotifyApprovalRequested } from './core/approvals.js';
+import { auditDiff } from './core/audit.js';
+import { snapshotVersion } from './core/versions.js';
+import { CREATIVE_FIELDS } from './core/truth.js';
 import { DEFAULT_APPS, loadApps } from './apps/apps.config.js';
 import AppPlaceholder from './ui/shared/AppPlaceholder.jsx';
 import ClientPortal from './ui/client/ClientPortal.jsx';
@@ -783,10 +786,28 @@ if (isNewItem) {
   maybeNotifyApprovalRequested(item, null);
 } else {
   const before = content.find(x => x.id === item.id);
+  // Exception-engine bookkeeping: entering a blocked state stamps blocked_since,
+  // clearing the reason clears the whole block record (§3.B.4).
+  if (item.block_reason && !before?.block_reason) {
+    item.blocked_since = item.blocked_since || new Date().toISOString();
+  } else if (!item.block_reason && before?.block_reason) {
+    item.blocked_since = null; item.block_owner = null; item.block_external = false; item.block_escalation_date = null;
+  }
   setContent(prev => prev.map(x => x.id === item.id ? item : x));
   if (sb) {
     sb.from("content_items").update(item).eq("id", item.id)
       .then(({ error }) => { if (error) console.warn("Supabase save error:", error.message); });
+    // Phase B receipts, best-effort fire-and-forget:
+    // mandated-field audit (approval mode, publish gating, scope, block state)…
+    auditDiff({
+      entityType: "content_item", entityId: item.id, clientId: item.client_id || null,
+      before: before || {}, after: item,
+      fields: ["approval_mode", "publish_date", "status", "in_scope", "billable", "block_reason", "block_owner", "block_external", "block_escalation_date"],
+      actor: { id: userId, email: userEmail },
+    });
+    // …and a creative change mints the next immutable version row.
+    const creativeChanged = before && CREATIVE_FIELDS.some(f => JSON.stringify(before?.[f] ?? null) !== JSON.stringify(item[f] ?? null));
+    if (creativeChanged) snapshotVersion(item, { source: "save", createdBy: userEmail });
   }
   // Client-mode item just reached an approval gate → one-click links go out.
   // (Realtime detector covers other tabs; notify dedupe collapses the two.)
@@ -969,7 +990,7 @@ try {
     }
   `}</style>
 
-  {editingItem && <EditContentModal item={editingItem} isNew={isNewItem} onSave={handleSave} onDelete={handleDelete} onDuplicate={handleDuplicate} onClose={() => { setEditingItem(null); setIsNewItem(false); }} />}
+  {editingItem && <EditContentModal item={editingItem} isNew={isNewItem} client={clients.find(c => c.id === editingItem.client_id) || currentClient || null} onSave={handleSave} onDelete={handleDelete} onDuplicate={handleDuplicate} onClose={() => { setEditingItem(null); setIsNewItem(false); }} />}
 
   <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, display:"none" }} />
 

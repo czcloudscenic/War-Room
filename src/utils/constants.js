@@ -22,6 +22,11 @@ export const NOTIF_META = {
   client_comment:       { label: "Client comment",      color: "#64d2ff", role: "founder" },
   invoice_sent:         { label: "Invoice sent",        color: "#30d158", role: "finance" },
   client_invite_first_login: { label: "Client signed in", color: "#bf5af2", role: "founder" },
+  publish_unverified:   { label: "Publish unverified",  color: "#ff453a", role: "ops" },
+  // send-monthly-reports has emitted these since 7/2; they previously rendered
+  // via the fallback — now first-class.
+  report_sent:          { label: "Report sent",         color: "#30d158", role: "founder" },
+  report_missing:       { label: "Report missing",      color: "#ff9f0a", role: "ops" },
 };
 export const notifMeta = (type) => NOTIF_META[type] || { label: String(type || "Update").replace(/_/g, " "), color: "rgba(255,255,255,0.5)", role: "ops" };
 

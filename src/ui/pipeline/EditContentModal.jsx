@@ -3,8 +3,9 @@ import { useIsMobile } from '../../utils/hooks.js';
 import { STATUSES, FORMATS, PILLARS_LIST, PLATFORMS_LIST, CAMPAIGNS } from '../../utils/constants.js';
 import { sb } from '../../services/supabaseClient.js';
 import ReviewPanel from '../shared/ReviewPanel.jsx';
+import { BLOCK_REASONS, blockReasonMeta, truthGates } from '../../core/truth.js';
 
-export default function EditContentModal({ item, onSave, onClose, onDelete, onDuplicate, isNew = false }) {
+export default function EditContentModal({ item, client = null, onSave, onClose, onDelete, onDuplicate, isNew = false }) {
   const isMobile = useIsMobile();
   // DB rows carry seo_keywords/start_week (snake_case); the form uses camelCase.
   const [form, setForm] = useState({
@@ -45,8 +46,11 @@ if (["Ready For Schedule","Scheduled"].includes(s)) {
       : "Run QC from the Ledger before scheduling",
   });
 }
+// Phase B truth gates: stale Facts of Record hard-block client-facing statuses;
+// missing approved-version lineage warns (legacy items predate lineage).
+gates.push(...truthGates({ status: s, approvalMode: form.approval_mode, approvedVersionId: form.approved_version_id, client }));
 return gates;
-  }, [form.status, form.caption, form.script, form.files, form.publish_date, form.format, form.qc_status]);
+  }, [form.status, form.caption, form.script, form.files, form.publish_date, form.format, form.qc_status, form.approval_mode, form.approved_version_id, client]);
 
   const hardBlocked = sopGates.some(g => g.hard && !g.ok);
   const hasWarnings = sopGates.some(g => !g.ok);
@@ -286,6 +290,36 @@ return f.url; // direct URL (Supabase storage etc.)
         <label style={labelStyle}>Publish Date</label>
         <input style={inputStyle} type="date" value={form.publish_date || ""} onChange={e => set("publish_date", e.target.value)} />
       </div>
+    </div>
+
+    {/* Blocked state — exception engine (Phase B §3.B.4). Every blocked record
+        carries why / who owns the unblock / internal-vs-external / escalation.
+        External waits pause the stuck-item SLA (client delay is not our failure). */}
+    <div style={{ marginBottom:18, border:`1px solid ${form.block_reason ? "rgba(249,115,22,0.35)" : "rgba(255,255,255,0.08)"}`, borderRadius:12, padding:"14px 16px", background: form.block_reason ? "rgba(249,115,22,0.05)" : "transparent" }}>
+      <label style={{ ...labelStyle, color: form.block_reason ? "rgba(249,115,22,0.8)" : labelStyle.color }}>Blocked{form.block_reason && form.blocked_since ? ` since ${new Date(form.blocked_since).toLocaleDateString(undefined,{month:"short",day:"numeric"})}` : ""}</label>
+      <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:12 }}>
+        <select style={selectStyle} value={form.block_reason || ""} onChange={e => {
+          const key = e.target.value || null;
+          const meta = key ? blockReasonMeta(key) : null;
+          setForm(f => ({ ...f, block_reason: key, block_external: meta ? meta.external : false }));
+        }}>
+          <option value="">Not blocked</option>
+          {BLOCK_REASONS.map(r => <option key={r.key} value={r.key}>{r.label}{r.external ? " (external)" : ""}</option>)}
+        </select>
+        <input style={inputStyle} placeholder="Unblock owner (who chases it)" value={form.block_owner || ""} onChange={e => set("block_owner", e.target.value)} disabled={!form.block_reason} />
+      </div>
+      {form.block_reason && (
+        <div style={{ display:"flex", gap:12, alignItems:"center", marginTop:10, flexWrap:"wrap" }}>
+          <label style={{ display:"flex", alignItems:"center", gap:7, fontSize:12, color:"rgba(255,255,255,0.65)", cursor:"pointer" }}>
+            <input type="checkbox" checked={!!form.block_external} onChange={e => set("block_external", e.target.checked)} />
+            External wait (pauses the stuck-item SLA)
+          </label>
+          <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+            <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:1 }}>Escalate by</span>
+            <input style={{ ...inputStyle, width:150 }} type="date" value={form.block_escalation_date || ""} onChange={e => set("block_escalation_date", e.target.value || null)} />
+          </div>
+        </div>
+      )}
     </div>
 
     {/* Notes */}
