@@ -3,6 +3,9 @@ import { sb } from '../../services/supabaseClient.js';
 import { apiFetch } from '../../services/apiFetch.js';
 import { useSupabaseRows } from '../../utils/hooks.js';
 import { readMetrics, computeRates, beatsBar, fmtPct, fmtNum, DEFAULT_BENCH } from '../../utils/contentMetrics.js';
+import BenchmarksCard from '../intel/BenchmarksCard.jsx';
+import PillarsEditor from '../intel/PillarsEditor.jsx';
+import IdeaPromoteButton from '../intel/IdeaPromoteButton.jsx';
 
 // ── Content Intel ─────────────────────────────────────────────────────────────
 // Ranked post performance vs benchmarks + the AI idea queue, per client.
@@ -177,6 +180,18 @@ export default function ContentIntelRoute({ isMobile, clients = [], currentClien
         </div>
       )}
 
+      {/* Benchmark + pillar config (Codex v1.1 pack) — per-client knobs */}
+      {clientId && (() => {
+        const clientRow = (clients || []).find(c => c.id === clientId);
+        if (!clientRow) return null;
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 26 }}>
+            <BenchmarksCard client={clientRow} posts={rows.map(r => r.post)} />
+            <PillarsEditor client={clientRow} />
+          </div>
+        );
+      })()}
+
       {/* Ranked posts */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
         <div style={head}>Posts, ranked by what grows the account</div>
@@ -245,6 +260,9 @@ export default function ContentIntelRoute({ isMobile, clients = [], currentClien
                 <button style={{ ...btn(false), color: GOOD, borderColor: 'rgba(48,209,88,0.35)' }} onClick={() => setIdeaStatus(i.id, 'approved')}>Approve</button>
                 <button style={{ ...btn(false), color: BAD, borderColor: 'rgba(255,69,58,0.3)' }} onClick={() => setIdeaStatus(i.id, 'rejected')}>Kill</button>
               </div>
+            )}
+            {i.status === 'approved' && (
+              <IdeaPromoteButton idea={i} client={(clients || []).find(c => c.id === clientId) || null} onPromoted={() => setReloadKey(k => k + 1)} />
             )}
           </div>
         ))}
