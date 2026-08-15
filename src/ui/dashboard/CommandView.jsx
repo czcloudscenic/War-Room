@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
 import { commandDigest } from '../../core/commandDigest.js';
-import AllActivityFeed from './AllActivityFeed.jsx';
+import AgentRail from './AgentRail.jsx';
 import NotificationDigest from './NotificationDigest.jsx';
-import Card from '../shared/Card.jsx';
 
 // ── Founder daily command view (Phase A, v3 spec §3.A) ────────────────────────
 // One screen answering "what needs attention now" across the whole book, in
@@ -94,15 +93,15 @@ export default function CommandView({ isMobile, clients, content, setActiveNav }
         </div>
       )}
 
-      {/* Routine tier: agent receipts + the cross-client notification digest */}
+      {/* The Founder Rail (spec §10 List View — ship-the-rail-first) + digest.
+          Supersedes the flat "what agents completed" feed: same agent_events
+          spine, now tiered per Danny's mockup with expandable receipts. */}
       <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
         <div>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)', ...mono, marginBottom: 10 }}>
-            What agents completed — all clients
+            Agent ship — list view
           </div>
-          <Card style={{ padding: '4px 0', maxHeight: 340, overflowY: 'auto' }}>
-            <AllActivityFeed clients={clients} limit={40} />
-          </Card>
+          <AgentRail isMobile={isMobile} clients={clients} content={content} tasks={tasks} setActiveNav={setActiveNav} />
         </div>
         <div style={{ paddingTop: isMobile ? 0 : 21 }}>
           <NotificationDigest isMobile={isMobile} clients={clients} />
