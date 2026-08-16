@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
 import { positionCrew, stationActivity, stationById, ROSTER } from '../../core/shipStations.js';
-import ShipView3D from '../ship/ShipView3D.jsx';
+import ShipGame from '../ship/ShipGame.jsx';
 import ShipMap from '../ship/ShipMap.jsx';
 import AgentRail from '../dashboard/AgentRail.jsx';
 
@@ -106,7 +106,7 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) 330px', gap: 14, alignItems: 'start' }}>
           <div>
-            {view === '3d' && <ShipView3D crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />}
+            {view === '3d' && <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />}
             {view === 'map' && <ShipMap crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />}
 
             {/* Mission bar — real numbers only */}
