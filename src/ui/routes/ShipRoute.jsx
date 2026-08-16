@@ -2,7 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
 import { positionCrew, stationActivity, stationById, ROSTER } from '../../core/shipStations.js';
 import ShipGame from '../ship/ShipGame.jsx';
+import ShipScene3D from '../ship/ShipScene3D.jsx';
 import ShipMap from '../ship/ShipMap.jsx';
+
+// WebGL gate: the 3D scene needs it; the 2D canvas ship is the fallback skin.
+const HAS_WEBGL = (() => {
+  try {
+    const c = document.createElement('canvas');
+    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+  } catch { return false; }
+})();
 import AgentRail from '../dashboard/AgentRail.jsx';
 
 // ── The Agent Ship (spec §10 — Danny's end-state visual, built out) ──────────
@@ -106,7 +115,9 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) 330px', gap: 14, alignItems: 'start' }}>
           <div>
-            {view === '3d' && <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />}
+            {view === '3d' && (HAS_WEBGL
+              ? <ShipScene3D crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
+              : <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />)}
             {view === 'map' && <ShipMap crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />}
 
             {/* Mission bar — real numbers only */}
