@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { WORLD_W, WORLD_H } from '../../ship/world.js';
 import { createShipSim } from '../../ship/shipEngine.js';
-import { renderShip, hitTestStation } from '../../ship/shipRenderer.js';
+import { renderShipArt, hitTestStation } from '../../ship/shipRendererArt.js';
 
 // ── The living ship (Terraria-style) ─────────────────────────────────────────
 // Canvas host for the ship game: engine (src/ship/shipEngine.js) moves the
@@ -13,7 +13,14 @@ import { renderShip, hitTestStation } from '../../ship/shipRenderer.js';
 export default function ShipGame({ crew = [], activity = {}, onStation, selectedStation }) {
   const canvasRef = useRef(null);
   const simRef = useRef(null);
+  const bgRef = useRef(null);
   const frameRef = useRef({ activity: {}, selectedStation: null, hoverStation: null });
+
+  if (!bgRef.current && typeof Image !== 'undefined') {
+    const img = new Image();
+    img.src = '/ship-interior.jpg'; // the actual ship — Danny's mood, our original art
+    bgRef.current = img;
+  }
 
   // Keep latest props visible to the RAF loop without re-arming it.
   frameRef.current.activity = Object.fromEntries(Object.entries(activity).map(([k, v]) => [k, Array.isArray(v) ? v.length : v]));
@@ -53,12 +60,13 @@ export default function ShipGame({ crew = [], activity = {}, onStation, selected
       simRef.current.tick(dt, now);
       const s = canvas._logicalScale || 1;
       ctx.setTransform(s, 0, 0, s, 0, 0);
-      renderShip(ctx, {
+      renderShipArt(ctx, {
         t: now,
         sprites: simRef.current.getSprites(),
         activity: frameRef.current.activity,
         selectedStation: frameRef.current.selectedStation,
         hoverStation: frameRef.current.hoverStation,
+        bgImage: bgRef.current,
       });
       raf = requestAnimationFrame(loop);
     };

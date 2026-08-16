@@ -10,42 +10,39 @@ export const WORLD_W = 1280;
 export const WORLD_H = 720;
 
 // Decks: floorY is where feet stand; ceilY is the deck's ceiling.
+// CALIBRATED TO THE ARTWORK (public/ship-interior.jpg, drawn 1280×720): the
+// cinematic renderer walks the crew on the art's visible deck floors.
 export const DECKS = [
-  { i: 0, floorY: 250, ceilY: 150 },
-  { i: 1, floorY: 425, ceilY: 305 },
-  { i: 2, floorY: 600, ceilY: 480 },
+  { i: 0, floorY: 300, ceilY: 165 },
+  { i: 1, floorY: 570, ceilY: 380 },
 ];
 
-// Rooms — every station from core/shipStations.js gets geometry here.
-// kind drives interior props the renderer draws (consoles, core, bunks…).
+// Rooms — every station from core/shipStations.js gets geometry here, mapped
+// to the artwork's visible room bays. kind survives for non-art renderers.
 export const ROOMS = [
-  { id: 'cockpit',    deck: 0, x0: 80,   x1: 280,  kind: 'bridge' },
-  { id: 'intel',      deck: 0, x0: 300,  x1: 520,  kind: 'consoles' },
-  { id: 'foundry',    deck: 0, x0: 540,  x1: 760,  kind: 'consoles' },
-  { id: 'qc',         deck: 0, x0: 780,  x1: 980,  kind: 'lab' },
-  { id: 'gateway',    deck: 0, x0: 1000, x1: 1195, kind: 'security' },
-  { id: 'pipeline',   deck: 1, x0: 95,   x1: 330,  kind: 'grid' },
-  { id: 'comm',       deck: 1, x0: 350,  x1: 570,  kind: 'consoles' },
-  { id: 'analytics',  deck: 1, x0: 590,  x1: 820,  kind: 'core' },      // the holo-core room
-  { id: 'automation', deck: 1, x0: 840,  x1: 1060, kind: 'machines' },
-  { id: 'finance',    deck: 1, x0: 1080, x1: 1195, kind: 'consoles' },
-  { id: 'quarters',   deck: 2, x0: 170,  x1: 560,  kind: 'bunks' },
-  { id: 'vault',      deck: 2, x0: 580,  x1: 800,  kind: 'vault' },
-  // deck 2 right of the vault is the engine room — decorative, not a station
+  { id: 'cockpit',    deck: 0, x0: 95,   x1: 285,  kind: 'bridge' },
+  { id: 'intel',      deck: 0, x0: 305,  x1: 465,  kind: 'consoles' },
+  { id: 'foundry',    deck: 0, x0: 485,  x1: 655,  kind: 'consoles' },
+  { id: 'pipeline',   deck: 0, x0: 675,  x1: 830,  kind: 'grid' },
+  { id: 'qc',         deck: 0, x0: 850,  x1: 1010, kind: 'lab' },
+  { id: 'gateway',    deck: 0, x0: 1030, x1: 1215, kind: 'security' },
+  { id: 'quarters',   deck: 1, x0: 130,  x1: 330,  kind: 'bunks' },
+  { id: 'vault',      deck: 1, x0: 350,  x1: 520,  kind: 'vault' },
+  { id: 'analytics',  deck: 1, x0: 540,  x1: 760,  kind: 'core' },      // the holo-core room
+  { id: 'comm',       deck: 1, x0: 780,  x1: 925,  kind: 'consoles' },
+  { id: 'automation', deck: 1, x0: 945,  x1: 1095, kind: 'machines' },
+  { id: 'finance',    deck: 1, x0: 1115, x1: 1225, kind: 'consoles' },
 ];
-export const ENGINE_ROOM = { deck: 2, x0: 820, x1: 1110, kind: 'engine' };
+export const ENGINE_ROOM = { deck: 1, x0: 1230, x1: 1260, kind: 'engine' };
 
 export const roomById = (id) => ROOMS.find(r => r.id === id) || ROOMS.find(r => r.id === 'quarters');
 export const roomCenter = (id) => { const r = roomById(id); return (r.x0 + r.x1) / 2; };
 
-// Ladders connect ADJACENT decks at x. Pathfinding: walk along deck to a
-// ladder that reaches the target deck, climb, repeat.
+// Ladders connect ADJACENT decks at x — placed at the artwork's structural
+// bulkhead seams so climbs read as lift shafts.
 export const LADDERS = [
-  { x: 290,  decks: [0, 1] },
-  { x: 578,  decks: [0, 1] },
-  { x: 990,  decks: [0, 1] },
-  { x: 160,  decks: [1, 2] },
-  { x: 830,  decks: [1, 2] },
+  { x: 475,  decks: [0, 1] },
+  { x: 1020, decks: [0, 1] },
 ];
 
 // Hull silhouette (drawn + used as bounds): nose left, engines right.
