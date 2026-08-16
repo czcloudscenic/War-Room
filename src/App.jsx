@@ -36,6 +36,7 @@ const SkillsPage = React.lazy(() => import('./apps/skills/SkillsPage.jsx'));
 const ApprovalsRoute = React.lazy(() => import('./ui/routes/ApprovalsRoute.jsx'));
 const DecisionLogRoute = React.lazy(() => import('./ui/truth/DecisionLogRoute.jsx'));
 const ContentIntelRoute = React.lazy(() => import('./ui/routes/ContentIntelRoute.jsx'));
+const ShipRoute = React.lazy(() => import('./ui/routes/ShipRoute.jsx'));
 const TeamBroadcast = React.lazy(() => import('./ui/agents/TeamBroadcast.jsx'));
 const SetupRoute = React.lazy(() => import('./ui/routes/SetupRoute.jsx'));
 const LedgerRoute = React.lazy(() => import('./ui/routes/LedgerRoute.jsx'));
@@ -55,6 +56,7 @@ function prefetchRoutes() {
   import('./ui/routes/ApprovalsRoute.jsx');
   import('./ui/truth/DecisionLogRoute.jsx');
   import('./ui/routes/ContentIntelRoute.jsx');
+  import('./ui/routes/ShipRoute.jsx');
   import('./ui/routes/SetupRoute.jsx');
   import('./ui/routes/LedgerRoute.jsx');
   import('./ui/routes/ReportsRoute.jsx');
@@ -1403,6 +1405,11 @@ try {
     {/* CONTENT INTEL — Studio Intel port: rates vs benchmarks + idea queue */}
     {activeNav === "contentintel" && (
       <ContentIntelRoute isMobile={isMobile} clients={clients} currentClient={currentClient} />
+    )}
+
+    {/* AGENT SHIP — spec §10: 3D / Map / List renderings of the receipts spine */}
+    {activeNav === "ship" && (
+      <ShipRoute isMobile={isMobile} clients={clients} content={content} setActiveNav={setActiveNav} />
     )}
 
     {/* CLIENTS — CRM home */}
