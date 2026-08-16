@@ -11,19 +11,21 @@
 // clearly labeled — never as live workers. No film characters or likenesses:
 // original crew, our ship.
 
+// px/py: percentage anchor of each station's room in the bundled artwork
+// (public/ship-interior.jpg — original generation, Danny's mood, no likenesses).
 export const STATIONS = [
-  { id: 'cockpit',    n: '01', label: 'Cockpit',         sub: 'command & orchestration', deck: 0, x: 78,  y: 96,  w: 150, h: 62 },
-  { id: 'gateway',    n: '12', label: 'System Gateway',  sub: 'security · access · logs', deck: 0, x: 772, y: 96,  w: 150, h: 62 },
-  { id: 'intel',      n: '02', label: 'Intel Core',      sub: 'research / trends',        deck: 1, x: 92,  y: 208, w: 128, h: 62 },
-  { id: 'foundry',    n: '03', label: 'Content Foundry', sub: 'ideation / creation',      deck: 1, x: 232, y: 208, w: 128, h: 62 },
-  { id: 'pipeline',   n: '04', label: 'Pipeline Grid',   sub: '8-stage oversight',        deck: 1, x: 372, y: 208, w: 128, h: 62 },
-  { id: 'qc',         n: '05', label: 'QC Lab',          sub: 'creative + factual QC',    deck: 1, x: 512, y: 208, w: 128, h: 62 },
-  { id: 'comm',       n: '07', label: 'Comm Relay',      sub: 'client comms / approvals', deck: 1, x: 652, y: 208, w: 128, h: 62 },
-  { id: 'analytics',  n: '08', label: 'Analytics Node',  sub: 'metrics / reporting',      deck: 1, x: 792, y: 208, w: 128, h: 62 },
-  { id: 'vault',      n: '06', label: 'Asset Vault',     sub: 'assets / rights',          deck: 2, x: 162, y: 320, w: 128, h: 62 },
-  { id: 'automation', n: '09', label: 'Automation Bay',  sub: 'integrations / n8n',       deck: 2, x: 322, y: 320, w: 128, h: 62 },
-  { id: 'finance',    n: '10', label: 'Finance Core',    sub: 'billing / revenue',        deck: 2, x: 482, y: 320, w: 128, h: 62 },
-  { id: 'quarters',   n: '11', label: 'Agent Quarters',  sub: 'idle / rest',              deck: 2, x: 642, y: 320, w: 208, h: 62 },
+  { id: 'cockpit',    n: '01', label: 'Cockpit',         sub: 'command & orchestration', px: 13, py: 24 },
+  { id: 'intel',      n: '02', label: 'Intel Core',      sub: 'research / trends',        px: 34, py: 24 },
+  { id: 'foundry',    n: '03', label: 'Content Foundry', sub: 'ideation / creation',      px: 48, py: 21 },
+  { id: 'qc',         n: '05', label: 'QC Lab',          sub: 'creative + factual QC',    px: 61, py: 24 },
+  { id: 'pipeline',   n: '04', label: 'Pipeline Grid',   sub: '8-stage oversight',        px: 73, py: 27 },
+  { id: 'gateway',    n: '12', label: 'System Gateway',  sub: 'security · access · logs', px: 87, py: 30 },
+  { id: 'quarters',   n: '11', label: 'Agent Quarters',  sub: 'idle / rest',              px: 21, py: 58 },
+  { id: 'vault',      n: '06', label: 'Asset Vault',     sub: 'assets / rights',          px: 36, py: 62 },
+  { id: 'analytics',  n: '08', label: 'Analytics Node',  sub: 'metrics / reporting',      px: 52, py: 64 },
+  { id: 'comm',       n: '07', label: 'Comm Relay',      sub: 'client comms / approvals', px: 64, py: 60 },
+  { id: 'automation', n: '09', label: 'Automation Bay',  sub: 'integrations / n8n',       px: 76, py: 56 },
+  { id: 'finance',    n: '10', label: 'Finance Core',    sub: 'billing / revenue',        px: 88, py: 53 },
 ];
 export const stationById = (id) => STATIONS.find(s => s.id === id) || STATIONS[STATIONS.length - 1];
 
