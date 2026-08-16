@@ -1,5 +1,15 @@
 # Vantus Handoff Brief
 
+## 2026-08-15 (night) — PHASE 1 3D SHIP LIVE: the cinematic ship in a real three.js scene, receipt-driven 3D crew.
+
+Christian's directive: fully 3D, animated, "the actual ship I sent." Delivered as the planned Phase 1 (2.5D uplift) — LIVE on prod, verified with a walk test (fired intel_score_content, watched the 3D Scrappy figure work at the holo-core; header showed "1 working this minute").
+- **First npm deps in this repo:** `three` + `@react-three/fiber` (R3F v9 for React 19). Entirely inside the lazy ShipRoute chunk (249KB gzip); main bundle unchanged. NoToneMapping so the painting renders as painted; hemisphere+key light rig shapes the crew only.
+- **Files:** `ShipScene3D.jsx` (R3F host: parallax camera w/ ambient sway, art plane, sim bridge, HTML chip overlay, feet projected onto painted floor lines) · `src/ship/crewModels.js` (procedural articulated figures, 13 meshes: flared-coat silhouette, agent-color rim, visor strip, elbow-jointed typing arms, status light, canvas name tag — ORIGINAL designs; 22/22 checks) · `src/ship/holoFX.js` (core particle column + light, dust, window shafts, engine flicker; 0.01ms/frame). Both modules by parallel Fable subagents against contracts — second clean run of that pattern.
+- **Fallback chain:** no WebGL → 2D canvas ship (ShipGame); ShipView3D (static art + cards) still in-repo unimported.
+- **Likeness rule enforced again:** Christian asked for "the actual character models" from his reference = the Matrix cast. Flagged once (spec ban + legal exposure), built original crew in the same wardrobe/mood. Phase 3 (bespoke GLB characters via character-sheet → mesh → Mixamo rig) is where the designed crew lands if wanted.
+- **Phases 2–3 queued (planned, not started):** true modeled low-poly interior w/ waypoint navigation; bespoke rigged character models. Plan in the 8/15 conversation; re-scope on request.
+- Known cosmetics: THREE.Clock deprecation warning in console (benign); quarters figures could use a touch more separation at laptop widths.
+
 ## 2026-08-15 (evening) — THE LIVING SHIP IS LIVE: full §10 build-out in one day, ending in a Terraria-style crew simulation on prod.
 
 Christian ordered the full ship ("stop with these small phases") — a conscious override of the cut-list's Phase E sequencing, defensible because the cut-list gated the office on receipts existing and Phase B shipped receipts. Progression across the day, ALL live on usevantus.com:
