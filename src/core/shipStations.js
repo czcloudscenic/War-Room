@@ -13,19 +13,21 @@
 
 // px/py: percentage anchor of each station's room in the bundled artwork
 // (public/ship-interior.jpg — original generation, Danny's mood, no likenesses).
+// Staggered like Danny's mockup — alternating card heights per deck so
+// neighbors never collide at laptop widths.
 export const STATIONS = [
-  { id: 'cockpit',    n: '01', label: 'Cockpit',         sub: 'command & orchestration', px: 13, py: 24 },
-  { id: 'intel',      n: '02', label: 'Intel Core',      sub: 'research / trends',        px: 34, py: 24 },
-  { id: 'foundry',    n: '03', label: 'Content Foundry', sub: 'ideation / creation',      px: 48, py: 21 },
-  { id: 'qc',         n: '05', label: 'QC Lab',          sub: 'creative + factual QC',    px: 61, py: 24 },
-  { id: 'pipeline',   n: '04', label: 'Pipeline Grid',   sub: '8-stage oversight',        px: 73, py: 27 },
-  { id: 'gateway',    n: '12', label: 'System Gateway',  sub: 'security · access · logs', px: 87, py: 30 },
-  { id: 'quarters',   n: '11', label: 'Agent Quarters',  sub: 'idle / rest',              px: 21, py: 58 },
-  { id: 'vault',      n: '06', label: 'Asset Vault',     sub: 'assets / rights',          px: 36, py: 62 },
-  { id: 'analytics',  n: '08', label: 'Analytics Node',  sub: 'metrics / reporting',      px: 52, py: 64 },
-  { id: 'comm',       n: '07', label: 'Comm Relay',      sub: 'client comms / approvals', px: 64, py: 60 },
-  { id: 'automation', n: '09', label: 'Automation Bay',  sub: 'integrations / n8n',       px: 76, py: 56 },
-  { id: 'finance',    n: '10', label: 'Finance Core',    sub: 'billing / revenue',        px: 88, py: 53 },
+  { id: 'cockpit',    n: '01', label: 'Cockpit',         sub: 'command & orchestration', px: 13, py: 26 },
+  { id: 'intel',      n: '02', label: 'Intel Core',      sub: 'research / trends',        px: 29, py: 13 },
+  { id: 'foundry',    n: '03', label: 'Content Foundry', sub: 'ideation / creation',      px: 45, py: 27 },
+  { id: 'qc',         n: '05', label: 'QC Lab',          sub: 'creative + factual QC',    px: 60, py: 12 },
+  { id: 'pipeline',   n: '04', label: 'Pipeline Grid',   sub: '8-stage oversight',        px: 74, py: 27 },
+  { id: 'gateway',    n: '12', label: 'System Gateway',  sub: 'security · access · logs', px: 89, py: 13 },
+  { id: 'quarters',   n: '11', label: 'Agent Quarters',  sub: 'idle / rest',              px: 19, py: 61 },
+  { id: 'vault',      n: '06', label: 'Asset Vault',     sub: 'assets / rights',          px: 37, py: 76 },
+  { id: 'analytics',  n: '08', label: 'Analytics Node',  sub: 'metrics / reporting',      px: 51, py: 56 },
+  { id: 'comm',       n: '07', label: 'Comm Relay',      sub: 'client comms / approvals', px: 65, py: 73 },
+  { id: 'automation', n: '09', label: 'Automation Bay',  sub: 'integrations / n8n',       px: 78, py: 55 },
+  { id: 'finance',    n: '10', label: 'Finance Core',    sub: 'billing / revenue',        px: 90, py: 72 },
 ];
 export const stationById = (id) => STATIONS.find(s => s.id === id) || STATIONS[STATIONS.length - 1];
 

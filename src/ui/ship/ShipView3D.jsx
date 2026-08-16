@@ -51,7 +51,7 @@ export default function ShipView3D({ crew = [], activity = {}, onStation, select
           <button key={s.id} onClick={() => onStation?.(s.id)}
             style={{
               position: 'absolute', left: `${s.px}%`, top: `${s.py}%`, transform: 'translate(-50%, -50%)',
-              minWidth: 148, maxWidth: 185, textAlign: 'left', cursor: 'pointer',
+              minWidth: 128, maxWidth: 162, textAlign: 'left', cursor: 'pointer',
               background: 'rgba(7,9,14,0.78)', backdropFilter: 'blur(6px)',
               border: `1px solid ${isSel ? HOLO : working ? 'rgba(48,209,88,0.55)' : lit ? 'rgba(42,171,255,0.45)' : 'rgba(255,255,255,0.14)'}`,
               borderRadius: 10, padding: '7px 10px 8px',
