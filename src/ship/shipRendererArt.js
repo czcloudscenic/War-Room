@@ -9,7 +9,7 @@
 // light, glow status dot) so they sit IN the artwork like the tiny figures in
 // Danny's mockup instead of floating on top of it.
 
-import { WORLD_W, WORLD_H, ROOMS, DECKS, SPRITE } from './world.js';
+import { WORLD_W, WORLD_H, ROOMS, DECKS, SPRITE, floorYAt } from './world.js';
 import { STATIONS } from '../core/shipStations.js';
 
 const mono = '9px "Geist Mono", monospace';
@@ -27,7 +27,13 @@ export function hitTestStation(x, y) {
 }
 
 function drawFigure(ctx, sp, t) {
-  const { x, y } = sp; // feet position
+  // Project logical feet onto the artwork's sloped floor lines: standing
+  // sprites sit exactly on the painted deck; climbers lerp between decks.
+  const x = sp.x;
+  const f0 = floorYAt(0, x), f1 = floorYAt(1, x);
+  const span = (DECKS[1].floorY - DECKS[0].floorY) || 1;
+  const p = Math.min(1, Math.max(0, (sp.y - DECKS[0].floorY) / span));
+  const y = f0 + (f1 - f0) * p;
   const h = SPRITE.h + 6, w = SPRITE.w;
   const ghost = sp.state === 'future';
   const walkPhase = Math.sin((sp.animT || 0) / 130);

@@ -26,8 +26,8 @@ export const ROOMS = [
   { id: 'pipeline',   deck: 0, x0: 675,  x1: 830,  kind: 'grid' },
   { id: 'qc',         deck: 0, x0: 850,  x1: 1010, kind: 'lab' },
   { id: 'gateway',    deck: 0, x0: 1030, x1: 1215, kind: 'security' },
-  { id: 'quarters',   deck: 1, x0: 130,  x1: 330,  kind: 'bunks' },
-  { id: 'vault',      deck: 1, x0: 350,  x1: 520,  kind: 'vault' },
+  { id: 'quarters',   deck: 1, x0: 215,  x1: 395,  kind: 'bunks' },
+  { id: 'vault',      deck: 1, x0: 415,  x1: 540,  kind: 'vault' },
   { id: 'analytics',  deck: 1, x0: 540,  x1: 760,  kind: 'core' },      // the holo-core room
   { id: 'comm',       deck: 1, x0: 780,  x1: 925,  kind: 'consoles' },
   { id: 'automation', deck: 1, x0: 945,  x1: 1095, kind: 'machines' },
@@ -47,6 +47,25 @@ export const LADDERS = [
 
 // Hull silhouette (drawn + used as bounds): nose left, engines right.
 export const HULL = { x0: 48, x1: 1232, top: 120, bottom: 660 };
+
+// The artwork's deck floors are perspective-sloped; these piecewise lines let
+// the cinematic renderer place feet ON the painted floor while the engine
+// keeps flat logical decks. [x, y] control points, linearly interpolated.
+export const FLOOR_LINES = {
+  0: [[95, 300], [400, 318], [800, 322], [1215, 310]],
+  1: [[215, 508], [400, 524], [560, 545], [760, 548], [1000, 536], [1225, 520]],
+};
+export function floorYAt(deck, x) {
+  const pts = FLOOR_LINES[deck] || [[0, DECKS[deck]?.floorY || 0]];
+  if (x <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) {
+    if (x <= pts[i][0]) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+      return y0 + (y1 - y0) * ((x - x0) / (x1 - x0));
+    }
+  }
+  return pts[pts.length - 1][1];
+}
 
 // Sprite metrics (logical px). Agents render at 2× tile feel.
 export const SPRITE = { w: 14, h: 26, walkSpeed: 55, climbSpeed: 40 }; // px/sec
