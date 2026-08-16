@@ -95,7 +95,11 @@ function SceneContent({ simRef, crew }) {
 
   return (
     <>
-      <ambientLight intensity={0.85} />
+      {/* Art is unlit (MeshBasicMaterial); these lights shape the CREW so they
+          read against the dark painting instead of sinking into it. */}
+      <ambientLight intensity={1.15} />
+      <hemisphereLight args={['#7fb4e0', '#1a1410', 0.7]} />
+      <directionalLight position={[-200, 300, 400]} intensity={0.5} color="#bcd9f5" />
       <Suspense fallback={null}>
         <ArtPlane />
       </Suspense>
@@ -124,7 +128,7 @@ export default function ShipScene3D({ crew = [], activity = {}, onStation, selec
       <Canvas
         dpr={[1, 1.75]}
         camera={{ fov: 35, near: 1, far: 4000, position: [0, 0, CAM_Z] }}
-        gl={{ antialias: true, alpha: false }}
+        gl={{ antialias: true, alpha: false, toneMapping: THREE.NoToneMapping }}
         style={{ position: 'absolute', inset: 0 }}
       >
         <SceneContent simRef={simRef} crew={crew} />
