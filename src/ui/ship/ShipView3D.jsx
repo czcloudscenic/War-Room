@@ -110,8 +110,10 @@ export default function ShipView3D({ crew = [], activity = {}, onStation, select
             const s = stationById(c.station);
             const mates = crewAtStation(crew, c.station);
             const idx = mates.findIndex(m => m.name === c.name);
-            const cx = s.x + 18 + (idx % 5) * 24 + (c.station === 'quarters' ? 8 : 0);
-            const cy = s.y + s.h - 9;
+            // 5 per row, extra rows stack upward — Quarters holds the whole
+            // crew on quiet days without name labels colliding.
+            const cx = s.x + 22 + (idx % 5) * 38;
+            const cy = s.y + s.h - 9 - Math.floor(idx / 5) * 27;
             const st = STATE_STYLE[c.state] || STATE_STYLE.idle;
             return (
               <g key={c.name} opacity={st.opacity} style={{ transition: 'transform 1.2s cubic-bezier(0.4,0,0.2,1)', transform: `translate(${cx}px, ${cy}px)` }}>
