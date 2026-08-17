@@ -13,10 +13,10 @@ const toY = (ly) => 360 - ly;
 
 // Flight paths in logical art coords: [cx, cy, radiusX, radiusY, period(ms), phase, z, scale]
 const PATHS = [
-  { cx: 190, cy: 120, rx: 150, ry: 26, period: 26000, phase: 0.0, z: 6, s: 0.7 },   // upper sky, over the nose
-  { cx: 1020, cy: 95, rx: 190, ry: 22, period: 34000, phase: 2.1, z: 5, s: 0.6 },   // upper sky, stern side
-  { cx: 250, cy: 640, rx: 210, ry: 18, period: 30000, phase: 4.0, z: 7, s: 0.55 },  // low over the city, port side
-  { cx: 640, cy: 320, rx: 520, ry: 40, period: 58000, phase: 1.2, z: 13, s: 1.15 }, // slow foreground crossing
+  { cx: 190, cy: 115, rx: 150, ry: 26, period: 26000, phase: 0.0, z: 6, s: 2.6 },   // upper sky, over the nose
+  { cx: 1020, cy: 90, rx: 190, ry: 22, period: 34000, phase: 2.1, z: 5, s: 2.2 },   // upper sky, stern side
+  { cx: 250, cy: 645, rx: 210, ry: 18, period: 30000, phase: 4.0, z: 7, s: 2.0 },   // low over the city, port side
+  { cx: 640, cy: 330, rx: 540, ry: 45, period: 58000, phase: 1.2, z: 15, s: 3.8 },  // slow foreground crossing
 ];
 
 function buildDrone(scale) {
@@ -46,6 +46,19 @@ function buildDrone(scale) {
   );
   nav.position.set(-5.5, -1.2, 0);
   g.add(nav);
+  // three trailing feeler antennas — thin cones drooping off the tail, animated
+  const feelers = [];
+  for (let f = 0; f < 3; f++) {
+    const feeler = new THREE.Mesh(
+      new THREE.ConeGeometry(0.55, 12, 5),
+      new THREE.MeshStandardMaterial({ color: 0x232a36, roughness: 0.5, metalness: 0.6 })
+    );
+    feeler.geometry.translate(0, -6, 0); // pivot at the root
+    feeler.position.set(-6.8, -0.6, (f - 1) * 1.6);
+    feeler.rotation.z = -0.9 - f * 0.25;
+    g.add(feeler);
+    feelers.push(feeler);
+  }
   // searchlight cone, additive and faint
   const beam = new THREE.Mesh(
     new THREE.ConeGeometry(9, 42, 12, 1, true),
@@ -54,7 +67,7 @@ function buildDrone(scale) {
   beam.position.set(2, -24, 0);
   g.add(beam);
   g.scale.setScalar(scale);
-  g.userData = { eye, nav, beam };
+  g.userData = { eye, nav, beam, feelers };
   return g;
 }
 
@@ -83,6 +96,9 @@ export function createDrones() {
       ud.nav.material.opacity = (Math.sin(t / 260 + i * 1.7) > 0.55) ? 0.95 : 0.12; // nav blink
       ud.beam.material.opacity = 0.035 + 0.02 * Math.sin(t / 1700 + i);
       ud.beam.rotation.x = Math.sin(t / 5200 + i * 2.4) * 0.22;  // sweeping search
+      for (let f = 0; f < ud.feelers.length; f++) {
+        ud.feelers[f].rotation.z = -0.9 - f * 0.25 + Math.sin(t / 700 + i * 2 + f * 1.3) * 0.18; // feelers sway
+      }
     }
   }
 
