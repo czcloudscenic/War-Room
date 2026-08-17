@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { WORLD_W, ROOMS, DECKS as LOGICAL_DECKS } from '../../ship/world.js';
 import { toSceneX, DECK_Y, DECK_CLEAR, WALK_Z, CAMERA } from '../../ship/scene3dContract.js';
 import { STATIONS } from '../../core/shipStations.js';
@@ -8,6 +11,43 @@ import { createShipSim } from '../../ship/shipEngine.js';
 import { createAgentFigure } from '../../ship/crewModels.js';
 import { createShipModel } from '../../ship/shipModel.js';
 import { createEnvironment } from '../../ship/environment3d.js';
+import { createGreebles } from '../../ship/greebles.js';
+
+// Grunge textures generated for the cinematic pass (public/textures/). Loaded
+// leniently: a missing file just means that surface stays flat-colored.
+function loadShipTextures(onDone) {
+  const loader = new THREE.TextureLoader();
+  const out = { hull: null, wall: null, deck: null };
+  let pending = 3;
+  const finish = () => { if (--pending === 0) onDone(out); };
+  for (const key of ['hull', 'wall', 'deck']) {
+    loader.load(
+      `/textures/ship-${key}.jpg`,
+      (tex) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.colorSpace = THREE.SRGBColorSpace; out[key] = tex; finish(); },
+      undefined,
+      () => finish()
+    );
+  }
+}
+
+// Post chain: filmic tone mapping + bloom is what turns flat emissive quads
+// into actual lights. Uses three's bundled passes — no new dependencies.
+function Effects() {
+  const { gl, scene, camera, size } = useThree();
+  const composer = useMemo(() => {
+    gl.toneMapping = THREE.ACESFilmicToneMapping;
+    gl.toneMappingExposure = 1.15;
+    const c = new EffectComposer(gl);
+    c.addPass(new RenderPass(scene, camera));
+    c.addPass(new UnrealBloomPass(new THREE.Vector2(size.width, size.height), 0.75, 0.55, 0.8));
+    return c;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gl, scene, camera]);
+  useEffect(() => { composer.setSize(size.width, size.height); }, [composer, size.width, size.height]);
+  useFrame(() => composer.render(), 1);
+  useEffect(() => () => composer.dispose(), [composer]);
+  return null;
+}
 
 // ── Phase 2: the modeled ship ────────────────────────────────────────────────
 // No more painted backdrop — a real low-poly cutaway hull with 12 built rooms,
@@ -29,16 +69,30 @@ function SceneContent({ simRef, crew, onChipAnchors }) {
   const figuresRef = useRef(new Map());
   const modelRef = useRef(null);
   const envRef = useRef(null);
+  const greeblesRef = useRef(null);
 
   useEffect(() => {
-    const model = createShipModel();
+    let model = null;
+    let disposed = false;
     const env = createEnvironment();
-    modelRef.current = model;
+    const greebles = createGreebles();
     envRef.current = env;
+    greeblesRef.current = greebles;
     scene.add(env.group);
-    scene.add(model.group);
+    scene.add(greebles.group);
+    const textures = { current: null };
+    loadShipTextures((tex) => {
+      if (disposed) { for (const t of Object.values(tex)) t?.dispose(); return; }
+      textures.current = tex;
+      model = createShipModel({ textures: tex });
+      modelRef.current = model;
+      scene.add(model.group);
+    });
     return () => {
-      scene.remove(model.group); model.dispose();
+      disposed = true;
+      if (model) { scene.remove(model.group); model.dispose(); }
+      if (textures.current) for (const t of Object.values(textures.current)) t?.dispose();
+      scene.remove(greebles.group); greebles.dispose();
       scene.remove(env.group); env.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,6 +145,7 @@ function SceneContent({ simRef, crew, onChipAnchors }) {
     }
     modelRef.current?.update(t);
     envRef.current?.update(t);
+    greeblesRef.current?.update(t);
     const tx = CAMERA.position[0] + pointer.x * CAMERA.parallax.x + Math.sin(t / 9000) * 6;
     const ty = CAMERA.position[1] + pointer.y * CAMERA.parallax.y + Math.cos(t / 12000) * 4;
     camera.position.x += (tx - camera.position.x) * 0.04;
@@ -100,11 +155,23 @@ function SceneContent({ simRef, crew, onChipAnchors }) {
 
   return (
     <>
-      <ambientLight intensity={1.0} color="#93b4d4" />
-      <hemisphereLight args={['#6f93bd', '#2a2014', 0.9]} />
-      <directionalLight position={[-300, 500, 600]} intensity={0.9} color="#b7d3ee" />
-      {/* warm interior fill from the cutaway side, like the art's work lamps */}
-      <directionalLight position={[200, -50, 900]} intensity={0.45} color="#ffb45c" />
+      {/* Cinematic rig: deep-shadow base + pools of warm lamp light per room —
+          the reference's contrast instead of an even wash. Bloom (Effects)
+          turns the emissives into real glow. */}
+      <ambientLight intensity={0.22} color="#42586e" />
+      <hemisphereLight args={['#3d556e', '#1a1208', 0.3]} />
+      <directionalLight position={[-300, 500, 600]} intensity={0.18} color="#8fb3d8" />
+      {ROOMS.map(r => (
+        <pointLight
+          key={r.id}
+          position={[toSceneX((r.x0 + r.x1) / 2), DECK_Y[r.deck] + DECK_CLEAR - 24, WALK_Z - 40]}
+          intensity={0.85}
+          distance={230}
+          decay={2}
+          color={r.id === 'analytics' ? '#7fc4ff' : '#ffb45c'}
+        />
+      ))}
+      <Effects />
     </>
   );
 }

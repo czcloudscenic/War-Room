@@ -7,7 +7,11 @@
 // static detail merged per-material; repeated props instanced.
 //
 // API:
-//   const model = createShipModel();
+//   const model = createShipModel(options?);
+//     options.textures — optional { hull, wall, deck } (THREE.Texture or null
+//     each; caller owns + disposes them). When present they map (and subtly
+//     bump-map) the hull shell, room walls and deck slabs. No options = the
+//     exact original flat-color look.
 //   scene.add(model.group);
 //   model.update(t);              // seconds — emissive flicker/pulse/throb
 //   model.getStationAnchor(id);   // -> THREE.Vector3 (room center-front, floor)
@@ -43,6 +47,7 @@ class MergeBag {
   constructor() {
     this.pos = [];
     this.norm = [];
+    this.uv = [];
     this.idx = [];
     this.vcount = 0;
   }
@@ -50,6 +55,7 @@ class MergeBag {
   add(geometry, matrix) {
     const p = geometry.attributes.position;
     const n = geometry.attributes.normal;
+    const t = geometry.attributes.uv;
     const index = geometry.index;
     const nm = new THREE.Matrix3().getNormalMatrix(matrix);
     const v = new THREE.Vector3();
@@ -58,6 +64,8 @@ class MergeBag {
       this.pos.push(v.x, v.y, v.z);
       v.fromBufferAttribute(n, i).applyNormalMatrix(nm).normalize();
       this.norm.push(v.x, v.y, v.z);
+      if (t) this.uv.push(t.getX(i), t.getY(i));
+      else this.uv.push(0, 0);
     }
     for (let i = 0; i < index.count; i++) this.idx.push(index.getX(i) + this.vcount);
     this.vcount += p.count;
@@ -76,13 +84,14 @@ class MergeBag {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
     g.setAttribute('normal', new THREE.Float32BufferAttribute(this.norm, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
     g.setIndex(this.idx);
     return g;
   }
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────
-export function createShipModel() {
+export function createShipModel(options = {}) {
   const group = new THREE.Group();
   group.name = 'shipModel';
 
@@ -124,6 +133,29 @@ export function createShipModel() {
   const matDeck = lambert(PALETTE.deck);
   const matWall = lambert(PALETTE.wall);
   const matRib = lambert(PALETTE.rib);
+
+  // Optional grunge textures on the big shared surfaces (caller owns/disposes
+  // the textures — dispose() here never touches them). The material color is
+  // lightened toward mid-grey so the map reads as the surface instead of
+  // multiplying to black.
+  const textures = options.textures || null;
+  const applyMap = (material, texture, repX, repY) => {
+    if (!texture) return;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repX, repY);
+    texture.needsUpdate = true;
+    material.map = texture;
+    material.bumpMap = texture;
+    material.bumpScale = 0.4;
+    material.color.lerp(new THREE.Color(0x8a8f99), 0.85);
+    material.needsUpdate = true;
+  };
+  if (textures) {
+    applyMap(matHull, textures.hull, 6, 3);   // hull shell + nose + stern
+    applyMap(matWall, textures.wall, 3, 2);   // room back/partition walls
+    applyMap(matDeck, textures.deck, 6, 3);   // the two deck slabs
+  }
 
   const cRim = new THREE.Color(PALETTE.cyan).multiplyScalar(0.38);
   const matRim = basic(cRim.getHex());                       // cutaway slice rim (low intensity)
