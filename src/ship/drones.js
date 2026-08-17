@@ -13,13 +13,14 @@ import * as THREE from 'three';
 const toX = (lx) => lx - 640;
 const toY = (ly) => 360 - ly;
 
-// Flight paths in logical art coords. Scales are sentinel-scale: head ~30-45
-// units across, tentacles trailing ~250-350 units.
+// Flight paths in logical art coords — BACKGROUND ONLY: the storm sky above
+// the hull and the city band below it. They never cross the ship interior;
+// they're distant machines prowling around it (smaller + low z = depth).
 const PATHS = [
-  { cx: 210, cy: 130, rx: 140, ry: 24, period: 34000, phase: 0.0, z: 6, s: 1.05 },  // upper sky, over the nose
-  { cx: 1010, cy: 105, rx: 170, ry: 20, period: 42000, phase: 2.1, z: 5, s: 0.9 },  // upper sky, stern side
-  { cx: 300, cy: 640, rx: 230, ry: 16, period: 38000, phase: 4.0, z: 7, s: 0.8 },   // low over the city
-  { cx: 640, cy: 330, rx: 560, ry: 50, period: 74000, phase: 1.2, z: 15, s: 1.6 },  // slow foreground crossing
+  { cx: 210, cy: 105, rx: 150, ry: 18, period: 34000, phase: 0.0, z: 3, s: 0.85 },  // sky, over the nose
+  { cx: 1000, cy: 90, rx: 180, ry: 16, period: 42000, phase: 2.1, z: 2.5, s: 0.7 }, // sky, stern side
+  { cx: 640, cy: 62, rx: 430, ry: 12, period: 64000, phase: 1.2, z: 2, s: 0.5 },    // far high crosser along the storm line
+  { cx: 280, cy: 658, rx: 200, ry: 13, period: 38000, phase: 4.0, z: 3, s: 0.6 },   // low over the city, under the bow
 ];
 
 const TENTACLES = 8;
