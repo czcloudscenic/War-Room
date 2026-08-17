@@ -1,5 +1,11 @@
 # Vantus Handoff Brief
 
+## 2026-08-17 (night) — Cinematic pass on the modeled ship: shipped + root-caused, one art-direction session left honestly open.
+
+Christian's bar: the modeled 3D ship should look like his reference. Shipped tonight (pushes 310321f..249a473): grunge textures (public/textures/, generated + wired as map/bump), greebles.js detail layer (20 cable runs, swaying wires, pipes+valves, blinking junction boxes, vents, trusses, clutter — Fable subagent, 17 draw calls), UnrealBloomPass + ACES (three's bundled passes, no new deps), per-room warm lamp rig at candela scale, lightable base albedo, and the big one: **DoubleSide on merged shell materials — the cutaway shows back faces of outward-facing geometry, which single-sided Lambert lit BLACK under every lamp.** That bug ate 4 brightness iterations before a magenta diagnostic floodlight isolated it (props lit, shell didn't). Also root-caused the "slow prod first paint": Playwright browser console shows ERR_INTERNET_DISCONNECTED/NETWORK_CHANGED bursts — the Mac's network flaps; auth itself resolves instantly. Texture loads confirmed ok on prod.
+**Honest state:** structure/density/glow ✔, but the painterly grim richness of the reference is NOT yet met. Remaining = art direction, not debugging: baked AO/shadow gradients into merged geometry (vertex colors), per-room emissive light pockets, texture presence tuning, possibly SSAO pass. DO THIS WITH A LOCAL VISUAL HARNESS (standalone vite page importing src/ship/* with a fake sim — no auth, screenshot in seconds) instead of prod deploy loops.
+**Standing option:** ShipScene3D (the cinematic painted ship + live 3D crew) is in-repo unimported and is visually the closest thing to the reference today — a one-line route swap makes it the 3D View while the modeled world gets its art pass.
+
 ## 2026-08-17 (later) — Crew wardrobe identities LIVE + Phase 3 character sheets GENERATED. Likeness rule held and settled.
 
 Christian asked for the actual Matrix cast (Neo/Morpheus/Trinity/Tank/red-dress woman) by name; declined plainly once (WB copyright + actor right-of-publicity + Danny's own spec ban) and he accepted the swap: "make faces that aren't their faces." Settled doctrine: archetype wardrobe yes, likenesses never.
