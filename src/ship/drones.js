@@ -1,80 +1,124 @@
-// ── Patrol drones — the ship's escorts ───────────────────────────────────────
-// Small ORIGINAL patrol machines drifting around the hull (our own design —
-// no film-machine likenesses): dark capsule bodies, a cyan eye, blinking nav
-// lights, a faint searchlight cone. Deterministic parametric flight paths in
-// the painting's sky and city bands; one occasionally crosses in front of the
-// hull with a scale-up so depth reads. Pure three.js, no allocations per
-// frame, everything from t.
+// ── Sentinel-class patrol machines ───────────────────────────────────────────
+// Large ORIGINAL hunter-killer machines patrolling around the hull (our own
+// design — squid-machine archetype, no film-machine likeness): armored head
+// with a glowing eye cluster, eight long articulated tentacles that trail and
+// writhe behind them, blinking nav light, a sweeping searchlight. Built to
+// TRUE sentinel scale — the head alone is bigger than a crew member (humans
+// are ~130 logical units in this world). Deterministic parametric flight
+// paths in the painting's sky and city bands; one slow foreground crossing so
+// depth reads. Pure three.js, no per-frame allocations, everything from t.
 
 import * as THREE from 'three';
 
 const toX = (lx) => lx - 640;
 const toY = (ly) => 360 - ly;
 
-// Flight paths in logical art coords: [cx, cy, radiusX, radiusY, period(ms), phase, z, scale]
+// Flight paths in logical art coords. Scales are sentinel-scale: head ~30-45
+// units across, tentacles trailing ~250-350 units.
 const PATHS = [
-  { cx: 190, cy: 115, rx: 150, ry: 26, period: 26000, phase: 0.0, z: 6, s: 2.6 },   // upper sky, over the nose
-  { cx: 1020, cy: 90, rx: 190, ry: 22, period: 34000, phase: 2.1, z: 5, s: 2.2 },   // upper sky, stern side
-  { cx: 250, cy: 645, rx: 210, ry: 18, period: 30000, phase: 4.0, z: 7, s: 2.0 },   // low over the city, port side
-  { cx: 640, cy: 330, rx: 540, ry: 45, period: 58000, phase: 1.2, z: 15, s: 3.8 },  // slow foreground crossing
+  { cx: 210, cy: 130, rx: 140, ry: 24, period: 34000, phase: 0.0, z: 6, s: 1.05 },  // upper sky, over the nose
+  { cx: 1010, cy: 105, rx: 170, ry: 20, period: 42000, phase: 2.1, z: 5, s: 0.9 },  // upper sky, stern side
+  { cx: 300, cy: 640, rx: 230, ry: 16, period: 38000, phase: 4.0, z: 7, s: 0.8 },   // low over the city
+  { cx: 640, cy: 330, rx: 560, ry: 50, period: 74000, phase: 1.2, z: 15, s: 1.6 },  // slow foreground crossing
 ];
 
-function buildDrone(scale) {
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.CapsuleGeometry(4.2, 7, 4, 8),
-    new THREE.MeshStandardMaterial({ color: 0x161a22, roughness: 0.6, metalness: 0.55 })
-  );
-  body.rotation.z = Math.PI / 2;
-  g.add(body);
-  const fin = new THREE.Mesh(
-    new THREE.BoxGeometry(6, 1.1, 3.4),
-    new THREE.MeshStandardMaterial({ color: 0x0f1218, roughness: 0.7, metalness: 0.4 })
-  );
-  fin.position.set(-4.5, 2.5, 0);
-  fin.rotation.z = 0.5;
-  g.add(fin);
-  const eye = new THREE.Mesh(
-    new THREE.SphereGeometry(1.6, 8, 8),
-    new THREE.MeshBasicMaterial({ color: 0x2aabff })
-  );
-  eye.position.set(6.2, 0, 0);
-  g.add(eye);
-  const nav = new THREE.Mesh(
-    new THREE.SphereGeometry(0.8, 6, 6),
-    new THREE.MeshBasicMaterial({ color: 0xff453a, transparent: true })
-  );
-  nav.position.set(-5.5, -1.2, 0);
-  g.add(nav);
-  // three trailing feeler antennas — thin cones drooping off the tail, animated
-  const feelers = [];
-  for (let f = 0; f < 3; f++) {
-    const feeler = new THREE.Mesh(
-      new THREE.ConeGeometry(0.55, 12, 5),
-      new THREE.MeshStandardMaterial({ color: 0x232a36, roughness: 0.5, metalness: 0.6 })
-    );
-    feeler.geometry.translate(0, -6, 0); // pivot at the root
-    feeler.position.set(-6.8, -0.6, (f - 1) * 1.6);
-    feeler.rotation.z = -0.9 - f * 0.25;
-    g.add(feeler);
-    feelers.push(feeler);
+const TENTACLES = 8;
+const SEGMENTS = 7;
+const SEG_LEN = 16;
+
+function makeTentacle(mat) {
+  // Chain of tapered segments, each pivoting at its top — sway cascades down.
+  const root = new THREE.Group();
+  const segs = [];
+  let parent = root;
+  for (let j = 0; j < SEGMENTS; j++) {
+    const r1 = 2.4 * (1 - j / SEGMENTS) + 0.4;
+    const r2 = 2.4 * (1 - (j + 1) / SEGMENTS) + 0.35;
+    const geo = new THREE.CylinderGeometry(r2, r1, SEG_LEN, 6);
+    geo.translate(0, -SEG_LEN / 2, 0); // pivot at the top of the segment
+    const seg = new THREE.Mesh(geo, mat);
+    if (j > 0) seg.position.y = -SEG_LEN;
+    parent.add(seg);
+    segs.push(seg);
+    parent = seg;
   }
-  // searchlight cone, additive and faint
+  // barbed tip
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.9, 6, 5), mat);
+  tip.geometry.translate(0, -3, 0);
+  tip.position.y = -SEG_LEN;
+  parent.add(tip);
+  return { root, segs };
+}
+
+function buildSentinel(scale) {
+  const g = new THREE.Group();
+  const hullMat = new THREE.MeshStandardMaterial({ color: 0x1a1f29, roughness: 0.45, metalness: 0.7 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x10141c, roughness: 0.6, metalness: 0.55 });
+
+  // armored head — flattened, faces +x
+  const head = new THREE.Mesh(new THREE.SphereGeometry(15, 14, 12), hullMat);
+  head.scale.set(1.4, 0.95, 1.05);
+  g.add(head);
+  // dorsal ridge plate
+  const ridge = new THREE.Mesh(new THREE.SphereGeometry(11, 10, 8), darkMat);
+  ridge.scale.set(1.5, 0.55, 0.8);
+  ridge.position.set(-2, 8.5, 0);
+  g.add(ridge);
+  // side pods
+  for (const side of [-1, 1]) {
+    const pod = new THREE.Mesh(new THREE.SphereGeometry(5.5, 8, 8), darkMat);
+    pod.scale.set(1.4, 0.8, 0.8);
+    pod.position.set(-4, -1, side * 14);
+    g.add(pod);
+  }
+
+  // eye cluster — two arcs of cyan eyes + one central hunter eye
+  const eyes = [];
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0x9fe8ff, transparent: true });
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 5 - 0.5) * 1.7;
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(1.7, 8, 8), eyeMat.clone());
+    eye.position.set(18.5, 2.5 + Math.cos(a) * -4.5 + 3.5, Math.sin(a) * 9);
+    g.add(eye);
+    eyes.push(eye);
+  }
+  const hunterEye = new THREE.Mesh(new THREE.SphereGeometry(2.4, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff453a, transparent: true }));
+  hunterEye.position.set(19.5, -2.5, 0);
+  g.add(hunterEye);
+
+  // eight tentacles fanned around the rear underside, trailing toward -x
+  const tentacles = [];
+  for (let k = 0; k < TENTACLES; k++) {
+    const a = (k / TENTACLES) * Math.PI * 2;
+    const t = makeTentacle(k % 2 ? hullMat : darkMat);
+    t.root.position.set(-9, Math.cos(a) * 4.5 - 3, Math.sin(a) * 9);
+    t.base = -0.55 + Math.cos(a) * 0.18; // trail backward, slightly fanned
+    t.root.rotation.x = Math.sin(a) * 0.3; // fan across depth
+    t.phase = a * 1.7;
+    g.add(t.root);
+    tentacles.push(t);
+  }
+
+  // nav blink + searchlight
+  const nav = new THREE.Mesh(new THREE.SphereGeometry(1.3, 6, 6), new THREE.MeshBasicMaterial({ color: 0xff453a, transparent: true }));
+  nav.position.set(-6, 12, 0);
+  g.add(nav);
   const beam = new THREE.Mesh(
-    new THREE.ConeGeometry(9, 42, 12, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+    new THREE.ConeGeometry(20, 100, 12, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.04, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
   );
-  beam.position.set(2, -24, 0);
+  beam.position.set(6, -55, 0);
   g.add(beam);
+
   g.scale.setScalar(scale);
-  g.userData = { eye, nav, beam, feelers };
+  g.userData = { eyes, hunterEye, nav, beam, tentacles };
   return g;
 }
 
 export function createDrones() {
   const group = new THREE.Group();
   const drones = PATHS.map((p) => {
-    const d = buildDrone(p.s);
+    const d = buildSentinel(p.s);
     d.position.z = p.z;
     group.add(d);
     return { g: d, p };
@@ -88,16 +132,26 @@ export function createDrones() {
       const ly = p.cy + Math.sin(a * 2 + p.phase) * p.ry;
       const prevX = g.position.x;
       g.position.x = toX(lx);
-      g.position.y = toY(ly) + Math.sin(t / 900 + i * 2) * 2.2; // hover bob
+      g.position.y = toY(ly) + Math.sin(t / 1100 + i * 2) * 3; // heavy hover bob
       const dx = g.position.x - prevX;
       g.rotation.y = dx >= 0 ? 0 : Math.PI;            // face travel
-      g.rotation.z = THREE.MathUtils.clamp(-dx * 0.06, -0.28, 0.28); // bank
+      g.rotation.z = THREE.MathUtils.clamp(-dx * 0.05, -0.22, 0.22); // bank
       const ud = g.userData;
-      ud.nav.material.opacity = (Math.sin(t / 260 + i * 1.7) > 0.55) ? 0.95 : 0.12; // nav blink
-      ud.beam.material.opacity = 0.035 + 0.02 * Math.sin(t / 1700 + i);
-      ud.beam.rotation.x = Math.sin(t / 5200 + i * 2.4) * 0.22;  // sweeping search
-      for (let f = 0; f < ud.feelers.length; f++) {
-        ud.feelers[f].rotation.z = -0.9 - f * 0.25 + Math.sin(t / 700 + i * 2 + f * 1.3) * 0.18; // feelers sway
+      ud.nav.material.opacity = (Math.sin(t / 300 + i * 1.7) > 0.55) ? 0.95 : 0.1;   // nav blink
+      ud.hunterEye.material.opacity = 0.55 + 0.45 * Math.sin(t / 480 + i);            // hunter eye pulse
+      for (let e = 0; e < ud.eyes.length; e++) {
+        ud.eyes[e].material.opacity = 0.75 + 0.25 * Math.sin(t / 340 + i + e * 0.9);  // cluster shimmer
+      }
+      ud.beam.material.opacity = 0.03 + 0.018 * Math.sin(t / 1900 + i);
+      ud.beam.rotation.x = Math.sin(t / 6000 + i * 2.4) * 0.25;                       // sweeping search
+      for (let k = 0; k < ud.tentacles.length; k++) {
+        const tt = ud.tentacles[k];
+        for (let j = 0; j < tt.segs.length; j++) {
+          // sway cascades down each tentacle with a travelling wave + slow curl
+          tt.segs[j].rotation.z = (j === 0 ? tt.base : -0.08)
+            + Math.sin(t / 700 + tt.phase + j * 0.55 + i * 2) * (0.1 + j * 0.022);
+          tt.segs[j].rotation.x = Math.sin(t / 1300 + tt.phase * 1.3 + j * 0.4) * 0.06;
+        }
       }
     }
   }
