@@ -5,7 +5,12 @@ import { WORLD_W, WORLD_H, ROOMS, DECKS, floorYAt } from '../../ship/world.js';
 import { STATIONS } from '../../core/shipStations.js';
 import { createShipSim } from '../../ship/shipEngine.js';
 import { createAgentFigure } from '../../ship/crewModels.js';
-import { createHoloFX } from '../../ship/holoFX.js';
+import { createShipArtFX } from '../../ship/shipArtFX.js';
+
+// Crew scale: measured from the artwork — a 1.8m adult is ~130 logical units
+// mid-ship, ~90 near the nose (perspective), vs our 34-unit base figures.
+// Scale follows x so crew match the painting's own depth.
+const humanScaleAt = (x) => Math.min(150, Math.max(90, 85 + 0.07 * x)) / 34;
 
 // ── Phase 1: the cinematic ship in real 3D (2.5D uplift) ─────────────────────
 // The painted hull becomes a plane in a live three.js scene: parallax camera,
@@ -29,12 +34,36 @@ function projectFeetY(sp) {
 }
 
 function ArtPlane() {
-  const tex = useLoader(THREE.TextureLoader, '/ship-interior.jpg');
-  tex.colorSpace = THREE.SRGBColorSpace;
+  // The living stage: an ambient cinemagraph loop of the artwork when
+  // available (/ship-interior.mp4), the still painting as poster/fallback.
+  const stillTex = useLoader(THREE.TextureLoader, '/ship-interior.jpg');
+  stillTex.colorSpace = THREE.SRGBColorSpace;
+  const [videoTex, setVideoTex] = useState(null);
+  useEffect(() => {
+    const video = document.createElement('video');
+    video.src = '/ship-interior.mp4';
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+    let dead = false;
+    const onReady = () => {
+      if (dead) return;
+      video.play().then(() => {
+        const t = new THREE.VideoTexture(video);
+        t.colorSpace = THREE.SRGBColorSpace;
+        setVideoTex(t);
+      }).catch(() => { /* autoplay refused — still image stands */ });
+    };
+    video.addEventListener('canplaythrough', onReady, { once: true });
+    video.addEventListener('error', () => { /* no video shipped — still image stands */ }, { once: true });
+    video.load();
+    return () => { dead = true; video.pause(); video.removeAttribute('src'); video.load(); };
+  }, []);
   return (
     <mesh position={[0, 0, 0]}>
       <planeGeometry args={[WORLD_W, WORLD_H]} />
-      <meshBasicMaterial map={tex} />
+      <meshBasicMaterial map={videoTex || stillTex} />
     </mesh>
   );
 }
@@ -46,7 +75,7 @@ function SceneContent({ simRef, crew }) {
 
   // FX group once
   useEffect(() => {
-    const fx = createHoloFX();
+    const fx = createShipArtFX();
     fxRef.current = fx;
     scene.add(fx.group);
     return () => { scene.remove(fx.group); fx.dispose(); };
@@ -83,13 +112,18 @@ function SceneContent({ simRef, crew }) {
       const feetY = projectFeetY(sp);
       fig.group.position.set(toThreeX(sp.x), toThreeY(feetY), sp.deck === 1 ? 26 : 18);
       fig.update(sp, t);
+      // Applied after fig.update (which manages its own deck scale) so the
+      // measured human-scale factor survives every animation state.
+      fig.group.scale.multiplyScalar(humanScaleAt(sp.x));
     }
     fxRef.current?.update(t);
-    // parallax: gentle camera drift toward the pointer + slow ambient sway
-    const targetX = pointer.x * 14 + Math.sin(t / 9000) * 4;
-    const targetY = pointer.y * 8 + Math.cos(t / 11000) * 3;
+    // parallax: camera drift toward the pointer + a slow living sway and a
+    // barely-perceptible breathe on depth — the frame never sits fully still
+    const targetX = pointer.x * 18 + Math.sin(t / 8000) * 9;
+    const targetY = pointer.y * 10 + Math.cos(t / 10500) * 6;
     camera.position.x += (targetX - camera.position.x) * 0.04;
     camera.position.y += (targetY - camera.position.y) * 0.04;
+    camera.position.z = CAM_Z + Math.sin(t / 14000) * 14;
     camera.lookAt(0, 0, 0);
   });
 
@@ -138,7 +172,10 @@ export default function ShipScene3D({ crew = [], activity = {}, onStation, selec
       {ROOMS.map(r => {
         const meta = STATIONS.find(s => s.id === r.id);
         const cx = ((r.x0 + r.x1) / 2 / WORLD_W) * 100;
-        const top = ((DECKS[r.deck].ceilY - 26) / WORLD_H) * 100;
+        // Chips ride the painted deck slope: anchored above each bay's real
+        // floor line instead of one flat row.
+        const cxLogical = (r.x0 + r.x1) / 2;
+        const top = ((floorYAt(r.deck, cxLogical) - (r.deck === 0 ? 152 : 160)) / WORLD_H) * 100;
         const lit = litStations.has(r.id);
         const isSel = selectedStation === r.id;
         const count = counts[r.id] || 0;

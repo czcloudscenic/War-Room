@@ -10,29 +10,33 @@ export const WORLD_W = 1280;
 export const WORLD_H = 720;
 
 // Decks: floorY is where feet stand; ceilY is the deck's ceiling.
-// CALIBRATED TO THE ARTWORK v2 (public/ship-interior.jpg, 8/17 regeneration
-// matched to Danny's reference; drawn 1280×720): the cinematic renderer walks
-// the crew on the art's visible deck floors.
+// CALIBRATED TO THE ARTWORK v3 (public/ship-interior.jpg 2048×1143, measured
+// 8/17 from zoomed crops; logical = px·1280/2048 horizontally, px·720/1143
+// vertically). The art is a tilted cutaway — both decks slope DOWN toward the
+// stern (right), so FLOOR_LINES below carry the real walk lines; floorY stays
+// the flat logical contract for the engine. ceilY only positions station chips
+// (ShipScene3D renders them at ceilY-26): 190 puts the upper row just above
+// the upper bays, 370 rides the mid-deck slab above the lower bays.
 export const DECKS = [
-  { i: 0, floorY: 300, ceilY: 150 },
-  { i: 1, floorY: 570, ceilY: 330 },
+  { i: 0, floorY: 300, ceilY: 190 },
+  { i: 1, floorY: 570, ceilY: 370 },
 ];
 
 // Rooms — every station from core/shipStations.js gets geometry here, mapped
 // to the artwork's visible room bays. kind survives for non-art renderers.
 export const ROOMS = [
-  { id: 'cockpit',    deck: 0, x0: 70,   x1: 290,  kind: 'bridge' },
-  { id: 'intel',      deck: 0, x0: 310,  x1: 450,  kind: 'consoles' },
-  { id: 'foundry',    deck: 0, x0: 470,  x1: 620,  kind: 'consoles' },
-  { id: 'pipeline',   deck: 0, x0: 640,  x1: 790,  kind: 'grid' },
-  { id: 'qc',         deck: 0, x0: 810,  x1: 980,  kind: 'lab' },
-  { id: 'gateway',    deck: 0, x0: 1000, x1: 1200, kind: 'security' },
-  { id: 'quarters',   deck: 1, x0: 170,  x1: 330,  kind: 'bunks' },
-  { id: 'vault',      deck: 1, x0: 350,  x1: 460,  kind: 'vault' },
-  { id: 'analytics',  deck: 1, x0: 460,  x1: 620,  kind: 'core' },      // the holo-core room
-  { id: 'comm',       deck: 1, x0: 640,  x1: 800,  kind: 'consoles' },
-  { id: 'automation', deck: 1, x0: 820,  x1: 1000, kind: 'machines' },
-  { id: 'finance',    deck: 1, x0: 1020, x1: 1200, kind: 'consoles' },
+  { id: 'cockpit',    deck: 0, x0: 105,  x1: 400,  kind: 'bridge' },    // glass nose canopy + holo table + pilot chair
+  { id: 'intel',      deck: 0, x0: 430,  x1: 595,  kind: 'consoles' },  // blue blueprint-screen room
+  { id: 'foundry',    deck: 0, x0: 625,  x1: 725,  kind: 'consoles' },  // dark locker/panel bay
+  { id: 'pipeline',   deck: 0, x0: 755,  x1: 895,  kind: 'grid' },      // hanging-lamp bay before the big stern rib
+  { id: 'qc',         deck: 0, x0: 945,  x1: 1115, kind: 'lab' },       // big teal wall-screen room
+  { id: 'gateway',    deck: 0, x0: 1125, x1: 1220, kind: 'security' },  // sternmost glass-panel bay
+  { id: 'quarters',   deck: 1, x0: 195,  x1: 395,  kind: 'bunks' },     // cable room with the reclined bunk
+  { id: 'vault',      deck: 1, x0: 425,  x1: 605,  kind: 'vault' },     // tall dark cabinet + workstation bay
+  { id: 'analytics',  deck: 1, x0: 620,  x1: 815,  kind: 'core' },      // the holo-core room (cylinder center ≈ x 684)
+  { id: 'comm',       deck: 1, x0: 825,  x1: 915,  kind: 'consoles' },  // operator chair + wall screens right of the core
+  { id: 'automation', deck: 1, x0: 950,  x1: 1085, kind: 'machines' },  // machinery/crate bay past the stern rib
+  { id: 'finance',    deck: 1, x0: 1090, x1: 1220, kind: 'consoles' },  // warm-lamp desk office at the stern
 ];
 export const ENGINE_ROOM = { deck: 1, x0: 1210, x1: 1260, kind: 'engine' };
 
@@ -42,8 +46,8 @@ export const roomCenter = (id) => { const r = roomById(id); return (r.x0 + r.x1)
 // Ladders connect ADJACENT decks at x — placed at the artwork's structural
 // bulkhead seams so climbs read as lift shafts.
 export const LADDERS = [
-  { x: 300, decks: [0, 1] },
-  { x: 985, decks: [0, 1] },
+  { x: 416, decks: [0, 1] },  // big nose bulkhead: cockpit|intel above, quarters|vault below
+  { x: 925, decks: [0, 1] },  // stern structural rib: pipeline|qc above, comm|automation below
 ];
 
 // Hull silhouette (drawn + used as bounds): nose left, engines right.
@@ -53,8 +57,8 @@ export const HULL = { x0: 48, x1: 1232, top: 120, bottom: 660 };
 // the cinematic renderer place feet ON the painted floor while the engine
 // keeps flat logical decks. [x, y] control points, linearly interpolated.
 export const FLOOR_LINES = {
-  0: [[70, 223], [400, 214], [700, 210], [1000, 222], [1200, 238]],
-  1: [[170, 415], [460, 421], [620, 424], [820, 414], [1200, 400]],
+  0: [[110, 283], [300, 291], [500, 296], [720, 318], [900, 347], [1200, 433]],
+  1: [[195, 460], [500, 509], [688, 551], [875, 551], [1063, 583], [1200, 592]],
 };
 export function floorYAt(deck, x) {
   const pts = FLOOR_LINES[deck] || [[0, DECKS[deck]?.floorY || 0]];
