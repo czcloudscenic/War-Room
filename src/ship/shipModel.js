@@ -134,6 +134,15 @@ export function createShipModel(options = {}) {
   const matWall = lambert(PALETTE.wall);
   const matRib = lambert(PALETTE.rib);
 
+  // The big surfaces must be LIGHTABLE even with no textures (texture loads
+  // can fail on a flaky connection): near-black albedo reflects nothing under
+  // the cinematic lamp rig, so lift the base reflectance up front. applyMap's
+  // own lerp below is toward the same family, so double application is safe.
+  matHull.color.lerp(new THREE.Color(0x6d7684), 0.55);
+  matWall.color.lerp(new THREE.Color(0x67707e), 0.55);
+  matDeck.color.lerp(new THREE.Color(0x6d7684), 0.55);
+  matRib.color.lerp(new THREE.Color(0x5a6270), 0.45);
+
   // Optional grunge textures on the big shared surfaces (caller owns/disposes
   // the textures — dispose() here never touches them). The material color is
   // lightened toward mid-grey so the map reads as the surface instead of
