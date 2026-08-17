@@ -10,30 +10,31 @@ export const WORLD_W = 1280;
 export const WORLD_H = 720;
 
 // Decks: floorY is where feet stand; ceilY is the deck's ceiling.
-// CALIBRATED TO THE ARTWORK (public/ship-interior.jpg, drawn 1280×720): the
-// cinematic renderer walks the crew on the art's visible deck floors.
+// CALIBRATED TO THE ARTWORK v2 (public/ship-interior.jpg, 8/17 regeneration
+// matched to Danny's reference; drawn 1280×720): the cinematic renderer walks
+// the crew on the art's visible deck floors.
 export const DECKS = [
-  { i: 0, floorY: 300, ceilY: 165 },
-  { i: 1, floorY: 570, ceilY: 380 },
+  { i: 0, floorY: 300, ceilY: 150 },
+  { i: 1, floorY: 570, ceilY: 330 },
 ];
 
 // Rooms — every station from core/shipStations.js gets geometry here, mapped
 // to the artwork's visible room bays. kind survives for non-art renderers.
 export const ROOMS = [
-  { id: 'cockpit',    deck: 0, x0: 95,   x1: 285,  kind: 'bridge' },
-  { id: 'intel',      deck: 0, x0: 305,  x1: 465,  kind: 'consoles' },
-  { id: 'foundry',    deck: 0, x0: 485,  x1: 655,  kind: 'consoles' },
-  { id: 'pipeline',   deck: 0, x0: 675,  x1: 830,  kind: 'grid' },
-  { id: 'qc',         deck: 0, x0: 850,  x1: 1010, kind: 'lab' },
-  { id: 'gateway',    deck: 0, x0: 1030, x1: 1215, kind: 'security' },
-  { id: 'quarters',   deck: 1, x0: 215,  x1: 395,  kind: 'bunks' },
-  { id: 'vault',      deck: 1, x0: 415,  x1: 540,  kind: 'vault' },
-  { id: 'analytics',  deck: 1, x0: 540,  x1: 760,  kind: 'core' },      // the holo-core room
-  { id: 'comm',       deck: 1, x0: 780,  x1: 925,  kind: 'consoles' },
-  { id: 'automation', deck: 1, x0: 945,  x1: 1095, kind: 'machines' },
-  { id: 'finance',    deck: 1, x0: 1115, x1: 1225, kind: 'consoles' },
+  { id: 'cockpit',    deck: 0, x0: 70,   x1: 290,  kind: 'bridge' },
+  { id: 'intel',      deck: 0, x0: 310,  x1: 450,  kind: 'consoles' },
+  { id: 'foundry',    deck: 0, x0: 470,  x1: 620,  kind: 'consoles' },
+  { id: 'pipeline',   deck: 0, x0: 640,  x1: 790,  kind: 'grid' },
+  { id: 'qc',         deck: 0, x0: 810,  x1: 980,  kind: 'lab' },
+  { id: 'gateway',    deck: 0, x0: 1000, x1: 1200, kind: 'security' },
+  { id: 'quarters',   deck: 1, x0: 170,  x1: 330,  kind: 'bunks' },
+  { id: 'vault',      deck: 1, x0: 350,  x1: 460,  kind: 'vault' },
+  { id: 'analytics',  deck: 1, x0: 460,  x1: 620,  kind: 'core' },      // the holo-core room
+  { id: 'comm',       deck: 1, x0: 640,  x1: 800,  kind: 'consoles' },
+  { id: 'automation', deck: 1, x0: 820,  x1: 1000, kind: 'machines' },
+  { id: 'finance',    deck: 1, x0: 1020, x1: 1200, kind: 'consoles' },
 ];
-export const ENGINE_ROOM = { deck: 1, x0: 1230, x1: 1260, kind: 'engine' };
+export const ENGINE_ROOM = { deck: 1, x0: 1210, x1: 1260, kind: 'engine' };
 
 export const roomById = (id) => ROOMS.find(r => r.id === id) || ROOMS.find(r => r.id === 'quarters');
 export const roomCenter = (id) => { const r = roomById(id); return (r.x0 + r.x1) / 2; };
@@ -41,8 +42,8 @@ export const roomCenter = (id) => { const r = roomById(id); return (r.x0 + r.x1)
 // Ladders connect ADJACENT decks at x — placed at the artwork's structural
 // bulkhead seams so climbs read as lift shafts.
 export const LADDERS = [
-  { x: 475,  decks: [0, 1] },
-  { x: 1020, decks: [0, 1] },
+  { x: 300, decks: [0, 1] },
+  { x: 985, decks: [0, 1] },
 ];
 
 // Hull silhouette (drawn + used as bounds): nose left, engines right.
@@ -52,8 +53,8 @@ export const HULL = { x0: 48, x1: 1232, top: 120, bottom: 660 };
 // the cinematic renderer place feet ON the painted floor while the engine
 // keeps flat logical decks. [x, y] control points, linearly interpolated.
 export const FLOOR_LINES = {
-  0: [[95, 300], [400, 318], [800, 322], [1215, 310]],
-  1: [[215, 508], [400, 524], [560, 545], [760, 548], [1000, 536], [1225, 520]],
+  0: [[70, 223], [400, 214], [700, 210], [1000, 222], [1200, 238]],
+  1: [[170, 415], [460, 421], [620, 424], [820, 414], [1200, 400]],
 };
 export function floorYAt(deck, x) {
   const pts = FLOOR_LINES[deck] || [[0, DECKS[deck]?.floorY || 0]];
