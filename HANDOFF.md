@@ -1,5 +1,15 @@
 # Vantus Handoff Brief
 
+## 2026-08-17 — PHASE 2 SHIPPED: the fully MODELED 3D ship. The ship arc is complete through Phase 2; only Phase 3 (bespoke characters) remains.
+
+The painted backdrop is gone from the 3D View — the crew now walks a real procedural low-poly cutaway hull (final push c20be8f, verified live):
+- `src/ship/shipModel.js` (Fable subagent, 586 lines): ribbed armored shell w/ cyan cross-section rims, all 12 station interiors (cockpit viewport + holo table, console rooms w/ flickering screens, 8-slot pipeline board, QC scanner arch w/ sweeping beam, security gate, pulsing core chamber, server racks + cycling piston, bunks, vault door + crates, reactor + 3 thrusters), lift shafts at ladder seams — 23 draw calls, deterministic builds, 0.005ms/frame, only 2 real lights.
+- `src/ship/environment3d.js` (Fable subagent): storm-sky dome, 3-layer endless city (400 twinkling windows), rain that provably never enters the cutaway, haze, under-hull hover glow — 11 draw calls.
+- `src/ship/scene3dContract.js` = the single 3D-space source of truth (deck heights, walk lane, camera, palette). `ShipWorld3D.jsx` = host: engine→3D navigation (climbs lerp real deck heights), crewModels figures reused, chips projected from true 3D anchors, contract camera + parallax, 4-light rig (incl. warm cutaway-side fill per the 8/17 lighting pass).
+- Movement verified live again (intel receipt → figure at the core → aged honestly back to 0 working). Renderer lineage now: ShipWorld3D (live) ← ShipScene3D (art plane, unimported) ← ShipGame (2D canvas, ACTIVE as no-WebGL fallback) ← shipRenderer/shipRendererArt (unimported skins).
+- Phase 3 queued: bespoke GLB crew (character sheets → mesh → Mixamo rig — original designs only; the likeness rule held through every request to use the film cast).
+- Prod note: fresh sessions take 15-40s to first paint (black + blue dot) — pre-existing app hydration, NOT the 3D chunk (occurs before route code runs); worth a look someday.
+
 ## 2026-08-15 (night) — PHASE 1 3D SHIP LIVE: the cinematic ship in a real three.js scene, receipt-driven 3D crew.
 
 Christian's directive: fully 3D, animated, "the actual ship I sent." Delivered as the planned Phase 1 (2.5D uplift) — LIVE on prod, verified with a walk test (fired intel_score_content, watched the 3D Scrappy figure work at the holo-core; header showed "1 working this minute").
