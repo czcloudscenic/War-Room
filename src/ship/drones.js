@@ -141,10 +141,13 @@ export function createDrones() {
   attacker.position.set(toX(ATTACK.hover.x), toY(ATTACK.hover.y), ATTACK.z);
   group.add(attacker);
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xff5340, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
-  const laser = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.6, 1, 6, 1, true), beamMat);
+  const laser = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 3.2, 1, 8, 1, true), beamMat);
   group.add(laser);
+  const beamHazeMat = new THREE.MeshBasicMaterial({ color: 0xff7a5c, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const laserHaze = new THREE.Mesh(new THREE.CylinderGeometry(6.5, 8.5, 1, 8, 1, true), beamHazeMat);
+  group.add(laserHaze);
   const impactGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(7, 10, 10),
+    new THREE.SphereGeometry(11, 12, 12),
     new THREE.MeshBasicMaterial({ color: 0xffa270, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })
   );
   impactGlow.position.set(toX(ATTACK.impact.x), toY(ATTACK.impact.y), ATTACK.z);
@@ -184,9 +187,13 @@ export function createDrones() {
     laser.position.copy(_muzzle).addScaledVector(_dir, 0.5);
     laser.scale.set(1, len, 1);
     laser.quaternion.setFromUnitVectors(_up, _dir.normalize());
-    laser.material.opacity = firing ? 0.35 + 0.3 * Math.abs(Math.sin(t / 55)) : 0;
-    impactGlow.material.opacity = firing ? 0.3 + 0.3 * Math.abs(Math.sin(t / 45)) : 0;
-    const s = firing ? 0.8 + 0.45 * Math.abs(Math.sin(t / 70)) : 0.001;
+    laserHaze.position.copy(laser.position);
+    laserHaze.scale.set(1, len, 1);
+    laserHaze.quaternion.copy(laser.quaternion);
+    laser.material.opacity = firing ? 0.75 + 0.25 * Math.abs(Math.sin(t / 55)) : 0;
+    laserHaze.material.opacity = firing ? 0.12 + 0.08 * Math.abs(Math.sin(t / 70)) : 0;
+    impactGlow.material.opacity = firing ? 0.45 + 0.35 * Math.abs(Math.sin(t / 45)) : 0;
+    const s = firing ? 0.8 + 0.5 * Math.abs(Math.sin(t / 70)) : 0.001;
     impactGlow.scale.set(s, s, s);
   }
 
