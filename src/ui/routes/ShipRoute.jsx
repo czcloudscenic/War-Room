@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
 import { positionCrew, stationActivity, stationById, ROSTER } from '../../core/shipStations.js';
 import ShipGame from '../ship/ShipGame.jsx';
-import ShipScene3D from '../ship/ShipScene3D.jsx';
+import ShipWorld3D from '../ship/ShipWorld3D.jsx';
 import ShipMap from '../ship/ShipMap.jsx';
 
 // WebGL gate: the 3D scene needs it; the 2D canvas ship is the fallback skin.
@@ -116,7 +116,7 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) 330px', gap: 14, alignItems: 'start' }}>
           <div>
             {view === '3d' && (HAS_WEBGL
-              ? <ShipScene3D crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
+              ? <ShipWorld3D crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
               : <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />)}
             {view === 'map' && <ShipMap crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />}
 
