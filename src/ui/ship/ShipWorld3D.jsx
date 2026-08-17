@@ -100,9 +100,11 @@ function SceneContent({ simRef, crew, onChipAnchors }) {
 
   return (
     <>
-      <ambientLight intensity={0.55} color="#8fb0cf" />
-      <hemisphereLight args={['#5a7fa8', '#141008', 0.55]} />
-      <directionalLight position={[-300, 500, 600]} intensity={0.55} color="#a9c9e8" />
+      <ambientLight intensity={1.0} color="#93b4d4" />
+      <hemisphereLight args={['#6f93bd', '#2a2014', 0.9]} />
+      <directionalLight position={[-300, 500, 600]} intensity={0.9} color="#b7d3ee" />
+      {/* warm interior fill from the cutaway side, like the art's work lamps */}
+      <directionalLight position={[200, -50, 900]} intensity={0.45} color="#ffb45c" />
     </>
   );
 }
