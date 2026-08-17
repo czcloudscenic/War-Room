@@ -94,33 +94,24 @@ function SceneContent({ simRef, crew }) {
   useEffect(() => {
     const map = figuresRef.current;
     for (const member of crew) {
+      // Future crew don't render in the painting — their ghost meshes read as
+      // glitch boxes against the art. They stay listed in Map/List views.
+      if (member.future) continue;
       if (!map.has(member.name)) {
         const fig = createAgentFigure({ name: member.name, color: member.color, future: member.future });
         // Pop against the dark painting: near-black garments take the member's
         // signature color, and every surface self-glows so nobody reads as a
         // silhouette sunk into the hull. Future crew stay ghosted — glowing
         // them turns the Quarters bunks into colored noise.
-        if (!member.future) {
-          const tint = new THREE.Color(member.color || '#2AABFF');
-          fig.group.traverse((o) => {
-            if (o.isMesh && o.material && 'emissive' in o.material && o.material.color) {
-              const m = o.material;
-              const lum = m.color.r * 0.3 + m.color.g * 0.59 + m.color.b * 0.11;
-              if (lum < 0.16) m.color.lerp(tint, 0.45);
-              m.emissive.copy(m.color).multiplyScalar(0.4);
-            }
-          });
-        } else {
-          const ghost = new THREE.Color(0x2a3644);
-          fig.group.traverse((o) => {
-            if (o.isMesh && o.material && o.material.color) {
-              const m = o.material;
-              m.color.lerp(ghost, 0.8);
-              m.transparent = true;
-              m.opacity = Math.min(m.opacity ?? 1, 0.35);
-            }
-          });
-        }
+        const tint = new THREE.Color(member.color || '#2AABFF');
+        fig.group.traverse((o) => {
+          if (o.isMesh && o.material && 'emissive' in o.material && o.material.color) {
+            const m = o.material;
+            const lum = m.color.r * 0.3 + m.color.g * 0.59 + m.color.b * 0.11;
+            if (lum < 0.16) m.color.lerp(tint, 0.45);
+            m.emissive.copy(m.color).multiplyScalar(0.4);
+          }
+        });
         map.set(member.name, fig);
         scene.add(fig.group);
       }
