@@ -6,6 +6,7 @@ import { STATIONS } from '../../core/shipStations.js';
 import { createShipSim } from '../../ship/shipEngine.js';
 import { createAgentFigure } from '../../ship/crewModels.js';
 import { createShipArtFX } from '../../ship/shipArtFX.js';
+import { createDrones } from '../../ship/drones.js';
 
 // Crew scale: measured from the artwork — a 1.8m adult is ~130 logical units
 // mid-ship, ~90 near the nose (perspective), vs our 34-unit base figures.
@@ -72,13 +73,20 @@ function SceneContent({ simRef, crew }) {
   const { scene, camera, pointer } = useThree();
   const figuresRef = useRef(new Map());
   const fxRef = useRef(null);
+  const dronesRef = useRef(null);
 
   // FX group once
   useEffect(() => {
     const fx = createShipArtFX();
     fxRef.current = fx;
     scene.add(fx.group);
-    return () => { scene.remove(fx.group); fx.dispose(); };
+    const drones = createDrones();
+    dronesRef.current = drones;
+    scene.add(drones.group);
+    return () => {
+      scene.remove(fx.group); fx.dispose();
+      scene.remove(drones.group); drones.dispose();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -117,6 +125,7 @@ function SceneContent({ simRef, crew }) {
       fig.group.scale.multiplyScalar(humanScaleAt(sp.x));
     }
     fxRef.current?.update(t);
+    dronesRef.current?.update(t);
     // parallax: camera drift toward the pointer + a slow living sway and a
     // barely-perceptible breathe on depth — the frame never sits fully still
     const targetX = pointer.x * 18 + Math.sin(t / 8000) * 9;

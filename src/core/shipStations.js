@@ -45,10 +45,10 @@ export const ACTION_STATION = {
 // Canonical roster (spec §10 — names are canon). eventName ties a crew member
 // to their agent_events rows; future crew have none yet.
 export const ROSTER = [
-  { name: 'Sean',    role: 'Commander',          eventName: 'Sean',    color: '#2AABFF', future: false },
-  { name: 'Muse',    role: 'Content Ideation',   eventName: 'Muse',    color: '#ff375f', future: false },
-  { name: 'Scrappy', role: 'Trend Scout',        eventName: 'Scrappy', color: '#5e5ce6', future: false },
-  { name: 'Slate',   role: 'QC Guardian',        eventName: 'QC',      color: '#64d2ff', future: false },
+  { name: 'Sean',    role: 'Commander',          eventName: 'Sean',    color: '#2AABFF', future: false, home: 'cockpit' },
+  { name: 'Muse',    role: 'Content Ideation',   eventName: 'Muse',    color: '#ff375f', future: false, home: 'foundry' },
+  { name: 'Scrappy', role: 'Trend Scout',        eventName: 'Scrappy', color: '#5e5ce6', future: false, home: 'intel' },
+  { name: 'Slate',   role: 'QC Guardian',        eventName: 'QC',      color: '#64d2ff', future: false, home: 'qc' },
   { name: 'Route',   role: 'Traffic Controller', eventName: null,      color: '#ff9f0a', future: true },
   { name: 'Tally',   role: 'Data Analyst',       eventName: null,      color: '#30d158', future: true },
   { name: 'Frame',   role: 'Asset Librarian',    eventName: null,      color: '#bf5af2', future: true },
@@ -75,11 +75,13 @@ export function positionCrew(events = [], now = Date.now()) {
     const mine = events.filter(e => e.agent_name === member.eventName);
     const latest = mine[0] || null;
     if (!latest) {
-      return { ...member, station: 'quarters', state: 'idle', lastTs: null, lastAction: null, receipts48h: 0 };
+      return { ...member, station: member.home || 'quarters', state: 'idle', lastTs: null, lastAction: null, receipts48h: 0 };
     }
     const age = now - new Date(latest.ts).getTime();
     const state = age < WORKING_MS ? 'working' : age < ACTIVE_MS ? 'active' : 'idle';
-    const station = state === 'idle' ? 'quarters' : (ACTION_STATION[latest.action_key] || 'automation');
+    // Idle crew hold their HOME POST (bridge crew belongs on the bridge), not
+    // the barracks — receipts still drive working state and station moves.
+    const station = state === 'idle' ? (member.home || 'quarters') : (ACTION_STATION[latest.action_key] || 'automation');
     return { ...member, station, state, lastTs: latest.ts, lastAction: latest.action_key, receipts48h: mine.length };
   });
 }
