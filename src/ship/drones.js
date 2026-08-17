@@ -118,6 +118,15 @@ function buildSentinel(scale) {
   return g;
 }
 
+// One sentinel is ON the ship — hovering tight over the stern hull, firing
+// laser bursts at the plating, trying to cut its way in. Nothing crazy: a
+// thin red beam in bursts + a flickering impact glow.
+const ATTACK = {
+  hover: { x: 838, y: 95 },   // where it holds position, just off the hull top
+  impact: { x: 895, y: 168 }, // where the beam hits the plating
+  s: 0.55, z: 3.5,
+};
+
 export function createDrones() {
   const group = new THREE.Group();
   const drones = PATHS.map((p) => {
@@ -127,7 +136,62 @@ export function createDrones() {
     return { g: d, p };
   });
 
+  // the attacker + its laser rig (beam and glow live in world space)
+  const attacker = buildSentinel(ATTACK.s);
+  attacker.position.set(toX(ATTACK.hover.x), toY(ATTACK.hover.y), ATTACK.z);
+  group.add(attacker);
+  const beamMat = new THREE.MeshBasicMaterial({ color: 0xff5340, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  const laser = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.6, 1, 6, 1, true), beamMat);
+  group.add(laser);
+  const impactGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(7, 10, 10),
+    new THREE.MeshBasicMaterial({ color: 0xffa270, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  impactGlow.position.set(toX(ATTACK.impact.x), toY(ATTACK.impact.y), ATTACK.z);
+  group.add(impactGlow);
+  const _muzzle = new THREE.Vector3();
+  const _hit = new THREE.Vector3(toX(ATTACK.impact.x), toY(ATTACK.impact.y), ATTACK.z);
+  const _dir = new THREE.Vector3();
+  const _up = new THREE.Vector3(0, 1, 0);
+
+  function updateAttacker(t) {
+    const g = attacker;
+    // agitated hover: tight lissajous drift + bob, always facing the hull
+    g.position.x = toX(ATTACK.hover.x) + Math.sin(t / 1400) * 6;
+    g.position.y = toY(ATTACK.hover.y) + Math.cos(t / 1900) * 4 + Math.sin(t / 800) * 2;
+    g.rotation.y = 0; // impact is to its +x
+    g.rotation.z = -0.35 + Math.sin(t / 1100) * 0.05; // pitched down toward the plating
+    const ud = g.userData;
+    ud.nav.material.opacity = (Math.sin(t / 220) > 0.4) ? 0.95 : 0.1;
+    ud.hunterEye.material.opacity = 0.75 + 0.25 * Math.sin(t / 240);
+    for (let e = 0; e < ud.eyes.length; e++) {
+      ud.eyes[e].material.opacity = 0.8 + 0.2 * Math.sin(t / 200 + e * 0.9);
+    }
+    ud.beam.material.opacity = 0; // no searchlight — it's busy
+    for (let k = 0; k < ud.tentacles.length; k++) {
+      const tt = ud.tentacles[k];
+      for (let j = 0; j < tt.segs.length; j++) {
+        tt.segs[j].rotation.z = (j === 0 ? tt.base : -0.08)
+          + Math.sin(t / 420 + tt.phase + j * 0.55) * (0.13 + j * 0.025); // agitated writhe
+        tt.segs[j].rotation.x = Math.sin(t / 900 + tt.phase * 1.3 + j * 0.4) * 0.08;
+      }
+    }
+    // laser bursts: ~1.4s on, ~2.4s off, with a fast cutting flicker while on
+    const firing = (t % 3800) < 1400;
+    _muzzle.set(g.position.x + 10, g.position.y - 4, ATTACK.z);
+    _dir.subVectors(_hit, _muzzle);
+    const len = _dir.length();
+    laser.position.copy(_muzzle).addScaledVector(_dir, 0.5);
+    laser.scale.set(1, len, 1);
+    laser.quaternion.setFromUnitVectors(_up, _dir.normalize());
+    laser.material.opacity = firing ? 0.35 + 0.3 * Math.abs(Math.sin(t / 55)) : 0;
+    impactGlow.material.opacity = firing ? 0.3 + 0.3 * Math.abs(Math.sin(t / 45)) : 0;
+    const s = firing ? 0.8 + 0.45 * Math.abs(Math.sin(t / 70)) : 0.001;
+    impactGlow.scale.set(s, s, s);
+  }
+
   function update(t) {
+    updateAttacker(t);
     for (let i = 0; i < drones.length; i++) {
       const { g, p } = drones[i];
       const a = (t / p.period) * Math.PI * 2 + p.phase;
