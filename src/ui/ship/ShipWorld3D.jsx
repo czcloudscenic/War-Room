@@ -173,10 +173,8 @@ function SceneContent({ simRef, crew, onChipAnchors }) {
           color={r.id === 'analytics' ? '#7fc4ff' : '#ffb45c'}
         />
       ))}
-      {/* DIAGNOSTIC (remove after verification): if this saturated magenta
-          floodlight doesn't visibly tint the ship, point lights are not
-          reaching the render at all and the bug is structural. */}
-      <pointLight position={[0, 300, 600]} intensity={800000} distance={4000} decay={2} color="#ff00ff" />
+      {/* soft cool front fill so the cutaway's nearest faces never go void */}
+      <pointLight position={[0, 100, 700]} intensity={120000} distance={2000} decay={2} color="#5a7492" />
       <Effects />
     </>
   );

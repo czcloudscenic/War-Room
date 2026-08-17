@@ -125,7 +125,11 @@ export function createShipModel(options = {}) {
   const shaftXs = LADDERS.map((l) => toSceneX(l.x));
 
   // ── shared materials ───────────────────────────────────────────────────────
-  const lambert = (c) => { const m = new THREE.MeshLambertMaterial({ color: c }); mats.push(m); return m; };
+  // DoubleSide is load-bearing: the cutaway view shows the INSIDE of outward-
+  // facing shell geometry, so single-sided lighting saw back faces and lit
+  // them black under every lamp (ambient-only). Two-sided Lambert flips the
+  // normal for back faces and the interior finally receives light.
+  const lambert = (c) => { const m = new THREE.MeshLambertMaterial({ color: c, side: THREE.DoubleSide }); mats.push(m); return m; };
   const basic = (c, opts = {}) => { const m = new THREE.MeshBasicMaterial({ color: c, ...opts }); mats.push(m); return m; };
 
   const matHull = lambert(PALETTE.hull);
