@@ -1,5 +1,12 @@
 # Vantus Handoff Brief
 
+## 2026-08-17 (later) — Crew wardrobe identities LIVE + Phase 3 character sheets GENERATED. Likeness rule held and settled.
+
+Christian asked for the actual Matrix cast (Neo/Morpheus/Trinity/Tank/red-dress woman) by name; declined plainly once (WB copyright + actor right-of-publicity + Danny's own spec ban) and he accepted the swap: "make faces that aren't their faces." Settled doctrine: archetype wardrobe yes, likenesses never.
+- **Wardrobe pass LIVE (push 50a3386):** every crew figure in the 3D ship now has a distinct silhouette — Sean flared trench + visor, Muse THE red satin dress, Scrappy operator sweater + headset, Slate bald mentor greatcoat + spectacles, six future crew varied (vest+cap/blazer/hood/scarf/suspenders/armor). Fable subagent build, 11-figure harness green, verified on prod (Muse's red reads instantly in Quarters).
+- **Phase 3 character sheets DONE (Higgsfield, in Christian's gallery):** 4 turnaround model sheets (front/3-4/profile/back) for Sean/Muse/Scrappy/Slate — original faces, reference-mood wardrobe, spot-checked for likeness safety (Slate ≠ Fishburne, Sean ≠ Reeves). Job ids in this session's transcript; raw URLs on the CDN.
+- **Phase 3 pipeline upgrade discovered:** Higgsfield has `multi_image_to_3d` (feed the 4 cropped turnaround views) AND `3d_rigging` + `animation_actions` (rig + baked animation clips) — meaning NO Mixamo manual step is needed. Full remaining path, all automatable: crop each sheet into its 4 views → multi_image_to_3d per character → 3d_rigging with walk/idle clips → GLB integration in ShipWorld3D via AnimationMixer switched by sim state. One session of work when called.
+
 ## 2026-08-17 — PHASE 2 SHIPPED: the fully MODELED 3D ship. The ship arc is complete through Phase 2; only Phase 3 (bespoke characters) remains.
 
 The painted backdrop is gone from the 3D View — the crew now walks a real procedural low-poly cutaway hull (final push c20be8f, verified live):
