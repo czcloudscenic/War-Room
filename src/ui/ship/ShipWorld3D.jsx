@@ -36,7 +36,7 @@ function Effects() {
   const { gl, scene, camera, size } = useThree();
   const composer = useMemo(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = 1.15;
+    gl.toneMappingExposure = 1.45;
     const c = new EffectComposer(gl);
     c.addPass(new RenderPass(scene, camera));
     c.addPass(new UnrealBloomPass(new THREE.Vector2(size.width, size.height), 0.75, 0.55, 0.8));
@@ -158,17 +158,17 @@ function SceneContent({ simRef, crew, onChipAnchors }) {
       {/* Cinematic rig: deep-shadow base + pools of warm lamp light per room —
           the reference's contrast instead of an even wash. Bloom (Effects)
           turns the emissives into real glow. */}
-      <ambientLight intensity={0.42} color="#4e647c" />
-      <hemisphereLight args={['#46607e', '#20160c', 0.5]} />
-      <directionalLight position={[-300, 500, 600]} intensity={0.35} color="#8fb3d8" />
+      <ambientLight intensity={0.65} color="#5a7492" />
+      <hemisphereLight args={['#527092', '#241a0e', 0.7]} />
+      <directionalLight position={[-300, 500, 600]} intensity={0.5} color="#9fc0e2" />
       {/* three r155+ uses physical falloff: at this scene scale (rooms ~200
           units) pooled lamps need candela-scale intensities to exist at all. */}
       {ROOMS.map(r => (
         <pointLight
           key={r.id}
           position={[toSceneX((r.x0 + r.x1) / 2), DECK_Y[r.deck] + DECK_CLEAR - 24, WALK_Z - 40]}
-          intensity={22000}
-          distance={300}
+          intensity={45000}
+          distance={340}
           decay={2}
           color={r.id === 'analytics' ? '#7fc4ff' : '#ffb45c'}
         />
