@@ -17,10 +17,10 @@ const toY = (ly) => 360 - ly;
 // the hull and the city band below it. They never cross the ship interior;
 // they're distant machines prowling around it (smaller + low z = depth).
 const PATHS = [
-  { cx: 210, cy: 105, rx: 150, ry: 18, period: 34000, phase: 0.0, z: 3, s: 0.85 },  // sky, over the nose
-  { cx: 1000, cy: 90, rx: 180, ry: 16, period: 42000, phase: 2.1, z: 2.5, s: 0.7 }, // sky, stern side
-  { cx: 640, cy: 62, rx: 430, ry: 12, period: 64000, phase: 1.2, z: 2, s: 0.5 },    // far high crosser along the storm line
-  { cx: 280, cy: 658, rx: 200, ry: 13, period: 38000, phase: 4.0, z: 3, s: 0.6 },   // low over the city, under the bow
+  { cx: 200, cy: 72, rx: 140, ry: 10, period: 36000, phase: 0.0, z: 2.5, s: 0.5 },  // high sky, off the nose
+  { cx: 1000, cy: 64, rx: 170, ry: 10, period: 46000, phase: 2.1, z: 2, s: 0.42 },  // high sky, stern side
+  { cx: 640, cy: 46, rx: 430, ry: 8, period: 70000, phase: 1.2, z: 1.5, s: 0.34 },  // far crosser along the storm line
+  { cx: 260, cy: 668, rx: 180, ry: 10, period: 40000, phase: 4.0, z: 2.5, s: 0.45 },// low over the city, under the bow
 ];
 
 const TENTACLES = 8;
@@ -53,8 +53,10 @@ function makeTentacle(mat) {
 
 function buildSentinel(scale) {
   const g = new THREE.Group();
-  const hullMat = new THREE.MeshStandardMaterial({ color: 0x1a1f29, roughness: 0.45, metalness: 0.7 });
-  const darkMat = new THREE.MeshStandardMaterial({ color: 0x10141c, roughness: 0.6, metalness: 0.55 });
+  // Lifted toward the storm-cloud gray — atmospheric haze so distant machines
+  // read as shapes in the weather, not black blobs pasted on it.
+  const hullMat = new THREE.MeshStandardMaterial({ color: 0x2a3340, roughness: 0.45, metalness: 0.7 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x1e2632, roughness: 0.6, metalness: 0.55 });
 
   // armored head — flattened, faces +x
   const head = new THREE.Mesh(new THREE.SphereGeometry(15, 14, 12), hullMat);

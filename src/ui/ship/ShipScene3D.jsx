@@ -8,10 +8,10 @@ import { createAgentFigure } from '../../ship/crewModels.js';
 import { createShipArtFX } from '../../ship/shipArtFX.js';
 import { createDrones } from '../../ship/drones.js';
 
-// Crew scale: measured from the artwork — a 1.8m adult is ~130 logical units
-// mid-ship, ~90 near the nose (perspective), vs our 34-unit base figures.
-// Scale follows x so crew match the painting's own depth.
-const humanScaleAt = (x) => Math.min(150, Math.max(90, 85 + 0.07 * x)) / 34;
+// Crew scale: tuned against the artwork's furniture — figures read right at
+// ~70-105 logical units (full art-measured human scale of 130 overwhelmed the
+// bays). Scale follows x so crew match the painting's own depth.
+const humanScaleAt = (x) => Math.min(105, Math.max(66, 62 + 0.05 * x)) / 34;
 
 // ── Phase 1: the cinematic ship in real 3D (2.5D uplift) ─────────────────────
 // The painted hull becomes a plane in a live three.js scene: parallax camera,
@@ -96,6 +96,18 @@ function SceneContent({ simRef, crew }) {
     for (const member of crew) {
       if (!map.has(member.name)) {
         const fig = createAgentFigure({ name: member.name, color: member.color, future: member.future });
+        // Pop against the dark painting: near-black garments take the member's
+        // signature color, and every surface self-glows so nobody reads as a
+        // silhouette sunk into the hull.
+        const tint = new THREE.Color(member.color || '#2AABFF');
+        fig.group.traverse((o) => {
+          if (o.isMesh && o.material && 'emissive' in o.material && o.material.color) {
+            const m = o.material;
+            const lum = m.color.r * 0.3 + m.color.g * 0.59 + m.color.b * 0.11;
+            if (lum < 0.16) m.color.lerp(tint, 0.45);
+            m.emissive.copy(m.color).multiplyScalar(0.4);
+          }
+        });
         map.set(member.name, fig);
         scene.add(fig.group);
       }
