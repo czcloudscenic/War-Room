@@ -1,5 +1,31 @@
 # Vantus Handoff Brief
 
+## 2026-08-21 (afternoon) — Missing-items sweep + PHASE D BUILT. ⚠️ MIGRATION GATE: `20260821_phase_d.sql` BEFORE push.
+
+**Repo state at close:** `cdcdc26` deployed + verified ready on prod; `ea68b21` (Phase D) committed on main, NOT pushed — apply `supabase/migrations/20260821_phase_d.sql` in the Supabase editor first (staged in TextEdit at /tmp/vantus-phase-d-migration-2026-08-21.sql). Only local noise: .netlify zips + deno.lock, never commit.
+
+**Shipped to prod (`cdcdc26`):**
+- Boot-time fix for the 15-40s first paint: the spinner waited on 4 SERIAL fetches (getSession → getUser health check → profile → content) and the 8s stuckGuard only covered the first; on network flaps the uncapped health check stalled 30s+. Now: health-check calls raced at 3s (timeout = proceed with stored session; only explicit server rejection on getUser AND refresh signs out), profile stays awaited-but-raced (profiles.role can DOWNGRADE cz@ to agency — unawaited would flash admin nav), content fetch no longer blocks paint. index.html preconnects fonts.gstatic + Supabase. CSP note: inline onload= handlers are blocked (script-src has no unsafe-inline) — the font async-load trick does NOT work here.
+- Every haiku default → `claude-opus-5`: _shared.js ai(), scrappy.js:279, cid.js:60+124. chat.js default was already sonnet-4-6 (haiku stays user-selectable there, which is not a default).
+
+**Prod data cleanup DONE:** ZZ Stress Test fully deleted (3 items, 26 tokens, 65 notifications, all children walked); QC Test Kitchen archived. Stuck-cron noise ends. Note: account_posts has NO client_id column (keys via connected_accounts).
+
+**BACKUP_ENC_KEY: RESOLVED, stop listing it.** backup_runs shows 8/8 nightly encrypted exports status=ok (11:00 UTC, ~13KB .json.gz.enc) through 8/21. The 8/13 entry was right; later entries listing it open were stale.
+
+**EMAIL IS LIVE — the biggest correction of the day.** RESEND_API_KEY (+ both Stripe keys) ARE set in the PRODUCTION context as secret-typed vars. THE GOTCHA THAT HID THIS THREE TIMES: `netlify env:list`/`env:get` read the dev context by default and return secret values MASKED as 20 asterisks — "empty/len-20/invalid" CLI reads mean nothing; check `--context production` and only trust a function-side proof. Proof: stuck-items cron emailed cz/dv/ss on 8/19 (Christian's screenshot), and an end-to-end test through deployed /api/notify (admin session minted via service-key generate_link → verify) sent for real: Resend id 139ede1a…, test notification row deleted after. **Client-facing emails are ARMED — no dry-run net.** Stripe keys: set but UNPROVEN (flagged malformed in July); validity test command given to Christian, not yet run.
+
+**PHASE D BUILT (`ea68b21`, unpushed):** all three §3.D workstreams that don't need Stripe:
+- **Scope Sentinel** (§3.D.1): `handlers/sentinel.js` — `sentinel_classify` (7-class enum, never defaults unclear→included, est_value, clarifying question; judged against real clients columns + confirmed precedent) + `sentinel_decide` (human confirm/dismiss/override). Admin-only in the dispatcher (same 403 block as intel). New receipts agent: prefix `sentinel` → "Sentinel". UI: ScopeRoute (nav `scope`, Work group) — intake, draft cards with decide buttons, absorbed-value monthly roll-up (confirmed + absorbed_intentionally rows, deterministic math).
+- **Vault hardening** (§3.D.3): `vault_secrets` table = RLS enabled ZERO policies (service-key only, approval_tokens pattern); `/api/vault-secrets` fn (redirect added in netlify.toml) — AES-256-GCM via existing `_lib/crypto` TOKEN_ENC_KEY (already set in prod, no new env), list never returns secret material, reveal/copy decrypt ONE value + write an audit_log view row (values never logged), delete audited. UI: VaultSecretsSection mounted at the bottom of VaultRoute (masked dots, 30s auto-remask).
+- **Profitability Lite** (§3.D.4): `client_costs` table; ProfitabilityRoute (nav `profitability`, Growth group) — per-client month view: retainer (if active) + invoices PAID that month − hard costs; entry form + cost list. NO labor allocation per the cut list (the existing Client Analytics margin view keeps its allocation math — different lens, left untouched).
+- **Deploy order:** migration → push → verify: Scope Sentinel classify on a real ask; vault secret save/reveal (audit row should appear); a client_costs row lands in Profitability.
+
+**Decisions logged today:** vantus-site GitHub repo CONSCIOUSLY WAIVED (project discarded; Netlify deploy stays; never re-raise). Dynasty passcode rotation: ignore per Christian. GitHub PATs: all four were already expired; Christian deleting them (housekeeping). Supabase dashboard passwords: cz account is GitHub-OAuth-linked = no password exists (reset email confirms); dv/ss to run the same check. Stripe + Gemini console fixes: deferred by Christian. Google OAuth origin fix: still open, walkthrough given.
+
+**Danny email: DRAFTED, NOT SENT (Christian said don't send).** Week-recap version at scratchpad danny-vantus-email.txt (also in TextEdit): recap + data-entry list + 3 decisions + 5 vetoes. No em-dashes. Gmail MCP needs /mcp auth if sending from his address later.
+
+**Codex: not needed this session** — Phase D shipped complete. Optional future brief: polish passes (roll-up chart, workspace widgets).
+
 ## 2026-08-21 — session close: one crew member is REAL, the board for next session
 
 **Repo state at close:** `main` == `origin/main` (`3042c61`), deployed + ready on Netlify (verified by commit_ref every push). Only local noise: regenerated `.netlify/functions/*.zip` + untracked `deno.lock` — never commit either. Everything below is live on usevantus.com and Playwright-verified.
