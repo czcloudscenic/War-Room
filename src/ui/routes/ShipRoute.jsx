@@ -23,7 +23,7 @@ import AgentRail from '../dashboard/AgentRail.jsx';
 // they're actually commissioned.
 
 const mono = { fontFamily: "'Geist Mono', monospace" };
-const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
+const card = { background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
 const DAY_MS = 86400000;
 
 const fmtT = (ts) => new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -124,7 +124,7 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
             {view === 'map' && <ShipMap crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />}
 
             {/* Mission bar — real numbers only */}
-            <div style={{ display: 'flex', marginTop: 14, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)', background: '#0f0d0e' }}>
+            <div style={{ display: 'flex', marginTop: 14, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)', background: '#0e0e0e' }}>
               {[
                 ['Active agents', `${commissioned.filter(c => c.receipts48h > 0).length}/${commissioned.length}`, '#2AABFF'],
                 ['Working now', String(workingNow), workingNow ? '#30d158' : 'rgba(255,255,255,0.5)'],

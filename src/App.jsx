@@ -953,14 +953,13 @@ try {
   const ytItems = clientContent.filter(x => x.platform === "youtube");
 
   return (
-<div className="vantus-grid-bg" style={{ display:"flex", height: isMobile ? "100dvh" : "100vh", background:"#0d0907", color:"#f5f5f7", fontFamily:"-apple-system, 'SF Pro Display', Inter, sans-serif", overflow:"hidden", flexDirection: isMobile ? "column" : "row", position:"relative" }}>
+<div className="vantus-grid-bg" style={{ display:"flex", height: isMobile ? "100dvh" : "100vh", background:"#000000", color:"#f5f5f7", fontFamily:"-apple-system, 'SF Pro Display', Inter, sans-serif", overflow:"hidden", flexDirection: isMobile ? "column" : "row", position:"relative" }}>
   {/* Atmospheric glow — matches login page */}
-  <div style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none", background:"radial-gradient(ellipse 80% 50% at 50% 100%, rgba(120,60,20,0.18) 0%, rgba(80,30,10,0.10) 40%, transparent 70%)" }} />
-  <div style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none", background:"radial-gradient(ellipse 40% 30% at 20% 100%, rgba(100,45,15,0.12) 0%, transparent 60%)" }} />
+  {/* warm amber glow layers removed 8/20 — Christian: background hue must be pure black */}
   {/*  MUSE TOAST  */}
   {museToast && (
     <div style={{ position:"fixed", bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : 28, right: isMobile ? 16 : 28, zIndex:9999, animation:"slideIn 0.3s ease", maxWidth: isMobile ? "calc(100vw - 32px)" : 380 }}>
-      <div style={{ background: museToast.status==="error" ? "#1a1818" : "#1a1818", border:`1px solid ${museToast.status==="error"?"rgba(255,69,58,0.3)":museToast.status==="done"?"rgba(255,55,95,0.3)":"rgba(255,55,95,0.2)"}`, borderRadius:14, padding:"14px 18px", boxShadow:"0 8px 32px rgba(0,0,0,0.12)", display:"flex", alignItems:"center", gap:10 }}>
+      <div style={{ background: museToast.status==="error" ? "#191919" : "#191919", border:`1px solid ${museToast.status==="error"?"rgba(255,69,58,0.3)":museToast.status==="done"?"rgba(255,55,95,0.3)":"rgba(255,55,95,0.2)"}`, borderRadius:14, padding:"14px 18px", boxShadow:"0 8px 32px rgba(0,0,0,0.12)", display:"flex", alignItems:"center", gap:10 }}>
         <div style={{ width:8, height:8, borderRadius:"50%", background: museToast.status==="error"?"#ff453a":"#ff375f", flexShrink:0, animation: museToast.status==="writing"?"livePulse 1s infinite":"none" }} />
         <div>
           <div style={{ fontSize:12, fontWeight:600, color: museToast.status==="error"?"#ff453a":"#ff375f" }}>
@@ -1031,7 +1030,7 @@ try {
 
   {/*  MOBILE TOP BAR  */}
   {isMobile && (
-    <div style={{ height:52, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", padding:"0 12px", gap:10, zIndex:50, flexShrink:0, paddingTop:"env(safe-area-inset-top,0)" }}>
+    <div style={{ height:52, background:"#0d0d0d", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", padding:"0 12px", gap:10, zIndex:50, flexShrink:0, paddingTop:"env(safe-area-inset-top,0)" }}>
       {/* Vantus app logo */}
       <div style={{ width:32, height:32, flexShrink:0 }}>
         <img src="/vantus-logo.png" style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }} />
@@ -1062,7 +1061,7 @@ try {
           }
           setNotifOpen(o => !o);
         }}
-        style={{ position:"relative", background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"rgba(255,255,255,0.85)", width:44, height:44, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0 }}>
+        style={{ position:"relative", background:"#151515", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"rgba(255,255,255,0.85)", width:44, height:44, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0 }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         {notifications.filter(n=>!n.read).length > 0 && (
           <span style={{ position:"absolute", top:-4, right:-4, width:14, height:14, borderRadius:"50%", background:"#ff453a", fontSize:8, fontWeight:700, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -1071,7 +1070,7 @@ try {
         )}
       </button>
       <button onClick={() => setMobileNavOpen(o => !o)}
-        style={{ background:"#161414", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#f5f5f7", width:44, height:44, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:18, flexShrink:0 }}>
+        style={{ background:"#151515", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#f5f5f7", width:44, height:44, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:18, flexShrink:0 }}>
         {mobileNavOpen ? "×" : "≡"}
       </button>
     </div>
@@ -1080,7 +1079,7 @@ try {
   {/* MOBILE CLIENT PICKER SHEET — slides up from below the top bar */}
   {isMobile && clientPickerOpen && (
     <div style={{ position:"fixed", inset:0, top:52, zIndex:180 }} onClick={() => setClientPickerOpen(false)}>
-      <div style={{ position:"absolute", top:0, left:0, right:0, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.08)", animation:"slideUp 0.2s ease", maxHeight:"70vh", overflowY:"auto", paddingBottom:12 }}
+      <div style={{ position:"absolute", top:0, left:0, right:0, background:"#0d0d0d", borderBottom:"1px solid rgba(255,255,255,0.08)", animation:"slideUp 0.2s ease", maxHeight:"70vh", overflowY:"auto", paddingBottom:12 }}
         onClick={e => e.stopPropagation()}>
         <div style={{ padding:"12px 16px 6px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <span style={{ fontSize:9, color:"rgba(255,255,255,0.45)", letterSpacing:2, fontWeight:600, textTransform:"uppercase" }}>Switch Client</span>
@@ -1124,7 +1123,7 @@ try {
   {/*  MOBILE NAV DRAWER  */}
   {isMobile && mobileNavOpen && (
     <div style={{ position:"fixed", inset:0, zIndex:200 }} onClick={() => setMobileNavOpen(false)}>
-      <div style={{ position:"absolute", top:52, left:0, right:0, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.08)", animation:"slideUp 0.2s ease", maxHeight:"80vh", overflowY:"auto" }}
+      <div style={{ position:"absolute", top:52, left:0, right:0, background:"#0d0d0d", borderBottom:"1px solid rgba(255,255,255,0.08)", animation:"slideUp 0.2s ease", maxHeight:"80vh", overflowY:"auto" }}
         onClick={e => e.stopPropagation()}>
         {NAV.map(group => {
           const items = group.items.filter(item => !item.adminOnly || isOpsAdmin);

@@ -2,8 +2,8 @@ import React, { useMemo, useState } from "react";
 import LogShootModal from "../pipeline/LogShootModal.jsx";
 import { clientRunway } from "../../utils/runway.mjs";
 
-const PAGE = "#0d0907";
-const CARD = "#0f0d0e";
+const PAGE = "#000000";
+const CARD = "#0e0e0e";
 const BORDER = "rgba(255,255,255,0.08)";
 const ACCENT = "#2AABFF";
 const GREEN = "#30d158";

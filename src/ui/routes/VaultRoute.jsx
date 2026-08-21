@@ -12,7 +12,7 @@ import { auditDiff } from '../../core/audit.js';
 
 const ACCENT = "#2AABFF";
 const head = { fontSize: 8.5, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.38)", fontWeight: 700, fontFamily: "'Geist Mono', monospace" };
-const input = { width: "100%", background: "#161314", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 9, padding: "10px 12px", fontSize: 14, color: "#f5f5f7", outline: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box" };
+const input = { width: "100%", background: "#141414", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 9, padding: "10px 12px", fontSize: 14, color: "#f5f5f7", outline: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box" };
 
 const EMPTY = {
   legal_name: "", billing_contact: "", billing_email: "", billing_phone: "",
@@ -91,7 +91,7 @@ function ClientVaultCard({ client, row, onSaved, isMobile, open, onToggle }) {
   const filled = PROFILE_KEYS.filter(k => (row?.[k] || "").toString().trim() && k !== "country").length;
 
   return (
-    <div id={`vault-${client.id}`} style={{ background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, marginBottom: 12, overflow: "hidden" }}>
+    <div id={`vault-${client.id}`} style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, marginBottom: 12, overflow: "hidden" }}>
       <button onClick={onToggle}
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
         <span style={{ fontSize: 14.5, fontWeight: 650, color: "#f5f5f7", fontFamily: "Inter, sans-serif", flex: 1 }}>{client.name}</span>
@@ -186,7 +186,7 @@ export default function VaultRoute({ isMobile, clients = [] }) {
             + Add info
           </button>
           {addMenu && (
-            <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 30, minWidth: 200, background: "#161314", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,0.5)" }}>
+            <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 30, minWidth: 200, background: "#141414", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,0.5)" }}>
               {activeClients.map(c => (
                 <button key={c.id} onClick={() => addInfoFor(c.id)}
                   style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", color: "#f5f5f7", fontSize: 13, fontFamily: "Inter, sans-serif" }}

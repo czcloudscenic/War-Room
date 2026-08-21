@@ -10,7 +10,7 @@ import { notifMeta } from '../../utils/constants.js';
 // RESEND_API_KEY (founder-side), and nothing here pretends otherwise.
 
 const mono = { fontFamily: "'Geist Mono', monospace" };
-const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
+const card = { background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
 
 const ROLE_TABS = [
   { key: 'all', label: 'All' },

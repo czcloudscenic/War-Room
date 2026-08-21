@@ -17,11 +17,11 @@ function effectiveStatus(inv) {
   return inv?.status;
 }
 const head = { fontSize: 8.5, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.38)", fontWeight: 700, fontFamily: "'Geist Mono', monospace" };
-const input = { width: "100%", background: "#161314", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 9, padding: "10px 12px", fontSize: 14, color: "#f5f5f7", outline: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box" };
+const input = { width: "100%", background: "#141414", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 9, padding: "10px 12px", fontSize: 14, color: "#f5f5f7", outline: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box" };
 
 function StatCard({ value, label, sub, color }) {
   return (
-    <div style={{ flex: 1, minWidth: 150, padding: "18px 20px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
+    <div style={{ flex: 1, minWidth: 150, padding: "18px 20px", background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
       <div style={{ fontSize: 26, fontWeight: 700, fontFamily: "'Geist Mono', monospace", color, lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 9.5, letterSpacing: 0.6, textTransform: "uppercase", color: "rgba(255,255,255,0.5)", marginTop: 9, fontWeight: 600 }}>{label}</div>
       {sub && <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.35)", marginTop: 3 }}>{sub}</div>}
@@ -171,7 +171,7 @@ export default function BillingRoute({ isMobile, clients = [] }) {
       </div>
 
       <div style={{ ...head, marginBottom: 10 }}>Recent invoices</div>
-      <div style={{ background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+      <div style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
         {loading ? (
           <div style={{ padding: "28px 18px", textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>Loading…</div>
         ) : safeInvoices.length === 0 ? (

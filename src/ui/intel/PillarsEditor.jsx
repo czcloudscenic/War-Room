@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
 
 const ACCENT = '#2AABFF';
-const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
+const card = { background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
 const mono = { fontFamily: "'Geist Mono', monospace" };
 const head = { ...mono, fontSize: 8.5, letterSpacing: 0.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', fontWeight: 700 };
 const input = { width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#f5f5f7', fontSize: 12, outline: 'none' };

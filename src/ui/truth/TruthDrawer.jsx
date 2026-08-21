@@ -13,7 +13,7 @@ import { versionDrift, blockReasonMeta } from '../../core/truth.js';
 // line, never a white screen.
 
 const head = { fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 700, fontFamily: "'Geist Mono', monospace", marginBottom: 8 };
-const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '13px 15px', marginBottom: 12 };
+const card = { background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '13px 15px', marginBottom: 12 };
 const mono = { fontFamily: "'Geist Mono', monospace" };
 const dim = { fontSize: 12, color: 'rgba(255,255,255,0.45)' };
 
@@ -57,7 +57,7 @@ export default function TruthDrawer({ item, clients = [], onClose }) {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', display: 'flex', justifyContent: 'flex-end' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: 'min(480px, 100%)', height: '100%', overflowY: 'auto', background: '#0d0907', borderLeft: '1px solid rgba(255,255,255,0.09)', padding: '26px 24px 40px', fontFamily: 'Inter, sans-serif', animation: 'slideIn 0.25s ease' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 'min(480px, 100%)', height: '100%', overflowY: 'auto', background: '#000000', borderLeft: '1px solid rgba(255,255,255,0.09)', padding: '26px 24px 40px', fontFamily: 'Inter, sans-serif', animation: 'slideIn 0.25s ease' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
           <div style={{ fontSize: 9, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', fontWeight: 600, ...mono }}>Cloud Scenic / Receipts</div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>

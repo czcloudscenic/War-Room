@@ -9,7 +9,7 @@ import { sb } from '../../services/supabaseClient.js';
 // core/activation.js; nothing here is fabricated.
 
 const ACCENT = '#2AABFF';
-const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
+const card = { background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
 const mono = { fontFamily: "'Geist Mono', monospace" };
 
 // Datasets the checklist needs beyond App state (clients/content arrive as

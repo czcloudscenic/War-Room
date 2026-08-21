@@ -21,7 +21,7 @@ const STATUS_DOT = { online: "#30d158", busy: "#E5E5EA", away: "#98989d", offlin
 
 function fmtDate(d) { if (!d) return null; const t = new Date(d); return Number.isNaN(t.getTime()) ? null : t.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
 const head = { fontSize: 8.5, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.38)", fontWeight: 700, fontFamily: "'Geist Mono', monospace" };
-const input = { width: "100%", background: "#161314", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "12px 14px", fontSize: 13.5, color: "#f5f5f7", outline: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box" };
+const input = { width: "100%", background: "#141414", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "12px 14px", fontSize: 13.5, color: "#f5f5f7", outline: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box" };
 
 export default function OperationsRoute({ isMobile, clients = [] }) {
   const [tab, setTab] = useState("assign");
@@ -239,7 +239,7 @@ export default function OperationsRoute({ isMobile, clients = [] }) {
                   const m = memberById(a.assignee_id);
                   const pc = PRIORITY_COLOR[a.priority] || PRIORITY_COLOR.medium;
                   return (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12 }}>
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12 }}>
                       <div style={{ width: 34, textAlign: "center", fontFamily: "'Geist Mono', monospace", fontSize: 15, fontWeight: 700, color: pc }}>{a.score}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13.5, color: "#f5f5f7", fontWeight: 500 }}>{a.title}</div>
@@ -248,7 +248,7 @@ export default function OperationsRoute({ isMobile, clients = [] }) {
                       {a.due_hint && <div style={{ fontSize: 11, fontFamily: "'Geist Mono', monospace", color: "rgba(255,255,255,0.5)" }}>{fmtDate(a.due_hint)}</div>}
                       <div style={{ fontSize: 8.5, letterSpacing: 0.4, textTransform: "uppercase", fontWeight: 700, fontFamily: "'Geist Mono', monospace", color: pc, background: `${pc}14`, border: `1px solid ${pc}30`, borderRadius: 5, padding: "3px 8px" }}>{a.priority}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 110, justifyContent: "flex-end" }}>
-                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: m?.color || "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#0d0907" }}>{(a.assignee_name || "?").slice(0, 2).toUpperCase()}</div>
+                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: m?.color || "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#000000" }}>{(a.assignee_name || "?").slice(0, 2).toUpperCase()}</div>
                         <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.7)" }}>{a.assignee_name || "Unassigned"}</span>
                       </div>
                     </div>
@@ -277,13 +277,13 @@ export default function OperationsRoute({ isMobile, clients = [] }) {
                     const pc = PRIORITY_COLOR[t?.priority] || PRIORITY_COLOR.medium;
                     const cn = clientName(t?.client_id);
                     return (
-                      <div key={t?.id} onClick={() => col.key !== "done" && advanceTask(t)} title={col.key !== "done" ? "Click to advance" : ""} style={{ padding: "12px 14px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 11, cursor: col.key !== "done" ? "pointer" : "default" }}>
+                      <div key={t?.id} onClick={() => col.key !== "done" && advanceTask(t)} title={col.key !== "done" ? "Click to advance" : ""} style={{ padding: "12px 14px", background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 11, cursor: col.key !== "done" ? "pointer" : "default" }}>
                         <div style={{ display: "flex", gap: 8, alignItems: "flex-start", justifyContent: "space-between" }}>
                           <div style={{ fontSize: 12.5, color: "#f5f5f7", lineHeight: 1.35 }}>{t?.title}</div>
                           <div style={{ width: 6, height: 6, borderRadius: "50%", background: pc, marginTop: 5, flexShrink: 0 }} />
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 9 }}>
-                          {m && <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 16, height: 16, borderRadius: "50%", background: m?.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7.5, fontWeight: 700, color: "#0d0907" }}>{(m?.name || "?").slice(0, 2).toUpperCase()}</div><span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)" }}>{(m?.name || "Team").split(" ")[0]}</span></div>}
+                          {m && <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 16, height: 16, borderRadius: "50%", background: m?.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7.5, fontWeight: 700, color: "#000000" }}>{(m?.name || "?").slice(0, 2).toUpperCase()}</div><span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)" }}>{(m?.name || "Team").split(" ")[0]}</span></div>}
                           {t?.due_date && <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: "rgba(255,255,255,0.4)" }}>· {fmtDate(t.due_date)}</span>}
                           {cn && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginLeft: "auto", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 80 }}>{cn}</span>}
                         </div>
@@ -305,7 +305,7 @@ export default function OperationsRoute({ isMobile, clients = [] }) {
             <button onClick={() => setAdding(a => !a)} style={{ height: 34, padding: "0 15px", borderRadius: 9, background: adding ? "rgba(255,255,255,0.05)" : ACCENT, border: adding ? "1px solid rgba(255,255,255,0.12)" : "none", color: adding ? "rgba(255,255,255,0.6)" : "#fff", cursor: "pointer", fontSize: 12.5, fontWeight: 600 }}>{adding ? "Cancel" : "+ Add member"}</button>
           </div>
           {adding && (
-            <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", padding: 14, background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12 }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", padding: 14, background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12 }}>
               <input placeholder="Name" value={nm.name} onChange={e => setNm({ ...nm, name: e.target.value })} style={{ ...input, flex: 1, minWidth: 140 }} />
               <input placeholder="Role" value={nm.role} onChange={e => setNm({ ...nm, role: e.target.value })} style={{ ...input, flex: 1, minWidth: 120 }} />
               <input placeholder="Skills (comma-sep)" value={nm.skills} onChange={e => setNm({ ...nm, skills: e.target.value })} style={{ ...input, flex: 2, minWidth: 180 }} />
@@ -316,9 +316,9 @@ export default function OperationsRoute({ isMobile, clients = [] }) {
             {safeTeam.map(m => {
               const load = safeTasks.filter(t => t?.assignee_id === m?.id && t?.status !== "done").length;
               return (
-                <div key={m?.id} style={{ padding: "16px 18px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
+                <div key={m?.id} style={{ padding: "16px 18px", background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: "50%", background: m?.color || ACCENT, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#0d0907", flexShrink: 0 }}>{(m?.name || "?").slice(0, 2).toUpperCase()}</div>
+                    <div style={{ width: 38, height: 38, borderRadius: "50%", background: m?.color || ACCENT, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#000000", flexShrink: 0 }}>{(m?.name || "?").slice(0, 2).toUpperCase()}</div>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontSize: 13.5, color: "#f5f5f7", fontWeight: 600 }}>{m?.name}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>

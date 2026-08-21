@@ -105,7 +105,7 @@ export default function AuditTrailPanel({
   }, [clientId, entityId, entityType, limit]);
 
   return (
-    <section style={{ background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 16px' }}>
+    <section style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 16px' }}>
       <div style={{ ...mono, marginBottom: 10, fontSize: 9, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
         {title}
       </div>

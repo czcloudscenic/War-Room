@@ -129,7 +129,7 @@ export default function DashboardRoute({
 
       {/*  SELECTED AGENT DETAIL  */}
       {selectedAgent && (
-        <div style={{ marginBottom:44, animation:"slideIn 0.2s ease", background:"#0f0d0e", borderRadius:16, border:`1px solid rgba(255,255,255,0.07)`, padding:"24px 28px" }}>
+        <div style={{ marginBottom:44, animation:"slideIn 0.2s ease", background:"#0e0e0e", borderRadius:16, border:`1px solid rgba(255,255,255,0.07)`, padding:"24px 28px" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:18 }}>
             <div style={{ display:"flex", alignItems:"center", gap:12 }}>
               <AgentAvatar agent={selectedAgent} size={40} />

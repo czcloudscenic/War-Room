@@ -109,7 +109,7 @@ function ClientCard({ client, content, isActive, onOpen, onEdit }) {
 
   return (
     <div
-      style={{ position:"relative", display:"flex", flexDirection:"column", background:"#0f0d0e", border:`1px solid ${isActive ? accent + "55" : "rgba(255,255,255,0.07)"}`, borderRadius:16, padding:"20px 20px 18px", transition:"border-color 0.15s, transform 0.15s" }}
+      style={{ position:"relative", display:"flex", flexDirection:"column", background:"#0e0e0e", border:`1px solid ${isActive ? accent + "55" : "rgba(255,255,255,0.07)"}`, borderRadius:16, padding:"20px 20px 18px", transition:"border-color 0.15s, transform 0.15s" }}
     >
       {/* attention badge */}
       {s.attention > 0 && (

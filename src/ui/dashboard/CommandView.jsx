@@ -12,7 +12,7 @@ import NotificationDigest from './NotificationDigest.jsx';
 // doesn't hold (open tasks, invoices, pending portal users) and renders.
 
 const mono = { fontFamily: "'Geist Mono', monospace" };
-const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
+const card = { background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
 
 const TIERS = [
   { key: 'critical', label: 'Critical', color: '#ff453a' },

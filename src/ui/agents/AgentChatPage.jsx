@@ -207,7 +207,7 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
         const active = sel.id === ag.id;
         return (
           <button key={ag.id} onClick={() => setSel(ag)}
-            style={{ flexShrink:0, display:"flex", alignItems:"center", gap:7, background: active ? ag.color + "18" : "#111010", border:"1px solid " + (active ? ag.color + "40" : "rgba(255,255,255,0.08)"), borderRadius:20, padding:"7px 12px", cursor:"pointer" }}>
+            style={{ flexShrink:0, display:"flex", alignItems:"center", gap:7, background: active ? ag.color + "18" : "#101010", border:"1px solid " + (active ? ag.color + "40" : "rgba(255,255,255,0.08)"), borderRadius:20, padding:"7px 12px", cursor:"pointer" }}>
             <AgentAvatar agent={ag} size={22} />
             <span style={{ fontSize:12, fontWeight: active ? 700 : 400, color: active ? ag.color : "rgba(255,255,255,0.55)", whiteSpace:"nowrap", fontFamily:"Inter,sans-serif" }}>{ag.name}</span>
           </button>
@@ -230,7 +230,7 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
       const active = sel.id === ag.id;
       const chatted = (hists[ag.id] || []).length > 0;
       return (
-        <div key={ag.id} onClick={() => setSel(ag)} className="hover-card" style={{ background: active ? ag.color + "18" : "#111010", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", border:"1px solid " + (active ? ag.color + "40" : "rgba(255,255,255,0.08)"), borderRadius:14, padding:"11px 13px", cursor:"pointer" }}>
+        <div key={ag.id} onClick={() => setSel(ag)} className="hover-card" style={{ background: active ? ag.color + "18" : "#101010", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", border:"1px solid " + (active ? ag.color + "40" : "rgba(255,255,255,0.08)"), borderRadius:14, padding:"11px 13px", cursor:"pointer" }}>
           <div style={{ display:"flex", alignItems:"center", gap:9 }}>
             <AgentAvatar agent={ag} size={34} />
             <div style={{ flex:1, minWidth:0 }}>
@@ -376,7 +376,7 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
               <div style={{ width:28, height:28, borderRadius:8, background:sel.grad, border:"1px solid " + sel.color + "40", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:sel.color, flexShrink:0, marginTop:2 }}>{sel.name[0]}</div>
             )}
             <div style={{ maxWidth:"76%" }}>
-              <div style={{ background:m.role === "user" ? "#0f0f1a" : m.err ? "rgba(255,69,58,0.07)" : "#1a1818", border:m.role === "user" ? "none" : "1px solid " + (m.err ? "rgba(255,69,58,0.18)" : "rgba(255,255,255,0.07)"), borderRadius:m.role === "user" ? "15px 15px 3px 15px" : "3px 15px 15px 15px", padding:"10px 13px" }}>
+              <div style={{ background:m.role === "user" ? "#0f0f1a" : m.err ? "rgba(255,69,58,0.07)" : "#191919", border:m.role === "user" ? "none" : "1px solid " + (m.err ? "rgba(255,69,58,0.18)" : "rgba(255,255,255,0.07)"), borderRadius:m.role === "user" ? "15px 15px 3px 15px" : "3px 15px 15px 15px", padding:"10px 13px" }}>
                 <div style={{ fontSize:13, color:m.role === "user" ? "#fff" : m.err ? "#ff453a" : "#f5f5f7", lineHeight:1.65, whiteSpace:"pre-wrap", fontFamily:"Inter,sans-serif" }}>{m.content}</div>
                 <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginTop:4, textAlign:m.role === "user" ? "right" : "left" }}>{new Date(m.ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}</div>
               </div>
@@ -396,7 +396,7 @@ setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
       {busy && (
         <div style={{ display:"flex", gap:9, alignItems:"flex-start" }}>
           <div style={{ width:28, height:28, borderRadius:8, background:sel.grad, border:"1px solid " + sel.color + "40", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:sel.color, flexShrink:0 }}>{sel.name[0]}</div>
-          <div style={{ background:"#1a1818", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"3px 15px 15px 15px", padding:"11px 15px", display:"flex", gap:4, alignItems:"center" }}>
+          <div style={{ background:"#191919", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"3px 15px 15px 15px", padding:"11px 15px", display:"flex", gap:4, alignItems:"center" }}>
             <div style={{ width:6, height:6, borderRadius:"50%", background:sel.color, animation:"livePulse 1.2s ease-in-out 0s infinite" }} />
             <div style={{ width:6, height:6, borderRadius:"50%", background:sel.color, animation:"livePulse 1.2s ease-in-out 0.2s infinite" }} />
             <div style={{ width:6, height:6, borderRadius:"50%", background:sel.color, animation:"livePulse 1.2s ease-in-out 0.4s infinite" }} />

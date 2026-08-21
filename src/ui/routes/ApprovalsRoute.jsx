@@ -18,7 +18,7 @@ const GATE_STATUSES = ['Need Copy Approval', 'Need Content Approval'];
 const DAY_MS = 86400000;
 const ACCENT = '#2AABFF';
 const mono = { fontFamily: "'Geist Mono', monospace" };
-const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
+const card = { background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
 
 const RISK = {
   high: { label: 'High', color: '#ff453a' },

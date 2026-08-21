@@ -18,7 +18,7 @@ const ACCENT = '#2AABFF';
 const GOOD = '#30d158';
 const BAD = '#ff453a';
 const WARN = '#E5E5EA';
-const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
+const card = { background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
 const head = { fontSize: 8.5, letterSpacing: 0.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', fontWeight: 700, fontFamily: "'Geist Mono', monospace" };
 const mono = { fontFamily: "'Geist Mono', monospace" };
 
@@ -150,7 +150,7 @@ export default function ContentIntelRoute({ isMobile, clients = [], currentClien
       {/* Client picker + actions */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 18, flexWrap: 'wrap' }}>
         <select value={clientId} onChange={e => { setClientId(e.target.value); setSummary(''); }}
-          style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: '#1a1818', color: '#f5f5f7', fontSize: 12.5, fontFamily: 'Inter, sans-serif' }}>
+          style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: '#191919', color: '#f5f5f7', fontSize: 12.5, fontFamily: 'Inter, sans-serif' }}>
           <option value="">Select client…</option>
           {(clients || []).filter(c => c.status === 'active').map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>

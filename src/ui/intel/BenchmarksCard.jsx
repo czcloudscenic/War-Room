@@ -4,7 +4,7 @@ import { useSupabaseRows } from '../../utils/hooks.js';
 import { readMetrics, computeRates, fmtPct, DEFAULT_BENCH } from '../../utils/contentMetrics.js';
 
 const ACCENT = '#2AABFF';
-const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
+const card = { background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
 const mono = { fontFamily: "'Geist Mono', monospace" };
 const head = { ...mono, fontSize: 8.5, letterSpacing: 0.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', fontWeight: 700 };
 const quiet = { fontSize: 11.5, color: 'rgba(255,255,255,0.4)' };
@@ -160,7 +160,7 @@ export default function BenchmarksCard({ client, posts = [] }) {
       {!readError ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <span style={{ ...head, marginRight: 2 }}>Set bars from a control post</span>
-          <select value={controlId} onChange={(event) => setControlId(event.target.value)} style={{ minWidth: 220, flex: 1, padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: '#1a1818', color: '#f5f5f7', fontSize: 11.5 }}>
+          <select value={controlId} onChange={(event) => setControlId(event.target.value)} style={{ minWidth: 220, flex: 1, padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: '#191919', color: '#f5f5f7', fontSize: 11.5 }}>
             <option value="">Select post…</option>
             {sortedPosts.map((post) => <option key={post.id} value={String(post.id)}>{postLabel(post)}</option>)}
           </select>

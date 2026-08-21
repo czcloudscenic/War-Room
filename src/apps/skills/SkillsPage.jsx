@@ -23,7 +23,7 @@ export default function SkillsPage({ agents }) {
   const [deploying, setDeploying] = useState(false);
   const [deployedId, setDeployedId] = useState(null);
   const setF = (k,v) => setForm(f=>({...f,[k]:v}));
-  const inp = { width:"100%", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"10px 14px", fontSize:13, color:"rgba(255,255,255,0.85)", outline:"none", fontFamily:"Inter, sans-serif", background:"#0f0d0e", boxSizing:"border-box" };
+  const inp = { width:"100%", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, padding:"10px 14px", fontSize:13, color:"rgba(255,255,255,0.85)", outline:"none", fontFamily:"Inter, sans-serif", background:"#0e0e0e", boxSizing:"border-box" };
   const targetColor = form.target === "All Agents" ? "#2AABFF" : (AGENT_COLORS[form.target] || "#2AABFF");
   const TARGETS = ["All Agents", ...agents.map(a => a.name)];
   const agentCount = agents.length;

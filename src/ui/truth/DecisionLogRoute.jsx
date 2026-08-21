@@ -4,7 +4,7 @@ import { sb } from '../../services/supabaseClient.js';
 const DAY_MS = 86400000;
 const ACCENT = '#2AABFF';
 const mono = { fontFamily: "'Geist Mono', monospace" };
-const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
+const card = { background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
 const input = { width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 11px', color: '#f5f5f7', fontSize: 12, fontFamily: 'Inter, sans-serif', outline: 'none' };
 const label = { ...mono, display: 'block', marginBottom: 6, fontSize: 8.5, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' };
 const quiet = { fontSize: 12, color: 'rgba(255,255,255,0.4)' };

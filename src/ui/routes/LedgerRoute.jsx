@@ -49,7 +49,7 @@ function Flag({ label, color }) {
 }
 function SummaryStat({ value, label, color }) {
   return (
-    <div style={{ flex: 1, minWidth: 0, padding: "14px 16px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12 }}>
+    <div style={{ flex: 1, minWidth: 0, padding: "14px 16px", background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12 }}>
       <div style={{ fontSize: 24, fontWeight: 700, fontFamily: "'Geist Mono', monospace", color: value ? color : "rgba(255,255,255,0.3)", lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 9.5, letterSpacing: 0.6, textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginTop: 7, fontWeight: 600 }}>{label}</div>
     </div>
@@ -168,7 +168,7 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>Deliverables land here as the team and agents create content.</div>
         </div>
       ) : (
-        <div style={{ background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+        <div style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
           {!isMobile && (
             <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "11px 18px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <div style={{ ...head, ...col(2.4) }}>Deliverable</div>
@@ -234,11 +234,11 @@ export default function LedgerRoute({ isMobile, clients = [], content = [], team
                   <div onClick={(e) => e.stopPropagation()} style={{ padding: "16px 18px", background: "#0b090a", borderBottom: i < rows.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", display: "flex", gap: 18, alignItems: "flex-start", flexWrap: "wrap" }}>
                     <div>
                       <div style={{ ...head, marginBottom: 6 }}>Due date</div>
-                      <input type="date" value={item.due_date ? String(item.due_date).slice(0, 10) : ""} onChange={(e) => doDue(item, e.target.value)} style={{ height: 32, padding: "0 10px", borderRadius: 8, background: "#161314", border: "1px solid rgba(255,255,255,0.12)", color: "#f5f5f7", fontSize: 12, fontFamily: "'Geist Mono', monospace" }} />
+                      <input type="date" value={item.due_date ? String(item.due_date).slice(0, 10) : ""} onChange={(e) => doDue(item, e.target.value)} style={{ height: 32, padding: "0 10px", borderRadius: 8, background: "#141414", border: "1px solid rgba(255,255,255,0.12)", color: "#f5f5f7", fontSize: 12, fontFamily: "'Geist Mono', monospace" }} />
                     </div>
                     <div style={{ flex: 1, minWidth: 220 }}>
                       <div style={{ ...head, marginBottom: 6 }}>Revision feedback</div>
-                      <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="What needs to change? (required to request revisions)" rows={2} style={{ width: "100%", padding: "8px 11px", borderRadius: 8, background: "#161314", border: "1px solid rgba(255,255,255,0.12)", color: "#f5f5f7", fontSize: 12.5, fontFamily: "Inter, sans-serif", resize: "vertical", outline: "none" }} />
+                      <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="What needs to change? (required to request revisions)" rows={2} style={{ width: "100%", padding: "8px 11px", borderRadius: 8, background: "#141414", border: "1px solid rgba(255,255,255,0.12)", color: "#f5f5f7", fontSize: 12.5, fontFamily: "Inter, sans-serif", resize: "vertical", outline: "none" }} />
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignSelf: "flex-end" }}>
                       <button onClick={() => setReceiptsItem(item)} style={btn("rgba(255,255,255,0.06)", "rgba(255,255,255,0.75)")}>Receipts</button>

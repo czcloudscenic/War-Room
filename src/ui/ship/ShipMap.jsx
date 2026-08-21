@@ -20,7 +20,7 @@ export default function ShipMap({ crew = [], activity = {}, onStation, selectedS
           <button key={s.id} onClick={() => onStation?.(s.id)}
             style={{
               textAlign: 'left', padding: '12px 14px', borderRadius: 12, cursor: 'pointer',
-              background: lit ? 'rgba(42,171,255,0.06)' : '#0f0d0e',
+              background: lit ? 'rgba(42,171,255,0.06)' : '#0e0e0e',
               border: `1px solid ${isSel ? '#2AABFF' : lit ? 'rgba(42,171,255,0.3)' : 'rgba(255,255,255,0.07)'}`,
               fontFamily: 'Inter, sans-serif',
             }}>

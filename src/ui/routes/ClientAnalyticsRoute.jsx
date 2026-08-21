@@ -27,7 +27,7 @@ const head = { fontSize: 8.5, letterSpacing: 0.8, textTransform: "uppercase", co
 
 function StatCard({ value, label, sub, color, big }) {
   return (
-    <div style={{ flex: 1, minWidth: 150, padding: "18px 20px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
+    <div style={{ flex: 1, minWidth: 150, padding: "18px 20px", background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
       <div style={{ fontSize: big ? 30 : 26, fontWeight: 700, fontFamily: "'Geist Mono', monospace", color, lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 9.5, letterSpacing: 0.6, textTransform: "uppercase", color: "rgba(255,255,255,0.5)", marginTop: 9, fontWeight: 600 }}>{label}</div>
       {sub && <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.35)", marginTop: 3 }}>{sub}</div>}
@@ -222,7 +222,7 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
       </div>
 
       {/* MRR / revenue trend */}
-      <div style={{ padding: "18px 20px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, marginBottom: 24 }}>
+      <div style={{ padding: "18px 20px", background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ ...head }}>Revenue trend · last 6 months</div>
           <div style={{ fontSize: 20, fontFamily: "'Geist Mono', monospace", fontWeight: 700, color: "#30d158" }}>{fmtMoney(roll.mrr)}<span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 400, marginLeft: 6 }}>MRR now</span></div>
@@ -252,13 +252,13 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
 
       <div style={{ display: "flex", gap: 18, flexWrap: isMobile ? "wrap" : "nowrap", marginBottom: 24 }}>
         {/* revenue by type */}
-        <div style={{ flex: 1, minWidth: 260, padding: "18px 20px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
+        <div style={{ flex: 1, minWidth: 260, padding: "18px 20px", background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
           <div style={{ ...head, marginBottom: 16 }}>Revenue by type</div>
           <Bar label="Retainer (recurring)" value={roll.retainerRev} total={roll.mrr || 1} color="#8b5cf6" />
           <Bar label="Project (brief)" value={roll.projectRev} total={roll.mrr || 1} color="#64d2ff" />
         </div>
         {/* delivery health */}
-        <div style={{ flex: 1, minWidth: 260, padding: "18px 20px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
+        <div style={{ flex: 1, minWidth: 260, padding: "18px 20px", background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
           <div style={{ ...head, marginBottom: 16 }}>Deliverable health</div>
           {[["On track", roll.onTrack, "#30d158"], ["In review", roll.inReview, "#E5E5EA"], ["Overdue", roll.overdue, "#ff453a"]].map(([lbl, val, col]) => (
             <div key={lbl} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -274,7 +274,7 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
 
       {/* top clients */}
       <div style={{ ...head, marginBottom: 10 }}>Top clients by MRR</div>
-      <div style={{ background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+      <div style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
         <div style={{ display: "flex", gap: 12, padding: "10px 18px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
           <div style={{ ...head, flex: 2 }}>Client</div>
           <div style={{ ...head, flex: 1, textAlign: "right" }}>MRR</div>

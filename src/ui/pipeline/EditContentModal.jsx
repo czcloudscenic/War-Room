@@ -162,7 +162,7 @@ return f.url; // direct URL (Supabase storage etc.)
   const isVideo = (f) => /\.(mp4|mov|avi|webm)$/i.test(f.name);
 
   const labelStyle = { fontSize: 9, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 5, display: "block" };
-  const inputStyle = { width: "100%", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#ffffff", outline: "none", fontFamily: "Inter, sans-serif", background: "#1a1818", boxSizing: "border-box" };
+  const inputStyle = { width: "100%", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#ffffff", outline: "none", fontFamily: "Inter, sans-serif", background: "#191919", boxSizing: "border-box" };
   const textareaStyle = { ...inputStyle, resize: "vertical", lineHeight: 1.6 };
   const selectStyle = { ...inputStyle, appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' fill='none' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", cursor: "pointer" };
 
@@ -225,7 +225,7 @@ return f.url; // direct URL (Supabase storage etc.)
         {PLATFORMS_LIST.map(p => {
           const active = (form.platforms || []).includes(p);
           return (
-            <button key={p} onClick={() => togglePlatform(p)} style={{ padding:"7px 14px", borderRadius:8, fontSize:12, fontWeight:600, cursor:"pointer", transition:"all 0.15s", border: active ? "1px solid rgba(42,171,255,0.4)" : "1px solid rgba(255,255,255,0.1)", background: active ? "rgba(42,171,255,0.15)" : "#1a1818", color: active ? "#2AABFF" : "rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>{p}</button>
+            <button key={p} onClick={() => togglePlatform(p)} style={{ padding:"7px 14px", borderRadius:8, fontSize:12, fontWeight:600, cursor:"pointer", transition:"all 0.15s", border: active ? "1px solid rgba(42,171,255,0.4)" : "1px solid rgba(255,255,255,0.1)", background: active ? "rgba(42,171,255,0.15)" : "#191919", color: active ? "#2AABFF" : "rgba(255,255,255,0.5)", fontFamily:"Inter, sans-serif" }}>{p}</button>
           );
         })}
       </div>
@@ -331,7 +331,7 @@ return f.url; // direct URL (Supabase storage etc.)
     {/* Client Note */}
     <div style={{ marginBottom:28 }}>
       <label style={{ ...labelStyle, color:"rgba(255,69,58,0.6)" }}>Client Note</label>
-      <textarea style={{ ...textareaStyle, minHeight:56, borderColor: form.client_note ? "rgba(255,69,58,0.3)" : "rgba(255,255,255,0.1)", background: form.client_note ? "rgba(255,69,58,0.08)" : "#1a1818" }}
+      <textarea style={{ ...textareaStyle, minHeight:56, borderColor: form.client_note ? "rgba(255,69,58,0.3)" : "rgba(255,255,255,0.1)", background: form.client_note ? "rgba(255,69,58,0.08)" : "#191919" }}
         value={form.client_note || ""} onChange={e => set("client_note", e.target.value)}
         placeholder="Client revision notes will appear here…" />
     </div>
@@ -339,7 +339,7 @@ return f.url; // direct URL (Supabase storage etc.)
     {/* File Assets */}
     <div style={{ marginBottom:28 }}>
       <label style={labelStyle}>Assets / Files</label>
-      <div style={{ border:"1.5px dashed rgba(255,255,255,0.12)", borderRadius:12, padding:"16px 18px", background:"#0f0d0e" }}>
+      <div style={{ border:"1.5px dashed rgba(255,255,255,0.12)", borderRadius:12, padding:"16px 18px", background:"#0e0e0e" }}>
         {/* Existing files */}
         {(form.files || []).length > 0 && (
           <div style={{ marginBottom:12, display:"flex", flexDirection:"column", gap:6 }}>
@@ -371,7 +371,7 @@ return f.url; // direct URL (Supabase storage etc.)
     {!isNew && (
       <div style={{ marginBottom:28 }}>
         <label style={labelStyle}>Review</label>
-        <div style={{ border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"16px 18px", background:"#0f0d0e" }}>
+        <div style={{ border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, padding:"16px 18px", background:"#0e0e0e" }}>
           <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom: form.review_video_path ? 12 : 0 }}>
             <input ref={reviewRef} type="file" style={{ display:"none" }} onChange={handleReviewUpload} accept="video/mp4,video/webm,video/quicktime" />
             <button onClick={() => reviewRef.current?.click()} disabled={reviewUploading}
@@ -423,7 +423,7 @@ return f.url; // direct URL (Supabase storage etc.)
           <span style={{ fontSize:13, fontWeight:600, color:"#f5f5f7" }}>{previewFile.name}</span>
           <button onClick={() => setPreviewFile(null)} style={{ background:"rgba(255,255,255,0.05)", border:"none", borderRadius:8, width:28, height:28, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}></button>
         </div>
-        <div style={{ flex:1, overflow:"auto", display:"flex", alignItems:"center", justifyContent:"center", minHeight:300, background:"#161414" }}>
+        <div style={{ flex:1, overflow:"auto", display:"flex", alignItems:"center", justifyContent:"center", minHeight:300, background:"#151515" }}>
           {isImage(previewFile) ? (
             <img src={previewFile.url} alt={previewFile.name} style={{ maxWidth:"100%", maxHeight:"80vh", objectFit:"contain" }} />
           ) : isVideo(previewFile) ? (

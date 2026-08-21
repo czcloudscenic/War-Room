@@ -157,7 +157,7 @@ function SceneContent({ simRef, crew }) {
       {/* Art is unlit (MeshBasicMaterial); these lights shape the CREW so they
           read against the dark painting instead of sinking into it. */}
       <ambientLight intensity={1.15} />
-      <hemisphereLight args={['#7fb4e0', '#1a1410', 0.7]} />
+      <hemisphereLight args={['#7fb4e0', '#161616', 0.7]} />
       <directionalLight position={[-200, 300, 400]} intensity={0.5} color="#bcd9f5" />
       <Suspense fallback={null}>
         <ArtPlane />

@@ -124,7 +124,7 @@ export default function BackupsCard({ compact = false }) {
       {runs !== null && !errorLine ? (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1fr 1fr', gap: 10, marginTop: 16 }}>
-            <div style={{ background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '12px 14px' }}>
+            <div style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '12px 14px' }}>
               <div style={{ ...mono, marginBottom: 7, fontSize: 8.5, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>Latest export</div>
               {latestExport ? (
                 <>
@@ -134,7 +134,7 @@ export default function BackupsCard({ compact = false }) {
               ) : <div style={quiet}>No exports recorded.</div>}
             </div>
 
-            <div style={{ background: '#0f0d0e', border: `1px solid ${latestRestore ? 'rgba(255,255,255,0.07)' : 'rgba(255,69,58,0.22)'}`, borderRadius: 10, padding: '12px 14px' }}>
+            <div style={{ background: '#0e0e0e', border: `1px solid ${latestRestore ? 'rgba(255,255,255,0.07)' : 'rgba(255,69,58,0.22)'}`, borderRadius: 10, padding: '12px 14px' }}>
               <div style={{ ...mono, marginBottom: 7, fontSize: 8.5, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>Restore readiness</div>
               {latestRestore
                 ? <div style={{ fontSize: 12, color: '#f5f5f7' }}>Last tested restore: {dateTime(latestRestore.completed_at)}</div>

@@ -22,7 +22,7 @@ function fmtDate(d) { if (!d) return "—"; const t = new Date(d); return Number
 
 function KpiCard({ value, suffix, label, sub, color }) {
   return (
-    <div style={{ flex: 1, minWidth: 150, padding: "18px 20px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
+    <div style={{ flex: 1, minWidth: 150, padding: "18px 20px", background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
         <span style={{ fontSize: 30, fontWeight: 700, fontFamily: "'Geist Mono', monospace", color, lineHeight: 1 }}>{value}</span>
         {suffix && <span style={{ fontSize: 14, fontWeight: 600, color, fontFamily: "'Geist Mono', monospace" }}>{suffix}</span>}
@@ -116,7 +116,7 @@ export default function ReportsRoute({ isMobile, clients = [] }) {
 
       {/* headline KPIs */}
       {itemsLoading ? (
-        <div style={{ padding: "34px 16px", textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.4)", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, marginBottom: 24 }}>Loading…</div>
+        <div style={{ padding: "34px 16px", textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.4)", background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, marginBottom: 24 }}>Loading…</div>
       ) : (
       <>
       <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
@@ -138,7 +138,7 @@ export default function ReportsRoute({ isMobile, clients = [] }) {
         {/* per-client */}
         <div style={{ flex: 1.4, minWidth: 280 }}>
           <div style={{ ...head, marginBottom: 10 }}>By client · last {WINDOW_DAYS} days</div>
-          <div style={{ background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+          <div style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
             <div style={{ display: "flex", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <div style={{ ...head, ...col(2) }}>Client</div>
               <div style={{ ...head, ...col(1), textAlign: "right" }}>Items</div>
@@ -169,7 +169,7 @@ export default function ReportsRoute({ isMobile, clients = [] }) {
         {/* recent decisions */}
         <div style={{ flex: 1, minWidth: 240 }}>
           <div style={{ ...head, marginBottom: 10 }}>Recent decisions</div>
-          <div style={{ background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+          <div style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>Loading…</div>
             ) : decisions.length === 0 ? (
