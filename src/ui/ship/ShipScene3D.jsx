@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { WORLD_W, WORLD_H, ROOMS, DECKS, floorYAt } from '../../ship/world.js';
 import { STATIONS } from '../../core/shipStations.js';
 import { createShipSim } from '../../ship/shipEngine.js';
-import { createAgentFigure } from '../../ship/crewModels.js';
+import { createCrewFigure } from '../../ship/crewGLB.js';
 import { createShipArtFX } from '../../ship/shipArtFX.js';
 import { createDrones } from '../../ship/drones.js';
 
@@ -98,7 +98,7 @@ function SceneContent({ simRef, crew }) {
       // glitch boxes against the art. They stay listed in Map/List views.
       if (member.future) continue;
       if (!map.has(member.name)) {
-        const fig = createAgentFigure({ name: member.name, color: member.color, future: member.future });
+        const fig = createCrewFigure({ name: member.name, color: member.color, future: member.future });
         // Pop against the dark painting: near-black garments take the member's
         // signature color, and every surface self-glows so nobody reads as a
         // silhouette sunk into the hull. Future crew stay ghosted — glowing

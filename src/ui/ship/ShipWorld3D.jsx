@@ -8,7 +8,7 @@ import { WORLD_W, ROOMS, DECKS as LOGICAL_DECKS } from '../../ship/world.js';
 import { toSceneX, DECK_Y, DECK_CLEAR, WALK_Z, CAMERA } from '../../ship/scene3dContract.js';
 import { STATIONS } from '../../core/shipStations.js';
 import { createShipSim } from '../../ship/shipEngine.js';
-import { createAgentFigure } from '../../ship/crewModels.js';
+import { createCrewFigure } from '../../ship/crewGLB.js';
 import { createShipModel } from '../../ship/shipModel.js';
 import { createEnvironment } from '../../ship/environment3d.js';
 import { createGreebles } from '../../ship/greebles.js';
@@ -118,7 +118,7 @@ function SceneContent({ simRef, crew, onChipAnchors }) {
     const map = figuresRef.current;
     for (const member of crew) {
       if (!map.has(member.name)) {
-        const fig = createAgentFigure({ name: member.name, color: member.color, future: member.future });
+        const fig = createCrewFigure({ name: member.name, color: member.color, future: member.future });
         map.set(member.name, fig);
         scene.add(fig.group);
       }

@@ -87,7 +87,7 @@ const sphereGeom = (r, ws, hs) =>
 // Name-tag texture: 24px Geist Mono in the agent color on transparent bg.
 // Returns null in non-DOM environments (headless tests) — the tag sprite
 // simply renders as a blank transparent sprite there.
-function makeNameTexture(name, color) {
+export function makeNameTexture(name, color) {
   if (typeof document === 'undefined') return null;
   const canvas = document.createElement('canvas');
   canvas.width = 256;
