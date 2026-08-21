@@ -168,7 +168,10 @@ async function ai(system, user, maxTokens = 1200, model = "claude-opus-5") {
     },
     body: JSON.stringify({
       model,
-      max_tokens: maxTokens,
+      // Opus 5 thinks by default and thinking tokens count against max_tokens —
+      // callers' small caps (900-2000) sized for haiku text would truncate
+      // mid-thought. Floor the cap; only actually-generated tokens bill.
+      max_tokens: Math.max(maxTokens, 4096),
       system,
       messages: [{ role: "user", content: user }],
     }),
@@ -178,7 +181,7 @@ async function ai(system, user, maxTokens = 1200, model = "claude-opus-5") {
     // Full diagnostic so the agent_events row tells us what's wrong
     throw new Error(`Anthropic ${res.status} ${d.error?.type || ""}: ${d.error?.message || JSON.stringify(d).slice(0, 300)}`);
   }
-  return d.content?.[0]?.text || "";
+  return d.content?.find?.((b) => b.type === "text")?.text || d.content?.[0]?.text || "";
 }
 
 // Like ai(), but the user turn is a content ARRAY (image blocks + text) so the
@@ -202,7 +205,7 @@ async function aiVision(system, contentBlocks, maxTokens = 1600, model = "claude
   if (!res.ok) {
     throw new Error(`Anthropic ${res.status} ${d.error?.type || ""}: ${d.error?.message || JSON.stringify(d).slice(0, 300)}`);
   }
-  return d.content?.[0]?.text || "";
+  return d.content?.find?.((b) => b.type === "text")?.text || d.content?.[0]?.text || "";
 }
 
 // ─── QC AGENT ─────────────────────────────────────────────────────────────────

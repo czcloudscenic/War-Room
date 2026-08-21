@@ -57,10 +57,10 @@ Return ONLY valid JSON (no markdown):
   const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-opus-5", max_tokens: 1300, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model: "claude-opus-5", max_tokens: 4096, messages: [{ role: "user", content: prompt }] }),
   });
   const aiData = await aiRes.json();
-  const raw = aiData.content?.[0]?.text || "{}";
+  const raw = aiData.content?.find?.((b) => b.type === "text")?.text || "{}";
   let parsed;
   try {
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -121,10 +121,10 @@ Return ONLY valid JSON:
   const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-opus-5", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model: "claude-opus-5", max_tokens: 4096, messages: [{ role: "user", content: prompt }] }),
   });
   const aiData = await aiRes.json();
-  const raw = aiData.content?.[0]?.text || "{}";
+  const raw = aiData.content?.find?.((b) => b.type === "text")?.text || "{}";
   let parsed;
   try {
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
