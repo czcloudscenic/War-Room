@@ -28,6 +28,13 @@ exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "" };
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: "Method Not Allowed" };
 
+  // localhost preview only: requireUser's origin allowlist (rightly) blocks
+  // non-prod origins on POST, which would make `netlify dev` unusable. Under
+  // the dev CLI (NETLIFY_DEV is never set in prod) drop the localhost origin
+  // so auth falls through to the normal JWT validation.
+  if (process.env.NETLIFY_DEV === "true" && /^https?:\/\/localhost(:\d+)?$/.test(event.headers?.origin || "")) {
+    delete event.headers.origin; delete event.headers.Origin;
+  }
   const auth = await requireUser(event);
   if (!auth.ok) return unauthorized(auth.reason, event);
   if (auth.user.role !== "admin") {
