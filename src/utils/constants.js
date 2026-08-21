@@ -7,11 +7,14 @@ export const NAV = [
     { id:"dashboard", label:"Dashboard" },
     { id:"approvals", label:"Approvals" },
     { id:"decisions", label:"Decisions" },
-    { id:"operations", label:"Operations" },
   ]},
   { id:"g-clients", label:"Clients", items:[
     { id:"clients", label:"Clients" },
     { id:"setup", label:"Setup" },
+  ]},
+  { id:"g-work", label:"Work", items:[
+    { id:"operations", label:"Operations" },
+    { id:"ledger", label:"Ledger" },
     { id:"reports", label:"Reports" },
   ]},
   { id:"g-content", label:"Content", items:[
@@ -19,9 +22,11 @@ export const NAV = [
     { id:"content", label:"Pipeline" },
     { id:"runway", label:"Content Runway" },
   ]},
+  { id:"g-growth", label:"Growth", items:[
+    { id:"clientanalytics", label:"Client Analytics" },
+  ]},
   { id:"g-intel", label:"Intelligence", items:[
     { id:"contentintel", label:"Content Intel" },
-    { id:"clientanalytics", label:"Client Analytics" },
   ]},
   { id:"g-workforce", label:"Workforce", items:[
     { id:"agents", label:"Agents" },
@@ -30,7 +35,6 @@ export const NAV = [
   ]},
   { id:"g-admin", label:"Admin", items:[
     { id:"billing", label:"Billing" },
-    { id:"ledger", label:"Ledger" },
     { id:"vault", label:"Vault" },
     { id:"apps", label:"Apps" },
     { id:"settings", label:"Settings" },

@@ -36,7 +36,9 @@ import ContentRoute from './ui/routes/ContentRoute.jsx';
 const NAV_GROUP_GLYPHS = {
   "g-command":   <><path d="M4 17l6-5-6-5"/><path d="M12 19h8"/></>,
   "g-clients":   <><circle cx="9" cy="8" r="3.25"/><path d="M3.5 19c.6-3.2 2.7-5 5.5-5s4.9 1.8 5.5 5"/><path d="M15.5 5.6a3.25 3.25 0 010 4.9"/><path d="M17.5 14.3c1.6.8 2.6 2.4 3 4.7"/></>,
+  "g-work":      <><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></>,
   "g-content":   <><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></>,
+  "g-growth":    <><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></>,
   "g-intel":     <><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></>,
   "g-workforce": <><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M3 12h18"/></>,
   "g-admin":     <><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></>,
