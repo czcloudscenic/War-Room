@@ -25,7 +25,7 @@ function Pill({ label, color }) {
 
 const VERIFY_META = {
   verified:    { label: 'Verified posted', color: '#30d158' },
-  awaiting:    { label: 'Awaiting verification', color: '#ff9f0a' },
+  awaiting:    { label: 'Awaiting verification', color: '#E5E5EA' },
   failed:      { label: 'Publish failed', color: '#ff453a' },
   wrong_asset: { label: 'Wrong asset posted', color: '#ff453a' },
   unverified:  { label: 'No publish evidence', color: 'rgba(255,255,255,0.4)' },
@@ -76,7 +76,7 @@ export default function TruthDrawer({ item, clients = [], onClose }) {
               </div>
               <div style={dim}>{approvedVersion.approved_stage ? `${approvedVersion.approved_stage} gate · ` : ''}{fmt(approvedVersion.approved_at)}</div>
               {drift.length > 0 && (
-                <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 8, background: 'rgba(255,159,10,0.07)', border: '1px solid rgba(255,159,10,0.25)', fontSize: 11.5, color: '#ff9f0a' }}>
+                <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 8, background: 'rgba(229,229,234,0.07)', border: '1px solid rgba(229,229,234,0.25)', fontSize: 11.5, color: '#E5E5EA' }}>
                   Edited since approval: {drift.join(', ')} — the live item no longer matches the approved version.
                 </div>
               )}
@@ -105,7 +105,7 @@ export default function TruthDrawer({ item, clients = [], onClose }) {
           {blockMeta ? (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <Pill label={blockMeta.label} color="#f97316" />
+                <Pill label={blockMeta.label} color="#E5E5EA" />
                 {item.block_external && <Pill label="external · SLA paused" color="#64d2ff" />}
               </div>
               <div style={dim}>
@@ -143,7 +143,7 @@ export default function TruthDrawer({ item, clients = [], onClose }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {approvals.map(a => (
                 <div key={a.id} style={{ fontSize: 12 }}>
-                  <span style={{ color: a.decision === 'approved' ? '#30d158' : '#f97316', fontWeight: 600 }}>{a.decision === 'approved' ? 'Approved' : 'Revisions'}</span>
+                  <span style={{ color: a.decision === 'approved' ? '#30d158' : '#E5E5EA', fontWeight: 600 }}>{a.decision === 'approved' ? 'Approved' : 'Revisions'}</span>
                   <span style={{ color: 'rgba(255,255,255,0.65)' }}>{a.stage ? ` · ${a.stage}` : ''} · {a.approver_email || 'unknown'}</span>
                   <span style={{ ...dim, fontSize: 10.5, ...mono }}> · {fmt(a.created_at)}</span>
                   {a.feedback && <div style={{ ...dim, fontSize: 11.5, marginTop: 2, fontStyle: 'italic' }}>"{a.feedback}"</div>}

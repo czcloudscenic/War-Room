@@ -68,7 +68,7 @@ export default function PortalItemCard({ item, client, accent = '#2AABFF', showC
           {item.platform && <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>{item.platform}</span>}
           {showClientName && client?.name && <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>· {client.name}</span>}
           {round > 0 && (
-            <span style={{ fontSize: 9, fontWeight: 700, marginLeft: 'auto', color: cap != null && round >= cap ? '#ff9f0a' : 'rgba(255,255,255,0.45)' }}>
+            <span style={{ fontSize: 9, fontWeight: 700, marginLeft: 'auto', color: cap != null && round >= cap ? '#E5E5EA' : 'rgba(255,255,255,0.45)' }}>
               Round {round}{cap != null ? ` of ${cap} included` : ''}
             </span>
           )}
@@ -148,7 +148,7 @@ export default function PortalItemCard({ item, client, accent = '#2AABFF', showC
               style={{ width: '100%', boxSizing: 'border-box', minHeight: 84, padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
             />
             {cap != null && round >= cap && (
-              <div style={{ fontSize: 11, color: '#ff9f0a', margin: '8px 0 0' }}>
+              <div style={{ fontSize: 11, color: '#E5E5EA', margin: '8px 0 0' }}>
                 Heads up — this would be revision round {round + 1}; your plan includes {cap}. Additional rounds may be billed.
               </div>
             )}

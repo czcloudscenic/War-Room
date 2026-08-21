@@ -7,7 +7,7 @@ const CARD = "#0f0d0e";
 const BORDER = "rgba(255,255,255,0.08)";
 const ACCENT = "#2AABFF";
 const GREEN = "#30d158";
-const AMBER = "#ff9f0a";
+const AMBER = "#E5E5EA";
 const RED = "#ff453a";
 const DIM = "rgba(255,255,255,0.28)";
 
@@ -28,14 +28,14 @@ function severityLabel(snap) {
 function severityBg(snap) {
   if (!snap.configured) return "rgba(255,255,255,0.04)";
   if (snap.severity === "empty" || snap.severity === "critical") return "rgba(255,69,58,0.08)";
-  if (snap.severity === "warning") return "rgba(255,159,10,0.08)";
+  if (snap.severity === "warning") return "rgba(229,229,234,0.08)";
   return "rgba(48,209,88,0.08)";
 }
 
 function severityBorder(snap) {
   if (!snap.configured) return "rgba(255,255,255,0.09)";
   if (snap.severity === "empty" || snap.severity === "critical") return "rgba(255,69,58,0.24)";
-  if (snap.severity === "warning") return "rgba(255,159,10,0.24)";
+  if (snap.severity === "warning") return "rgba(229,229,234,0.24)";
   return "rgba(48,209,88,0.22)";
 }
 

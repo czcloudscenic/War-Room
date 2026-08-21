@@ -10,7 +10,7 @@ import { sb } from '../../services/supabaseClient.js';
 // dashboard of that contract, not an editor.
 
 const DIR_LABEL = { none: 'native', pull: 'pull → Vantus', push: 'Vantus → push', two_way: 'two-way' };
-const CONFLICT_COLOR = { clean: '#30d158', conflict: '#ff453a', unknown: '#ff9f0a' };
+const CONFLICT_COLOR = { clean: '#30d158', conflict: '#ff453a', unknown: '#E5E5EA' };
 
 export default function TruthRegistryCard({ S }) {
   const [rows, setRows] = useState(null);

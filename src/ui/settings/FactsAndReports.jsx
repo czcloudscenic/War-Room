@@ -116,10 +116,10 @@ function ClientFactsCard({ client, open, onToggle }) {
         <div style={{ width: 8, height: 8, borderRadius: "50%", background: client.brand_color || ACCENT, flexShrink: 0 }} />
         <span style={{ fontSize: 14, fontWeight: 600, color: "#f5f5f7", flex: 1 }}>{client.name}</span>
         {filled && fresh.state === "stale" && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#ff453a", background: "rgba(255,69,58,0.1)", border: "1px solid rgba(255,69,58,0.3)", borderRadius: 4, padding: "2px 7px", textTransform: "uppercase", letterSpacing: 0.5 }}>stale{fresh.days != null ? ` · ${fresh.days}d` : ""} — blocks scheduling</span>}
-        {filled && fresh.state === "due" && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#ff9f0a", background: "rgba(255,159,10,0.1)", border: "1px solid rgba(255,159,10,0.3)", borderRadius: 4, padding: "2px 7px", textTransform: "uppercase", letterSpacing: 0.5 }}>review due</span>}
+        {filled && fresh.state === "due" && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#E5E5EA", background: "rgba(229,229,234,0.1)", border: "1px solid rgba(229,229,234,0.3)", borderRadius: 4, padding: "2px 7px", textTransform: "uppercase", letterSpacing: 0.5 }}>review due</span>}
         {filled
           ? <span style={{ fontSize: 10.5, fontFamily: "'Geist Mono', monospace", color: "#30d158" }}>{savedAt ? `updated ${new Date(savedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "on file"}</span>
-          : <span style={{ fontSize: 10.5, fontFamily: "'Geist Mono', monospace", color: "rgba(255,159,10,0.8)" }}>no facts — QC runs typo/brand only</span>}
+          : <span style={{ fontSize: 10.5, fontFamily: "'Geist Mono', monospace", color: "rgba(229,229,234,0.8)" }}>no facts — QC runs typo/brand only</span>}
         <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{open ? "▾" : "▸"}</span>
       </div>
 
@@ -288,7 +288,7 @@ export function MonthlyReports({ clients = [] }) {
                 <input type="file" accept="application/pdf,.pdf" style={{ display: "none" }} disabled={busy === c.id}
                   onChange={e => { upload(c, e.target.files?.[0]); e.target.value = ""; }} />
               </label>
-              {!c.primary_email && <span style={{ fontSize: 10, color: "#ff9f0a" }}>no client email on file — set primary_email or it mails the team</span>}
+              {!c.primary_email && <span style={{ fontSize: 10, color: "#E5E5EA" }}>no client email on file — set primary_email or it mails the team</span>}
             </div>
             {/* Phase A: explicit report recipients (clients.report_recipients).
                 Empty = falls back to primary_email, same as before. */}
@@ -319,7 +319,7 @@ export function MonthlyReports({ clients = [] }) {
                       ? <span style={{ color: "#30d158" }}>✓ sent {new Date(r.sent_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} → {r.sent_to || "client"}</span>
                       : r.send_error
                         ? <span style={{ color: "#ff453a" }}>send failed: {r.send_error}</span>
-                        : <span style={{ color: "#ff9f0a" }}>queued — sends on the 1st</span>}
+                        : <span style={{ color: "#E5E5EA" }}>queued — sends on the 1st</span>}
                   </div>
                 ))}
               </div>

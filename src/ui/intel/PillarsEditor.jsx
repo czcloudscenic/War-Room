@@ -105,7 +105,7 @@ export default function PillarsEditor({ client }) {
         ))}
       </div>
 
-      {keyEdited ? <div style={{ marginTop: 10, fontSize: 11.5, lineHeight: 1.45, color: '#ff9f0a' }}>Existing analysis rows keep their old pillar tags until the next Run analysis.</div> : null}
+      {keyEdited ? <div style={{ marginTop: 10, fontSize: 11.5, lineHeight: 1.45, color: '#E5E5EA' }}>Existing analysis rows keep their old pillar tags until the next Run analysis.</div> : null}
       {errorLine ? <div style={{ marginTop: 10, fontSize: 11.5, color: '#ff453a' }}>{errorLine}</div> : null}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 14 }}>

@@ -16,8 +16,8 @@ const COLS = [
   { key: "review", label: "Review" },
   { key: "done", label: "Done" },
 ];
-const PRIORITY_COLOR = { urgent: "#ff453a", high: "#f97316", medium: "#64d2ff", low: "rgba(255,255,255,0.45)" };
-const STATUS_DOT = { online: "#30d158", busy: "#ff9f0a", away: "#ffd60a", offline: "rgba(255,255,255,0.3)" };
+const PRIORITY_COLOR = { urgent: "#ff453a", high: "#E5E5EA", medium: "#64d2ff", low: "rgba(255,255,255,0.45)" };
+const STATUS_DOT = { online: "#30d158", busy: "#E5E5EA", away: "#98989d", offline: "rgba(255,255,255,0.3)" };
 
 function fmtDate(d) { if (!d) return null; const t = new Date(d); return Number.isNaN(t.getTime()) ? null : t.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
 const head = { fontSize: 8.5, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.38)", fontWeight: 700, fontFamily: "'Geist Mono', monospace" };

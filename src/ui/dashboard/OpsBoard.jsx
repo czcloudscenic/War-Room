@@ -37,7 +37,7 @@ export default function OpsBoard() {
 
   const cols = [
     { key:"backlog",    label:"Backlog",     color:"rgba(255,255,255,0.5)" },
-    { key:"inProgress", label:"In Progress", color:"#ff9f0a" },
+    { key:"inProgress", label:"In Progress", color:"#E5E5EA" },
     { key:"completed",  label:"Completed",   color:"#2AABFF" },
   ];
 

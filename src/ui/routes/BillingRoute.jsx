@@ -166,7 +166,7 @@ export default function BillingRoute({ isMobile, clients = [] }) {
           value={netMargin == null || !teamCost ? "—" : `${Math.round(netMargin)}%`}
           label="Est. net margin"
           sub={!teamCost ? "set team costs in Setup" : `MRR − ${fmtMoney(teamCost)} team cost`}
-          color={netMargin == null || !teamCost ? "rgba(255,255,255,0.4)" : netMargin >= 50 ? "#30d158" : netMargin >= 20 ? "#ff9f0a" : "#ff453a"}
+          color={netMargin == null || !teamCost ? "rgba(255,255,255,0.4)" : netMargin >= 50 ? "#30d158" : netMargin >= 20 ? "#E5E5EA" : "#ff453a"}
         />
       </div>
 

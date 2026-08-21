@@ -34,7 +34,7 @@ function byteSize(value) {
 }
 
 function StatusPill({ status }) {
-  const color = status === 'ok' ? '#30d158' : status === 'failed' ? '#ff453a' : '#ff9f0a';
+  const color = status === 'ok' ? '#30d158' : status === 'failed' ? '#ff453a' : '#E5E5EA';
   return (
     <span style={{ ...mono, display: 'inline-flex', padding: '2px 7px', borderRadius: 20, border: `1px solid ${color}35`, background: `${color}12`, color, fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
       {status || 'unknown'}

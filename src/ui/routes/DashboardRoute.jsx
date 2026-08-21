@@ -65,7 +65,7 @@ export default function DashboardRoute({
       )}
       {peekKpis && activationLoaded && !book.activated && (
         <button onClick={() => setPeekKpis(false)}
-          style={{ marginBottom: 16, fontSize: 10, fontWeight: 700, fontFamily: "'Geist Mono', monospace", letterSpacing: 1, textTransform: "uppercase", padding: "7px 13px", borderRadius: 8, background: "rgba(255,159,10,0.08)", border: "1px solid rgba(255,159,10,0.3)", color: "#ff9f0a", cursor: "pointer" }}>
+          style={{ marginBottom: 16, fontSize: 10, fontWeight: 700, fontFamily: "'Geist Mono', monospace", letterSpacing: 1, textTransform: "uppercase", padding: "7px 13px", borderRadius: 8, background: "rgba(229,229,234,0.08)", border: "1px solid rgba(229,229,234,0.3)", color: "#E5E5EA", cursor: "pointer" }}>
           ← Back to activation view ({book.openActionCount} open)
         </button>
       )}
@@ -94,7 +94,7 @@ export default function DashboardRoute({
           <>
             <MetricCard label="Content Pieces" value={clientContent.length} delta={0} color="#2AABFF" />
             <MetricCard label="Approved" value={clientContent.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
-            <MetricCard label="Need Attention" value={clientContent.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
+            <MetricCard label="Need Attention" value={clientContent.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#E5E5EA" />
             <MetricCard label="Scheduled" value={clientContent.filter(x=>x.status==="Scheduled").length} delta={0} color="#2AABFF" />
           </>
         ) : (
@@ -104,7 +104,7 @@ export default function DashboardRoute({
             </div>
             <MetricCard label="Approved" value={clientContent.filter(x=>x.status==="Approved").length} delta={0} color="#0a84ff" />
             <MetricCard label="Scheduled" value={clientContent.filter(x=>x.status==="Scheduled").length} delta={0} color="#2AABFF" />
-            <MetricCard label="Need Attention" value={clientContent.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#ff9f0a" />
+            <MetricCard label="Need Attention" value={clientContent.filter(x=>["Need Copy Approval","Need Content Approval","Needs Revisions"].includes(x.status)).length} delta={0} color="#E5E5EA" />
             <MetricCard label="In Production" value={clientContent.filter(x=>["Ready For Content Creation","Ready For Copy Creation"].includes(x.status)).length} delta={0} color="#ff375f" />
           </>
         )}

@@ -17,7 +17,7 @@ import IdeaPromoteButton from '../intel/IdeaPromoteButton.jsx';
 const ACCENT = '#2AABFF';
 const GOOD = '#30d158';
 const BAD = '#ff453a';
-const WARN = '#ff9f0a';
+const WARN = '#E5E5EA';
 const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14 };
 const head = { fontSize: 8.5, letterSpacing: 0.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', fontWeight: 700, fontFamily: "'Geist Mono', monospace" };
 const mono = { fontFamily: "'Geist Mono', monospace" };

@@ -11,7 +11,7 @@ import { useSupabaseRows } from '../../utils/hooks.js';
 const ACCENT = "#2AABFF";
 const NEED_ATTENTION = ["Need Copy Approval", "Need Content Approval", "Needs Revisions"];
 const DONE = ["Approved", "Scheduled", "Posted"];
-const HEALTH_COLOR = { green: "#30d158", amber: "#ff9f0a", red: "#ff453a" };
+const HEALTH_COLOR = { green: "#30d158", amber: "#E5E5EA", red: "#ff453a" };
 
 function fmtNum(n) {
   n = Number(n) || 0;
@@ -217,8 +217,8 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
       <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
         <StatCard value={fmtNum(roll.totalReach)} label={`Total reach · ${REACH_DAYS}d`} sub={`${fmtNum(roll.totalEng)} engagements · last ${REACH_DAYS} days`} color="#fff" big />
         <StatCard value={fmtMoney(roll.mrr)} label="MRR" sub={`${roll.activeCount} active clients`} color="#30d158" big />
-        <StatCard value={`${onTrackPct}%`} label="Deliverables on-track" sub={`${roll.deliverables} total`} color={onTrackPct >= 80 ? "#30d158" : "#f59e0b"} big />
-        <StatCard value={`${roll.avgHealth}%`} label="Clients green" sub={`${roll.overdue} overdue items`} color={roll.avgHealth >= 70 ? "#30d158" : "#f59e0b"} big />
+        <StatCard value={`${onTrackPct}%`} label="Deliverables on-track" sub={`${roll.deliverables} total`} color={onTrackPct >= 80 ? "#30d158" : "#E5E5EA"} big />
+        <StatCard value={`${roll.avgHealth}%`} label="Clients green" sub={`${roll.overdue} overdue items`} color={roll.avgHealth >= 70 ? "#30d158" : "#E5E5EA"} big />
       </div>
 
       {/* MRR / revenue trend */}
@@ -260,7 +260,7 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
         {/* delivery health */}
         <div style={{ flex: 1, minWidth: 260, padding: "18px 20px", background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14 }}>
           <div style={{ ...head, marginBottom: 16 }}>Deliverable health</div>
-          {[["On track", roll.onTrack, "#30d158"], ["In review", roll.inReview, "#f97316"], ["Overdue", roll.overdue, "#ff453a"]].map(([lbl, val, col]) => (
+          {[["On track", roll.onTrack, "#30d158"], ["In review", roll.inReview, "#E5E5EA"], ["Overdue", roll.overdue, "#ff453a"]].map(([lbl, val, col]) => (
             <div key={lbl} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: col }} />
@@ -294,7 +294,7 @@ export default function ClientAnalyticsRoute({ isMobile, clients = [], content =
             </div>
             <div style={{ flex: 1, textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 12.5, color: "#30d158" }}>{fmtMoney(c.mrr)}</div>
             <div style={{ flex: 1, textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 12.5,
-              color: !costAlloc.hasCosts || c.marginPct == null ? "rgba(255,255,255,0.35)" : c.marginPct >= 50 ? "#30d158" : c.marginPct >= 20 ? "#ff9f0a" : "#ff453a" }}
+              color: !costAlloc.hasCosts || c.marginPct == null ? "rgba(255,255,255,0.35)" : c.marginPct >= 50 ? "#30d158" : c.marginPct >= 20 ? "#E5E5EA" : "#ff453a" }}
               title={c.cost ? `Allocated team cost ${fmtMoney(Math.round(c.cost))}` : "No delivered items allocated in the window"}>
               {!costAlloc.hasCosts ? "—" : c.marginPct == null ? "—" : `${Math.round(c.marginPct)}%`}
             </div>

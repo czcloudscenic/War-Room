@@ -16,7 +16,7 @@ export default function ContentRoute({
   currentClient,
 }) {
   const STAGES = ["Ready For Copy Creation","Need Copy Approval","Ready For Content Creation","Need Content Approval","Needs Revisions","Approved","Ready For Schedule","Scheduled"];
-  const STAGE_COLORS = ["#f59e0b","#3b82f6","#10b981","#ff453a","#f97316","#2AABFF","#8b5cf6","#64d2ff"];
+  const STAGE_COLORS = ["#E5E5EA","#3b82f6","#10b981","#ff453a","#E5E5EA","#2AABFF","#8b5cf6","#64d2ff"];
   const handle = currentClient?.ig_handle || currentClient?.slug || currentClient?.name || "no client selected";
   const ytLabel = currentClient?.name || "Account";
   const platforms = [

@@ -26,7 +26,7 @@ function ActorChip({ row }) {
   const color = row.actor_kind === 'agent'
     ? '#64d2ff'
     : row.actor_kind === 'system'
-      ? '#ff9f0a'
+      ? '#E5E5EA'
       : 'rgba(255,255,255,0.65)';
   const label = isHuman ? (row.actor_email || 'Unknown user') : row.actor_kind === 'agent' ? 'Agent' : 'System';
 

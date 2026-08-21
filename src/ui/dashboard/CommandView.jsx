@@ -17,8 +17,8 @@ const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)'
 const TIERS = [
   { key: 'critical', label: 'Critical', color: '#ff453a' },
   { key: 'founder',  label: 'Requires you', color: '#bf5af2' },
-  { key: 'dueToday', label: 'Due today', color: '#ff9f0a' },
-  { key: 'blocked',  label: 'Blocked', color: '#f97316' },
+  { key: 'dueToday', label: 'Due today', color: '#E5E5EA' },
+  { key: 'blocked',  label: 'Blocked', color: '#E5E5EA' },
   { key: 'atRisk',   label: 'At risk', color: '#64d2ff' },
 ];
 

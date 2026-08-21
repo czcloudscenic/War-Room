@@ -133,11 +133,11 @@ export default function AgentRail({ isMobile, clients = [], content = [], tasks 
       ))}
 
       {/* BLOCKED */}
-      <div style={tierHead('#f97316')}>Blocked <span style={countPill('#f97316')}>{blocked.length}</span></div>
+      <div style={tierHead('#E5E5EA')}>Blocked <span style={countPill('#E5E5EA')}>{blocked.length}</span></div>
       {blocked.length === 0 ? <div style={emptyLine}>Nothing blocked.</div> : blocked.slice(0, 8).map(b => (
         <button key={b.id} onClick={() => setActiveNav?.('ledger')} style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '5px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
           <span style={{ flex: 1, fontSize: 10.5, color: 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title || 'Untitled'}{b.clientName ? ` · ${b.clientName}` : ''}</span>
-          <span style={{ fontSize: 8.5, ...mono, color: '#f97316', whiteSpace: 'nowrap' }}>{b.why}{b.paused ? ' · SLA paused' : ''} · {b.owner}</span>
+          <span style={{ fontSize: 8.5, ...mono, color: '#E5E5EA', whiteSpace: 'nowrap' }}>{b.why}{b.paused ? ' · SLA paused' : ''} · {b.owner}</span>
         </button>
       ))}
 
@@ -192,7 +192,7 @@ export default function AgentRail({ isMobile, clients = [], content = [], tasks 
         {stat(activeAgents, 'agents active', '#2AABFF')}
         {stat(0, 'in progress', 'rgba(255,255,255,0.5)')}
         {stat(events.length, 'done 48h', '#30d158')}
-        {stat(blocked.length, 'blocked', blocked.length ? '#f97316' : 'rgba(255,255,255,0.5)')}
+        {stat(blocked.length, 'blocked', blocked.length ? '#E5E5EA' : 'rgba(255,255,255,0.5)')}
         {stat(approvals.length, 'approvals', approvals.length ? '#2AABFF' : 'rgba(255,255,255,0.5)')}
         {stat(
           lastBackup ? (lastBackup.status === 'ok' ? 'OK' : 'FAIL') : '—',

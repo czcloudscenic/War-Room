@@ -52,9 +52,9 @@ export const NOTIF_META = {
   approved:             { label: "Approved",            color: "#2AABFF", role: "founder" },
   revision_requested:   { label: "Revisions requested", color: "#ff453a", role: "founder" },
   approval_requested:   { label: "Sent for approval",   color: "#bf5af2", role: "ops" },
-  revision_cap_reached: { label: "Revision cap reached", color: "#ff9f0a", role: "founder" },
-  item_stuck:           { label: "Item stuck",          color: "#ff9f0a", role: "ops" },
-  task_overdue:         { label: "Task overdue",        color: "#ff9f0a", role: "ops" },
+  revision_cap_reached: { label: "Revision cap reached", color: "#E5E5EA", role: "founder" },
+  item_stuck:           { label: "Item stuck",          color: "#E5E5EA", role: "ops" },
+  task_overdue:         { label: "Task overdue",        color: "#E5E5EA", role: "ops" },
   intake_received:      { label: "New intake request",  color: "#30d158", role: "ops" },
   client_comment:       { label: "Client comment",      color: "#64d2ff", role: "founder" },
   invoice_sent:         { label: "Invoice sent",        color: "#30d158", role: "finance" },
@@ -63,16 +63,16 @@ export const NOTIF_META = {
   // send-monthly-reports has emitted these since 7/2; they previously rendered
   // via the fallback — now first-class.
   report_sent:          { label: "Report sent",         color: "#30d158", role: "founder" },
-  report_missing:       { label: "Report missing",      color: "#ff9f0a", role: "ops" },
+  report_missing:       { label: "Report missing",      color: "#E5E5EA", role: "ops" },
 };
 export const notifMeta = (type) => NOTIF_META[type] || { label: String(type || "Update").replace(/_/g, " "), color: "rgba(255,255,255,0.5)", role: "ops" };
 
 export const STATUS_COLOR = {
-  "Ready For Copy Creation":    "#f59e0b",
+  "Ready For Copy Creation":    "#E5E5EA",
   "Need Copy Approval":         "#3b82f6",
   "Ready For Content Creation": "#10b981",
   "Need Content Approval":      "#ff453a",
-  "Needs Revisions":            "#f97316",
+  "Needs Revisions":            "#ff375f",
   "Approved":                   "#2AABFF",
   "Ready For Schedule":         "#8b5cf6",
   "Scheduled":                  "#64d2ff",

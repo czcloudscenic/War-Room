@@ -43,8 +43,8 @@ export default function LoginScreen() {
   return (
     <div style={{ minHeight:"100vh", minHeight:"100dvh", background:"#000", position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter, sans-serif" }}>
 
-      {/* Aggressive orange haze background */}
-      <div style={{ position:"absolute", inset:0, zIndex:0, background:"radial-gradient(ellipse 95% 70% at 50% 0%, #4a2810 0%, #1e1207 45%, #0a0705 100%)" }} />
+      {/* Cool graphite haze background (orange hue removed 8/20) */}
+      <div style={{ position:"absolute", inset:0, zIndex:0, background:"radial-gradient(ellipse 95% 70% at 50% 0%, #23272e 0%, #101216 45%, #05060a 100%)" }} />
 
       {/* Radial gradient — focuses eye on center */}
       <div style={{ position:"absolute", inset:0, zIndex:2, background:"radial-gradient(ellipse 65% 75% at 50% 50%, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.30) 65%, rgba(0,0,0,0.70) 100%)", pointerEvents:"none" }} />

@@ -46,7 +46,7 @@ export function useActivationData() {
 
 function ScoreRing({ score }) {
   const r = 34, c = 2 * Math.PI * r;
-  const color = score >= 80 ? '#30d158' : score >= 50 ? '#ff9f0a' : '#ff453a';
+  const color = score >= 80 ? '#30d158' : score >= 50 ? '#E5E5EA' : '#ff453a';
   return (
     <div style={{ position: 'relative', width: 84, height: 84, flexShrink: 0 }}>
       <svg width="84" height="84" style={{ transform: 'rotate(-90deg)' }}>
@@ -119,8 +119,8 @@ export default function ActivationBoard({ isMobile, book, loaded, setActiveNav, 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {book.nextActions.map((a, i) => (
               <button key={i} onClick={() => setActiveNav(a.nav)}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: 12, textAlign: 'left', padding: '11px 13px', background: 'rgba(255,255,255,0.025)', border: `1px solid ${a.critical ? 'rgba(255,159,10,0.3)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
-                <span style={{ ...mono, fontSize: 11, fontWeight: 700, color: a.critical ? '#ff9f0a' : ACCENT, flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 12, textAlign: 'left', padding: '11px 13px', background: 'rgba(255,255,255,0.025)', border: `1px solid ${a.critical ? 'rgba(229,229,234,0.3)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                <span style={{ ...mono, fontSize: 11, fontWeight: 700, color: a.critical ? '#E5E5EA' : ACCENT, flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#f5f5f7', lineHeight: 1.35 }}>{a.label}</span>
                   <span style={{ display: 'block', fontSize: 10.5, color: 'rgba(255,255,255,0.45)', marginTop: 2, lineHeight: 1.4 }}>{a.detail}</span>
@@ -143,15 +143,15 @@ export default function ActivationBoard({ isMobile, book, loaded, setActiveNav, 
             {groups.map(g => (
               <button key={g.label} onClick={() => setActiveNav(g.nav)}
                 style={{ display: 'flex', alignItems: 'baseline', gap: 10, textAlign: 'left', padding: '9px 12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 9, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: g.critical ? '#ff9f0a' : 'rgba(255,255,255,0.8)', flexShrink: 0 }}>{g.label}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: g.critical ? '#E5E5EA' : 'rgba(255,255,255,0.8)', flexShrink: 0 }}>{g.label}</span>
                 <span style={{ flex: 1, fontSize: 10.5, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.names.join(' · ')}</span>
                 <span style={{ ...mono, fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{g.names.length}</span>
               </button>
             ))}
             {book.agentsMissingBriefs.length > 0 && (
               <button onClick={() => setActiveNav('skills')}
-                style={{ display: 'flex', alignItems: 'baseline', gap: 10, textAlign: 'left', padding: '9px 12px', background: 'transparent', border: '1px solid rgba(255,159,10,0.25)', borderRadius: 9, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#ff9f0a', flexShrink: 0 }}>Agents without skill briefs</span>
+                style={{ display: 'flex', alignItems: 'baseline', gap: 10, textAlign: 'left', padding: '9px 12px', background: 'transparent', border: '1px solid rgba(229,229,234,0.25)', borderRadius: 9, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#E5E5EA', flexShrink: 0 }}>Agents without skill briefs</span>
                 <span style={{ flex: 1, fontSize: 10.5, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{book.agentsMissingBriefs.join(' · ')}</span>
                 <span style={{ ...mono, fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{book.agentsMissingBriefs.length}</span>
               </button>
@@ -164,7 +164,7 @@ export default function ActivationBoard({ isMobile, book, loaded, setActiveNav, 
               <div key={client.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.65)', width: isMobile ? 90 : 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>{client.name}</span>
                 <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${activation.score}%`, background: activation.score >= 80 ? '#30d158' : activation.score >= 50 ? '#ff9f0a' : '#ff453a', borderRadius: 4, transition: 'width 0.4s ease' }} />
+                  <div style={{ height: '100%', width: `${activation.score}%`, background: activation.score >= 80 ? '#30d158' : activation.score >= 50 ? '#E5E5EA' : '#ff453a', borderRadius: 4, transition: 'width 0.4s ease' }} />
                 </div>
                 <span style={{ ...mono, fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.5)', width: 34, textAlign: 'right', flexShrink: 0 }}>{activation.score}%</span>
               </div>

@@ -295,8 +295,8 @@ return f.url; // direct URL (Supabase storage etc.)
     {/* Blocked state — exception engine (Phase B §3.B.4). Every blocked record
         carries why / who owns the unblock / internal-vs-external / escalation.
         External waits pause the stuck-item SLA (client delay is not our failure). */}
-    <div style={{ marginBottom:18, border:`1px solid ${form.block_reason ? "rgba(249,115,22,0.35)" : "rgba(255,255,255,0.08)"}`, borderRadius:12, padding:"14px 16px", background: form.block_reason ? "rgba(249,115,22,0.05)" : "transparent" }}>
-      <label style={{ ...labelStyle, color: form.block_reason ? "rgba(249,115,22,0.8)" : labelStyle.color }}>Blocked{form.block_reason && form.blocked_since ? ` since ${new Date(form.blocked_since).toLocaleDateString(undefined,{month:"short",day:"numeric"})}` : ""}</label>
+    <div style={{ marginBottom:18, border:`1px solid ${form.block_reason ? "rgba(229,229,234,0.35)" : "rgba(255,255,255,0.08)"}`, borderRadius:12, padding:"14px 16px", background: form.block_reason ? "rgba(229,229,234,0.05)" : "transparent" }}>
+      <label style={{ ...labelStyle, color: form.block_reason ? "rgba(229,229,234,0.8)" : labelStyle.color }}>Blocked{form.block_reason && form.blocked_since ? ` since ${new Date(form.blocked_since).toLocaleDateString(undefined,{month:"short",day:"numeric"})}` : ""}</label>
       <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:12 }}>
         <select style={selectStyle} value={form.block_reason || ""} onChange={e => {
           const key = e.target.value || null;
@@ -389,13 +389,13 @@ return f.url; // direct URL (Supabase storage etc.)
 
     {/* SOP Gate */}
     {sopGates.length > 0 && (
-      <div style={{ marginBottom:16, background: hardBlocked ? "rgba(255,69,58,0.04)" : hasWarnings ? "rgba(255,159,10,0.04)" : "rgba(48,209,88,0.04)", border:`1px solid ${hardBlocked?"rgba(255,69,58,0.2)":hasWarnings?"rgba(255,159,10,0.2)":"rgba(48,209,88,0.2)"}`, borderRadius:12, padding:"12px 16px" }}>
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color: hardBlocked?"rgba(255,69,58,0.7)":hasWarnings?"rgba(255,159,10,0.7)":"rgba(48,209,88,0.7)", marginBottom:8 }}> SOP Checklist</div>
+      <div style={{ marginBottom:16, background: hardBlocked ? "rgba(255,69,58,0.04)" : hasWarnings ? "rgba(229,229,234,0.04)" : "rgba(48,209,88,0.04)", border:`1px solid ${hardBlocked?"rgba(255,69,58,0.2)":hasWarnings?"rgba(229,229,234,0.2)":"rgba(48,209,88,0.2)"}`, borderRadius:12, padding:"12px 16px" }}>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", color: hardBlocked?"rgba(255,69,58,0.7)":hasWarnings?"rgba(229,229,234,0.7)":"rgba(48,209,88,0.7)", marginBottom:8 }}> SOP Checklist</div>
         <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
           {sopGates.map((g,i) => (
             <div key={i} style={{ display:"flex", alignItems:"center", gap:8 }}>
               <span style={{ fontSize:12, flexShrink:0 }}>{g.ok ? "" : g.hard ? "" : ""}</span>
-              <span style={{ fontSize:11, color: g.ok ? "rgba(0,0,0,0.5)" : g.hard ? "#ff453a" : "#ff9f0a", fontWeight: g.ok ? 400 : 600, textDecoration: g.ok ? "line-through" : "none" }}>{g.label}</span>
+              <span style={{ fontSize:11, color: g.ok ? "rgba(0,0,0,0.5)" : g.hard ? "#ff453a" : "#E5E5EA", fontWeight: g.ok ? 400 : 600, textDecoration: g.ok ? "line-through" : "none" }}>{g.label}</span>
               {!g.ok && <span style={{ fontSize:10, color:"rgba(255,255,255,0.35)", fontStyle:"italic" }}>— {g.fix}</span>}
             </div>
           ))}

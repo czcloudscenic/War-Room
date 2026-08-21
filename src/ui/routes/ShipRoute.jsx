@@ -129,7 +129,7 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
                 ['Active agents', `${commissioned.filter(c => c.receipts48h > 0).length}/${commissioned.length}`, '#2AABFF'],
                 ['Working now', String(workingNow), workingNow ? '#30d158' : 'rgba(255,255,255,0.5)'],
                 ['Done 48h', String(events.length), '#30d158'],
-                ['Blocked', String((content || []).filter(x => (x.block_reason || x.qc_status === 'blocked') && !['Posted', 'Scrapped'].includes(x.status)).length), '#f97316'],
+                ['Blocked', String((content || []).filter(x => (x.block_reason || x.qc_status === 'blocked') && !['Posted', 'Scrapped'].includes(x.status)).length), '#E5E5EA'],
                 ['Approvals', String((content || []).filter(x => ['Need Copy Approval', 'Need Content Approval'].includes(x.status)).length), '#bf5af2'],
                 ['Backup', backupOk === false ? 'FAIL' : backupOk ? 'OK' : '—', backupOk === false ? '#ff453a' : '#30d158'],
               ].map(([label, value, color]) => (

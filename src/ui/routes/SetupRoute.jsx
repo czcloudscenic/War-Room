@@ -26,7 +26,7 @@ const card = { background: "#0f0d0e", border: "1px solid rgba(255,255,255,0.07)"
 
 function Section({ n, title, desc, done, total, children }) {
   const complete = total > 0 && done >= total;
-  const color = total === 0 ? "rgba(255,255,255,0.3)" : complete ? "#30d158" : "#ff9f0a";
+  const color = total === 0 ? "rgba(255,255,255,0.3)" : complete ? "#30d158" : "#E5E5EA";
   return (
     <div style={card}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
@@ -302,8 +302,8 @@ function BulkAssign({ items, clients, team = [], onBusy, busy }) {
             <label key={x.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: sel.has(x.id) ? "rgba(42,171,255,0.08)" : "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 9, cursor: "pointer" }}>
               <input type="checkbox" checked={sel.has(x.id)} onChange={() => toggle(x.id)} style={{ accentColor: ACCENT, width: 15, height: 15 }} />
               <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "#f5f5f7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.title || "Untitled"}</span>
-              <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: o ? "rgba(255,255,255,0.55)" : "rgba(255,159,10,0.8)" }}>{o || "no owner"}</span>
-              <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: d ? "rgba(255,255,255,0.55)" : "rgba(255,159,10,0.8)" }}>{d || "no date"}</span>
+              <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: o ? "rgba(255,255,255,0.55)" : "rgba(229,229,234,0.8)" }}>{o || "no owner"}</span>
+              <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: d ? "rgba(255,255,255,0.55)" : "rgba(229,229,234,0.8)" }}>{d || "no date"}</span>
               <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.35)", fontFamily: "'Geist Mono', monospace" }}>{cname(x.client_id)}</span>
             </label>
           );
@@ -344,7 +344,7 @@ function TeamEditor({ team = [], setTeam }) {
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: m?.color || ACCENT, flexShrink: 0 }} />
           <input defaultValue={m?.name} onBlur={e => e.target.value.trim() && e.target.value !== m?.name && patch(m?.id, { name: e.target.value.trim() })} placeholder="Name" style={{ ...input, width: 130, padding: "7px 10px", fontSize: 13 }} />
           <input defaultValue={m?.role || ""} onBlur={e => e.target.value !== (m?.role || "") && patch(m?.id, { role: e.target.value.trim() || null })} placeholder="Role" style={{ ...input, width: 120, padding: "7px 10px", fontSize: 13 }} />
-          <input defaultValue={m?.email || ""} onBlur={e => e.target.value !== (m?.email || "") && patch(m?.id, { email: e.target.value.trim() || null })} placeholder="email@…" style={{ ...input, flex: 1, minWidth: 150, padding: "7px 10px", fontSize: 13, border: m?.email ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,159,10,0.35)" }} />
+          <input defaultValue={m?.email || ""} onBlur={e => e.target.value !== (m?.email || "") && patch(m?.id, { email: e.target.value.trim() || null })} placeholder="email@…" style={{ ...input, flex: 1, minWidth: 150, padding: "7px 10px", fontSize: 13, border: m?.email ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(229,229,234,0.35)" }} />
           <input type="number" min="0" defaultValue={m?.monthly_cost ?? ""} title="Monthly cost ($) — powers the margin view in Client Analytics/Billing"
             onBlur={e => { const v = e.target.value === "" ? null : Number(e.target.value); if (v !== (m?.monthly_cost ?? null)) patch(m?.id, { monthly_cost: v }); }}
             placeholder="$/mo" style={{ ...input, width: 90, padding: "7px 10px", fontSize: 13 }} />

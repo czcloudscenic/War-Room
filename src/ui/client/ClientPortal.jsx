@@ -128,7 +128,7 @@ export default function ClientPortal({ session, clientIds, onSignOut }) {
                     {decided.map(item => (
                       <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', marginBottom: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 12 }}>{item.title}</div>
-                        <span style={{ fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', padding: '3px 10px', borderRadius: 20, color: item.status === 'Needs Revisions' ? '#ff9f0a' : '#30d158', background: item.status === 'Needs Revisions' ? 'rgba(255,159,10,0.12)' : 'rgba(48,209,88,0.12)' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', padding: '3px 10px', borderRadius: 20, color: item.status === 'Needs Revisions' ? '#E5E5EA' : '#30d158', background: item.status === 'Needs Revisions' ? 'rgba(229,229,234,0.12)' : 'rgba(48,209,88,0.12)' }}>
                           {item.status}
                         </span>
                       </div>

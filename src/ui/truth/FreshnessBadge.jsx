@@ -4,7 +4,7 @@ const DAY_MS = 86400000;
 
 const META = {
   fresh: { color: '#30d158', background: 'rgba(48,209,88,0.08)' },
-  due: { color: '#ff9f0a', background: 'rgba(255,159,10,0.08)' },
+  due: { color: '#E5E5EA', background: 'rgba(229,229,234,0.08)' },
   stale: { color: '#ff453a', background: 'rgba(255,69,58,0.08)' },
 };
 

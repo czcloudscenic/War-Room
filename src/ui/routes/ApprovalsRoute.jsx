@@ -22,7 +22,7 @@ const card = { background: '#0f0d0e', border: '1px solid rgba(255,255,255,0.07)'
 
 const RISK = {
   high: { label: 'High', color: '#ff453a' },
-  med:  { label: 'Medium', color: '#ff9f0a' },
+  med:  { label: 'Medium', color: '#E5E5EA' },
   low:  { label: 'Low', color: '#30d158' },
 };
 
@@ -259,7 +259,7 @@ export default function ApprovalsRoute({ isMobile, clients = [], content = [], c
                 <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, flexWrap: 'wrap' }}>
                   <span style={{ ...mono, fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', width: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c?.name || '—'}</span>
                   <span style={{ flex: 1, minWidth: 140, fontSize: 12.5, color: '#f5f5f7', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title || 'Untitled'}</span>
-                  <span style={{ ...mono, fontSize: 9.5, color: waitDays >= 3 ? '#ff9f0a' : 'rgba(255,255,255,0.4)' }}>
+                  <span style={{ ...mono, fontSize: 9.5, color: waitDays >= 3 ? '#E5E5EA' : 'rgba(255,255,255,0.4)' }}>
                     {waitDays != null ? `${waitDays}d in client court` : 'with client'}
                   </span>
                 </div>

@@ -12,7 +12,7 @@ export const AGENTS_BASE = [
   { id:8, name:"Scrappy", role:"Trend Scout", type:"Research", color:"#5e5ce6", grad:"linear-gradient(135deg,#0f0e35,#080718)", taskIdx:0 },
 ];
 
-export const ACTION_COLORS = { route:"#2AABFF", complete:"#2AABFF", deploy:"#0a84ff", research:"#2AABFF", execute:"#ff9f0a", alert:"#ff453a", success:"#2AABFF", check:"#64d2ff", optimize:"#0a84ff", schedule:"#ff375f", brief:"#2AABFF", publish:"#2AABFF", secure:"#ffd60a", metric:"#ff9f0a", spawn:"#64d2ff" };
+export const ACTION_COLORS = { route:"#2AABFF", complete:"#2AABFF", deploy:"#0a84ff", research:"#2AABFF", execute:"#E5E5EA", alert:"#ff453a", success:"#2AABFF", check:"#64d2ff", optimize:"#0a84ff", schedule:"#ff375f", brief:"#2AABFF", publish:"#2AABFF", secure:"#5ac8fa", metric:"#E5E5EA", spawn:"#64d2ff" };
 
 export const ACTIVITY_POOL = [
   { agent:"Scrappy", action:"r/wellness top posts scraped — 12 signals found", type:"research" },

@@ -100,7 +100,7 @@ export default function ReportsRoute({ isMobile, clients = [] }) {
   // Title comes embedded via the approvals→content_items FK, so decisions on
   // items outside the KPI window still resolve.
   const itemTitle = (a) => a?.content_items ? (a.content_items.title || "Untitled") : (a?.content_item_id || "—");
-  const decColor = (d) => d === "approved" ? "#30d158" : d === "revision_requested" ? "#f97316" : "#ff453a";
+  const decColor = (d) => d === "approved" ? "#30d158" : d === "revision_requested" ? "#E5E5EA" : "#ff453a";
   const decLabel = (d) => d === "approved" ? "Approved" : d === "revision_requested" ? "Revisions" : "Rejected";
 
   const head = { fontSize: 8.5, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.38)", fontWeight: 700, fontFamily: "'Geist Mono', monospace" };
@@ -120,8 +120,8 @@ export default function ReportsRoute({ isMobile, clients = [] }) {
       ) : (
       <>
       <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-        <KpiCard value={k.firstPassRate} suffix="%" label="First-pass approval" sub={`${k.shipped} shipped, ${k.revised} needed revisions`} color={k.firstPassRate >= 70 ? "#30d158" : "#f59e0b"} />
-        <KpiCard value={k.onTimeRate} suffix="%" label="On-time delivery" sub={`${k.posted} posted`} color={k.onTimeRate >= 80 ? "#30d158" : "#f59e0b"} />
+        <KpiCard value={k.firstPassRate} suffix="%" label="First-pass approval" sub={`${k.shipped} shipped, ${k.revised} needed revisions`} color={k.firstPassRate >= 70 ? "#30d158" : "#E5E5EA"} />
+        <KpiCard value={k.onTimeRate} suffix="%" label="On-time delivery" sub={`${k.posted} posted`} color={k.onTimeRate >= 80 ? "#30d158" : "#E5E5EA"} />
         <KpiCard value={k.postingRate} suffix="%" label="Posting rate" sub="approved → actually live" color={k.postingRate >= 80 ? "#30d158" : "#ff375f"} />
         <KpiCard value={k.avgRevisions} label="Avg revisions / item" sub={`${k.awaiting} awaiting review now`} color="#64d2ff" />
       </div>
@@ -158,7 +158,7 @@ export default function ReportsRoute({ isMobile, clients = [] }) {
                   </div>
                 </div>
                 <div style={{ ...col(1), textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 12.5, color: "rgba(255,255,255,0.75)" }}>{r.total}</div>
-                <div style={{ ...col(1), textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 12.5, color: r.awaiting ? "#f97316" : "rgba(255,255,255,0.3)" }}>{r.awaiting || "—"}</div>
+                <div style={{ ...col(1), textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 12.5, color: r.awaiting ? "#E5E5EA" : "rgba(255,255,255,0.3)" }}>{r.awaiting || "—"}</div>
                 <div style={{ ...col(1.2), textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 12.5, color: r.firstPass >= 70 ? "#30d158" : "rgba(255,255,255,0.6)" }}>{r.firstPass}%</div>
                 <div style={{ ...col(1), textAlign: "right", fontFamily: "'Geist Mono', monospace", fontSize: 12.5, color: "#30d158" }}>{r.posted}</div>
               </div>

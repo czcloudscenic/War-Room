@@ -13,7 +13,7 @@ import { setupScore } from '../../core/activation.js';
 
 const ACCENT = "#2AABFF";
 const RUNWAY_GREEN = "#30d158";
-const RUNWAY_AMBER = "#ff9f0a";
+const RUNWAY_AMBER = "#E5E5EA";
 const RUNWAY_RED = "#ff453a";
 const RUNWAY_DIM = "rgba(255,255,255,0.3)";
 
@@ -103,7 +103,7 @@ function ClientCard({ client, content, isActive, onOpen, onEdit }) {
     const items = content.filter(x => x.client_id === client.id);
     return clientRunway(client, items, { now: Date.now() });
   }, [client, content]);
-  const statusColor = client.status === "active" ? "#30d158" : client.status === "paused" ? "#ff9f0a" : "rgba(255,255,255,0.3)";
+  const statusColor = client.status === "active" ? "#30d158" : client.status === "paused" ? "#E5E5EA" : "rgba(255,255,255,0.3)";
   const accent = client.brand_color || ACCENT;
   const last = relTime(s.last);
 
@@ -113,9 +113,9 @@ function ClientCard({ client, content, isActive, onOpen, onEdit }) {
     >
       {/* attention badge */}
       {s.attention > 0 && (
-        <div title={`${s.attention} item(s) need attention`} style={{ position:"absolute", top:14, right:14, display:"flex", alignItems:"center", gap:5, background:"rgba(249,115,22,0.12)", border:"1px solid rgba(249,115,22,0.35)", borderRadius:20, padding:"3px 9px" }}>
-          <div style={{ width:5, height:5, borderRadius:"50%", background:"#f97316" }} />
-          <span style={{ fontSize:10, fontWeight:700, color:"#f97316" }}>{s.attention} to review</span>
+        <div title={`${s.attention} item(s) need attention`} style={{ position:"absolute", top:14, right:14, display:"flex", alignItems:"center", gap:5, background:"rgba(229,229,234,0.12)", border:"1px solid rgba(229,229,234,0.35)", borderRadius:20, padding:"3px 9px" }}>
+          <div style={{ width:5, height:5, borderRadius:"50%", background:"#E5E5EA" }} />
+          <span style={{ fontSize:10, fontWeight:700, color:"#E5E5EA" }}>{s.attention} to review</span>
         </div>
       )}
 
@@ -150,7 +150,7 @@ function ClientCard({ client, content, isActive, onOpen, onEdit }) {
 
       {/* counts */}
       <div style={{ display:"flex", gap:7, marginBottom:16 }}>
-        <StatChip value={s.attention}  label="Review"    color="#f97316" />
+        <StatChip value={s.attention}  label="Review"    color="#E5E5EA" />
         <StatChip value={s.production} label="In prod"   color="#ff375f" />
         <StatChip value={s.approved}   label="Approved"  color="#2AABFF" />
         <StatChip value={s.scheduled}  label="Scheduled" color="#64d2ff" />
@@ -192,7 +192,7 @@ export default function ClientsRoute({ isMobile, clients = [], content = [], cur
             <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize: isMobile ? 34 : 46, fontWeight:400, fontStyle:"italic", color:"#fff", margin:0, letterSpacing:-1, lineHeight:1 }}>Clients</h1>
             <p style={{ fontSize:12.5, color:"rgba(255,255,255,0.5)", margin:"12px 0 0" }}>
               {clients.length} {clients.length === 1 ? "client" : "clients"} · {activeCount} active
-              {totalAttention > 0 && <span style={{ color:"#f97316", fontWeight:600 }}> · {totalAttention} awaiting review</span>}
+              {totalAttention > 0 && <span style={{ color:"#E5E5EA", fontWeight:600 }}> · {totalAttention} awaiting review</span>}
             </p>
           </div>
           <button onClick={onAdd} style={{ height:38, padding:"0 18px", borderRadius:10, background:ACCENT, border:"none", color:"#fff", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:7 }}>

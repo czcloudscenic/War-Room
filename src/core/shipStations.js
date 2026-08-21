@@ -49,11 +49,11 @@ export const ROSTER = [
   { name: 'Muse',    role: 'Content Ideation',   eventName: 'Muse',    color: '#ff375f', future: false, home: 'foundry' },
   { name: 'Scrappy', role: 'Trend Scout',        eventName: 'Scrappy', color: '#5e5ce6', future: false, home: 'intel' },
   { name: 'Slate',   role: 'QC Guardian',        eventName: 'QC',      color: '#64d2ff', future: false, home: 'qc' },
-  { name: 'Route',   role: 'Traffic Controller', eventName: null,      color: '#ff9f0a', future: true },
+  { name: 'Route',   role: 'Traffic Controller', eventName: null,      color: '#66d4cf', future: true },
   { name: 'Tally',   role: 'Data Analyst',       eventName: null,      color: '#30d158', future: true },
   { name: 'Frame',   role: 'Asset Librarian',    eventName: null,      color: '#bf5af2', future: true },
-  { name: 'Echo',    role: 'Comms Agent',        eventName: null,      color: '#ffd60a', future: true },
-  { name: 'Quill',   role: 'Copywriter',         eventName: null,      color: '#f97316', future: true },
+  { name: 'Echo',    role: 'Comms Agent',        eventName: null,      color: '#5ac8fa', future: true },
+  { name: 'Quill',   role: 'Copywriter',         eventName: null,      color: '#98989d', future: true },
   { name: 'Vault',   role: 'Security Agent',     eventName: null,      color: '#8e8e93', future: true },
 ];
 
