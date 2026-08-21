@@ -150,20 +150,34 @@ function App() {
     // anything destructive. Only a genuinely dead session (refresh also fails)
     // signs the user out. (Previously this nuked localStorage + reloaded, which
     // turned a hard refresh — Cmd-Shift-R — into a full sign-out.)
+    // Every await here is time-boxed: on a flapping network a bare fetch can sit
+    // 30s+ in the OS retry path, and this block runs BEFORE first paint — it was
+    // the 15-40s boot spinner. Timeout = proceed with the stored session (same
+    // trust level as the network-error branch below); only an explicit server
+    // rejection on BOTH getUser and refresh signs the user out.
+    const HEALTH_TIMEOUT_MS = 3000;
+    const TIMED_OUT = Symbol("timeout");
+    const raced = (p) => Promise.race([p, new Promise(res => setTimeout(() => res(TIMED_OUT), HEALTH_TIMEOUT_MS))]);
     try {
-      const { data: userData, error: userErr } = await sb.auth.getUser();
-      let healthy = !userErr && userData?.user?.id;
-      if (!healthy) {
-        try {
-          const { data: refreshed, error: refreshErr } = await sb.auth.refreshSession();
-          if (!refreshErr && refreshed?.session?.user?.id) { healthy = true; s = refreshed.session; }
-        } catch (e) { /* fall through to sign-out */ }
-      }
-      if (!healthy) {
-        console.warn("[auth health] session unrecoverable, signing out", { userErr });
-        await sb.auth.signOut();
-        setSession(null); setRole(null);
-        return;
+      const userRes = await raced(sb.auth.getUser());
+      if (userRes === TIMED_OUT) {
+        console.warn("[auth health] getUser timed out — proceeding; queries will surface real issues");
+      } else {
+        const { data: userData, error: userErr } = userRes;
+        let healthy = !userErr && userData?.user?.id;
+        if (!healthy) {
+          const refRes = await raced(sb.auth.refreshSession().catch(() => TIMED_OUT));
+          if (refRes === TIMED_OUT) {
+            console.warn("[auth health] refresh unavailable — proceeding with stored session");
+          } else if (!refRes.error && refRes.data?.session?.user?.id) {
+            healthy = true; s = refRes.data.session;
+          } else {
+            console.warn("[auth health] session unrecoverable, signing out", { userErr });
+            await sb.auth.signOut();
+            setSession(null); setRole(null);
+            return;
+          }
+        }
       }
     } catch (e) {
       // Network error talking to /auth/v1/user — keep the session; queries will surface real issues.
@@ -178,24 +192,34 @@ function App() {
       setPendingInvite(null);
 
       // Best-effort: fetch profile + content. If RLS rejects, log and continue.
+      // Profile stays awaited (profiles.role can DOWNGRADE an admin-email user —
+      // rendering before it lands would flash admin nav) but is time-boxed like
+      // the health check. Content is NOT awaited — it was an uncapped pre-paint
+      // fetch; the shell renders now and rows stream in behind it.
       try {
-        const { data: profile, error: profErr } = await sb
-          .from("profiles").select("role").eq("id", s.user.id).maybeSingle();
-        if (profErr) console.warn("[auth] profile query error", profErr);
-        if (profile?.role && profile.role !== detectedRole) {
-          detectedRole = profile.role;
-          setRole(detectedRole);
+        const profRes = await raced(sb.from("profiles").select("role").eq("id", s.user.id).maybeSingle());
+        if (profRes === TIMED_OUT) {
+          console.warn("[auth] profile query timed out — role stays", detectedRole);
+        } else {
+          const { data: profile, error: profErr } = profRes;
+          if (profErr) console.warn("[auth] profile query error", profErr);
+          if (profile?.role && profile.role !== detectedRole) {
+            detectedRole = profile.role;
+            setRole(detectedRole);
+          }
         }
       } catch (e) { console.warn("[auth] profile query threw", e); }
 
-      try {
-        const { data: items, error: itemsErr } = await sb
-          .from("content_items").select("*")
-          .or(`posted_at.is.null,posted_at.gte.${activeContentCutoff()}`)
-          .order("id");
-        if (itemsErr) console.warn("[auth] content_items error", itemsErr);
-        if (items) setContent(items.map(r => ({ ...r, platforms: r.platforms || [] })));
-      } catch (e) { console.warn("[auth] content_items threw", e); }
+      (async () => {
+        try {
+          const { data: items, error: itemsErr } = await sb
+            .from("content_items").select("*")
+            .or(`posted_at.is.null,posted_at.gte.${activeContentCutoff()}`)
+            .order("id");
+          if (itemsErr) console.warn("[auth] content_items error", itemsErr);
+          if (items) setContent(items.map(r => ({ ...r, platforms: r.platforms || [] })));
+        } catch (e) { console.warn("[auth] content_items threw", e); }
+      })();
 
       console.log("[auth] setupSession ok (admin)", { email, role: detectedRole });
       return;

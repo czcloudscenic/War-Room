@@ -157,7 +157,7 @@ async function sbPatch(table, match, body) {
   return res.json();
 }
 
-async function ai(system, user, maxTokens = 1200, model = "claude-haiku-4-5-20251001") {
+async function ai(system, user, maxTokens = 1200, model = "claude-opus-5") {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
