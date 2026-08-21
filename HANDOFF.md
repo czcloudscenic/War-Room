@@ -22,7 +22,7 @@
 
 **THE BLOCKER — Higgsfield "grace period":** the account (Ultra label, ~2,760 credits) is in a billing grace state. Error: "daily generation limit for your grace period... update your plan to continue." Today's allowance ≈ 2 images + ~5 3D jobs, then hard cut. All failed jobs auto-refund. CHRISTIAN: check higgsfield.ai billing — a failed renewal is throttling the account; fixing it removes the daily cap. Otherwise: run the remaining steps across daily resets (Muse mesh+rigs, then Scrappy/Slate full recipe).
 
-**After all 4 crew GLBs exist:** GLTFLoader + AnimationMixer swap in ShipScene3D replaces the procedural figures — walk clip while moving between stations, idle at posts, scale via humanScaleAt. That's the last mile to the reference.
+**LAST MILE SHIPPED SAME NIGHT (79d502f + f62b7ef, deployed + Playwright-verified):** `src/ship/crewGLB.js` — `createCrewFigure()` drop-in used by ShipScene3D + ShipWorld3D. Crew listed in its `CREW_GLB` map render the real rigged character (walk/idle crossfade via AnimationMixer, same facing/lean language, normalized to the 34-unit figure height); everyone else — and any GLB load failure — keeps the procedural figure. SEAN IS LIVE IN THE COCKPIT as a real character on prod. CSP gotcha solved: GLTFLoader fetches GLB-embedded textures via blob: URLs — `blob:` added to connect-src in netlify.toml. To bring each remaining crew online: run the recipe above, drop `public/crew/<name>.glb` + `<name>_idle.glb`, uncomment their line in CREW_GLB. Also committed this session: the dynasty.js NETLIFY_DEV localhost-origin fix (abf3469, inert in prod).
 
 ## 2026-08-17 (late night) — The measured living ship is LIVE; Phase 3 pilot mesh in flight; the honest ceiling was named.
 
