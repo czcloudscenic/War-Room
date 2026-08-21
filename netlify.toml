@@ -43,6 +43,12 @@
   status = 200
   force = true
 
+# Vault credentials — encrypted at rest, masked by default, reveals audited.
+[[redirects]]
+  from = "/api/vault-secrets"
+  to = "/.netlify/functions/vault-secrets"
+  status = 200
+
 # Stripe — app creates hosted invoices; Stripe posts payment webhooks. Same fn.
 [[redirects]]
   from = "/api/billing/stripe"

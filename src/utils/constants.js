@@ -16,6 +16,7 @@ export const NAV = [
     { id:"operations", label:"Operations" },
     { id:"ledger", label:"Ledger" },
     { id:"reports", label:"Reports" },
+    { id:"scope", label:"Scope Sentinel" },
   ]},
   { id:"g-content", label:"Content", items:[
     { id:"ideas", label:"Idea Engine" },
@@ -24,6 +25,7 @@ export const NAV = [
   ]},
   { id:"g-growth", label:"Growth", items:[
     { id:"clientanalytics", label:"Client Analytics" },
+    { id:"profitability", label:"Profitability" },
   ]},
   { id:"g-intel", label:"Intelligence", items:[
     { id:"contentintel", label:"Content Intel" },

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
 import { apiFetch } from '../../services/apiFetch.js';
 import { auditDiff } from '../../core/audit.js';
+import VaultSecretsSection from '../vault/VaultSecretsSection.jsx';
 
 // ── Client Vault ──────────────────────────────────────────────────────────────
 // Per-client billing profile: legal/contact/address details (manual inputs)
@@ -213,6 +214,9 @@ export default function VaultRoute({ isMobile, clients = [] }) {
           open={openId === c.id} onToggle={() => setOpenId(prev => prev === c.id ? null : c.id)} />
       ))}
       {!activeClients.length && <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>No active clients.</div>}
+
+      {/* Phase D hardening: encrypted credentials with audited reveals */}
+      <VaultSecretsSection clients={clients} isMobile={isMobile} />
     </div>
   );
 }

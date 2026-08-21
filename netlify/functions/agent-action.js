@@ -46,6 +46,7 @@ const { sean_briefing } = require("./agent-action/handlers/sean");
 const { cid_build_brief, cid_ab_variations } = require("./agent-action/handlers/cid");
 const { ops_assign } = require("./agent-action/handlers/ops");
 const { intel_generate_ideas, intel_score_content, intel_set_idea_status } = require("./agent-action/handlers/intel");
+const { sentinel_classify, sentinel_decide } = require("./agent-action/handlers/sentinel");
 
 exports.handler = async (event) => {
   const cors = makeCors(event);
@@ -110,6 +111,23 @@ exports.handler = async (event) => {
         if (action === "intel_generate_ideas") result = await intel_generate_ideas(intelPayload, brand);
         else if (action === "intel_score_content") result = await intel_score_content(intelPayload, brand);
         else result = await intel_set_idea_status(intelPayload);
+        break;
+      }
+      // Scope Sentinel (Phase D) — admin-only for the same reason as intel:
+      // service-key writes bypass RLS; portal sessions must not reach these.
+      case "sentinel_classify":
+      case "sentinel_decide": {
+        if (auth.user.role !== "admin") {
+          return { statusCode: 403, headers: cors, body: JSON.stringify({ error: "admin only" }) };
+        }
+        const sentinelPayload = {
+          ...payload,
+          client_id: payload.client_id || client_id,
+          actor_email: auth.user.email || null,
+        };
+        result = action === "sentinel_classify"
+          ? await sentinel_classify(sentinelPayload)
+          : await sentinel_decide(sentinelPayload);
         break;
       }
       default:

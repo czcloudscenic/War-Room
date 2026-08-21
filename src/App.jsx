@@ -73,6 +73,8 @@ const VaultRoute = React.lazy(() => import('./ui/routes/VaultRoute.jsx'));
 const IdeaEngineRoute = React.lazy(() => import('./ui/routes/IdeaEngineRoute.jsx'));
 const RunwayRoute = React.lazy(() => import('./ui/routes/RunwayRoute.jsx'));
 const SoftwareOpsRoute = React.lazy(() => import('./ui/routes/SoftwareOpsRoute.jsx'));
+const ScopeRoute = React.lazy(() => import('./ui/routes/ScopeRoute.jsx'));
+const ProfitabilityRoute = React.lazy(() => import('./ui/routes/ProfitabilityRoute.jsx'));
 
 // Warm the lazy route chunks in the background after first paint so navigating
 // between pages is instant (no per-click chunk fetch + Suspense flash). Keeps the
@@ -1524,6 +1526,16 @@ try {
 
     {activeNav === "clientanalytics" && (
       <ClientAnalyticsRoute isMobile={isMobile} clients={clients} content={content} />
+    )}
+
+    {/* SCOPE SENTINEL — Phase D: classify every ask, absorb nothing silently */}
+    {activeNav === "scope" && (
+      <ScopeRoute isMobile={isMobile} clients={clients} />
+    )}
+
+    {/* PROFITABILITY LITE — Phase D: retainer + paid projects minus hard costs */}
+    {activeNav === "profitability" && (
+      <ProfitabilityRoute isMobile={isMobile} clients={clients} />
     )}
 
     {activeNav === "billing" && (

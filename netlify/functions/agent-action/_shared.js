@@ -34,6 +34,7 @@ const AGENT_PREFIX_MAP = {
   cid: "Scrappy",  // CID actions are Scrappy's domain
   qc: "QC",
   intel: "Scrappy", // Content Intel (Studio port) is analyst work — Scrappy's domain
+  sentinel: "Sentinel", // Scope Sentinel — first operational agent (Phase D)
 };
 function deriveAgentName(actionKey) {
   const prefix = (actionKey || "").split("_")[0];
