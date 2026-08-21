@@ -1,11 +1,44 @@
 // ── Constants ──
 
+// Grouped nav (8/20): top-level groups collapse/expand in the sidebar.
+// Clicking a group reveals its pages; the group holding the active page auto-opens.
 export const NAV = [
-  { section:"COMMAND", items:[{ id:"dashboard", label:"Dashboard" }, { id:"approvals", label:"Approvals" }, { id:"decisions", label:"Decisions" }, { id:"clients", label:"Clients" }, { id:"setup", label:"Setup" }, { id:"ledger", label:"Ledger" }, { id:"reports", label:"Reports" }, { id:"clientanalytics", label:"Client Analytics" }, { id:"operations", label:"Operations" }, { id:"agents", label:"Agents" }, { id:"ship", label:"Agent Ship" }, { id:"dynasty", label:"Software OPS", adminOnly:true }]},
-  { section:"CONTENT", items:[{ id:"ideas", label:"Idea Engine" }, { id:"content", label:"Pipeline" }, { id:"runway", label:"Content Runway" }, { id:"contentintel", label:"Content Intel" }]},
-  { section:"FINANCE", items:[{ id:"billing", label:"Billing" }, { id:"vault", label:"Vault" }]},
-  { section:"APPS", items:[{ id:"apps", label:"Apps" }, { id:"settings", label:"Settings" }]},
+  { id:"g-command", label:"Command", items:[
+    { id:"dashboard", label:"Dashboard" },
+    { id:"approvals", label:"Approvals" },
+    { id:"decisions", label:"Decisions" },
+    { id:"operations", label:"Operations" },
+  ]},
+  { id:"g-clients", label:"Clients", items:[
+    { id:"clients", label:"Clients" },
+    { id:"setup", label:"Setup" },
+    { id:"reports", label:"Reports" },
+  ]},
+  { id:"g-content", label:"Content", items:[
+    { id:"ideas", label:"Idea Engine" },
+    { id:"content", label:"Pipeline" },
+    { id:"runway", label:"Content Runway" },
+  ]},
+  { id:"g-intel", label:"Intelligence", items:[
+    { id:"contentintel", label:"Content Intel" },
+    { id:"clientanalytics", label:"Client Analytics" },
+  ]},
+  { id:"g-workforce", label:"Workforce", items:[
+    { id:"agents", label:"Agents" },
+    { id:"ship", label:"Agent Ship" },
+    { id:"dynasty", label:"Software OPS", adminOnly:true },
+  ]},
+  { id:"g-admin", label:"Admin", items:[
+    { id:"billing", label:"Billing" },
+    { id:"ledger", label:"Ledger" },
+    { id:"vault", label:"Vault" },
+    { id:"apps", label:"Apps" },
+    { id:"settings", label:"Settings" },
+  ]},
 ];
+// Group containing a page id (apps' dynamic sub-pages resolve to g-admin).
+export const navGroupOf = (pageId) =>
+  (NAV.find(g => g.items.some(i => i.id === pageId)) || { id: "g-admin" }).id;
 
 // Bell + digest rendering per notification type. Anything not listed falls back
 // to a neutral label. `role` buckets the type for the per-role digest filter

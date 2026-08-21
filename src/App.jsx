@@ -7,7 +7,7 @@ import './styles/globals.css';
 import { sb, DB_CONNECTED } from './services/supabaseClient.js';
 import { apiFetch } from './services/apiFetch.js';
 import { getIsMobile, useIsMobile } from './utils/hooks.js';
-import { NAV, notifMeta } from './utils/constants.js';
+import { NAV, navGroupOf, notifMeta } from './utils/constants.js';
 import { AGENTS_BASE, ACTION_COLORS } from './data/seed.agents.js';
 import { OPS_INIT } from './data/seed.ops.js';
 import { getMemory, setMemory, buildSystemPrompt, updateAgentMemory } from './core/memory.js';
@@ -31,6 +31,29 @@ import DashboardRoute from './ui/routes/DashboardRoute.jsx';
 import ClientsRoute from './ui/routes/ClientsRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
+
+// ── Sidebar group icons (16px stroke glyphs, one per NAV group) ──
+const NAV_GROUP_GLYPHS = {
+  "g-command":   <><path d="M4 17l6-5-6-5"/><path d="M12 19h8"/></>,
+  "g-clients":   <><circle cx="9" cy="8" r="3.25"/><path d="M3.5 19c.6-3.2 2.7-5 5.5-5s4.9 1.8 5.5 5"/><path d="M15.5 5.6a3.25 3.25 0 010 4.9"/><path d="M17.5 14.3c1.6.8 2.6 2.4 3 4.7"/></>,
+  "g-content":   <><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></>,
+  "g-intel":     <><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></>,
+  "g-workforce": <><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M3 12h18"/></>,
+  "g-admin":     <><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></>,
+};
+const NavGroupIcon = ({ groupId, size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    {NAV_GROUP_GLYPHS[groupId] || NAV_GROUP_GLYPHS["g-admin"]}
+  </svg>
+);
+const NavChevron = ({ open }) => (
+  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round"
+    style={{ marginLeft: "auto", flexShrink: 0, transition: "transform 0.15s ease", transform: open ? "rotate(90deg)" : "none", opacity: 0.5 }}>
+    <path d="M9 18l6-6-6-6"/>
+  </svg>
+);
 
 const SkillsPage = React.lazy(() => import('./apps/skills/SkillsPage.jsx'));
 const ApprovalsRoute = React.lazy(() => import('./ui/routes/ApprovalsRoute.jsx'));
@@ -431,6 +454,10 @@ function Vantus({ onSignOut, userEmail, userId, role, content: contentProp, setC
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeNav, setActiveNav] = useState(() => { try { return localStorage.getItem("vantus_active_nav") || "dashboard"; } catch { return "dashboard"; } });
   useEffect(() => { try { localStorage.setItem("vantus_active_nav", activeNav); } catch {} }, [activeNav]);
+  // Accordion nav: which top-level group is open. Starts on (and follows) the active page's group.
+  const [openNavGroup, setOpenNavGroup] = useState(() => navGroupOf(activeNav));
+  const toggleNavGroup = useCallback((gid) => setOpenNavGroup(cur => cur === gid ? null : gid), []);
+  useEffect(() => { setOpenNavGroup(navGroupOf(activeNav)); }, [activeNav]);
   const [activePlatform, setActivePlatform] = useState("instagram");
 
   // ── Multi-tenant: client roster + currently-active client ──
@@ -1097,25 +1124,36 @@ try {
     <div style={{ position:"fixed", inset:0, zIndex:200 }} onClick={() => setMobileNavOpen(false)}>
       <div style={{ position:"absolute", top:52, left:0, right:0, background:"#0e0c0d", borderBottom:"1px solid rgba(255,255,255,0.08)", animation:"slideUp 0.2s ease", maxHeight:"80vh", overflowY:"auto" }}
         onClick={e => e.stopPropagation()}>
-        {NAV.map(({ section, items }) => (
-          <div key={section}>
-            <div style={{ padding:"10px 20px 4px", fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.25)", letterSpacing:2, textTransform:"uppercase", fontFamily:"'Geist Mono',monospace" }}>{section}</div>
-            {items.filter(item => !item.adminOnly || isOpsAdmin).map(item => (
+        {NAV.map(group => {
+          const items = group.items.filter(item => !item.adminOnly || isOpsAdmin);
+          if (!items.length) return null;
+          const isOpen = openNavGroup === group.id;
+          const holdsActive = navGroupOf(activeNav) === group.id;
+          return (
+          <div key={group.id}>
+            <button onClick={() => toggleNavGroup(group.id)}
+              style={{ width:"100%", display:"flex", alignItems:"center", gap:13, padding:"14px 20px", background:"none", border:"none", color: holdsActive ? "#ffffff" : "rgba(255,255,255,0.65)", fontSize:14, fontWeight: holdsActive ? 600 : 500, cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>
+              <NavGroupIcon groupId={group.id} size={17} />
+              {group.label}
+              <NavChevron open={isOpen} />
+            </button>
+            {isOpen && items.map(item => (
               <React.Fragment key={item.id}>
                 <button onClick={() => { setActiveNav(item.id); setMobileNavOpen(false); }}
-                  style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"13px 20px", background: activeNav===item.id ? "rgba(42,171,255,0.08)" : "none", border:"none", borderLeft: activeNav===item.id ? "2px solid #2AABFF" : "2px solid transparent", color: activeNav===item.id ? "#2AABFF" : "rgba(255,255,255,0.65)", fontSize:13, fontWeight: activeNav===item.id ? 600 : 400, cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>
+                  style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"12px 20px 12px 50px", background: activeNav===item.id ? "rgba(42,171,255,0.08)" : "none", border:"none", borderLeft: activeNav===item.id ? "2px solid #2AABFF" : "2px solid rgba(255,255,255,0.08)", color: activeNav===item.id ? "#2AABFF" : "rgba(255,255,255,0.6)", fontSize:13, fontWeight: activeNav===item.id ? 600 : 400, cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>
                   {item.label}
                 </button>
                 {item.id === "apps" && apps.filter(a => a.enabled).map(app => (
                   <button key={app.id} onClick={() => { setActiveNav(app.id); setMobileNavOpen(false); }}
-                    style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"10px 20px 10px 36px", background: activeNav===app.id ? "rgba(42,171,255,0.08)" : "none", border:"none", borderLeft: activeNav===app.id ? "2px solid #2AABFF" : "2px solid transparent", color: activeNav===app.id ? "#2AABFF" : "rgba(255,255,255,0.45)", fontSize:12, fontWeight: activeNav===app.id ? 600 : 400, cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>
+                    style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"10px 20px 10px 64px", background: activeNav===app.id ? "rgba(42,171,255,0.08)" : "none", border:"none", borderLeft: activeNav===app.id ? "2px solid #2AABFF" : "2px solid rgba(255,255,255,0.08)", color: activeNav===app.id ? "#2AABFF" : "rgba(255,255,255,0.45)", fontSize:12, fontWeight: activeNav===app.id ? 600 : 400, cursor:"pointer", textAlign:"left", fontFamily:"Inter,sans-serif" }}>
                     {app.label}
                   </button>
                 ))}
               </React.Fragment>
             ))}
           </div>
-        ))}
+          );
+        })}
         <div style={{ padding:"12px 20px", borderTop:"1px solid rgba(255,255,255,0.06)", display:"flex", gap:10 }}>
           <button onClick={onSignOut} style={{ flex:1, fontSize:12, color:"rgba(255,255,255,0.4)", background:"none", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"10px 16px", cursor:"pointer", fontFamily:"Inter,sans-serif" }}>Sign Out</button>
         </div>
@@ -1338,29 +1376,43 @@ try {
         </div>
       )}
 
-      {NAV.map(group => (
-        <div key={group.section} style={{ padding:"12px 0 0" }}>
-          {!sidebarCollapsed && <div style={{ padding:"0 16px 5px", fontSize:9, color:"rgba(255,255,255,0.4)", letterSpacing:2, fontWeight:600, textTransform:"uppercase" }}>{group.section}</div>}
-          {group.items.filter(item => !item.adminOnly || isOpsAdmin).map(item => (
-            <React.Fragment key={item.id}>
-              <div style={{ padding:sidebarCollapsed?"0":"0 8px 1px" }}>
-                <button onClick={() => setActiveNav(item.id)} title={sidebarCollapsed?item.label:undefined}
-                  style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:sidebarCollapsed?"9px 0":"7px 10px", justifyContent:sidebarCollapsed?"center":"flex-start", background:"transparent", border:"none", borderLeft: activeNav===item.id ? "2px solid #2AABFF" : "2px solid transparent", color:activeNav===item.id?"#ffffff":"rgba(255,255,255,0.6)", cursor:"pointer", fontSize:12, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===item.id?500:400, transition:"color 0.12s, border-color 0.12s", letterSpacing:0.1 }}>
-                  {!sidebarCollapsed && item.label}
-                </button>
-              </div>
-              {item.id === "apps" && !sidebarCollapsed && apps.filter(a => a.enabled).map(app => (
-                <div key={app.id} style={{ padding:"0 8px 1px" }}>
-                  <button onClick={() => setActiveNav(app.id)} title={app.label}
-                    style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:"5px 10px 5px 22px", justifyContent:"flex-start", background:"transparent", border:"none", borderLeft: activeNav===app.id ? "2px solid #2AABFF" : "2px solid transparent", color:activeNav===app.id?"#ffffff":"rgba(255,255,255,0.45)", cursor:"pointer", fontSize:11, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===app.id?500:400, transition:"color 0.12s, border-color 0.12s", letterSpacing:0.1 }}>
-                    {app.label}
+      <div style={{ padding:"10px 0 0" }}>
+      {NAV.map(group => {
+        const items = group.items.filter(item => !item.adminOnly || isOpsAdmin);
+        if (!items.length) return null;
+        const isOpen = openNavGroup === group.id && !sidebarCollapsed;
+        const holdsActive = navGroupOf(activeNav) === group.id;
+        return (
+        <div key={group.id} style={{ padding:sidebarCollapsed?"2px 0":"2px 10px" }}>
+          <button onClick={() => sidebarCollapsed ? (setSidebarCollapsed(false), setOpenNavGroup(group.id)) : toggleNavGroup(group.id)}
+            title={sidebarCollapsed?group.label:undefined}
+            style={{ display:"flex", alignItems:"center", gap:11, width:"100%", padding:sidebarCollapsed?"11px 0":"9px 10px", justifyContent:sidebarCollapsed?"center":"flex-start", background: holdsActive && !isOpen ? "rgba(255,255,255,0.05)" : "transparent", border:"none", borderRadius:9, color: holdsActive ? "#ffffff" : "rgba(255,255,255,0.62)", cursor:"pointer", fontSize:13, fontFamily:"-apple-system, Inter, sans-serif", fontWeight: holdsActive ? 600 : 500, transition:"color 0.12s, background 0.12s", letterSpacing:0.1 }}>
+            <NavGroupIcon groupId={group.id} />
+            {!sidebarCollapsed && group.label}
+            {!sidebarCollapsed && <NavChevron open={isOpen} />}
+          </button>
+          {isOpen && (
+            <div style={{ padding:"1px 0 4px", animation:"fadeIn 0.15s ease" }}>
+              {items.map(item => (
+                <React.Fragment key={item.id}>
+                  <button onClick={() => setActiveNav(item.id)}
+                    style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:"6px 10px 6px 37px", background:"transparent", border:"none", borderLeft: activeNav===item.id ? "2px solid #2AABFF" : "2px solid rgba(255,255,255,0.08)", color:activeNav===item.id?"#ffffff":"rgba(255,255,255,0.55)", cursor:"pointer", fontSize:12, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===item.id?500:400, transition:"color 0.12s, border-color 0.12s", letterSpacing:0.1, textAlign:"left" }}>
+                    {item.label}
                   </button>
-                </div>
+                  {item.id === "apps" && apps.filter(a => a.enabled).map(app => (
+                    <button key={app.id} onClick={() => setActiveNav(app.id)} title={app.label}
+                      style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:"5px 10px 5px 49px", background:"transparent", border:"none", borderLeft: activeNav===app.id ? "2px solid #2AABFF" : "2px solid rgba(255,255,255,0.08)", color:activeNav===app.id?"#ffffff":"rgba(255,255,255,0.42)", cursor:"pointer", fontSize:11, fontFamily:"-apple-system, Inter, sans-serif", fontWeight:activeNav===app.id?500:400, transition:"color 0.12s, border-color 0.12s", letterSpacing:0.1, textAlign:"left" }}>
+                      {app.label}
+                    </button>
+                  ))}
+                </React.Fragment>
               ))}
-            </React.Fragment>
-          ))}
+            </div>
+          )}
         </div>
-      ))}
+        );
+      })}
+      </div>
     </div>
   </div>
   )} {/* end !isMobile desktop sidebar */}
