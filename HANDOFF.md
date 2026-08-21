@@ -24,6 +24,9 @@
 
 **Danny email: DRAFTED, NOT SENT (Christian said don't send).** Week-recap version at scratchpad danny-vantus-email.txt (also in TextEdit): recap + data-entry list + 3 decisions + 5 vetoes. No em-dashes. Gmail MCP needs /mcp auth if sending from his address later.
 
+**PHASE D DEPLOYED + VERIFIED (evening, `edb4073`):** migration applied by Christian, pushed, deploy ready. Live verification against prod: Vault save/masked-list/reveal-decrypts-correctly/2-audit-rows/delete ALL OK; client_costs round-trip OK; sentinel_classify's code path proven to the Anthropic API — which 400'd with **"credit balance is too low"**. NEW BLOCKER (CHRISTIAN): the Anthropic account behind Vantus's ANTHROPIC_API_KEY has $0 credits — console.anthropic.com → Plans & Billing → add credits. Until then EVERY AI agent action (QC, Muse, Scrappy, Intel, Sentinel) fails the same way. Re-verify after top-up: one sentinel_classify.
+Also fixed en route (`edb4073`): opus-5 compat — thinking leads content[], so ai()/cid/scrappy now take the first TEXT block, and max_tokens floors at 4096 so thinking can't truncate answers. Any future direct Anthropic fetch must do the same.
+
 **Codex: not needed this session** — Phase D shipped complete. Optional future brief: polish passes (roll-up chart, workspace widgets).
 
 ## 2026-08-21 — session close: one crew member is REAL, the board for next session
