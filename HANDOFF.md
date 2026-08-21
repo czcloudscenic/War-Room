@@ -1,5 +1,27 @@
 # Vantus Handoff Brief
 
+## 2026-08-21 — session close: one crew member is REAL, the board for next session
+
+**Repo state at close:** `main` == `origin/main` (`3042c61`), deployed + ready on Netlify (verified by commit_ref every push). Only local noise: regenerated `.netlify/functions/*.zip` + untracked `deno.lock` — never commit either. Everything below is live on usevantus.com and Playwright-verified.
+
+**What this session shipped (7 prod pushes):**
+1. **Nav collapsed into the 8-group accordion** from Christian's screenshot (`261d4c5` → final layout `e3ab393`): Command / Clients / Work / Content / Growth / Intelligence / Workforce / Admin. Details + group→page mapping in the 8/20 entry below.
+2. **Every trace of orange removed** (`3aa7a88` components → `7a2e529` backgrounds): attention token is now #E5E5EA, backgrounds pure neutral black, the two amber glow divs are gone. Don't reintroduce warm hues.
+3. **Phase 3 pipeline cracked + Sean fully DONE** (`4dd2355`): root cause of all rig failures was multi-figure/pinned-arms source art — single-figure A-pose turnarounds fix it. Sean's walk + idle rigged GLBs live at `public/crew/sean.glb` + `sean_idle.glb` (24-joint skins, verified by parsing the GLB). Full per-character recipe with exact prompts/ids in the 8/20 (night) entry.
+4. **GLB crew renderer SHIPPED** (`79d502f` + CSP fix `f62b7ef`): `src/ship/crewGLB.js` `createCrewFigure()` — real rigged characters with walk/idle crossfade for crew in its `CREW_GLB` map, automatic procedural fallback for everyone else. **Sean stands in the cockpit as a real character on prod right now.** CSP lesson: GLB-embedded textures load via blob: URLs → `blob:` is in connect-src (netlify.toml).
+5. Housekeeping: dynasty.js NETLIFY_DEV localhost fix committed (`abf3469`, inert in prod).
+
+**THE blocker — Higgsfield billing "grace period" (CHRISTIAN):** the account (Ultra label, ~2,720 credits) is throttled to a tiny daily allowance ("daily generation limit for your grace period... update your plan"). Today that was 2 images + ~5 3D jobs, then hard cut; failed jobs auto-refund. **Check higgsfield.ai → billing — almost certainly a failed renewal.** Fixing it un-gates everything below in one sitting; otherwise it's one chunk per daily reset.
+
+**Next session run-list (mechanical, recipe in 8/20 night entry):**
+- **Muse** — 4 A-pose crops already uploaded+confirmed; next call is `multi_image_to_3d` with media_ids 6677bd8c…, d8d6fb1a…, 6fe5ec64…, 63702e9c… (full ids in 8/20 entry) → then `3d_rigging` ×2 (walk id 30 / idle id 0, height 1.8) → drop GLBs in `public/crew/` → uncomment her `CREW_GLB` line.
+- **Scrappy + Slate** — 1 turnaround image each (reference sheet job_ids in 8/20 entry, reuse Sean's prompt with their identity blocks) → same chain.
+- After all four: consider draco/meshopt compression if 8×9MB GLBs hurt load (deferred consciously; Sean alone is fine).
+
+**Unchanged gates:** Phase C = the Danny call (questions in VANTUS-PHASE-A-ESTIMATE.md); emails dry-run until a Resend key; Christian's admin list (ZZ Stress Test delete, QC Test Kitchen archive, vantus-site repo push, CloudScenic brand facts, BACKUP_ENC_KEY).
+
+**Ops notes that held this session:** push flaps → retry wins; deploy-watch by commit_ref; Playwright browser_click broken in this MCP build → browser_evaluate querySelector clicks; sips --cropOffset broken → PIL column-scan for sheet splitting.
+
 ## 2026-08-20 — sidebar collapsed into grouped accordion (Christian's screenshot); Higgsfield still image-blocked
 
 - **Nav accordion LIVE (`261d4c5`, deployed + Playwright-verified):** the 20 flat pages now sit under 6 icon groups — Command (Dashboard/Approvals/Decisions/Operations), Clients (Clients/Setup/Reports), Content (Idea Engine/Pipeline/Runway), Intelligence (Content Intel/Client Analytics), Workforce (Agents/Agent Ship/Software OPS), Admin (Billing/Ledger/Vault/Apps/Settings). Click a group to open it (single-open accordion); the active page's group auto-opens and follows navigation; group holding the active page keeps a highlight pill when closed; collapsed 68px rail shows group icons (click = expand + open that group); mobile drawer got the same accordion. `NAV` restructured in `src/utils/constants.js` (+ `navGroupOf()` helper); icons/chevron + both render sites in `App.jsx`. Follow-up same session (`e3ab393`): Christian confirmed all 8 tab names — final layout: Command (Dashboard/Approvals/Decisions), Clients (Clients/Setup), Work (Operations/Ledger/Reports), Content (Ideas/Pipeline/Runway), Growth (Client Analytics), Intelligence (Content Intel), Workforce (Agents/Ship/Software OPS), Admin (Billing/Vault/Apps/Settings). Growth + Intelligence are 1-page homes that future pages grow into.
