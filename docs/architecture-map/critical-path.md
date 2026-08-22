@@ -1,31 +1,27 @@
-# Critical Path — the QC gate flow
+# Critical Path — the approval loop
 
-> The spine of the system since 7/2: **nothing posts with a wrong price or wrong hours.** A deliverable moving to the content-approval gate is automatically fact-checked against the client's Facts of Record — caption AND artwork — and hard-blocked until clean. Verified end to end in production on 2026-07-03.
+The single most important seam in Vantus: **a piece of content goes from edit → immutable version → approval → client email → one-click decision → verified publish.** This is the loop the whole product exists to enforce. Every step below cites real code.
 
-1. **[UI]** An editor finishes a deliverable and sets its status to **Need Content Approval** in the edit modal — `src/ui/pipeline/EditContentModal.jsx` (status select; SOP checklist at 16-47 already shows the QC gate row).
+1. **[UI]** An editor saves a creative change in the pipeline modal — `src/ui/pipeline/EditContentModal.jsx` (handleSave). Before anything client-facing can be scheduled, `truthGates()` in `src/core/truth.js` hard-blocks if the client's Facts of Record are stale. *Plain English: you cannot schedule content for a client whose prices/hours/claims haven't been re-checked recently.*
 
-2. **[DB]** `handleSave` writes the updated row to `content_items` — `src/App.jsx:713-753`. Plain English: the item is saved with its new pipeline position.
+2. **[DB]** The save mints an **immutable version** — `src/core/versions.js` inserts a `content_versions` row (`supabase/migrations/20260813_truth.sql:11`, UPDATE-blocking trigger). *Every meaningful edit is frozen with a number, forever.*
 
-3. **[HTTP]** Because the status *transitioned into* Need Content Approval, `handleSave` fire-and-forgets `POST /api/agent-action {action: qc_review}` — `src/App.jsx:743-749`. (Only on the transition — re-saving an item already at the gate does not re-fire.)
+3. **[UI]** An approver acts — either the internal inbox (`src/ui/routes/ApprovalsRoute.jsx`) or the Ledger — both wire into `recordApproval()` in `src/core/approvals.js`. The decision captures `approved_version_id`, so "what exactly was approved" is provable. *Rejecting requires written feedback.*
 
-4. **[HTTP]** `netlify.toml` routes `/api/agent-action` → `agent-action.js`; `requireUser` + rate limit pass — `netlify/functions/agent-action.js:1654-1657`.
+4. **[DB]** The approvals insert fires a **database trigger** that bumps `revision_count` (`supabase/migrations/20260729_*` era) — the old race/bypass is closed because application code no longer counts revisions itself.
 
-5. **[DB]** The `qc_review` handler loads the content row and the client's `client_facts` + `facts_updated_at` — `agent-action.js:333-344`. Plain English: it pulls the deliverable and the client's book of true facts (prices, hours, phones, offers).
+5. **[HTTP]** The state change calls `POST /api/notify` — `netlify/functions/notify.js`. It writes a `notifications` row with a **cycle-aware dedupe key** (approve → revise → re-approve produces a NEW notification; two tabs firing at once produce one), pings Slack, and issues **single-use approval tokens** for the email path.
 
-6. **[API]** `fetchDriveImage` downloads up to 3 attached images from Google Drive (`drive.google.com/uc?export=download`, 4.5MB cap, image/* only) — `agent-action.js:235`. Files got there via the modal's upload flow, which sets anyone-with-link sharing (`EditContentModal.jsx:105-109`).
+6. **[EMAIL]** Resend delivers from `notifications@cloudscenic.com` (`netlify/functions/notify.js:304`). **Live and proven 2026-08-21** — this step really reaches client inboxes now.
 
-7. **[LLM]** `aiVision` sends image blocks + caption/script/CTA to **claude-sonnet-4-6** with a strict-JSON QC prompt; the model extracts on-asset text and flags issues — `agent-action.js:201` (helper), `:401` (call).
+7. **[HTTP]** The client clicks the email link → `netlify/functions/approval-decision.js`. **GET renders a confirmation page only** (so email scanners can't approve by accident); **POST executes**: single-use token consumed, sibling tokens invalidated, replayed links answer "Already recorded". Its `executeDecision` is the server-side twin of step 3's `recordApproval` — the two are mirrored and must change together.
 
-8. **[CODE]** `runExactFactChecks` runs deterministic checks over copy + the model's extracted text: expired/future offers, price-of-record mismatches within a 60-char window of a $ amount, phone numbers matching no location — each a hard BLOCKER. Plain English: code catches the "9AM vs 10AM" class of errors even if the AI missed them.
+8. **[DB]** The decision lands: status advances, the approvals row + audit row (`src/core/audit.js` → `audit_log`, append-only) are written, and the item moves down the pipeline.
 
-9. **[DB]** Verdict written: `qc_status` (pass / flagged / blocked), `qc_issues[]`, `qc_ran_at` PATCHed onto the row — `agent-action.js:441`. An `agent_events` row logs the run; Slack gets a 🛡️ card (loud when blocked).
+9. **[UI]** When the item posts, **markPosted REQUIRES a live URL** (`src/ui/routes/LedgerRoute.jsx` prompt) — a publish claim without a receipt is not accepted.
 
-10. **[WS]** Supabase realtime pushes the updated row to every open tab — `src/App.jsx:491-522` — and the Ledger row grows its `QC BLOCKED` / `qc pass` pill.
+10. **[CRON]** `netlify/functions/verify-publishes.js` (16:30 UTC daily) flags past-publish-date items with no receipt as `awaiting` and rings a `publish_unverified` bell. Its auto-verify join via `platform_post_id` ↔ `account_posts` is built but **inert until Phase C wires a writer** (`verify-publishes.js:13`).
 
-11. **[UI]** The gates hold: Ledger `doApprove` refuses a blocked item at the content stage (`src/ui/routes/LedgerRoute.jsx:74-78`), `doPosted` refuses too, and the edit modal disables Save into Ready For Schedule/Scheduled (`EditContentModal.jsx:37-44`). The human fixes the caption or artwork, hits **Run QC** (`LedgerRoute.jsx:85-99`), gets a pass.
+11. **[UI]** The whole trail is inspectable per item in the **TruthDrawer** (Ledger → Receipts): approved version, approver, publish receipt, block state, version list, audit history — the Phase B definition-of-done on one panel.
 
-12. **[HTTP → DB]** Approve now succeeds: `recordApproval` writes the `approvals` audit row, advances the item's status, and calls `/api/notify` — `src/core/approvals.js:28-66`.
-
-13. **[API]** `notify.js` inserts the bell row (deduped on `unique(type, content_item_id)` — first writer wins, duplicates skip all channels), posts the Slack card, emails admins via Resend, and pings n8n — `netlify/functions/notify.js` (dedupe gate added 7/3).
-
-**Timing note:** first QC run of the day can take 10-15s (cold function + vision call); warm runs landed in ~5-20s during the 7/3 test campaign.
+**Why this is the spine:** every other feature (agents, intel, billing, the ship) either feeds this loop or renders receipts from it. The `agent_events` table is the same idea applied to AI work: nothing happens without a row that proves it happened.

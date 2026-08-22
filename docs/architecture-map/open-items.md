@@ -3,91 +3,128 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-07-04 (post-sweep, DEPLOYED) · **Open:** 3 bugs + partials
+**Snapshot:** 2026-08-21 · **Total open:** 9 bugs + 11 fixes = 20 items
 
 ```
-🔴 High:   0    │   ✅ Fixed this pass: 10 items (3 commits)
-🟡 Med:    2*   │      *both are partials (admin-scope refactor, Stripe proof)
-🟢 Low:    3    │   📋 Fixes shipped: #1, #3, #6, + partial #5/#7/#8
+🔴 High:   1    │   ✅ Done today:  Phase D shipped · prod cleanup · email proven · boot fix
+🟡 Med:    5    │
+🟢 Low:    3    │   📋 Fixes:  11
 ```
-
-> ✅ **Shipped + live.** Commit `a8ff98b` deployed to usevantus.com (HTTP 200); migration `20260704_notify_dedupe_and_cleanup.sql` run against prod (dedupe_key index live, slack_channel_id dropped). The interactive `architecture-map.html` badges are now synced to this list.
 
 ---
 
-## ✅ Fixed in the 2026-07-04 sweep (commits 340377c, 7f8bfdb, ed8bd1e)
+## 🔴 HIGH — fix this week
 
-- [x] **approvals.js — status/stage drift.** recordApproval + markPosted now patch `stage` alongside `status`. → Fix #3
-- [x] **notifications — re-approvals never re-notified.** New migration moves the unique index to a cycle-aware `dedupe_key` (includes revision_count); notify.js computes it, approvals.js passes it. Approve → revise → re-approve now notifies again; same-cycle double-fires still collapse. → Fix #3 · **migration run 2026-07-04 (live)**
-- [x] **BillingRoute.jsx — invoice email overlap.** On Stripe success the team now gets bell + Slack (via `emailClient:false`) without the client getting a second email; the branded Resend email remains the fallback when Stripe isn't wired. → Fix #5 (email half)
-- [x] **index.html:5 — pinch-zoom disabled.** Removed `maximum-scale`/`user-scalable=no`; added apple-touch-icon + favicon. → Fix #1
-- [x] **SetupRoute + App.jsx header — sub-44px tap targets.** Service chips, bell, hamburger, and client switcher all at 44px; 8px label → 10px. → Fix #1
-- [x] **constants.js — "Posted" missing from STATUSES.** Added to STATUSES/STATUS_COLOR/STAGE_SHORT. → Fix #3
-- [x] **crypto.js:7 — silent plaintext token fallback.** encrypt() now throws when TOKEN_ENC_KEY is unset. → Fix #8 (crypto half)
-- [x] **Dead code — 3 components + N8N constant.** QuickActionsDashboard, PlaceholderPage, TypingTask deleted; N8N_WEBHOOK_URL removed. → Fix #6
-- [x] **clients.slack_channel_id — deprecated column.** Modal field removed; column dropped in the 20260704 migration. → Fix #6
-- [x] **App.jsx — client content scoping (client half).** Approved external clients now load only their own content via explicit `.in(client_id)`. → Fix #7 (client half)
+- [ ] **netlify/functions/agent-action/_shared.js:161 — Anthropic credits at $0, all AI down**
+  Every AI action (QC, Muse, Scrappy, Intel, Sentinel, AI Assign, chat) errors with "credit balance is too low" (observed 8/21). Two minutes at console.anthropic.com un-gates the entire agent layer; set auto-reload so it never silently dies again.
+  → Touches: Anthropic console only · Fix #1
 
 ---
 
-## 🟡 MED — still open (partials)
+## 🟡 MED — fix when planning next refactor
 
-- [x] **App.jsx — admin per-page scoping SHIPPED 2026-07-12** (commit `4fe5c97`).
-  Reports + Client Analytics fetch their own slim windowed rows (90d); global blob bounded to unposted + posted ≤90d; Ledger rides the bounded blob by design; account_posts jsonb no longer shipped to the browser. → Fix #7 (admin half) ✅. Remaining client half: portal-user `client_id=eq.` realtime filter.
+- [ ] **src/App.jsx:1501 — Open button routes to dashboard, not a client workspace**
+  The flagship "open a client, see everything" flow doesn't exist; Open just switches tenant and shows the dashboard. The fix IS the Phase C workspace shell — gated on Danny's veto pass.
+  → Touches: `src/App.jsx`, new workspace route, Setup redistribution · Fix #5
 
-- [ ] **billing-stripe.js:64 — live invoice create-path never proven.**
-  Not a code fix — send one real (small, controlled) invoice and confirm the webhook paid-sync. The email-overlap half is now fixed; this is the remaining validation.
-  → Touches: `netlify/functions/billing-stripe.js` · Fix #5 (proof half)
+- [ ] **netlify/functions/billing-stripe.js:22 — Stripe keys set but never validated**
+  Flagged malformed 7/12, untested since. First real invoice may error; webhook may reject signatures. One curl + a $1 proof invoice settles it.
+  → Touches: Stripe dashboard, Netlify env · Fix #2
+
+- [ ] **netlify/functions/notify.js:304 — email armed, no dry-run net**
+  Approval links / reports / digests really deliver now. Before the first client-facing flow fires, sanity-check each client's primary_email and report recipients in Setup.
+  → Touches: Setup data entry (no code)
+
+- [ ] **index.html:11 — Drive upload broken in prod (origin_mismatch)**
+  Google's OAuth client was never told usevantus.com is allowed. One console field; a few minutes to propagate.
+  → Touches: Google Cloud Console · Fix #3
+
+- [ ] **src/App.jsx:129 — 1,622-line monolith, no tests**
+  All app state and auth in one file; the boot bug lived here for weeks unseen. Decompose in slices + add boot/approval smoke tests.
+  → Touches: `src/App.jsx`, new modules · Fix #8
 
 ---
 
 ## 🟢 LOW — track, no urgency
 
-- [ ] **content_items.publish_date is TEXT.** Left as-is: a live TEXT→date conversion on rows with `''` values carries real risk for a cosmetic gain. Convert only if range-querying by date becomes needed. → Fix #3 (deferred)
-- [ ] **_lib/rateLimit.js — in-memory limits reset on cold start.** Accepted tradeoff at current scale; durable store is a later infra change.
-- [ ] **agent-action.js — QC v1 doesn't frame-check video.** Emits a warning. Fix #9 is a v2 feature — **not greenlit**, propose before building.
-- [ ] **team_members emails blank — chase cron reaches nobody.** Data entry (Setup §4), not code. → Fix #10
+- [ ] **netlify/functions/verify-publishes.js:13 — auto-verify inert (no platform_post_id writer)**
+  The join is built and queried but nothing stamps the id; only manual markPosted produces receipts. Goes live with Phase C Sprout wiring.
+  → Touches: scheduling path · Fix #11
+
+- [ ] **VANTUS_TODO.md:25 — Gemini quota, VL generators dead**
+  429s until billing flips in AI Studio. Deferred by Christian 8/21.
+  → Touches: Google AI Studio · Fix #4
+
+- [ ] **src/ui/routes/ShipRoute.jsx:120 — 5 parked ship modules + 2 archive folders**
+  Deliberate (art-direction pending), but decide-or-delete keeps the map honest.
+  → Touches: `src/ui/ship/`, `src/ship/`, archive folders · Fix #10
+
+*(Not a checkbox: `intel.js:52` follow_rate/hook_hold are null BY DESIGN — IG doesn't expose them. Documented so nobody "fixes" it.)*
 
 ---
 
-## 📋 Numbered Roadmap Fixes — status
+## 📋 Numbered Roadmap Fixes
 
-- [x] **#1** — Mobile a11y pack (zoom, 44px targets, text floor, icon) ✅
-- [ ] **#2** — Muse model tiering haiku→sonnet (separate ask — not in this sweep)
-- [x] **#3** — Pipeline-state hygiene ✅ *(stage sync, Posted, notify dedupe done; publish_date deferred)*
-- [ ] **#4** — Split agent-action.js monolith (unchanged)
-- [~] **#5** — Stripe: email overlap ✅ · create-path proof still owed
-- [x] **#6** — Dead-code + dead-schema sweep ✅
-- [~] **#7** — Client scoping: client half ✅ · admin per-page refactor ✅ (2026-07-12) · portal realtime filter open
-- [~] **#8** — Security: crypto hard-fail ✅ · password rotation + CSP tightening still open
-- [ ] **#9** — QC v2 video frame sampling (NOT greenlit)
-- [ ] **#10** — Team roster emails (data entry)
+Cross-references map node badges + the items above.
+
+- [ ] **#1** — Top up Anthropic credits + auto-reload → console only; re-verify sentinel_classify after
+- [ ] **#2** — Prove Stripe (key curl → webhook registration → $1 invoice) → `billing-stripe.js`, Stripe dashboard
+- [ ] **#3** — Add usevantus.com to Google OAuth JS origins → Google console
+- [ ] **#4** — Flip Gemini billing → AI Studio (deferred)
+- [ ] **#5** — Phase C client workspace shell (fixes Open button) → `App.jsx:1501` + new routes (GATED: Danny vetoes)
+- [ ] **#6** — Send Danny recap email; his data entry greens the activation board → draft ready
+- [ ] **#7** — Finish Muse/Scrappy/Slate GLBs → `public/crew/`, `crewGLB.js` (GATED: Higgsfield billing)
+- [ ] **#8** — Decompose App.jsx + smoke tests → `src/App.jsx`
+- [ ] **#9** — Optional: ai() default opus-5 → sonnet if spend runs hot → `_shared.js:161`
+- [ ] **#10** — Retire or revive parked ship stack + archive folders → `src/ui/ship/`, `src/ship/`
+- [ ] **#11** — platform_post_id writer (with Sprout wiring) → scheduling path, `verify-publishes.js:77`
 
 ---
 
 ## Cross-cutting work
 
-### Migration to run (Supabase SQL editor) — `supabase/migrations/20260704_notify_dedupe_and_cleanup.sql`
-Adds `notifications.dedupe_key`, backfills it, swaps the unique index onto it, and drops `clients.slack_channel_id`. The notify-dedupe code tolerates the column being absent (it just sets the field), but re-approval notifications won't work correctly until the index is swapped.
+### When #2 lands → register the webhook + verify the flip
+```
+Stripe → Developers → Webhooks → Add endpoint
+  URL: https://usevantus.com/api/billing/stripe-webhook
+  Events: invoice.paid · invoice.payment_succeeded · invoice.voided · invoice.marked_uncollectible
+Then: send the $1 proof invoice, pay it, watch the local row flip to paid.
+```
 
-### Env to confirm
-- **`TOKEN_ENC_KEY`** must be set in Netlify (32-byte base64). crypto.js now hard-fails without it, so connecting a NEW social account will error until it's set. Already-connected (plaintext) accounts still sync.
+### When #5 (Phase C) starts → the consolidation map applies
+Setup and Ledger die as destinations (fields fold into workspace widgets; Ledger renames to Deliverables inside Work). Don't build new features onto Setup in the meantime.
 
-### When fully off password login → rotate credentials
-- Supabase admin password — present in git history (pre-`9fb1e10` setup.js; literal redacted from docs 2026-07-12). Rotate the cz/dv/ss account passwords in the Supabase dashboard to retire it.
+### Standing console items (no code, human-only)
+- dv/ss: run the Supabase "Forgot password" check (cz is GitHub-OAuth-linked — nothing to rotate)
+- Higgsfield billing (grace-period throttle) — gates Fix #7
+- Keep TOKEN_ENC_KEY + BACKUP_ENC_KEY exactly as-is; rotating either orphans encrypted rows
+
+### Env-var audit gotcha (burned three audits — don't repeat)
+`netlify env:list`/`env:get` read the DEV context by default and return secret values MASKED (20 asterisks). Always pass `--context production`, and only trust a function-side proof for validity.
 
 ---
 
-## Suggested attack order (remaining)
+## Suggested attack order
 
-1. **Run the 20260704 migration** — unblocks the re-approval notify fix already shipped in code.
-2. **#5 Stripe proof** — send one real invoice before a client deadline forces it.
-3. **#7 admin scoping** — ✅ shipped 2026-07-12; safe to onboard the next heavy client.
-4. **#2 model tiering** — one-line-per-action quality bump (separate greenlight).
-5. **#4 monolith split** — after #2 so its diff stays small.
+1. **#1** (2 min, console) — un-gates the entire AI layer AND the last Phase D verification. Nothing else on this list restores more capability per minute.
+2. **#6** (send the email) — starts Danny's clock; his answers un-gate #5, the single biggest remaining build.
+3. **#2 + #3** (one console sitting, ~15 min) — proves Stripe and fixes Drive; after #2, run the $1 invoice while you're in there.
+4. **#8** (next code session) — structural debt; do it BEFORE #5 so the workspace shell lands on a decomposed App.jsx, not on the monolith.
+5. **#5** (when Danny answers) — the big one; also delivers #11's natural home (Sprout wiring).
+6. **#7** (when Higgsfield billing is fixed) — one mechanical session, recipe proven.
+7. **#4, #9, #10** — opportunistic; none block anything.
 
 ---
 
 ## How to keep this current
 
-When you fix an item: check the box, move the snapshot counts, commit alongside the code. On a meaningful architecture change, regenerate `architecture-map.html` via `/architecture-map` (which also refreshes the bug badges this file mirrors).
+When you fix an item:
+1. Add `~~strikethrough~~` to the bullet OR check the box `[x]`
+2. Move the badge count at the top
+3. If the fix touched multiple items, mark each
+4. Commit alongside the code fix so the punch-list reflects reality
+
+If the architecture changes meaningfully (new tables, new functions, big refactor):
+- Regenerate `architecture-map.html` via the `/architecture-map` skill (or `/health`)
+- The HTML's Bugs & Roadmap tab regenerates from the source data
+- Update this file by hand to match the new state, OR re-run the skill to overwrite this file too

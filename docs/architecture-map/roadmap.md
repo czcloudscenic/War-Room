@@ -1,90 +1,63 @@
 # Roadmap — numbered fixes
 
-> Numbering matches the green FIXES badges in `architecture-map.html` and the punch-list in [open-items.md](open-items.md).
+> Snapshot 2026-08-21. Numbers match the green badges in `architecture-map.html` and the punch-list in [open-items.md](open-items.md).
 
-## Status (2026-07-04, deployed `a8ff98b`)
+### #1 — Top up Anthropic API credits (un-gates ALL AI)
+Touches: console.anthropic.com only (no code).
+- Plans & Billing → add ~$25 credits, enable auto-reload with a monthly cap
+- Re-verify: run one `sentinel_classify` from the Scope Sentinel page (the only unchecked Phase D box)
+- Unblocks: QC, Muse, Scrappy, CID, Intel, AI Assign, chat, Sentinel — everything under `agent-action.js`
 
-| Fix | Status |
-|-----|--------|
-| #1 Mobile a11y pack | ✅ **shipped + live** |
-| #2 Muse model tiering | ◻ open (separate ask, not greenlit) |
-| #3 Pipeline-state hygiene | ✅ **shipped + live** (stage sync, Posted, notify dedupe — migration run; `publish_date` deferred) |
-| #4 Split agent-action.js | ◻ open |
-| #5 Stripe create-path + email | ◐ email overlap shipped · **create-path proof still owed** |
-| #6 Dead-code + dead-schema sweep | ✅ **shipped + live** (slack_channel_id dropped) |
-| #7 Client scoping | ◐ client half + RLS shipped · **admin per-page refactor open** |
-| #8 Security batch | ◐ crypto hard-fail shipped · password rotation + CSP open |
-| #9 QC v2 video frames | ◻ NOT greenlit |
-| #10 Team roster emails | ◻ open (data entry) |
+### #2 — Prove Stripe end to end
+Touches: Stripe dashboard, `netlify/functions/billing-stripe.js`, Netlify env.
+- Validate the key: `curl https://api.stripe.com/v1/account -u "$KEY:"` (command already staged with Christian)
+- If invalid: paste fresh `sk_live_…` + register the webhook endpoint `https://usevantus.com/api/billing/stripe-webhook` with the 4 invoice events → paste `whsec_…`
+- Run the controlled $1 proof invoice (old Fix #5 from the 7/18 board)
+- Unblocks: real billing, the Stripe half of Phase D economics, truth_registry's "Stripe=payments" claim
 
-The specs below are unchanged as the working detail for each item.
+### #3 — Register usevantus.com as a Google OAuth origin
+Touches: Google Cloud Console → Credentials → client `844741925554-…`.
+- Add `https://usevantus.com` and `https://majestic-cassata-aa16e9.netlify.app` to Authorized JavaScript origins
+- Wait a few minutes for propagation, then test a Drive upload in prod
+- Unblocks: Drive-backed deliverable uploads (QC pulls Drive bytes today, but uploads from the app have never worked)
 
-## #1 — Mobile accessibility pack
-**Touches:** `index.html:5`, App.jsx header controls, `src/ui/routes/SetupRoute.jsx` chips/rows, favicon/app icons.
-- Delete `maximum-scale=1.0, user-scalable=no` from the viewport meta (keep `viewport-fit=cover`)
-- Bring the header bell/hamburger/client-switcher to ≥44px touch boxes; enlarge Setup's service chips + row deletes at mobile widths
-- Raise the 8px micro-labels ("Tap to switch ▾", Geist Mono labels) to a 10-11px floor
-- Add `<link rel="apple-touch-icon">` + width/height on the client-switcher logo img
-**Unblocks:** clean re-run of the 7/4 mobile audit; D5 checklist closure.
+### #4 — Flip Gemini billing (VL generators)
+Touches: Google AI Studio billing. Deferred by Christian 8/21 — do whenever.
+- Attach billing to the project owning the existing key; 429s clear immediately
 
-## #2 — Muse model tiering (client-facing → sonnet)
-**Touches:** `netlify/functions/agent-action.js` — `muse_write_content` (:487), `muse_from_brief` (:936), `muse_generate_calendar` (:840).
-- One-line model param per action: pass `'claude-sonnet-4-6'` to `ai()` for output a client will read
-- Keep haiku for internal grunt (sean_briefing, ops_assign, scrappy_research)
-- Rule agreed with Christian: tier by who sees the output and what it gates, not task size
-**Unblocks:** caption quality on the actual client deliverable path.
+### #5 — Phase C: client workspace shell (fixes the Open button)
+Touches: `src/App.jsx:1501`, new workspace route, Setup field redistribution. **GATED on Danny's veto pass** (5 items in the recap email).
+- Build the per-client workspace: Overview · Scope & Rates · Deliverables · Facts · Analytics & Reports · Decisions · Documents · Portal & Access · Activity · Software (Dynasty)
+- Point `onOpen` at it; retire Setup as a tab (fields fold into owned widgets)
+- Unblocks: Danny's views, the consolidation map (spec §9), Ledger→Deliverables rename
 
-## #3 — Pipeline-state hygiene batch (status/stage/Posted/dedupe)
-**Touches:** `src/core/approvals.js:45-47`, `src/utils/constants.js:33`, `supabase/migrations/20260523_notifications.sql` semantics, `publish_date` typing.
-- recordApproval patches `stage: status` alongside status
-- Decide "Posted" in STATUSES (or document runtime-only and exclude from dropdowns intentionally)
-- Decide re-approval notify semantics: keep first-writer-wins forever, or add revision_count to the dedupe key via migration
-- Optional same batch: migrate `publish_date` TEXT → date
-**Unblocks:** trustworthy stage-based views; predictable notify behavior.
+### #6 — Send the Danny recap email + his data entry
+Touches: nothing in-repo (draft at the session scratchpad, v2 in TextEdit).
+- His hour of data entry (17 skill briefs, facts, retainers, cadence, owners, recipients, approval modes) turns the activation board green
+- His 3 decisions + 5 vetoes un-gate #5
 
-## #4 — Split the agent-action.js monolith (1,753 lines)
-**Touches:** `netlify/functions/agent-action.js` → `_actions/{muse,scrappy,qc,ops,cid}.js` modules + a thin dispatcher.
-- Keep the endpoint, auth, rate limit, logging, Slack fan-out in the dispatcher
-- Move each action family to its own module; share `ai()/aiVision()/getBrandContext()` from `_lib/`
-- Pure refactor: no behavior change, node --check + test checklist A-section re-run as the gate
-**Unblocks:** #2 gets trivially reviewable; future actions stop growing the monolith.
+### #7 — Finish the GLB crew (Muse, Scrappy, Slate)
+Touches: `public/crew/`, `src/ship/crewGLB.js` CREW_GLB map. **Gated on Higgsfield billing** (grace-period throttle).
+- Muse: mesh from the 4 staged crops → 2 rigging passes (walk id 30 / idle id 0, height 1.8)
+- Scrappy + Slate: 1 A-pose turnaround each (reuse Sean's prompt), then the same chain
+- After all four: consider draco/meshopt compression (8×9MB GLBs)
 
-## #5 — Prove the Stripe create-path + resolve invoice email overlap
-**Touches:** `netlify/functions/billing-stripe.js:64` (handleCreate), `src/ui/routes/BillingRoute.jsx:99-112`.
-- Send the first real invoice deliberately (small amount, a controlled client) and verify webhook paid-sync
-- Decide the email story: Stripe's hosted email alone, or also fire the branded Resend notice on success (currently fallback-only)
-**Unblocks:** billing goes from "wired" to "proven"; NYC Gyro-class deals can invoice through Vantus.
+### #8 — Decompose App.jsx + add a test suite
+Touches: `src/App.jsx` (1,622 lines), new context/store modules.
+- Extract auth/session into a module; extract route-mount table; extract realtime listeners
+- Add smoke tests for the boot path and the approval loop (the two places regressions have actually happened)
+- No behavior change — structure only; do it in small reviewed slices
 
-## #6 — Dead-code + dead-schema sweep
-**Touches:** `src/ui/dashboard/QuickActionsDashboard.jsx`, `src/ui/shared/PlaceholderPage.jsx`, `src/ui/shared/TypingTask.jsx`, `src/App.jsx:20,25,26`, `netlify/functions/agent-action.js:21`, `clients.slack_channel_id`.
-- Delete the three components + their imports; bundle shrinks, readers stop wondering
-- Delete the never-fetched N8N_WEBHOOK_URL constant
-- Cleanup migration: `alter table clients drop column if exists slack_channel_id;`
-**Unblocks:** nothing downstream — pure hygiene, 30 minutes.
+### #9 — Optional cost lever: ai() default opus-5 → sonnet
+Touches: `netlify/functions/agent-action/_shared.js:161` (one line).
+- Only if AI spend runs hot after #1; ~40% cheaper, modest quality trade
 
-## #7 — Client-scope the global content fetch + realtime
-**Admin half ✅ DONE 2026-07-12** (commit `4fe5c97`): Reports + Client Analytics fetch their own slim, windowed rows (`useSupabaseRows` in `src/utils/hooks.js`); Ledger deliberately rides the global blob, now bounded to unposted + posted ≤90d (`ACTIVE_CONTENT_DAYS` in App.jsx); `account_posts` no longer ships its jsonb blob to the browser. Realtime stays unfiltered by design — patch-only handlers self-maintain the bounded set.
-**Remaining (client half):** portal users — fetch per clientIds and re-subscribe with a `client_id=eq.` filter on client switch.
-**Unblocks:** payload no longer scales with all-time agency volume; safe to onboard the next heavy client.
+### #10 — Retire or revive the parked code
+Touches: `src/ui/ship/ShipWorld3D.jsx` + 5 modules, `ripped out features/`, `(experimental)/`.
+- Decide the ShipWorld3D art pass (one session) or delete the stack; delete `analytics-page/` once its port target is decided
+- Pure hygiene — zero user-facing change
 
-## #8 — Security debt batch
-**Touches:** `netlify/functions/_lib/crypto.js:7`, git history creds, `netlify.toml:172` CSP.
-- Make crypto hard-fail (or Slack-alarm) when TOKEN_ENC_KEY is unset instead of silently storing plaintext
-- Rotate the Supabase admin password that exists in git history (literal redacted from docs 2026-07-12) — password login already fully off; rotate cz/dv/ss in the dashboard
-- Tighten `style-src 'unsafe-inline'` when inline styles get factored out (long tail)
-**Unblocks:** closes the "silently degraded security" class.
-
-## #9 — QC v2: video frame sampling
-**Touches:** `src/ui/pipeline/EditContentModal.jsx` (upload path), `netlify/functions/agent-action.js` qc_review.
-- Sample 3-5 frames client-side at upload (canvas capture from `<video>`), attach as images alongside the video file
-- qc_review then vision-checks the frames like any image; drop the v1 warning
-**Status:** queued, not greenlit — propose before building.
-
-## #10 — Team roster emails (data entry, not code)
-**Touches:** Setup section 4 → `team_members.email`.
-- Christian/Sebastian fill real emails for the people who exist; delete roster rows that don't map to real humans
-**Unblocks:** the 14:00 UTC chase-overdue-tasks cron actually reaches assignees.
-
----
-
-**Queued but NOT greenlit (propose, don't start):** Sprout API v2 — full-auto Cloud Scenic-branded report generated from Sprout metrics (Advanced plan has self-serve tokens), rendered HTML-to-PDF into the same client_reports pipeline with manual upload as fallback.
+### #11 — Wire a platform_post_id writer
+Touches: scheduling path (Phase C Sprout wiring), `netlify/functions/verify-publishes.js:77`.
+- When the Sprout schedule integration lands, stamp `platform_post_id` on scheduled items
+- verify-publishes' auto-verify join then goes live with zero further code

@@ -1,38 +1,39 @@
 # Known Bugs — severity-ranked
 
-> Every entry cites file:line. Cross-references the numbered fixes in [roadmap.md](roadmap.md). Working checkboxes live in [open-items.md](open-items.md).
->
-> **State:** 2026-07-04 sweep shipped + deployed (commit `a8ff98b` live on usevantus.com; migration `20260704_notify_dedupe_and_cleanup.sql` run). Ten bugs closed this pass — see the "Fixed in the 7/4 sweep" section at the bottom.
+> Snapshot 2026-08-21. Every entry cites file:line. Cross-references: [roadmap.md](roadmap.md) fix numbers.
 
 ## 🔴 HIGH
 
-*None currently open.* The 7/3 test campaign closed the high-severity class: the broken new-item insert (camelCase columns), the duplicate-card realtime echo, and the approval double-notify all shipped fixed; the two silent config outages (Drive OAuth origin, Resend domain) were corrected in their consoles the same night.
+### Anthropic credit balance is $0 — every AI feature is down
+`netlify/functions/agent-action/_shared.js:161` · Observed 2026-08-21 during Phase D verification: the API returns `400 invalid_request_error: Your credit balance is too low`. What's at risk: QC review, Muse, Scrappy, CID, Content Intel, AI Assign, chat, and the new Scope Sentinel all error the moment anyone uses them. What triggers it: any AI action. This is a prepaid-balance problem on the Anthropic console account, not a code defect — the code path was proven right up to the API. → **Fix #1**.
 
 ## 🟡 MED
 
-- **`netlify/functions/billing-stripe.js:64` — the live invoice create-path has never run against a real invoice.** Webhook is verified, key is live, but `handleCreate` is unproven. First real invoice is the validation; do it deliberately, not on a client deadline. The email-overlap half of Fix #5 is done. → Fix #5 (proof half)
+### Client "Open" button goes to the dashboard, not a client workspace
+`src/App.jsx:1501` · `onOpen` switches tenant then `setActiveNav("dashboard")`. Danny-confirmed. What's at risk: the flagship "open a client, see everything" flow doesn't exist; Setup remains a separate cockpit. What fixes it: the Phase C client-workspace shell IS the fix (there is no smaller patch — no workspace route exists anywhere). → **Fix #5** (gated on Danny's veto pass).
 
-- ~~admin app holds every client's all-time content_items in one array~~ **CLOSED 2026-07-12** (commit `4fe5c97`): Reports/Client-Analytics fetch their own windowed rows; the shared blob is bounded to unposted + posted ≤90d; account_posts jsonb no longer ships to the browser. → Fix #7 (admin half) ✅
+### Stripe keys installed but never validated
+`netlify/functions/billing-stripe.js:22` · Both `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` exist as production secrets, but the 7/12 audit flagged them malformed and nothing since proves otherwise. What's at risk: "Create & send" on Billing may error on first real use; the payment webhook may reject signatures silently. What triggers it: the first real invoice. → **Fix #2**.
+
+### Email is armed with no dry-run net
+`netlify/functions/notify.js:304` · Not a defect — a live-wire warning. Since the Resend key went live, approval links, report emails, and digests really deliver to whatever addresses are configured. What's at risk: a half-configured client (wrong `primary_email`, test data) now receives real email. What triggers it: any approval/report event on a client-mode item. Mitigation: treat the first client-facing send as a deliberate moment; check recipients in Setup first.
+
+### Drive upload has never worked in production
+`index.html:11` (GIS script) + `VANTUS_TODO.md:23` · `usevantus.com` was never added as an authorized JavaScript origin on Google OAuth client `844741925554-…`; live probes return `origin_mismatch`. What's at risk: any workflow expecting file upload to Drive from the app silently fails in prod (works only in local dev). → **Fix #3**.
+
+### App.jsx is a 1,622-line monolith with no test suite
+`src/App.jsx:129` · All app state, auth, realtime, and route mounts in one file; QA is manual. What's at risk: every feature change rides through this file; regressions have no automated net (the 15-40s boot bug lived here for weeks). Structural risk, not a defect. → **Fix #8**.
 
 ## 🟢 LOW
 
-- **`supabase/migrations/20260526_content_items_baseline.sql:47` — `publish_date` is TEXT**, not a date column. No DB-level validation or range queries. Deferred: a live TEXT→date conversion on rows holding `''` carries real risk for a cosmetic gain — convert only if range-querying by date becomes needed. → Fix #3 (deferred)
-- **`netlify/functions/_lib/rateLimit.js` — in-memory rate limits reset on cold start.** Documented, accepted tradeoff at current scale; a durable store is a later infra change.
-- **`netlify/functions/agent-action.js:333` — QC v1 does not frame-check video**; a warning issue is emitted telling the human to eyeball on-video text. v2 is not greenlit — propose before building. → Fix #9
-- **`team_members` roster emails are blank** (Setup section 4 counter 0/7) — the 14:00 UTC chase cron has nobody real to email. Data entry, not code. → Fix #10
+### verify-publishes auto-verify is inert — no platform_post_id writer
+`netlify/functions/verify-publishes.js:13` · The join from content_items to synced account_posts is built and queried (line 77) but nothing writes `platform_post_id` yet, so auto-verification never fires; only the manual markPosted path produces receipts. Goes live with Phase C Sprout/schedule wiring. → **Fix #11**.
 
----
+### follow_rate and hook_hold are permanently null
+`netlify/functions/agent-action/handlers/intel.js:52` · Instagram's API does not expose per-post follows (null on all 57 posts even with full scopes) and there is no duration source for hook-hold. By design — documented here so nobody "fixes" it.
 
-## ✅ Fixed in the 7/4 sweep (commits 340377c, 7f8bfdb, ed8bd1e — deployed a8ff98b)
+### Gemini quota exhausted — VL generators dead
+`VANTUS_TODO.md:25` · The 7 VitalLyfe generators 429 until billing is flipped in Google AI Studio. Deferred by Christian on 8/21. → **Fix #4**.
 
-- **`src/core/approvals.js:45-47` — status/stage drift.** `recordApproval` + `markPosted` now patch `stage` alongside `status`. → Fix #3
-- **`supabase/migrations/20260523_notifications.sql:21` — permanent dedupe.** Migration `20260704` moved the unique index to a cycle-aware `dedupe_key` (includes revision_count); notify.js computes it, approvals.js passes it. Approve → revise → re-approve notifies again; same-cycle double-fires still collapse. **Migration run against prod.** → Fix #3
-- **`src/ui/routes/BillingRoute.jsx:104-112` — invoice email overlap.** On Stripe success the team now gets bell + Slack (`emailClient:false`) without the client getting a second email; the branded Resend email stays the fallback when Stripe isn't wired. → Fix #5 (email half)
-- **`index.html:5` — pinch-zoom disabled.** Removed `maximum-scale`/`user-scalable=no`; added apple-touch-icon + favicon. → Fix #1
-- **`src/ui/routes/SetupRoute.jsx` + `src/App.jsx` header — sub-44px tap targets.** Service chips, bell, hamburger, client switcher all at 44px; 8px label → 10px. → Fix #1
-- **`src/utils/constants.js:33` — "Posted" missing from STATUSES.** Added to STATUSES/STATUS_COLOR/STAGE_SHORT. → Fix #3
-- **`netlify/functions/_lib/crypto.js:7` — silent plaintext token fallback.** `encrypt()` now throws when `TOKEN_ENC_KEY` is unset instead of storing plaintext. (`TOKEN_ENC_KEY` confirmed present in Netlify.) → Fix #8 (crypto half)
-- **`src/App.jsx:20,25,26` — dead components.** QuickActionsDashboard, PlaceholderPage, TypingTask deleted with their imports. → Fix #6
-- **`netlify/functions/agent-action.js:21` — dead `N8N_WEBHOOK_URL` constant** removed. → Fix #6
-- **`clients.slack_channel_id` — deprecated column** dropped in migration `20260704`; the AddClient modal field that wrote it was removed. → Fix #6
-- **`src/App.jsx` — client content scoping (client half).** Approved external clients now load only their own content via explicit `.in(client_id)`. → Fix #7 (client half)
+### 5 parked ship modules + 2 archive folders inflate the repo's mental map
+`src/ui/routes/ShipRoute.jsx:120` · ShipWorld3D + shipModel/environment3d/greebles + shipRenderer/shipRendererArt are unmounted on purpose (art-direction decision pending); `ripped out features/` and `(experimental)/` hold removed code. Deliberate, but a new maintainer will waste time here without this note. → **Fix #10**.
