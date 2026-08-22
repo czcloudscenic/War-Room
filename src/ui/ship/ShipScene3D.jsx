@@ -41,25 +41,33 @@ function ArtPlane() {
   stillTex.colorSpace = THREE.SRGBColorSpace;
   const [videoTex, setVideoTex] = useState(null);
   useEffect(() => {
-    const video = document.createElement('video');
-    video.src = '/ship-interior.mp4';
-    video.muted = true;
-    video.loop = true;
-    video.playsInline = true;
-    video.crossOrigin = 'anonymous';
     let dead = false;
-    const onReady = () => {
-      if (dead) return;
-      video.play().then(() => {
-        const t = new THREE.VideoTexture(video);
-        t.colorSpace = THREE.SRGBColorSpace;
-        setVideoTex(t);
-      }).catch(() => { /* autoplay refused — still image stands */ });
-    };
-    video.addEventListener('canplaythrough', onReady, { once: true });
-    video.addEventListener('error', () => { /* no video shipped — still image stands */ }, { once: true });
-    video.load();
-    return () => { dead = true; video.pause(); video.removeAttribute('src'); video.load(); };
+    let video = null;
+    // HEAD-probe first, memoized per session: the browser logs a 404 for any
+    // request to the missing file, so ask once per session instead of on
+    // every ship visit, and only wire the video up when a loop is shipped.
+    try { if (sessionStorage.getItem('vantus_ship_video_absent') === '1') return; } catch { /* probe anyway */ }
+    fetch('/ship-interior.mp4', { method: 'HEAD' }).then(res => {
+      if (!res.ok) { try { sessionStorage.setItem('vantus_ship_video_absent', '1'); } catch {} }
+      if (dead || !res.ok) return; // no video shipped — still image stands
+      video = document.createElement('video');
+      video.src = '/ship-interior.mp4';
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.crossOrigin = 'anonymous';
+      const onReady = () => {
+        if (dead) return;
+        video.play().then(() => {
+          const t = new THREE.VideoTexture(video);
+          t.colorSpace = THREE.SRGBColorSpace;
+          setVideoTex(t);
+        }).catch(() => { /* autoplay refused — still image stands */ });
+      };
+      video.addEventListener('canplaythrough', onReady, { once: true });
+      video.load();
+    }).catch(() => { /* offline — still image stands */ });
+    return () => { dead = true; if (video) { video.pause(); video.removeAttribute('src'); video.load(); } };
   }, []);
   return (
     <mesh position={[0, 0, 0]}>

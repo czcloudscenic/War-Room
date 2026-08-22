@@ -14,7 +14,7 @@ export const NAV = [
   ]},
   { id:"g-work", label:"Work", items:[
     { id:"operations", label:"Operations" },
-    { id:"ledger", label:"Ledger" },
+    { id:"ledger", label:"Deliverables" },  // spec §9: call it what it is
     { id:"reports", label:"Reports" },
     { id:"scope", label:"Scope Sentinel" },
   ]},
