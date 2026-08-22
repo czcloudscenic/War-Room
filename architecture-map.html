@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vantus — Architecture Map (2026-08-21)</title>
+<title>Vantus — Architecture Map (2026-08-22)</title>
 <style>
 :root{
   --bg:#0F0F0F; --panel:#161616; --panel-2:#1c1c1c; --border:#2a2a2a;
@@ -53,7 +53,7 @@ svg{position:absolute;top:0;left:0}
 </head>
 <body>
 <header>
-  <div><h1>VANTUS — Architecture Map</h1><div class="sub">snapshot 2026-08-21 · React 19 + Vite · Netlify Functions · Supabase · usevantus.com</div></div>
+  <div><h1>VANTUS — Architecture Map</h1><div class="sub">snapshot 2026-08-22 · React 19 + Vite · Netlify Functions · Supabase · usevantus.com</div></div>
   <div id="chips"></div>
   <div id="zoomctl"><button id="zfit">Fit</button><button id="zin">+</button><button id="zout">−</button></div>
 </header>
@@ -65,7 +65,7 @@ svg{position:absolute;top:0;left:0}
 /* ───────────────────────── DATA ───────────────────────── */
 const clusters = [
   { id:'client', label:'CLIENT SHELL',      x:20,   y:20, w:300, h:1160 },
-  { id:'routes', label:'ROUTES (UI)',       x:360,  y:20, w:300, h:1900 },
+  { id:'routes', label:'ROUTES (UI)',       x:360,  y:20, w:300, h:1980 },
   { id:'core',   label:'CORE LOGIC',        x:700,  y:20, w:300, h:1160 },
   { id:'fns',    label:'SERVERLESS (NETLIFY)', x:1040, y:20, w:300, h:1900 },
   { id:'data',   label:'DATA (SUPABASE)',   x:1400, y:20, w:300, h:1300 },
@@ -83,11 +83,17 @@ N('index-html','client','index.html','entry + CSP',40,70,260,74,'client',{
   path:'index.html:11',
   notes:['line 11: accounts.google.com/gsi/client (Google sign-in)','preconnects to fonts.gstatic + Supabase (8/21 boot fix)','CSP at netlify.toml:249 — no inline scripts allowed'],
   tag:['overview','auth','all']}),
-N('app-boot','client','App.jsx','boot · auth · session',40,170,260,92,'client',{
-  role:'Single app shell (1,622 lines): boot spinner, setupSession health check, role detection, realtime, all route mounts.',
-  plain:'The heart of the front end. It signs you in, checks your session is still valid, figures out if you are staff or a client, and decides which page to show.',
-  path:'src/App.jsx:129',
-  notes:['setupSession health check raced at 3s (8/21 fix for the 15-40s spinner)','stuckGuard drops spinner at 8s if getSession stalls (line 316)','profiles.role can DOWNGRADE an admin email to "agency"','content fetch no longer blocks first paint'],
+N('app-boot','client','App.jsx','shell (1,324 lines, shrinking)',40,170,260,92,'client',{
+  role:'App shell: render gates + the Vantus layout, realtime, route mounts. Auth extracted to useAuthSession 8/22 (slice A); slices B/C (route table, data loaders) remain.',
+  plain:'The main frame of the front end. The sign-in machinery moved into its own module; what is left decides which page to show and keeps data live.',
+  path:'src/App.jsx',
+  notes:['1,640 -> 1,324 lines after slice A (8/22)','remaining slices: route-mount table, realtime/data loaders','still no full UI test coverage - decompose one slice per session'],
+  tag:['overview','auth','all'], critical:true}),
+N('auth-hook','client','useAuthSession.js','the auth machine · NEW 8/22',40,590,260,84,'client',{
+  role:'Extracted boot/auth: getSession + stuckGuard 8s, 3s-raced health check, admin vs client role resolution, pending-invite realtime, scoped preload, sign-out.',
+  plain:'Everything about signing in and proving who you are, now in one focused file. Verified with a fresh login the day it moved.',
+  path:'src/core/useAuthSession.js',
+  notes:['timeout on the health check = proceed with stored session','only an explicit server rejection on getUser AND refresh signs out','exports ADMIN_EMAILS + activeContentCutoff for the shell'],
   tag:['overview','auth','all'], critical:true}),
 N('nav','client','constants.js','8-group NAV',40,290,260,64,'client',{
   role:'Grouped sidebar nav (Danny-confirmed 8 destinations) + NOTIF_META map for bell/digest rendering.',
@@ -109,8 +115,8 @@ N('portal','client','ClientPortal.jsx','external client view',40,474,260,74,'cli
   tag:['approvals','auth','all']}),
 
 /* ROUTES */
-N('dashboard','routes','DashboardRoute','activation + command',380,70,260,84,'route',{
-  role:'ActivationBoard (red until Danny\'s data entry lands) + CommandView tiers + NotificationDigest.',
+N('dashboard','routes','DashboardRoute','activation + command + bottlenecks',380,70,260,84,'route',{
+  role:'ActivationBoard (red until Danny\'s data entry lands) + CommandView tiers + NotificationDigest + BottleneckPanel (§3.C.2, added 8/22).',
   plain:'The home screen. Deliberately shows everything red until the founder enters real client data — that is the checklist working, not a bug.',
   path:'src/ui/dashboard/ActivationBoard.jsx',
   notes:['activation score from real columns only (core/activation.js)','CommandView tiers: critical / requires-you / due today / blocked'],
@@ -158,11 +164,23 @@ N('billing-route','routes','BillingRoute','invoices',380,814,260,64,'route',{
   notes:['create-path never proven with a real invoice','MRR headline from active retainers'],
   tag:['billing','all']}),
 N('clients-setup','routes','ClientsRoute + SetupRoute','CRM + data entry',380,906,260,84,'route',{
-  role:'Client grid (Open button routes to dashboard — the confirmed Phase C bug) + the Setup data-entry cockpit.',
-  plain:'The client list and the page where all client configuration gets typed in. The "Open" button on a client card currently just goes to the dashboard — the real per-client workspace is the next big build.',
-  path:'src/App.jsx:1501',
-  notes:['line 1501: onOpen = switchClient + setActiveNav("dashboard")','Phase C = build the client workspace shell that fixes this'],
+  role:'Client grid — Open now lands on the client WORKSPACE (bug fixed 8/22) — plus the Setup cockpit (its fields fold into the workspace over time, spec §9).',
+  plain:'The client list. Opening a client now takes you to that client\'s full workspace. Setup still works in parallel while its fields migrate over.',
+  path:'src/ui/routes/ClientsRoute.jsx:174',
+  notes:['onOpen -> switchClient + workspace (Phase C fix, verified live 8/22)','Setup retires into the workspace per the consolidation map'],
   tag:['overview','all']}),
+N('workspace','routes','ClientWorkspaceRoute','client workspace · NEW 8/22',380,1760,260,92,'route',{
+  role:'THE Phase C centerpiece: 8 tabs — Overview (health strip), Deliverables, Scope & Rates (+confirm flag), Facts, Rights (E.3 clock), Decisions, Portal & Access, Activity.',
+  plain:'One page per client with everything on it: health at a glance, what is owed, the contract terms, the facts, expiring licenses, decision history, who can log in, and the full activity trail.',
+  path:'src/ui/routes/ClientWorkspaceRoute.jsx',
+  notes:['reuses ClientTeamPanel + DecisionLogRoute wholesale','Scope tab feature-detects approval_mode_confirmed (migrated 8/22)','Rights tab: add/badge/delete round-trip verified on prod'],
+  tag:['overview','economics','all'], critical:true}),
+N('calendar-route','routes','CalendarRoute','content calendar · NEW 8/22',380,1880,260,74,'route',{
+  role:'All-client month grid (§3.C.5 calendar leg): items land on posted_at (solid dot, real) or publish_date (hollow, plan); chips deep-link to the Ledger.',
+  plain:'One calendar for the whole client book. Solid dots are things that really posted; hollow dots are the plan.',
+  path:'src/ui/routes/CalendarRoute.jsx',
+  notes:['honest-empty until items carry dates','Sprout truth pull is later wiring'],
+  tag:['content','all']}),
 N('contentintel','routes','ContentIntelRoute','IG performance intel',380,1018,260,74,'route',{
   role:'Per-client send/save rates vs benchmarks, Run analysis / Generate ideas, idea Approve/Kill taste loop.',
   plain:'Reads each client\'s real Instagram numbers, compares them to the bars to beat, and drafts content ideas from what actually performed.',
@@ -231,6 +249,12 @@ N('audit-core','core','audit.js','audit writer',720,376,260,64,'core',{
   path:'src/core/audit.js',
   notes:['hooked into content saves, Setup, Facts, vault, markPosted'],
   tag:['overview','all']}),
+N('health-core','core','clientHealth.js','health + bottlenecks + rights · NEW 8/22',720,690,260,92,'core',{
+  role:'Pure judgments: 6 explainable per-client health factors, bottlenecks() (internal gate aging, facts gaps, ownership risk), rightsState() expiry math. 26-test harness covers it.',
+  plain:'The math that says how each client is doing and what is stuck on a human — every judgment names its reason, nothing is a black box.',
+  path:'src/core/clientHealth.js',
+  notes:['reuses runway.mjs severity + truth.js freshness — no re-derivation','tests/core.test.mjs runs via npm test (rolldown bundle -> node)'],
+  tag:['overview','economics','all']}),
 N('activation-core','core','activation.js + commandDigest.js','honest math',720,468,260,74,'core',{
   role:'11 per-client activation checks from real columns; commandDigest tiers the book into critical/requires-you/due/blocked.',
   plain:'The math behind the red dashboard: what is genuinely missing per client, and what needs the founder today.',
@@ -349,11 +373,11 @@ N('intel-tables','data','account_posts + content_analysis','performance data',14
   path:'supabase/migrations/20260813_content_analysis.sql',
   notes:['account_posts keys to clients via connected_accounts, not directly','content_analysis.account_post_id is BIGINT (guide assumed uuid — fixed)'],
   tag:['intel','all']}),
-N('econ-tables','data','scope_requests + client_costs + vault_secrets','Phase D tables · NEW 8/21',1420,566,260,92,'db',{
-  role:'scope_requests (7-class check constraint) + client_costs (hard costs) + vault_secrets (RLS zero-policy) + invoices.',
-  plain:'The money tables added today: classified scope asks, real out-of-pocket costs, encrypted credentials, and invoices.',
+N('econ-tables','data','scope_requests + costs + secrets + rights','economics tables (8/21-22)',1420,566,260,92,'db',{
+  role:'scope_requests (7-class) + client_costs + vault_secrets (RLS zero-policy) + asset_rights (E.3, migrated 8/22) + invoices; clients grew approval_mode_confirmed.',
+  plain:'The money-and-rights shelf: classified scope asks, real costs, encrypted credentials, expiring licenses, invoices.',
   path:'supabase/migrations/20260821_phase_d.sql',
-  notes:['vault_secrets: RLS on, zero policies — browser physically blocked','confirmed absorbed rows = the absorbed-value register'],
+  notes:['vault_secrets: zero policies — browser physically blocked','confirmed absorbed rows = the absorbed-value register','asset_rights + approval_mode_confirmed applied 8/22'],
   tag:['economics','billing','all']}),
 N('ops-tables','data','tasks + notifications + agent_events','operations data',1420,688,260,92,'db',{
   role:'tasks board rows, notifications (dedupe_key unique), agent_events receipts, skill_briefs, intake_requests, stuck_alert_state.',
@@ -494,6 +518,14 @@ const edges = [
   { from:'dashboard', to:'activation-core', kind:'normal', label:'checks + tiers', tag:['overview','all'] },
   { from:'analytics-routes', to:'content-tables', kind:'db', label:'90d windows', tag:['intel','all'] },
   { from:'clients-setup', to:'clients-tables', kind:'db', label:'setup writes', tag:['overview','all'] },
+  { from:'clients-setup', to:'workspace', kind:'critical', label:'Open (Phase C fix)', tag:['overview','all'] },
+  { from:'workspace', to:'health-core', kind:'normal', label:'clientHealth()', tag:['overview','all'] },
+  { from:'workspace', to:'econ-tables', kind:'db', label:'asset_rights CRUD', tag:['economics','all'] },
+  { from:'workspace', to:'clients-tables', kind:'db', label:'scope patches + flag', tag:['overview','all'] },
+  { from:'dashboard', to:'health-core', kind:'normal', label:'bottlenecks()', tag:['overview','all'] },
+  { from:'calendar-route', to:'content-tables', kind:'db', label:'dated items', tag:['content','all'] },
+  { from:'index-html', to:'auth-hook', kind:'mount', label:'boot', tag:['auth','all'] },
+  { from:'auth-hook', to:'clients-tables', kind:'db', label:'role + preload', tag:['auth','all'] },
   { from:'settings-apps', to:'truth-tables', kind:'db', label:'facts + backups', tag:['overview','all'] },
   { from:'pipeline', to:'audit-core', kind:'normal', label:'auditDiff', tag:['content','all'] },
   { from:'audit-core', to:'truth-tables', kind:'db', label:'audit rows', tag:['overview','all'] },
@@ -507,23 +539,25 @@ const FIXES = {
   'stripe': [{n:2, t:'Prove Stripe: run the key-validity curl, register the webhook endpoint, send the controlled $1 invoice'}],
   'billing-stripe-fn': [{n:2, t:'Create-path never proven — $1 invoice test after key validation'}],
   'google': [{n:3, t:'Add usevantus.com (+ netlify draft URL) to OAuth client 844741925554 JS origins — fixes Drive upload'}, {n:4, t:'Flip Gemini billing in AI Studio — clears 429s on the VL generators'}],
-  'clients-setup': [{n:5, t:'Phase C: build the client workspace shell (fixes the Open button routing to dashboard) — GATED on Danny\'s veto pass'}],
+  'workspace': [{n:5, t:'#5b remainder: WORK board depth, Growth v1 (needs site-Supabase creds), Sprout wiring; workspace shell itself SHIPPED 8/22'}],
   'dashboard': [{n:6, t:'Send the Danny recap email (drafted 8/21) — his data entry turns the activation board green'}],
   'ship-core': [{n:7, t:'Finish Muse/Scrappy/Slate GLBs (recipe proven; gated on Higgsfield billing) + consider draco compression at 8×9MB'}],
-  'app-boot': [{n:8, t:'Decompose App.jsx (1,622 lines, all app state) + add a test suite — the repo\'s biggest structural debt'}],
+  'app-boot': [{n:8, t:'Slices B (route-mount table) + C (realtime/data loaders) — slice A (auth) done 8/22; one slice per session, verify, ship'}],
   'dead-ship': [{n:10, t:'Decide ShipWorld3D art pass or retire the 5 parked modules; delete "ripped out features/analytics-page" once ported'}],
-  'crons': [{n:11, t:'Wire a platform_post_id writer (Phase C Sprout/schedule integration) so verify-publishes auto-verify goes live'}],
+  'crons': [{n:11, t:'Wire a platform_post_id writer (Sprout/schedule integration) so verify-publishes auto-verify goes live'}],
+  'scope-route': [{n:12, t:'Manual classification fallback so the register works while AI credits are out (classify-later queue)'}],
 };
 const KNOWN_BUGS = {
-  'anthropic': [{sev:'high', ref:'_shared.js:161', t:'API credit balance is $0 — every AI action (QC, Muse, Scrappy, Intel, Sentinel, AI Assign) returns a 400 until topped up (observed 8/21)'}],
+  'anthropic': [{sev:'high', ref:'_shared.js:161', t:'API credit balance is $0 — every AI action (QC, Muse, Scrappy, Intel, Sentinel, AI Assign, chat) errors until topped up (observed 8/21, top-up deferred 8/22)'}],
+  'scope-route': [{sev:'low', ref:'src/ui/routes/ScopeRoute.jsx', t:'Requests can ONLY enter via the AI classify button — with credits out, the absorbed-value register is unusable until a manual-entry fallback ships (Fix #12)'}],
   'google': [{sev:'med', ref:'index.html:11', t:'usevantus.com never registered as an authorized JS origin → Drive upload has never worked in prod (origin_mismatch)'}, {sev:'low', ref:'VANTUS_TODO.md:25', t:'Gemini billing unflipped → VL generators 429 (quota)'}],
   'stripe': [{sev:'med', ref:'billing-stripe.js:22', t:'STRIPE_SECRET_KEY + WEBHOOK_SECRET are set-as-secrets but unproven; flagged malformed 7/12 and never validated since'}],
   'notify-fn': [{sev:'med', ref:'notify.js:304', t:'Email is ARMED with no dry-run net — approval links and reports really deliver; first client-facing send should be deliberate'}],
-  'app-boot': [{sev:'med', ref:'App.jsx:129', t:'1,622-line monolith holding all app state, no test suite — every feature rides through it (structural risk, not a defect)'}],
+  'app-boot': [{sev:'med', ref:'src/App.jsx', t:'Still 1,324 lines mid-decomposition; only pure-core logic has tests (26) — UI regressions rely on manual/Playwright passes'}],
   'crons': [{sev:'low', ref:'verify-publishes.js:13', t:'platform_post_id has no writer — the auto-verify join is built but inert until Sprout wiring lands'}],
   'intel-handler': [{sev:'low', ref:'intel.js:52', t:'follow_rate + hook_hold permanently null (IG API does not expose them) — by design, but easy to misread as a bug'}],
   'dead-ship': [{sev:'low', ref:'ShipRoute.jsx:120', t:'5 parked ship modules + 2 archive folders in-repo — deliberate, but they inflate the mental map'}],
-  'clients-setup': [{sev:'med', ref:'App.jsx:1501', t:'Open button on a client card switches tenant + goes to dashboard instead of a client workspace (Danny-confirmed; the workspace is Phase C)'}],
+
 };
 
 /* ───────────────────────── RENDER ───────────────────────── */
@@ -650,14 +684,15 @@ function showDefault(){
     <div class="plain">Vantus runs Cloud Scenic's client delivery end to end: content pipeline with real approval receipts, AI agents with paper trails, billing, and the truth layer that proves what was approved and what actually published.</div>
     <div class="sec">Notable findings from this map</div>
     <ul>
-      <li class="bugitem-high"><b>All AI is down right now:</b> the Anthropic account's credit balance is $0 (observed 8/21). One top-up un-gates QC, Muse, Scrappy, Intel, Sentinel and AI Assign at once.</li>
-      <li class="bugitem-med"><b>Email is ARMED:</b> proven live 8/21 — approval links and reports really deliver now. There is no dry-run net anymore.</li>
-      <li class="bugitem-med"><b>Stripe is installed but unproven:</b> keys sit in prod since ~July, never validated; the invoice create-path has never made a real invoice.</li>
+      <li class="bugitem-high"><b>All AI is furloughed:</b> the Anthropic credit balance is $0 (top-up deferred 8/22). QC, Muse, Scrappy, Intel, Sentinel, AI Assign and chat all error; everything human-driven runs fine.</li>
+      <li class="fixitem"><b>Shipped 8/22 under "Make Vantus work":</b> client WORKSPACE (Open-button bug dead, 8 tabs), health factors + bottleneck panel, content calendar, rights clock, approval-confirmed flag (both migrations applied) — all browser-verified on prod.</li>
+      <li class="fixitem"><b>Debug sweep 8/22:</b> npm vulnerabilities 3→0 (dead pdfjs-dist removed), 26-test harness green, archived-client test data purged from live queues, boot verified fast.</li>
+      <li class="bugitem-med"><b>Email is ARMED:</b> proven live 8/21 — approval links and reports really deliver. No dry-run net.</li>
+      <li class="bugitem-med"><b>Stripe installed but unproven:</b> keys in prod since ~July, never validated; no real invoice ever made.</li>
       <li class="bugitem-med"><b>Drive upload never worked in prod:</b> Google was never told usevantus.com is an allowed origin (one console field).</li>
-      <li><b>Dead/parked code located:</b> ShipWorld3D + 4 renderer modules unmounted (deliberate), plus "ripped out features/" and "(experimental)/" archive folders.</li>
-      <li><b>Hot path:</b> everything rides App.jsx (1,622 lines, all app state, no tests) and the agent-action dispatcher — the two files to be most careful in.</li>
-      <li><b>Two mirrored writers:</b> approvals logic exists twice on purpose (browser recordApproval + server executeDecision) — they must change together.</li>
-      <li><b>Inert-by-design:</b> verify-publishes' auto-verify join is built but has no platform_post_id writer until Sprout wiring (Phase C).</li>
+      <li><b>Decomposition underway:</b> App.jsx 1,640 → 1,324 (auth extracted + login-verified 8/22); slices B/C remain. Agent-action dispatcher stays the other hot path.</li>
+      <li><b>Two mirrored writers:</b> approvals logic exists twice on purpose (browser recordApproval + server executeDecision) — change together.</li>
+      <li><b>Inert-by-design:</b> verify-publishes' auto-verify has no platform_post_id writer until Sprout wiring; Scope Sentinel intake is AI-only until Fix #12's manual fallback.</li>
     </ul>
     <div class="sec">Open items</div>
     <ul><li>${bugCount} known bugs · ${fixCount} numbered fixes — see the <b>Bugs &amp; Roadmap</b> chip and docs/architecture-map/open-items.md</li></ul>
