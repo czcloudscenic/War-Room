@@ -77,6 +77,7 @@ const SoftwareOpsRoute = React.lazy(() => import('./ui/routes/SoftwareOpsRoute.j
 const ScopeRoute = React.lazy(() => import('./ui/routes/ScopeRoute.jsx'));
 const ProfitabilityRoute = React.lazy(() => import('./ui/routes/ProfitabilityRoute.jsx'));
 const ClientWorkspaceRoute = React.lazy(() => import('./ui/routes/ClientWorkspaceRoute.jsx'));
+const CalendarRoute = React.lazy(() => import('./ui/routes/CalendarRoute.jsx'));
 
 // Warm the lazy route chunks in the background after first paint so navigating
 // between pages is instant (no per-click chunk fetch + Suspense flash). Keeps the
@@ -1215,6 +1216,11 @@ try {
 
     {activeNav === "reports" && (
       <ReportsRoute isMobile={isMobile} clients={clients} />
+    )}
+
+    {/* CONTENT CALENDAR (Phase C §3.C.5) — all clients, one month grid */}
+    {activeNav === "calendar" && (
+      <CalendarRoute isMobile={isMobile} clients={clients} content={content} setActiveNav={setActiveNav} />
     )}
 
     {activeNav === "runway" && (
