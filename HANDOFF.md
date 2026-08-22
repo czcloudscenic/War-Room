@@ -1,5 +1,17 @@
 # Vantus Handoff Brief
 
+## 2026-08-22 (later) — Goal session wave 2: auth decomposed, calendar + rights clock shipped. 26 tests green.
+
+Continuation of the "Make Vantus work" goal after credits were deferred. Everything below deployed + Playwright-verified on prod same session:
+
+1. **Decomposition slice A:** the entire auth machine moved to `src/core/useAuthSession.js` (App.jsx 1,640 → 1,324 lines). Behavior-preserving: setupSession, stuckGuard, raced health check, pending-invite realtime, sign-out, + ADMIN_EMAILS/activeContentCutoff (re-exported; Vantus isOpsAdmin + realtime reload consume them). Verified with a FRESH magic-link login through the extracted hook. Slices B/C (route-mount table, realtime/data loaders) deliberately deferred — do one slice per session, verify, ship.
+2. **Content calendar (§3.C.5 calendar leg):** `CalendarRoute.jsx`, nav `calendar` under Content. All clients on one Monday-start month grid; items land on posted_at (solid dot) or publish_date (hollow); day chips deep-link to Ledger. Honest-empty today because the book has no dated items. Sprout truth pull stays future wiring.
+3. **Rights clock (Phase E.3):** migration `20260822_rights_clock.sql` (asset_rights, admin RLS) STAGED in TextEdit — NOT yet applied; the workspace Rights tab feature-detects and names the SQL until then. `rightsState()` pure math in clientHealth.js (expired / due-inside-lead / ok, per-right lead_days).
+4. **Tests now 26** (rights math added; also fixed a self-inflicted bug where appended tests sat after process.exit and never ran — the harness's honesty matters most).
+5. Also this wave, earlier: TEST-QC item scrapped (archived-client leftovers swept), mp4 probe silenced, Ledger nav label → "Deliverables" (spec §9), npm vulnerabilities 3→0 (dead pdfjs-dist removed).
+
+**Board after the goal session:** everything buildable without credits/keys/Danny/Higgsfield is BUILT and verified. Open gates unchanged: Anthropic credits (Christian, "in a while") → sentinel re-verify; rights migration paste (TextEdit, whenever); Stripe/Google/Gemini console items; Danny data entry + skill-briefs file; crew GLBs; site-Supabase creds for Growth v1; App.jsx slices B/C next code session.
+
 ## 2026-08-22 — "MAKE VANTUS WORK": Phase C workspace SHIPPED + full debug sweep. Goal session under Danny's one-line delegation.
 
 **Danny's entire reply to the recap ask: "Make Vantus work" (screenshot 8/22).** Read as delegation: the 3 estimate decisions decided ourselves (rule-based approvals stand; confirmed-flag BUILT; AI rationale skipped), veto pass treated as cleared (his own frozen spec, no objections). Christian set a /goal: complete + debug everything reachable, credits top-up after.

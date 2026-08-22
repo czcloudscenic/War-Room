@@ -3,7 +3,7 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-08-22 (evening) · **Total open:** 7 bugs + 9 fixes
+**Snapshot:** 2026-08-22 (night) · **Total open:** 6 bugs + 8 fixes
 
 ```
 🔴 High:   1    │   ✅ Done 8/22:  client workspace SHIPPED (Open-button bug dead) ·
@@ -38,8 +38,8 @@
   Google's OAuth client was never told usevantus.com is allowed. One console field; a few minutes to propagate.
   → Touches: Google Cloud Console · Fix #3
 
-- [ ] **src/App.jsx:129 — 1,622-line monolith, no tests**
-  All app state and auth in one file; the boot bug lived here for weeks unseen. Decompose in slices + add boot/approval smoke tests.
+- [ ] **src/App.jsx — decomposition in progress (1,640 → 1,324)**
+  Slice A DONE 8/22: auth extracted to `core/useAuthSession.js`, fresh-login verified on prod; 26-test harness green. Remaining slices: B (route-mount table), C (realtime/data loaders) — one per session, verify, ship.
   → Touches: `src/App.jsx`, new modules · Fix #8
 
 ---
@@ -70,10 +70,10 @@ Cross-references map node badges + the items above.
 - [ ] **#2** — Prove Stripe (key curl → webhook registration → $1 invoice) → `billing-stripe.js`, Stripe dashboard
 - [ ] **#3** — Add usevantus.com to Google OAuth JS origins → Google console
 - [ ] **#4** — Flip Gemini billing → AI Studio (deferred)
-- [x] **#5a** — Client workspace shell SHIPPED 8/22 (Open-button fix verified live). Remaining #5b: content merge calendar, WORK board intake, Growth v1 (v1 needs site-Supabase creds)
+- [x] **#5a** — Client workspace shell SHIPPED 8/22 (Open-button fix verified live). #5b progress 8/22: content CALENDAR shipped; intake→task promote already existed (7/29 pack); Growth v1 still needs site-Supabase creds; rights clock (E.3) shipped behind its staged migration
 - [ ] **#6** — Send Danny recap email; his data entry greens the activation board → draft ready
 - [ ] **#7** — Finish Muse/Scrappy/Slate GLBs → `public/crew/`, `crewGLB.js` (GATED: Higgsfield billing)
-- [ ] **#8** — Decompose App.jsx + smoke tests → `src/App.jsx`
+- [ ] **#8** — Decompose App.jsx: slice A (auth) DONE 8/22; slices B/C remain → `src/App.jsx`
 - [ ] **#9** — Optional: ai() default opus-5 → sonnet if spend runs hot → `_shared.js:161`
 - [ ] **#10** — Retire or revive parked ship stack + archive folders → `src/ui/ship/`, `src/ship/`
 - [ ] **#11** — platform_post_id writer (with Sprout wiring) → scheduling path, `verify-publishes.js:77`
