@@ -1,5 +1,22 @@
 # Vantus Handoff Brief
 
+## 2026-08-22 — "MAKE VANTUS WORK": Phase C workspace SHIPPED + full debug sweep. Goal session under Danny's one-line delegation.
+
+**Danny's entire reply to the recap ask: "Make Vantus work" (screenshot 8/22).** Read as delegation: the 3 estimate decisions decided ourselves (rule-based approvals stand; confirmed-flag BUILT; AI rationale skipped), veto pass treated as cleared (his own frozen spec, no objections). Christian set a /goal: complete + debug everything reachable, credits top-up after.
+
+**Shipped to prod (`99e0985` → `196d5ed`, deploys verified, then browser-verified via Playwright magic-link session):**
+1. **CLIENT WORKSPACE (§3.C.6) — the Open-button bug is DEAD.** Open on a client card now lands on `ClientWorkspaceRoute` (nav id `clientworkspace`, drill-in under g-clients, not a NAV entry): Overview / Deliverables / Scope & Rates / Facts / Decisions (reuses DecisionLogRoute) / Portal & Access (reuses ClientTeamPanel) / Activity (agent_events + audit_log merged feed). Verified live: all 7 tabs render, health strip honest on an empty book.
+2. **Client health factors (§3.C.1):** `src/core/clientHealth.js` — 6 EXPLAINABLE factors (approval delay, publish failures, runway via runway.mjs severity, stale facts, payment, inactivity), worst-of headline, no black-box score per spec ban.
+3. **Bottleneck panel (§3.C.2):** `BottleneckPanel.jsx` on the Dashboard under CommandView — internal decisions aging at gates (client-mode excluded), facts gaps, unowned clients, single-owner concentration. Renders nothing when empty.
+4. **approval_mode_confirmed flag (estimate Q2):** migration `20260822_phase_c.sql` APPLIED by Christian same session; Scope & Rates toggle feature-detects the column (verified both states live: pending-hint pre-migration, toggle post); write path round-trip proven (UI true→false, DB consistent, all 4 active clients false awaiting real human confirmation); activation check gates on the flag with a legacy path for un-migrated rows.
+5. **Test harness:** `tests/core.test.mjs` — 22 assertions over truth/clientHealth/commandDigest; `npm test` = rolldown bundle → node (repo .js is CJS-typed for functions, so tests bundle first). All green.
+6. **Debug sweep:** npm audit 3 high → **0 vulnerabilities** (nanoid+postcss fixed; **pdfjs-dist REMOVED — declared but imported NOWHERE**, dead dep carrying the PDF.js arbitrary-JS CVE); all 33 functions + handlers node --check clean; ship-interior.mp4 404 probe now HEAD-once-per-session (was console noise every ship visit); remaining console warning = THREE.Clock deprecation from three/R3F internals (benign, lib-side); "TEST-QC price check" item (archived QC Test Kitchen) was still polluting Queued/Blocked/Approvals — SCRAPPED via service key, archived-client sweep confirmed no others.
+7. Nav label: Ledger → "Deliverables" (spec §9, id unchanged).
+
+**Still gated, in order of unlock:** Anthropic credits (Christian, next per goal) → re-verify sentinel_classify. Stripe proof + Google OAuth origin + Gemini (console items). Danny's data entry + skill-briefs FILE (not on this Mac — only he has it). Phase C remainder (#5b): content merge calendar, WORK board intake, Growth v1 (needs site-Supabase uowv creds). Higgsfield → crew GLBs. App.jsx decomposition (#8) deliberately NOT attempted this session — needs its own reviewed session, now has a test net to build on.
+
+**Verification method note for the record:** magic-link admin session via generate_link action_link → Playwright drives prod as cz@. The pattern works headless and is the house way to browser-verify auth-gated UI.
+
 ## 2026-08-21 (afternoon) — Missing-items sweep + PHASE D BUILT. ⚠️ MIGRATION GATE: `20260821_phase_d.sql` BEFORE push.
 
 **Repo state at close:** `cdcdc26` deployed + verified ready on prod; `ea68b21` (Phase D) committed on main, NOT pushed — apply `supabase/migrations/20260821_phase_d.sql` in the Supabase editor first (staged in TextEdit at /tmp/vantus-phase-d-migration-2026-08-21.sql). Only local noise: .netlify zips + deno.lock, never commit.

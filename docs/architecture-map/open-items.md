@@ -3,12 +3,13 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-08-21 · **Total open:** 9 bugs + 11 fixes = 20 items
+**Snapshot:** 2026-08-22 (evening) · **Total open:** 7 bugs + 9 fixes
 
 ```
-🔴 High:   1    │   ✅ Done today:  Phase D shipped · prod cleanup · email proven · boot fix
-🟡 Med:    5    │
-🟢 Low:    3    │   📋 Fixes:  11
+🔴 High:   1    │   ✅ Done 8/22:  client workspace SHIPPED (Open-button bug dead) ·
+🟡 Med:    3    │      health factors + bottleneck panel · approval-confirmed flag LIVE ·
+🟢 Low:    3    │      0 npm vulns (dead pdfjs-dist removed) · test harness (22 checks) ·
+                │      TEST-QC item scrapped · mp4 404 probe silenced
 ```
 
 ---
@@ -23,9 +24,7 @@
 
 ## 🟡 MED — fix when planning next refactor
 
-- [ ] **src/App.jsx:1501 — Open button routes to dashboard, not a client workspace**
-  The flagship "open a client, see everything" flow doesn't exist; Open just switches tenant and shows the dashboard. The fix IS the Phase C workspace shell — gated on Danny's veto pass.
-  → Touches: `src/App.jsx`, new workspace route, Setup redistribution · Fix #5
+- [x] ~~Open button routes to dashboard~~ **FIXED 8/22**: ClientWorkspaceRoute shipped (7 tabs, health factors, confirm flag) under Danny's "Make Vantus work" delegation; verified in a real browser on prod. Remaining Phase C scope (content merge calendar, WORK board, Growth v1) tracked under Fix #5.
 
 - [ ] **netlify/functions/billing-stripe.js:22 — Stripe keys set but never validated**
   Flagged malformed 7/12, untested since. First real invoice may error; webhook may reject signatures. One curl + a $1 proof invoice settles it.
@@ -71,7 +70,7 @@ Cross-references map node badges + the items above.
 - [ ] **#2** — Prove Stripe (key curl → webhook registration → $1 invoice) → `billing-stripe.js`, Stripe dashboard
 - [ ] **#3** — Add usevantus.com to Google OAuth JS origins → Google console
 - [ ] **#4** — Flip Gemini billing → AI Studio (deferred)
-- [ ] **#5** — Phase C client workspace shell (fixes Open button) → `App.jsx:1501` + new routes (GATED: Danny vetoes)
+- [x] **#5a** — Client workspace shell SHIPPED 8/22 (Open-button fix verified live). Remaining #5b: content merge calendar, WORK board intake, Growth v1 (v1 needs site-Supabase creds)
 - [ ] **#6** — Send Danny recap email; his data entry greens the activation board → draft ready
 - [ ] **#7** — Finish Muse/Scrappy/Slate GLBs → `public/crew/`, `crewGLB.js` (GATED: Higgsfield billing)
 - [ ] **#8** — Decompose App.jsx + smoke tests → `src/App.jsx`
@@ -107,10 +106,10 @@ Setup and Ledger die as destinations (fields fold into workspace widgets; Ledger
 ## Suggested attack order
 
 1. **#1** (2 min, console) — un-gates the entire AI layer AND the last Phase D verification. Nothing else on this list restores more capability per minute.
-2. **#6** (send the email) — starts Danny's clock; his answers un-gate #5, the single biggest remaining build.
+2. **#6** (send the email) — Danny answered "Make Vantus work" 8/22 (delegation); the email's remaining value is his DATA ENTRY list + the skill-briefs file only he has.
 3. **#2 + #3** (one console sitting, ~15 min) — proves Stripe and fixes Drive; after #2, run the $1 invoice while you're in there.
 4. **#8** (next code session) — structural debt; do it BEFORE #5 so the workspace shell lands on a decomposed App.jsx, not on the monolith.
-5. **#5** (when Danny answers) — the big one; also delivers #11's natural home (Sprout wiring).
+5. **#5b** (rest of Phase C: content merge calendar, WORK board, Growth v1) — workspace shell already shipped 8/22; Growth v1 additionally needs the site-Supabase creds.
 6. **#7** (when Higgsfield billing is fixed) — one mechanical session, recipe proven.
 7. **#4, #9, #10** — opportunistic; none block anything.
 
