@@ -62,14 +62,20 @@ const CLIENT_CHECKS = [
   {
     key: 'approval_mode',
     label: 'Approval mode confirmed',
-    fix: 'Client-mode approvals need an approved portal user (Clients → Team panel)',
+    fix: 'Confirm the approval mode in the client workspace (Scope & Rates); client-mode also needs an approved portal user (Clients → Team panel)',
     nav: 'clients',
     critical: true,
     // approval_rule defaults to 'internal' in the DB, so "set" is always true;
     // the honest derivable failure is client-mode with nobody able to approve.
-    ok: ({ client, clientUsers }) =>
-      client.approval_rule !== 'client' ||
-      (clientUsers || []).some(u => u.client_id === client.id && u.status === 'approved'),
+    // Since 20260822_phase_c.sql the explicit approval_mode_confirmed flag also
+    // gates this check (rows fetched pre-migration lack the key — legacy path).
+    ok: ({ client, clientUsers }) => {
+      const capable =
+        client.approval_rule !== 'client' ||
+        (clientUsers || []).some(u => u.client_id === client.id && u.status === 'approved');
+      if (client.approval_mode_confirmed === undefined) return capable; // column not migrated yet
+      return capable && client.approval_mode_confirmed === true;
+    },
   },
   {
     key: 'integrations',

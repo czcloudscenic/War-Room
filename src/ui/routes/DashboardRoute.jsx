@@ -4,6 +4,7 @@ import { bookActivation } from '../../core/activation.js';
 import ActivityFeed from '../dashboard/ActivityFeed.jsx';
 import ActivationBoard, { useActivationData } from '../dashboard/ActivationBoard.jsx';
 import CommandView from '../dashboard/CommandView.jsx';
+import BottleneckPanel from '../dashboard/BottleneckPanel.jsx';
 import CommandInput from '../dashboard/CommandInput.jsx';
 import OpsBoard from '../dashboard/OpsBoard.jsx';
 import AgentAvatar from '../shared/AgentAvatar.jsx';
@@ -22,6 +23,7 @@ export default function DashboardRoute({
   setSelectedAgent,
   clients,
   content,
+  team = [],
   setActiveNav,
 }) {
   // ── Activation state (Phase A) ──
@@ -73,6 +75,10 @@ export default function DashboardRoute({
       {/*  FOUNDER COMMAND VIEW — the daily "what needs attention" tiers.
           Below the activation board while configuring, at the top once live. */}
       <CommandView isMobile={isMobile} clients={clients} content={content} setActiveNav={setActiveNav} />
+
+      {/*  BOTTLENECKS (Phase C §3.C.2) — decisions aging at gates, facts gaps,
+          ownership risk. Renders nothing when there's nothing to show. */}
+      <BottleneckPanel clients={clients} content={content} team={team} setActiveNav={setActiveNav} />
 
       {/*  EMPTY-STATE BANNER — appears for freshly-created clients with no content yet  */}
       {!showActivation && currentClient && clientContent.length === 0 && (

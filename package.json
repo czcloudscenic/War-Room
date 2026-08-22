@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "rolldown tests/core.test.mjs --format esm --file node_modules/.tmp-core-test.mjs > /dev/null 2>&1 && node node_modules/.tmp-core-test.mjs"
   },
   "repository": {
     "type": "git",
@@ -24,7 +24,6 @@
   "dependencies": {
     "@react-three/fiber": "^9.7.0",
     "@supabase/supabase-js": "^2.99.2",
-    "pdfjs-dist": "^5.6.205",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "stripe": "^22.3.0",

@@ -75,6 +75,7 @@ const RunwayRoute = React.lazy(() => import('./ui/routes/RunwayRoute.jsx'));
 const SoftwareOpsRoute = React.lazy(() => import('./ui/routes/SoftwareOpsRoute.jsx'));
 const ScopeRoute = React.lazy(() => import('./ui/routes/ScopeRoute.jsx'));
 const ProfitabilityRoute = React.lazy(() => import('./ui/routes/ProfitabilityRoute.jsx'));
+const ClientWorkspaceRoute = React.lazy(() => import('./ui/routes/ClientWorkspaceRoute.jsx'));
 
 // Warm the lazy route chunks in the background after first paint so navigating
 // between pages is instant (no per-click chunk fetch + Suspense flash). Keeps the
@@ -490,6 +491,7 @@ function Vantus({ onSignOut, userEmail, userId, role, content: contentProp, setC
 
   // ── Multi-tenant: client roster + currently-active client ──
   const [clients, setClients] = useState([]);
+  const [workspaceClientId, setWorkspaceClientId] = useState(null); // Phase C: which client the workspace shows
   const [currentClient, setCurrentClient] = useState(null);  // {id, slug, name, brand_color, ...}
   const [teamMembers, setTeamMembers] = useState([]);        // roster — resolves deliverable owners in the Ledger
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
@@ -1461,6 +1463,7 @@ try {
         setSelectedAgent={setSelectedAgent}
         clients={clients}
         content={content}
+        team={teamMembers}
         setActiveNav={setActiveNav}
       />
     )}
@@ -1498,11 +1501,26 @@ try {
         clients={clients}
         content={content}
         currentClient={currentClient}
-        onOpen={(c) => { switchClient(c); setActiveNav("dashboard"); }}
+        onOpen={(c) => { switchClient(c); setWorkspaceClientId(c.id); setActiveNav("clientworkspace"); }}
         onEdit={(c) => setEditingClient(c)}
         onAdd={() => setAddClientOpen(true)}
       />
     )}
+
+    {/* CLIENT WORKSPACE (Phase C §3.C.6) — Open now lands here, not the dashboard */}
+    {activeNav === "clientworkspace" && workspaceClientId && (() => {
+      const wc = clients.find(x => x.id === workspaceClientId);
+      return wc ? (
+        <ClientWorkspaceRoute
+          client={wc}
+          content={content}
+          isMobile={isMobile}
+          userId={userId}
+          onBack={() => setActiveNav("clients")}
+          setActiveNav={setActiveNav}
+        />
+      ) : null;
+    })()}
 
     {activeNav === "setup" && (
       <SetupRoute isMobile={isMobile} clients={clients} content={content} />

@@ -42,9 +42,11 @@ export const NAV = [
     { id:"settings", label:"Settings" },
   ]},
 ];
-// Group containing a page id (apps' dynamic sub-pages resolve to g-admin).
+// Group containing a page id (apps' dynamic sub-pages resolve to g-admin;
+// the client workspace is a drill-in under Clients, not a NAV entry).
 export const navGroupOf = (pageId) =>
-  (NAV.find(g => g.items.some(i => i.id === pageId)) || { id: "g-admin" }).id;
+  pageId === "clientworkspace" ? "g-clients"
+    : (NAV.find(g => g.items.some(i => i.id === pageId)) || { id: "g-admin" }).id;
 
 // Bell + digest rendering per notification type. Anything not listed falls back
 // to a neutral label. `role` buckets the type for the per-role digest filter
