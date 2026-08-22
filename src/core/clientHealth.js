@@ -128,3 +128,17 @@ export function bottlenecks({ clients = [], content = [], team = [], now = Date.
 
   return { waitingInternal, factsGaps, unowned, concentrated };
 }
+
+// ── Rights clock (Phase E.3) ─────────────────────────────────────────────────
+// Pure judgment for one asset right: expired / due (inside its lead window) /
+// ok. lead_days is per-right because a model release renews differently than
+// a music license.
+export function rightsState(right, now = Date.now()) {
+  const exp = new Date(right.expires_on).getTime();
+  if (Number.isNaN(exp)) return { state: 'ok', daysLeft: null };
+  const daysLeft = Math.ceil((exp - now) / DAY);
+  const lead = Number(right.lead_days) >= 0 ? Number(right.lead_days) : 30;
+  if (daysLeft < 0) return { state: 'expired', daysLeft };
+  if (daysLeft <= lead) return { state: 'due', daysLeft };
+  return { state: 'ok', daysLeft };
+}

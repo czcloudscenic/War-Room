@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
-import { clientHealth } from '../../core/clientHealth.js';
+import { clientHealth, rightsState } from '../../core/clientHealth.js';
 import { factsFreshness } from '../../core/truth.js';
 import { STATUS_COLOR } from '../../utils/constants.js';
 import ClientTeamPanel from '../clients/ClientTeamPanel.jsx';
@@ -26,6 +26,7 @@ const TABS = [
   { id: "deliverables", label: "Deliverables" },
   { id: "scope", label: "Scope & Rates" },
   { id: "facts", label: "Facts" },
+  { id: "rights", label: "Rights" },
   { id: "decisions", label: "Decisions" },
   { id: "portal", label: "Portal & Access" },
   { id: "activity", label: "Activity" },
@@ -185,6 +186,97 @@ function FactsTab({ c, onOpenSettings }) {
   );
 }
 
+
+// Rights clock (Phase E.3): expiry dates on licenses/releases/offers with
+// per-right lead windows. Usage terms become renewal invoices. Table is
+// feature-detected — pre-migration the tab explains what to run.
+function RightsTab({ clientId, isMobile }) {
+  const [rows, setRows] = useState(null);
+  const [missing, setMissing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const [form, setForm] = useState({ label: "", kind: "license", expires_on: "", lead_days: 30, notes: "" });
+
+  const load = useCallback(async () => {
+    const { data, error } = await sb.from("asset_rights").select("*").eq("client_id", clientId).order("expires_on");
+    if (error) { setMissing(/asset_rights/.test(error.message)); setRows([]); if (!/asset_rights/.test(error.message)) setErr(error.message); return; }
+    setMissing(false); setErr(null); setRows(data || []);
+  }, [clientId]);
+  useEffect(() => { load(); }, [load]);
+
+  const add = async (e) => {
+    e.preventDefault();
+    if (!form.label.trim() || !form.expires_on) return;
+    setBusy(true); setErr(null);
+    const { error } = await sb.from("asset_rights").insert({
+      client_id: clientId, label: form.label.trim(), kind: form.kind,
+      expires_on: form.expires_on, lead_days: Number(form.lead_days) || 30,
+      notes: form.notes.trim() || null,
+    });
+    setBusy(false);
+    if (error) { setErr(error.message); return; }
+    setForm(f => ({ ...f, label: "", expires_on: "", notes: "" }));
+    load();
+  };
+  const remove = async (id) => {
+    const { error } = await sb.from("asset_rights").delete().eq("id", id);
+    if (error) { setErr(error.message); return; }
+    load();
+  };
+
+  const STATE_META = {
+    expired: { label: "EXPIRED", color: "#ff453a" },
+    due:     { label: "RENEW SOON", color: "#E5E5EA" },
+    ok:      { label: "OK", color: "#30d158" },
+  };
+
+  return (
+    <div style={{ ...card, padding: 18 }}>
+      <div style={{ ...head, marginBottom: 6 }}>RIGHTS CLOCK — LICENSES, RELEASES, OFFERS</div>
+      <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.45)", lineHeight: 1.5, marginBottom: 12 }}>
+        Every usage right with an expiry date and a lead window. Renewals are invoices waiting to happen — nothing here should ever expire silently.
+      </div>
+      {missing && <div style={{ padding: "10px 14px", borderRadius: 9, background: "rgba(229,229,234,0.06)", border: "1px solid rgba(229,229,234,0.25)", color: "#E5E5EA", fontSize: 12, marginBottom: 10 }}>The asset_rights table isn't in the database yet — run supabase/migrations/20260822_rights_clock.sql in the Supabase SQL editor.</div>}
+      {err && <div style={{ padding: "10px 14px", borderRadius: 9, background: "rgba(255,69,58,0.1)", border: "1px solid rgba(255,69,58,0.35)", color: "#ff8a80", fontSize: 12, marginBottom: 10 }}>{err}</div>}
+
+      {!missing && (
+        <form onSubmit={add} style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+          <input value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} placeholder="What's covered (music license, model release…)" style={{ ...input, flex: "1 1 220px" }} />
+          <select value={form.kind} onChange={e => setForm(f => ({ ...f, kind: e.target.value }))} style={{ ...input, flex: "0 0 110px" }}>
+            {["license", "release", "offer", "other"].map(k => <option key={k} value={k}>{k}</option>)}
+          </select>
+          <input type="date" value={form.expires_on} onChange={e => setForm(f => ({ ...f, expires_on: e.target.value }))} style={{ ...input, flex: "0 0 150px" }} />
+          <input type="number" min="0" value={form.lead_days} onChange={e => setForm(f => ({ ...f, lead_days: e.target.value }))} title="Warn this many days before expiry" style={{ ...input, flex: "0 0 80px" }} />
+          <button type="submit" disabled={busy || !form.label.trim() || !form.expires_on}
+            style={{ padding: "9px 16px", borderRadius: 9, border: "none", cursor: "pointer", background: ACCENT, color: "#08131c", fontWeight: 700, fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
+            {busy ? "Adding…" : "Add right"}
+          </button>
+        </form>
+      )}
+
+      {rows == null && !missing && <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12.5 }}>Loading…</div>}
+      {(rows || []).map(r => {
+        const st = rightsState(r);
+        const m = STATE_META[st.state];
+        return (
+          <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: "1px solid rgba(255,255,255,0.05)", flexWrap: "wrap" }}>
+            <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "'Geist Mono', monospace", color: m.color, border: `1px solid ${m.color}44`, background: `${m.color}14`, padding: "2px 8px", borderRadius: 999, whiteSpace: "nowrap" }}>{m.label}</span>
+            <span style={{ fontSize: 13, color: "#f5f5f7", fontFamily: "Inter, sans-serif", flex: 1, minWidth: 160 }}>
+              {r.label}
+              <span style={{ color: "rgba(255,255,255,0.4)", marginLeft: 8, fontSize: 11 }}>{r.kind}</span>
+            </span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "'Geist Mono', monospace" }}>
+              {st.state === "expired" ? `expired ${Math.abs(st.daysLeft)}d ago` : `${st.daysLeft}d left`} · {r.expires_on}
+            </span>
+            <button onClick={() => remove(r.id)} title="Delete" style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.35)", fontSize: 14 }}>×</button>
+          </div>
+        );
+      })}
+      {rows != null && !rows.length && !missing && <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12.5 }}>No rights tracked yet.</div>}
+    </div>
+  );
+}
+
 function ActivityTab({ clientId }) {
   const [rows, setRows] = useState(null);
   useEffect(() => {
@@ -286,6 +378,7 @@ export default function ClientWorkspaceRoute({ client, content = [], isMobile, u
       {tab === "deliverables" && <DeliverablesTab items={items} onOpenLedger={() => setActiveNav("ledger")} />}
       {tab === "scope" && <ScopeTab c={c} patch={patch} saving={saving} />}
       {tab === "facts" && <FactsTab c={c} onOpenSettings={() => setActiveNav("settings")} />}
+      {tab === "rights" && <RightsTab clientId={c.id} isMobile={isMobile} />}
       {tab === "decisions" && <DecisionLogRoute clients={[c]} activeClientId={c.id} />}
       {tab === "portal" && (
         <div style={{ ...card, padding: 18 }}>

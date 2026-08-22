@@ -3,7 +3,7 @@
 // These cover the math that guards the business: health factors, bottlenecks,
 // freshness gating, and the command digest tiers.
 
-import { clientHealth, bottlenecks, approvalDelayFactor, paymentFactor, worstLevel } from '../src/core/clientHealth.js';
+import { clientHealth, bottlenecks, approvalDelayFactor, paymentFactor, worstLevel, rightsState } from '../src/core/clientHealth.js';
 import { freshnessState, factsFreshness, truthGates } from '../src/core/truth.js';
 import { commandDigest } from '../src/core/commandDigest.js';
 
@@ -70,6 +70,15 @@ const digest = commandDigest({
   tasks: [], invoices: [], pendingUsers: [], now: NOW,
 });
 t('commandDigest returns tiers object', digest && typeof digest === 'object');
+
+/* ── rights clock (Phase E.3) ── */
+{
+  const r = (exp, lead) => rightsState({ expires_on: exp, lead_days: lead }, NOW);
+  t('rights: expired yesterday', r(daysAgo(1), 30).state === 'expired');
+  t('rights: 10d left inside 30d lead = due', r(new Date(NOW + 10 * 86400000).toISOString().slice(0, 10), 30).state === 'due');
+  t('rights: 90d left outside lead = ok', r(new Date(NOW + 90 * 86400000).toISOString().slice(0, 10), 30).state === 'ok');
+  t('rights: daysLeft math', r(new Date(NOW + 10 * 86400000).toISOString().slice(0, 10), 30).daysLeft <= 10);
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
