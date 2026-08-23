@@ -1,5 +1,19 @@
 # Vantus Handoff Brief
 
+## 2026-08-23 — GROWTH v1 SHIPPED: scrape -> marketing audit -> brief -> pipeline -> convert (no AI needed for the core)
+
+Christian's ask: put the scraper in Vantus — scrape a lead, research their marketing, pinpoint failures, send a brief with the pain points. Built as the spec's Growth destination (§3.C.4) with Dynasty's scrape-cascade DNA. Live at `26dbef5` (function + redirect; `84c21ac` shipped the code but MISSED netlify.toml — lesson: `git add` the root toml explicitly, `netlify/` dir does not include it). Migration `20260823_growth.sql` applied by Christian same session. Browser-verified on prod: parlour.bar scanned in 4s → 4 gaps (no Meta pixel / no socials linked / Wix / no H1; correctly did NOT flag the GA + LocalBusiness schema it has) → template brief with those pain points, stage auto-advanced to briefed, no em-dashes. Test lead deleted after.
+
+**Pieces:**
+- `netlify/functions/_lib/siteAudit.js` — deterministic marketing audit. Fetches home/about/contact/services (7s cap each), follows JS `location.href` + meta-refresh trampolines (cloudscenic.com itself bounces to /lander), detects JS-rendered shells (then keeps only raw-HTML-safe findings + says a rendered scan is needed). Signals: emails/phones/socials, Meta/GA/TikTok/Hotjar pixels, JSON-LD types + LocalBusiness family, viewport, H1, meta description, copyright year, builder (Wix/Squarespace/WordPress/GoDaddy/Shopify/Weebly/Webflow), CTA links/tel/form, https, word count. `audit()` → ranked findings {key, severity, label, evidence, pitch}. `templateBrief()` → the zero-credit outreach brief (sanitized: no em-dashes ever).
+- `netlify/functions/growth.js` (/api/growth, 26s, admin-only): scan (upsert lead by host + lead_research), brief_template, send_brief, convert (lead → clients row, stage won). **send_brief is gated on `GROWTH_FROM_EMAIL`** — cold outreach must NOT go from notifications@cloudscenic.com (root reputation); set it to a verified cold-outreach sender (e.g. go.cloudscenic.com once added to THIS Resend account) → until then the UI is copy mode. `GROWTH_REPLY_TO` defaults cz@.
+- agent-action `growth_brief` (prefix growth → Scrappy): AI narrates the findings into a brief (never invents gaps), lands origin 'ai'. Errors until Anthropic credits exist.
+- `GrowthRoute.jsx` (nav Growth → Leads): intake (url/name/city), stage filters with counts, lead list, detail = audit findings + signal line + brief (Draft from audit / Scrappy writes it / Copy / Send) + Convert to client (opens the workspace) + Re-scan. Feature-detects tables.
+- Tables: leads (unique host), lead_research (findings jsonb), lead_briefs (draft/approved/sent, resend_id). Admin RLS.
+- Tests: 37 (audit logic, brief shape, url normalization). The no-em-dash test CAUGHT a real violation in the pitch copy before ship.
+
+**Not built (honest):** Google Places discovery sweeps (Dynasty-style "find me 50 roofers in Ontario" — Vantus has no Places key; Tavily could stand in), Apify rendered scans for JS shells (APIFY token exists, not wired here yet), Apollo decision-maker lookup (no key in Vantus), open/click tracking on sent briefs (Resend webhooks), warmth scoring.
+
 ## 2026-08-22 (session close) — rights clock LIVE end-to-end, map refreshed, the no-credits board settled
 
 **Closes the goal session.** Everything below is on prod at `f1a28a5`.
