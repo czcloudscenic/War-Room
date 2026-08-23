@@ -1,5 +1,15 @@
 # Vantus Handoff Brief
 
+## 2026-08-22 (session close) — rights clock LIVE end-to-end, map refreshed, the no-credits board settled
+
+**Closes the goal session.** Everything below is on prod at `f1a28a5`.
+
+- **Rights clock VERIFIED live:** Christian applied `20260822_rights_clock.sql` mid-session; browser round-trip proven on prod — added a test license expiring +14d → correctly badged RENEW SOON (inside its 30d lead) → deleted clean. Gotcha for future feature-detect tabs: the missing-table state is cached per mount — a tab loaded pre-migration keeps showing the hint until re-mount/reload.
+- **Architecture map refreshed to 8/22** (58 nodes, 75 wires): new nodes ClientWorkspaceRoute (critical path — the red Open wire), CalendarRoute, useAuthSession, clientHealth; Open-button bug removed from registries; findings sidebar carries the shipped/debugged summary. Regenerate-by-hand pattern held (edit nodes/edges/FIXES/KNOWN_BUGS in the script block, then headless-Chrome screenshot to verify).
+- **NEW Fix #12 (top buildable item, no credits needed):** ScopeRoute can only take requests through the AI classify button — with the Anthropic balance at $0 the absorbed-value register is UNUSABLE. Build the manual-classification fallback (human picks the class, optional classify-later queue when AI returns). Christian aware, not yet green-lit.
+- **Credits: deferred indefinitely** ("not sure when"). The furlough line for the team: the software works, the AI workforce is furloughed — pipeline/approvals/portal/email/billing surfaces/calendar/rights/workspace all run; QC, Muse, Scrappy, Intel, Sentinel, AI Assign, chat error until top-up. First action when credits land: one sentinel_classify to close the last Phase D verification.
+- **Next session picks from:** Fix #12 (small, high leverage while credits are out) · App.jsx slice B (route-mount table) then C (data loaders) · Christian's console sitting (Stripe curl + webhook, Google OAuth origin) · the Danny email (draft v2 in TextEdit; its real payload is his data-entry list + the skill-briefs file only he has).
+
 ## 2026-08-22 (later) — Goal session wave 2: auth decomposed, calendar + rights clock shipped. 26 tests green.
 
 Continuation of the "Make Vantus work" goal after credits were deferred. Everything below deployed + Playwright-verified on prod same session:
