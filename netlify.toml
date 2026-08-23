@@ -43,6 +43,12 @@
   status = 200
   force = true
 
+# Growth — scrape/audit/brief/convert (admin-only, zero-AI paths work without credits)
+[[redirects]]
+  from = "/api/growth"
+  to = "/.netlify/functions/growth"
+  status = 200
+
 # Vault credentials — encrypted at rest, masked by default, reveals audited.
 [[redirects]]
   from = "/api/vault-secrets"
@@ -213,6 +219,10 @@
   timeout = 26
 
 [functions."apify-scrape"]
+  timeout = 26
+
+# Growth scan fetches up to 4 prospect pages (7s cap each) — needs the long budget.
+[functions."growth"]
   timeout = 26
 
 [functions."sync-instagram"]
