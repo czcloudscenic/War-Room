@@ -6,6 +6,7 @@
 import { clientHealth, bottlenecks, approvalDelayFactor, paymentFactor, worstLevel, rightsState } from '../src/core/clientHealth.js';
 import { freshnessState, factsFreshness, truthGates } from '../src/core/truth.js';
 import { commandDigest } from '../src/core/commandDigest.js';
+import siteAudit from '../netlify/functions/_lib/siteAudit.js';
 
 let pass = 0, fail = 0;
 const t = (name, cond) => { if (cond) { pass++; } else { fail++; console.error('FAIL:', name); } };
@@ -78,6 +79,26 @@ t('commandDigest returns tiers object', digest && typeof digest === 'object');
   t('rights: 10d left inside 30d lead = due', r(new Date(NOW + 10 * 86400000).toISOString().slice(0, 10), 30).state === 'due');
   t('rights: 90d left outside lead = ok', r(new Date(NOW + 90 * 86400000).toISOString().slice(0, 10), 30).state === 'ok');
   t('rights: daysLeft math', r(new Date(NOW + 10 * 86400000).toISOString().slice(0, 10), 30).daysLeft <= 10);
+}
+
+/* ── siteAudit (Growth) — pure audit + template brief ── */
+{
+  const { audit, templateBrief, normalizeUrl } = siteAudit;
+  const base = { pixels: { meta: true, ga: true }, hasLocalSchema: true, hasViewport: true, ctaLinks: ['/book'], hasTel: true, hasForm: true, socials: { instagram: 'x', facebook: 'y' }, latestCopyright: 2026, builder: 'Webflow', metaDesc: 'desc', h1Count: 1, https: true, wordCount: 400, schemaTypes: ['LocalBusiness'] };
+  t('audit: a well-built site has zero gaps', audit(base).length === 0);
+  const bad = { ...base, pixels: { meta: false, ga: false }, hasLocalSchema: false, hasViewport: false, ctaLinks: [], hasTel: false, hasForm: false, socials: {}, latestCopyright: 2021, builder: 'Wix', metaDesc: '', h1Count: 0, https: false, wordCount: 40, schemaTypes: [] };
+  const f = audit(bad);
+  t('audit: a neglected site surfaces every gap', f.length >= 11);
+  t('audit: highs sort first', f[0].severity === 'high' && f[f.length - 1].severity === 'low');
+  t('audit: every finding has evidence + a pitch', f.every(x => x.key && x.label && x.evidence && x.pitch));
+  t('audit: schema present but wrong type still flags', audit({ ...base, hasLocalSchema: false, schemaTypes: ['WebSite'] }).some(x => x.key === 'no_local_schema' && x.evidence.includes('WebSite')));
+  t('audit: tel link without booking = weak_cta not no_cta', audit({ ...base, ctaLinks: [] }).some(x => x.key === 'weak_cta') && !audit({ ...base, ctaLinks: [] }).some(x => x.key === 'no_cta'));
+  const b = templateBrief({ leadName: 'Joe Plumbing', contactName: 'Joe Smith', findings: f });
+  t('brief: subject names the count', /4 things/.test(b.subject));
+  t('brief: greets by first name + signs off', b.body_md.startsWith('Hi Joe,') && b.body_md.includes('Cloud Scenic'));
+  t('brief: no em-dashes', !/—/.test(b.body_md) && !/—/.test(b.subject));
+  t('normalizeUrl: bare host -> https + stripped www', normalizeUrl('www.Example.com/path?x=1').host === 'example.com' && normalizeUrl('example.com').href.startsWith('https://'));
+  t('normalizeUrl: garbage -> null', normalizeUrl('not a url') === null || normalizeUrl('') === null);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -25,6 +25,7 @@ export const NAV = [
     { id:"calendar", label:"Calendar" },
   ]},
   { id:"g-growth", label:"Growth", items:[
+    { id:"leads", label:"Leads" },
     { id:"clientanalytics", label:"Client Analytics" },
     { id:"profitability", label:"Profitability" },
   ]},

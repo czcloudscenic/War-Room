@@ -47,6 +47,7 @@ const { cid_build_brief, cid_ab_variations } = require("./agent-action/handlers/
 const { ops_assign } = require("./agent-action/handlers/ops");
 const { intel_generate_ideas, intel_score_content, intel_set_idea_status } = require("./agent-action/handlers/intel");
 const { sentinel_classify, sentinel_decide } = require("./agent-action/handlers/sentinel");
+const { growth_brief } = require("./agent-action/handlers/growth");
 
 exports.handler = async (event) => {
   const cors = makeCors(event);
@@ -128,6 +129,14 @@ exports.handler = async (event) => {
         result = action === "sentinel_classify"
           ? await sentinel_classify(sentinelPayload)
           : await sentinel_decide(sentinelPayload);
+        break;
+      }
+      // Growth brief writer (§3.C.4) — admin-only, same reason.
+      case "growth_brief": {
+        if (auth.user.role !== "admin") {
+          return { statusCode: 403, headers: cors, body: JSON.stringify({ error: "admin only" }) };
+        }
+        result = await growth_brief({ ...payload, actor_email: auth.user.email || null });
         break;
       }
       default:
