@@ -1,5 +1,9 @@
 # Vantus Handoff Brief
 
+## 2026-08-23 (session close) — Growth v1 accepted: "solid, still needs some tuning"
+
+Christian's verdict on the live Growth module: solid, tuning session planned for next sitting. Nothing further shipped after `e38319d`. **Next session opens with Growth tuning — ask what felt off** (likely candidates: audit finding coverage/wording, template-brief voice, stage flow, list ergonomics) and pull from the honest not-built list in the 8/23 entry (Places discovery sweep, Apify rendered scans, Apollo lookup, Resend open tracking, warmth scoring). Standing board otherwise unchanged: Anthropic credits still $0 (gates all AI incl. growth_brief + the last sentinel verification), GROWTH_FROM_EMAIL unset (briefs are copy-mode), Fix #12 manual scope entry, App.jsx slices B/C, Stripe/Google console items, Danny data entry + skill-briefs file.
+
 ## 2026-08-23 — GROWTH v1 SHIPPED: scrape -> marketing audit -> brief -> pipeline -> convert (no AI needed for the core)
 
 Christian's ask: put the scraper in Vantus — scrape a lead, research their marketing, pinpoint failures, send a brief with the pain points. Built as the spec's Growth destination (§3.C.4) with Dynasty's scrape-cascade DNA. Live at `26dbef5` (function + redirect; `84c21ac` shipped the code but MISSED netlify.toml — lesson: `git add` the root toml explicitly, `netlify/` dir does not include it). Migration `20260823_growth.sql` applied by Christian same session. Browser-verified on prod: parlour.bar scanned in 4s → 4 gaps (no Meta pixel / no socials linked / Wix / no H1; correctly did NOT flag the GA + LocalBusiness schema it has) → template brief with those pain points, stage auto-advanced to briefed, no em-dashes. Test lead deleted after.
