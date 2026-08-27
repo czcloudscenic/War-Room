@@ -24,8 +24,15 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 // GROWTH_FROM_EMAIL e.g. "Christian at Cloud Scenic <christian@go.cloudscenic.com>".
 // Unset = copy mode in the UI.
 const RESEND_KEY = process.env.GROWTH_RESEND_API_KEY || process.env.RESEND_API_KEY;
+// 8/26 decision (Christian): briefs send from the verified root domain, sender
+// chosen per send from this allowlist. GROWTH_FROM_EMAIL (optional) adds a
+// custom default on top. Reply-to = the chosen sender.
+const SENDERS = {
+  contact: { from: "Cloud Scenic <contact@cloudscenic.com>", email: "contact@cloudscenic.com" },
+  cz:      { from: "Christian at Cloud Scenic <cz@cloudscenic.com>", email: "cz@cloudscenic.com" },
+  dv:      { from: "Danny at Cloud Scenic <dv@cloudscenic.com>", email: "dv@cloudscenic.com" },
+};
 const GROWTH_FROM = process.env.GROWTH_FROM_EMAIL || "";
-const GROWTH_REPLY_TO = process.env.GROWTH_REPLY_TO || "cz@cloudscenic.com";
 const REST = `${SUPABASE_URL}/rest/v1`;
 const SH = () => ({ apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json", Prefer: "return=representation" });
 
@@ -91,9 +98,14 @@ exports.handler = async (event) => {
       return ok({ brief });
     }
 
+    if (body.action === "senders") {
+      return ok({ senders: Object.entries(SENDERS).map(([id, v]) => ({ id, label: v.from })).concat(GROWTH_FROM ? [{ id: "custom", label: GROWTH_FROM }] : []) });
+    }
+
     if (body.action === "send_brief") {
-      if (!GROWTH_FROM) return { statusCode: 424, headers: cors, body: JSON.stringify({ error: "GROWTH_FROM_EMAIL not set — copy the brief and send it from your mail client (cold outreach must not use the transactional root domain)" }) };
       if (!RESEND_KEY) throw new Error("RESEND_API_KEY not set");
+      const sender = SENDERS[body.sender] || (body.sender === "custom" && GROWTH_FROM ? { from: GROWTH_FROM, email: (GROWTH_FROM.match(/<([^>]+)>/) || [, GROWTH_FROM])[1] } : null);
+      if (!sender) throw new Error("pick a sender (contact / cz / dv)");
       const brief = (await sb(`lead_briefs?id=eq.${body.brief_id}&select=*`))?.[0];
       if (!brief) throw new Error("brief not found");
       const to = String(body.to || "").trim();
@@ -101,7 +113,7 @@ exports.handler = async (event) => {
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: GROWTH_FROM, to: [to], reply_to: GROWTH_REPLY_TO, subject: brief.subject, html: mdToHtml(brief.body_md), text: brief.body_md }),
+        body: JSON.stringify({ from: sender.from, to: [to], reply_to: sender.email, subject: brief.subject, html: mdToHtml(brief.body_md), text: brief.body_md }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(`Resend ${res.status}: ${data.message || "send failed"}`);

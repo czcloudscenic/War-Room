@@ -40,6 +40,9 @@ function LeadDetail({ lead, onChanged, onOpenClient }) {
   const [busy, setBusy] = useState(null);
   const [err, setErr] = useState(null);
   const [sendTo, setSendTo] = useState(lead.email || "");
+  const [sender, setSender] = useState("cz");
+  const [senders, setSenders] = useState([{ id: "contact", label: "Cloud Scenic <contact@cloudscenic.com>" }, { id: "cz", label: "Christian at Cloud Scenic <cz@cloudscenic.com>" }, { id: "dv", label: "Danny at Cloud Scenic <dv@cloudscenic.com>" }]);
+  useEffect(() => { growthApi("senders", {}).then(d => { if (d?.senders?.length) setSenders(d.senders); }).catch(() => {}); }, []);
 
   const load = useCallback(async () => {
     const [r, b] = await Promise.all([
@@ -114,11 +117,14 @@ function LeadDetail({ lead, onChanged, onOpenClient }) {
             <button style={btn(false)} onClick={() => copy(latest)}>Copy</button>
             {latest.status !== "sent" && (
               <>
+                <select value={sender} onChange={e => setSender(e.target.value)} title="Send as" style={{ ...input, flex: "0 1 230px", padding: "7px 10px", fontSize: 12 }}>
+                  {senders.map(s2 => <option key={s2.id} value={s2.id}>{s2.label.replace(/\s*<.*>$/, "")}</option>)}
+                </select>
                 <input value={sendTo} onChange={e => setSendTo(e.target.value)} placeholder="recipient@their-business.com" style={{ ...input, flex: "1 1 200px", padding: "7px 10px", fontSize: 12 }} />
-                <button style={btn(true)} disabled={!!busy || !sendTo} onClick={() => run("send", async () => { await growthApi("send_brief", { brief_id: latest.id, to: sendTo }); })}>{busy === "send" ? "Sending…" : "Send"}</button>
+                <button style={btn(true)} disabled={!!busy || !sendTo} onClick={() => run("send", async () => { await growthApi("send_brief", { brief_id: latest.id, to: sendTo, sender }); })}>{busy === "send" ? "Sending…" : "Send"}</button>
               </>
             )}
-            {latest.status === "sent" && <span style={{ fontSize: 11, color: "#30d158", fontFamily: "'Geist Mono', monospace" }}>sent to {latest.sent_to} · {new Date(latest.sent_at).toLocaleDateString()}</span>}
+            {latest.status === "sent" && <span style={{ fontSize: 11, color: "#30d158", fontFamily: "'Geist Mono', monospace" }}>sent to {latest.sent_to} · {new Date(latest.sent_at).toLocaleDateString()}{latest.sent_from ? ` · as ${latest.sent_from}` : ""}</span>}
           </div>
         </div>
       )}
