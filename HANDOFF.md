@@ -7,7 +7,7 @@
 - **Prod sweep after deploy (`cc163b0`):** fresh magic-link login → all 19 table routes + workspace-via-Open + manual scope entry = 21/21, zero real console errors.
 - **Recipients sanity check (read-only):** CloudScenic cz@, dynasty hello@dynastystaffusa.com, VitalLyfe natalia@ (client-mode → gate emails reach her, expected), **Parlour Bar: NO primary_email** (auto mode, so nothing sends; fill it in Scope & Rates/Setup). No report_recipients set anywhere (falls back to primary — fine).
 - Ops gotcha: the Playwright MCP profile lock survives overnight (`pkill -f mcp-chrome-<id>`), and the session scratchpad dir is wiped — helpers now live in /tmp/vantus-tools (recreate if gone).
-- Still yours: credits, GROWTH_FROM_EMAIL, Stripe/Google console, Danny email + data, Growth tuning notes.
+- **8/26 board decision (Christian): BACKLOGGED, do not re-raise as urgent** — Anthropic credits, Stripe proof, Parlour primary_email, Gemini billing, the Danny email. Still live on his side: GROWTH_FROM_EMAIL (unblocks real brief sends) and the Google OAuth origin (Drive upload). Mine: Growth tuning (needs his notes), App.jsx slice C, Phase C leftovers.
 
 ## 2026-08-23 (session close) — Growth v1 accepted: "solid, still needs some tuning"
 
