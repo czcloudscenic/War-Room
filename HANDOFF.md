@@ -1,5 +1,14 @@
 # Vantus Handoff Brief
 
+## 2026-08-26 — "run the things you can do": Fix #12 + decomposition slice B + recipients check. 21/21 prod sweep.
+
+- **Fix #12 SHIPPED** — Scope Sentinel "Log manually": human picks the class + optional $ value, row lands confirmed/decided_by them (browser insert under admin RLS, no function). The absorbed-value register works with AI furloughed. Verified live (test row inserted → confirmed → deleted).
+- **Decomposition slice B SHIPPED** — the 20 primary route mounts (Dashboard…Software OPS) moved to `src/ui/AppRoutes.jsx` with an explicit 24-prop contract. Method worth reusing: strip comments/strings from the block, collect identifiers, subtract props/JSX-attr names/property accesses/object keys/arrow params → the free list MUST be empty before writing (it caught nothing missing, and flagged 2 false positives that the checker then learned). 12 dead lazy consts removed. App.jsx 1,324 → **1,193** (from 1,640). Slice C = the trailing mounts (agents/content/ideas/apps/settings, which carry handleIgIdeas/toggleApp/etc.) + realtime/data loaders.
+- **Prod sweep after deploy (`cc163b0`):** fresh magic-link login → all 19 table routes + workspace-via-Open + manual scope entry = 21/21, zero real console errors.
+- **Recipients sanity check (read-only):** CloudScenic cz@, dynasty hello@dynastystaffusa.com, VitalLyfe natalia@ (client-mode → gate emails reach her, expected), **Parlour Bar: NO primary_email** (auto mode, so nothing sends; fill it in Scope & Rates/Setup). No report_recipients set anywhere (falls back to primary — fine).
+- Ops gotcha: the Playwright MCP profile lock survives overnight (`pkill -f mcp-chrome-<id>`), and the session scratchpad dir is wiped — helpers now live in /tmp/vantus-tools (recreate if gone).
+- Still yours: credits, GROWTH_FROM_EMAIL, Stripe/Google console, Danny email + data, Growth tuning notes.
+
 ## 2026-08-23 (session close) — Growth v1 accepted: "solid, still needs some tuning"
 
 Christian's verdict on the live Growth module: solid, tuning session planned for next sitting. Nothing further shipped after `e38319d`. **Next session opens with Growth tuning — ask what felt off** (likely candidates: audit finding coverage/wording, template-brief voice, stage flow, list ergonomics) and pull from the honest not-built list in the 8/23 entry (Places discovery sweep, Apify rendered scans, Apollo lookup, Resend open tracking, warmth scoring). Standing board otherwise unchanged: Anthropic credits still $0 (gates all AI incl. growth_brief + the last sentinel verification), GROWTH_FROM_EMAIL unset (briefs are copy-mode), Fix #12 manual scope entry, App.jsx slices B/C, Stripe/Google console items, Danny data entry + skill-briefs file.

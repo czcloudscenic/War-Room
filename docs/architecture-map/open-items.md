@@ -3,7 +3,7 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-08-22 (night) · **Total open:** 6 bugs + 8 fixes
+**Snapshot:** 2026-08-26 · **Total open:** 5 bugs + 7 fixes
 
 ```
 🔴 High:   1    │   ✅ Done 8/22:  client workspace SHIPPED (Open-button bug dead) ·
@@ -30,16 +30,14 @@
   Flagged malformed 7/12, untested since. First real invoice may error; webhook may reject signatures. One curl + a $1 proof invoice settles it.
   → Touches: Stripe dashboard, Netlify env · Fix #2
 
-- [ ] **netlify/functions/notify.js:304 — email armed, no dry-run net**
-  Approval links / reports / digests really deliver now. Before the first client-facing flow fires, sanity-check each client's primary_email and report recipients in Setup.
-  → Touches: Setup data entry (no code)
+- [x] ~~email armed sanity check~~ **RUN 8/26**: all 4 active clients carry real addresses (no test-looking emails); VitalLyfe is client-mode so gate emails reach Natalia (expected). One data gap: **Parlour Bar has no primary_email** (auto mode, nothing sends) — fill in the workspace.
 
 - [ ] **index.html:11 — Drive upload broken in prod (origin_mismatch)**
   Google's OAuth client was never told usevantus.com is allowed. One console field; a few minutes to propagate.
   → Touches: Google Cloud Console · Fix #3
 
-- [ ] **src/App.jsx — decomposition in progress (1,640 → 1,324)**
-  Slice A DONE 8/22: auth extracted to `core/useAuthSession.js`, fresh-login verified on prod; 26-test harness green. Remaining slices: B (route-mount table), C (realtime/data loaders) — one per session, verify, ship.
+- [ ] **src/App.jsx — decomposition two-thirds done (1,640 → 1,193)**
+  Slice A (auth → `core/useAuthSession.js`, 8/22) and slice B (20 primary route mounts → `ui/AppRoutes.jsx`, 8/26, zero-uncovered-identifier check + 21-route prod sweep) DONE. Remaining slice C: trailing mounts (agents/content/apps/settings) + realtime/data loaders.
   → Touches: `src/App.jsx`, new modules · Fix #8
 
 ---
@@ -73,10 +71,11 @@ Cross-references map node badges + the items above.
 - [x] **#5a** — Client workspace shell SHIPPED 8/22 (Open-button fix verified live). #5b progress 8/22: content CALENDAR shipped; intake→task promote already existed (7/29 pack); Growth v1 still needs site-Supabase creds; rights clock (E.3) shipped behind its staged migration
 - [ ] **#6** — Send Danny recap email; his data entry greens the activation board → draft ready
 - [ ] **#7** — Finish Muse/Scrappy/Slate GLBs → `public/crew/`, `crewGLB.js` (GATED: Higgsfield billing)
-- [ ] **#8** — Decompose App.jsx: slice A (auth) DONE 8/22; slices B/C remain → `src/App.jsx`
+- [ ] **#8** — Decompose App.jsx: slices A + B DONE (8/22, 8/26); slice C remains → `src/App.jsx`
 - [ ] **#9** — Optional: ai() default opus-5 → sonnet if spend runs hot → `_shared.js:161`
 - [ ] **#10** — Retire or revive parked ship stack + archive folders → `src/ui/ship/`, `src/ship/`
 - [ ] **#11** — platform_post_id writer (with Sprout wiring) → scheduling path, `verify-publishes.js:77`
+- [x] **#12** — Manual scope entry (register works with AI furloughed) → SHIPPED 8/26, verified live
 
 ---
 
