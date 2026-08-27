@@ -1,5 +1,9 @@
 # Vantus Handoff Brief
 
+## 2026-08-26 (later) — Leads briefs SEND FOR REAL: root-domain sender picker live, proven to cz@
+
+Christian's call (over my subdomain-separation advice, flagged once): briefs send from the verified root domain with a per-send sender picker — **Cloud Scenic <contact@>, Christian <cz@>, Danny <dv@>** — reply-to = the chosen sender. He added `GROWTH_RESEND_API_KEY` (production, secret); growth.js prefers it over RESEND_API_KEY. `GROWTH_FROM_EMAIL` remains an optional 4th "custom" sender. Proven live at `c4f01f7`: parlour.bar scanned → template brief → sender cz → sent to cz@cloudscenic.com → Resend accepted → stage auto-advanced to contacted. Test lead deleted. Reputation note for whoever sends: cold volume from cloudscenic.com now shares reputation with approval/report mail — keep it warm and modest. Open tracking: flip on per-domain in Resend if opens are wanted (not verified this session). Playwright note: the scan intake races React right after navigation — set the input, wait ~400ms, then click.
+
 ## 2026-08-26 — "run the things you can do": Fix #12 + decomposition slice B + recipients check. 21/21 prod sweep.
 
 - **Fix #12 SHIPPED** — Scope Sentinel "Log manually": human picks the class + optional $ value, row lands confirmed/decided_by them (browser insert under admin RLS, no function). The absorbed-value register works with AI furloughed. Verified live (test row inserted → confirmed → deleted).
