@@ -24,13 +24,16 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 // GROWTH_FROM_EMAIL e.g. "Christian at Cloud Scenic <christian@go.cloudscenic.com>".
 // Unset = copy mode in the UI.
 const RESEND_KEY = process.env.GROWTH_RESEND_API_KEY || process.env.RESEND_API_KEY;
-// 8/26 decision (Christian): briefs send from the verified root domain, sender
-// chosen per send from this allowlist. GROWTH_FROM_EMAIL (optional) adds a
-// custom default on top. Reply-to = the chosen sender.
+// 8/26 decision (Christian): briefs send from the COLD-OUTREACH SUBDOMAIN
+// go.cloudscenic.com (June warm-up; reputation separated from the root
+// transactional mail), sender chosen per send. Reply-to = the person's REAL
+// mailbox on the root domain so replies land somewhere a human reads.
+// GROWTH_SENDER_DOMAIN overrides the subdomain without a code change.
+const SENDER_DOMAIN = process.env.GROWTH_SENDER_DOMAIN || "go.cloudscenic.com";
 const SENDERS = {
-  contact: { from: "Cloud Scenic <contact@cloudscenic.com>", email: "contact@cloudscenic.com" },
-  cz:      { from: "Christian at Cloud Scenic <cz@cloudscenic.com>", email: "cz@cloudscenic.com" },
-  dv:      { from: "Danny at Cloud Scenic <dv@cloudscenic.com>", email: "dv@cloudscenic.com" },
+  contact: { from: `Cloud Scenic <contact@${SENDER_DOMAIN}>`, email: "contact@cloudscenic.com" },
+  cz:      { from: `Christian at Cloud Scenic <cz@${SENDER_DOMAIN}>`, email: "cz@cloudscenic.com" },
+  dv:      { from: `Danny at Cloud Scenic <dv@${SENDER_DOMAIN}>`, email: "dv@cloudscenic.com" },
 };
 const GROWTH_FROM = process.env.GROWTH_FROM_EMAIL || "";
 const REST = `${SUPABASE_URL}/rest/v1`;
