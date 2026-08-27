@@ -15,10 +15,15 @@ const { scanSite, templateBrief } = require("./_lib/siteAudit");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wjcstqqihtebkpyuacop.supabase.co";
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const RESEND_KEY = process.env.RESEND_API_KEY;
 // Cold outreach must NOT ride the transactional root domain (reputation
-// separation). Set e.g. "Christian at Cloud Scenic <christian@go.cloudscenic.com>"
-// once that subdomain is verified in Resend. Unset = copy mode in the UI.
+// separation). Two supported setups:
+//   a) the outreach subdomain lives in ANOTHER Resend account (the June
+//      go.cloudscenic.com warm-up) -> paste that account's key as
+//      GROWTH_RESEND_API_KEY; falls back to the main RESEND_API_KEY otherwise.
+//   b) verify a fresh subdomain in THIS account and use the main key.
+// GROWTH_FROM_EMAIL e.g. "Christian at Cloud Scenic <christian@go.cloudscenic.com>".
+// Unset = copy mode in the UI.
+const RESEND_KEY = process.env.GROWTH_RESEND_API_KEY || process.env.RESEND_API_KEY;
 const GROWTH_FROM = process.env.GROWTH_FROM_EMAIL || "";
 const GROWTH_REPLY_TO = process.env.GROWTH_REPLY_TO || "cz@cloudscenic.com";
 const REST = `${SUPABASE_URL}/rest/v1`;
