@@ -20,6 +20,7 @@ import { CREATIVE_FIELDS } from './core/truth.js';
 import { DEFAULT_APPS, loadApps } from './apps/apps.config.js';
 import AppPlaceholder from './ui/shared/AppPlaceholder.jsx';
 import ClientPortal from './ui/client/ClientPortal.jsx';
+import AppRoutes from './ui/AppRoutes.jsx';
 import { useAuthSession, ADMIN_EMAILS, activeContentCutoff } from './core/useAuthSession.js';
 
 // ── Extracted UI components (Phase 3) ──
@@ -28,8 +29,6 @@ import EditContentModal from './ui/pipeline/EditContentModal.jsx';
 import LoginScreen from './ui/layout/LoginScreen.jsx';
 import SettingsPage from './ui/settings/SettingsPage.jsx';
 import AddClientModal from './ui/clients/AddClientModal.jsx';
-import DashboardRoute from './ui/routes/DashboardRoute.jsx';
-import ClientsRoute from './ui/routes/ClientsRoute.jsx';
 import AgentsRoute from './ui/routes/AgentsRoute.jsx';
 import ContentRoute from './ui/routes/ContentRoute.jsx';
 
@@ -59,26 +58,8 @@ const NavChevron = ({ open }) => (
 );
 
 const SkillsPage = React.lazy(() => import('./apps/skills/SkillsPage.jsx'));
-const ApprovalsRoute = React.lazy(() => import('./ui/routes/ApprovalsRoute.jsx'));
-const DecisionLogRoute = React.lazy(() => import('./ui/truth/DecisionLogRoute.jsx'));
-const ContentIntelRoute = React.lazy(() => import('./ui/routes/ContentIntelRoute.jsx'));
-const ShipRoute = React.lazy(() => import('./ui/routes/ShipRoute.jsx'));
 const TeamBroadcast = React.lazy(() => import('./ui/agents/TeamBroadcast.jsx'));
-const SetupRoute = React.lazy(() => import('./ui/routes/SetupRoute.jsx'));
-const LedgerRoute = React.lazy(() => import('./ui/routes/LedgerRoute.jsx'));
-const ReportsRoute = React.lazy(() => import('./ui/routes/ReportsRoute.jsx'));
-const OperationsRoute = React.lazy(() => import('./ui/routes/OperationsRoute.jsx'));
-const ClientAnalyticsRoute = React.lazy(() => import('./ui/routes/ClientAnalyticsRoute.jsx'));
-const BillingRoute = React.lazy(() => import('./ui/routes/BillingRoute.jsx'));
-const VaultRoute = React.lazy(() => import('./ui/routes/VaultRoute.jsx'));
 const IdeaEngineRoute = React.lazy(() => import('./ui/routes/IdeaEngineRoute.jsx'));
-const RunwayRoute = React.lazy(() => import('./ui/routes/RunwayRoute.jsx'));
-const SoftwareOpsRoute = React.lazy(() => import('./ui/routes/SoftwareOpsRoute.jsx'));
-const ScopeRoute = React.lazy(() => import('./ui/routes/ScopeRoute.jsx'));
-const ProfitabilityRoute = React.lazy(() => import('./ui/routes/ProfitabilityRoute.jsx'));
-const ClientWorkspaceRoute = React.lazy(() => import('./ui/routes/ClientWorkspaceRoute.jsx'));
-const CalendarRoute = React.lazy(() => import('./ui/routes/CalendarRoute.jsx'));
-const GrowthRoute = React.lazy(() => import('./ui/routes/GrowthRoute.jsx'));
 
 // Warm the lazy route chunks in the background after first paint so navigating
 // between pages is instant (no per-click chunk fetch + Suspense flash). Keeps the
@@ -1136,136 +1117,11 @@ try {
     <React.Suspense fallback={<div style={{ padding:48,color:'rgba(255,255,255,0.4)',fontSize:13 }}>Loading…</div>}>
 
     {/* DASHBOARD */}
-    {activeNav === "dashboard" && (
-      <DashboardRoute
-        isMobile={isMobile}
-        currentClient={currentClient}
-        clientContent={clientContent}
-        liveCount={liveCount}
-        aiEnabled={aiEnabled}
-        agents={agents}
-        selectedAgent={selectedAgent}
-        setSelectedAgent={setSelectedAgent}
-        clients={clients}
-        content={content}
-        team={teamMembers}
-        setActiveNav={setActiveNav}
-      />
-    )}
-
-    {/* APPROVALS — internal inbox (Phase A). Edit reuses EditContentModal via setEditingItem. */}
-    {activeNav === "approvals" && (
-      <ApprovalsRoute
-        isMobile={isMobile}
-        clients={clients}
-        content={content}
-        currentUser={{ id: userId, email: userEmail }}
-        onEdit={(item) => { setEditingItem(item); setIsNewItem(false); }}
-      />
-    )}
-
-    {/* DECISIONS — client decision log + decision debt (Phase B, Codex UI pack) */}
-    {activeNav === "decisions" && (
-      <DecisionLogRoute clients={clients} activeClientId={currentClient?.id || null} />
-    )}
-
-    {/* CONTENT INTEL — Studio Intel port: rates vs benchmarks + idea queue */}
-    {activeNav === "contentintel" && (
-      <ContentIntelRoute isMobile={isMobile} clients={clients} currentClient={currentClient} />
-    )}
-
-    {/* AGENT SHIP — spec §10: 3D / Map / List renderings of the receipts spine */}
-    {activeNav === "ship" && (
-      <ShipRoute isMobile={isMobile} clients={clients} content={content} setActiveNav={setActiveNav} />
-    )}
-
-    {/* CLIENTS — CRM home */}
-    {activeNav === "clients" && (
-      <ClientsRoute
-        isMobile={isMobile}
-        clients={clients}
-        content={content}
-        currentClient={currentClient}
-        onOpen={(c) => { switchClient(c); setWorkspaceClientId(c.id); setActiveNav("clientworkspace"); }}
-        onEdit={(c) => setEditingClient(c)}
-        onAdd={() => setAddClientOpen(true)}
-      />
-    )}
-
-    {/* CLIENT WORKSPACE (Phase C §3.C.6) — Open now lands here, not the dashboard */}
-    {activeNav === "clientworkspace" && workspaceClientId && (() => {
-      const wc = clients.find(x => x.id === workspaceClientId);
-      return wc ? (
-        <ClientWorkspaceRoute
-          client={wc}
-          content={content}
-          isMobile={isMobile}
-          userId={userId}
-          onBack={() => setActiveNav("clients")}
-          setActiveNav={setActiveNav}
-        />
-      ) : null;
-    })()}
-
-    {activeNav === "setup" && (
-      <SetupRoute isMobile={isMobile} clients={clients} content={content} />
-    )}
-
-    {activeNav === "ledger" && (
-      <LedgerRoute isMobile={isMobile} clients={clients} content={content} team={teamMembers} currentUser={{ id: userId, email: userEmail }} />
-    )}
-
-    {activeNav === "reports" && (
-      <ReportsRoute isMobile={isMobile} clients={clients} />
-    )}
-
-    {/* GROWTH / LEADS (Phase C §3.C.4) — scan → audit → brief → convert */}
-    {activeNav === "leads" && (
-      <GrowthRoute isMobile={isMobile} setActiveNav={setActiveNav}
-        openClient={(id) => { const c = clients.find(x => x.id === id); if (c) { switchClient(c); setWorkspaceClientId(c.id); setActiveNav("clientworkspace"); } }} />
-    )}
-
-    {/* CONTENT CALENDAR (Phase C §3.C.5) — all clients, one month grid */}
-    {activeNav === "calendar" && (
-      <CalendarRoute isMobile={isMobile} clients={clients} content={content} setActiveNav={setActiveNav} />
-    )}
-
-    {activeNav === "runway" && (
-      <RunwayRoute isMobile={isMobile} clients={clients} content={content} />
-    )}
-
-    {activeNav === "operations" && (
-      <OperationsRoute isMobile={isMobile} clients={clients} />
-    )}
-
-    {activeNav === "clientanalytics" && (
-      <ClientAnalyticsRoute isMobile={isMobile} clients={clients} content={content} />
-    )}
-
-    {/* SCOPE SENTINEL — Phase D: classify every ask, absorb nothing silently */}
-    {activeNav === "scope" && (
-      <ScopeRoute isMobile={isMobile} clients={clients} />
-    )}
-
-    {/* PROFITABILITY LITE — Phase D: retainer + paid projects minus hard costs */}
-    {activeNav === "profitability" && (
-      <ProfitabilityRoute isMobile={isMobile} clients={clients} />
-    )}
-
-    {activeNav === "billing" && (
-      <BillingRoute isMobile={isMobile} clients={clients} />
-    )}
-
-    {activeNav === "vault" && (
-      <VaultRoute isMobile={isMobile} clients={clients} />
-    )}
-
-    {/* DYNASTY — Cloud Scenic control surface for the Dynasty pipeline.
-        Admin-only: first role-gated route in the app; /api/dynasty enforces
-        the same server-side. */}
-    {activeNav === "dynasty" && isOpsAdmin && (
-      <SoftwareOpsRoute />
-    )}
+    {/* PRIMARY ROUTES — table extracted to ui/AppRoutes.jsx (slice B, 8/26) */}
+    <AppRoutes
+      activeNav={activeNav} agents={agents} aiEnabled={aiEnabled} clientContent={clientContent} clients={clients} content={content} currentClient={currentClient} isMobile={isMobile} isOpsAdmin={isOpsAdmin} liveCount={liveCount} role={role} selectedAgent={selectedAgent}
+      switchClient={switchClient} teamMembers={teamMembers} userEmail={userEmail} userId={userId} workspaceClientId={workspaceClientId} setActiveNav={setActiveNav} setAddClientOpen={setAddClientOpen} setEditingClient={setEditingClient} setEditingItem={setEditingItem} setIsNewItem={setIsNewItem} setSelectedAgent={setSelectedAgent} setWorkspaceClientId={setWorkspaceClientId}
+    />
 
     {/* AGENTS */}
     {activeNav === "agents" && (

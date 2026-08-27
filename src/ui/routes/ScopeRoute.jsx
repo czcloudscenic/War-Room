@@ -42,6 +42,9 @@ export default function ScopeRoute({ isMobile, clients = [] }) {
   const [err, setErr] = useState(null);
   const [rows, setRows] = useState([]);
   const [filter, setFilter] = useState("all"); // all | draft | absorbed
+  const [manual, setManual] = useState(false); // Fix #12: log a request by hand (no AI)
+  const [manualClass, setManualClass] = useState("included_with_clarification");
+  const [manualValue, setManualValue] = useState("");
 
   const load = useCallback(async () => {
     const { data, error } = await sb.from("scope_requests").select("*").order("created_at", { ascending: false }).limit(200);
@@ -73,6 +76,27 @@ export default function ScopeRoute({ isMobile, clients = [] }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `classify failed (${res.status})`);
       setText("");
+      await load();
+    } catch (e) { setErr(e.message); }
+    setBusy(null);
+  };
+
+  // Fix #12 — with AI credits out, the register must still take entries.
+  // The human picks the class; the row lands confirmed + decided_by them.
+  const logManually = async () => {
+    if (!clientId || !text.trim()) return;
+    setBusy("manual"); setErr(null);
+    try {
+      const { data: u } = await sb.auth.getUser();
+      const who = u?.user?.email || null;
+      const { error } = await sb.from("scope_requests").insert({
+        client_id: clientId, request_text: text.trim(), request_source: "manual",
+        classification: manualClass, rationale: "Logged manually (no AI): classification chosen by a human.",
+        est_value: manualValue === "" ? null : Number(manualValue),
+        status: "confirmed", created_by: who, decided_by: who, decided_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      setText(""); setManualValue("");
       await load();
     } catch (e) { setErr(e.message); }
     setBusy(null);
@@ -143,10 +167,29 @@ export default function ScopeRoute({ isMobile, clients = [] }) {
         <textarea value={text} onChange={e => setText(e.target.value)} rows={3}
           placeholder={'Paste the ask exactly as it came in. "Can you also cut a vertical version for TikTok?" · "We need a one-pager for the trade show next week" · "Small tweak: reshoot the intro"'}
           style={{ ...input, resize: "vertical", lineHeight: 1.5, marginBottom: 12 }} />
-        <button onClick={classify} disabled={!clientId || !text.trim() || busy === "classify"}
-          style={{ padding: "9px 18px", borderRadius: 9, border: "none", cursor: clientId && text.trim() ? "pointer" : "default", background: clientId && text.trim() ? ACCENT : "rgba(255,255,255,0.08)", color: clientId && text.trim() ? "#08131c" : "rgba(255,255,255,0.4)", fontWeight: 700, fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
-          {busy === "classify" ? "Classifying…" : "Classify"}
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <button onClick={classify} disabled={!clientId || !text.trim() || !!busy}
+            style={{ padding: "9px 18px", borderRadius: 9, border: "none", cursor: clientId && text.trim() ? "pointer" : "default", background: clientId && text.trim() ? ACCENT : "rgba(255,255,255,0.08)", color: clientId && text.trim() ? "#08131c" : "rgba(255,255,255,0.4)", fontWeight: 700, fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
+            {busy === "classify" ? "Classifying…" : "Classify (Sentinel)"}
+          </button>
+          <button onClick={() => setManual(m => !m)}
+            style={{ padding: "9px 14px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.14)", cursor: "pointer", background: manual ? "rgba(42,171,255,0.12)" : "none", color: manual ? ACCENT : "rgba(255,255,255,0.7)", fontWeight: 600, fontSize: 12, fontFamily: "Inter, sans-serif" }}>
+            {manual ? "Hide manual" : "Log manually"}
+          </button>
+          {manual && (
+            <>
+              <select value={manualClass} onChange={e => setManualClass(e.target.value)} style={{ ...input, width: "auto", padding: "8px 10px", fontSize: 12 }}>
+                {Object.entries(CLASS_META).map(([k, m]) => <option key={k} value={k}>{m.label}</option>)}
+              </select>
+              <input type="number" min="0" value={manualValue} onChange={e => setManualValue(e.target.value)} placeholder="$ value (optional)" style={{ ...input, width: 150, padding: "8px 10px", fontSize: 12 }} />
+              <button onClick={logManually} disabled={!clientId || !text.trim() || !!busy}
+                style={{ padding: "9px 16px", borderRadius: 9, border: "none", cursor: "pointer", background: "rgba(48,209,88,0.16)", color: "#30d158", fontWeight: 700, fontSize: 12, fontFamily: "Inter, sans-serif" }}>
+                {busy === "manual" ? "Saving…" : "Log as confirmed"}
+              </button>
+            </>
+          )}
+        </div>
+        {manual && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 8 }}>Manual entries skip the sentinel: you are the classifier. Use this when AI is unavailable or the call is obvious.</div>}
       </div>
 
       {/* Absorbed-value register roll-up */}
