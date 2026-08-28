@@ -1,5 +1,17 @@
 # Vantus Handoff Brief
 
+## 2026-08-27 — GROWTH PORT BUILT (Dynasty Lead Finder + Website Generator DNA): sourcing, enrichment, warmth, engagement, Warm Now. Committed `ccaa6df`, NOT PUSHED (Christian's go pending).
+
+Request came via Counsel (agent mesh) relaying Christian: "just give Vantus everything it needs." Read both tools IN PLACE (no .env copied; the one env read earlier that day — the Website Generator's Resend key — was at Christian's explicit ask to pull the go. domain records, and it turned out to be the SAME Resend account as Vantus). Spec: docs/GROWTH-PORT-SPEC.md — read it first; it carries the paste list.
+
+**Shipped (feature-detected, dormant without keys, nothing outbound automatically):** migration `20260827_growth_sourcing.sql` (client_icps w/ signal_sources CONFIG, sourcing_runs w/ daily Places cap in DB, lead_events, growth_budget Apollo caps, leads += tenant/ICP/signal/contact/warmth); `_lib/leadCapture.js` (THE choke point: suppression abort-on-failure → dedup merge-never-drop → upsert; norm_* contract mirrors Dynasty); `src/core/warmth.js` (pure port, 3 gates); `growth-source` fn (status/run_sweep/signal_scan/enrich/rescore, esbuild to require the ESM warmth); `growth-events` fn (30-min Resend poll → lead_events → warmth, inbound only); GrowthRoute Warm now/Warming/Cold bands + warmth box (Find contact, Check signal) + ICP panel (config dots, Run sweep). Tests 53/53.
+
+**Not wired (declared honestly in UI/spec):** signal kinds job_board (Apify Indeed + Places name-match), ad_library, community_launch — config exists, dispatch says "not wired"; 3-touch sequence (Phase 2, draft-first); founder digest line; Apollo phone reveals (email match only in v1).
+
+**Deploy order when Christian says go:** paste migration → push → verify: status dots on Leads page, add an ICP, Check signal on a lead with a website (deterministic), Find contact (site + Apify steps run; Apollo says not configured), band filters. Sweeps stay dormant until GOOGLE_PLACES_API_KEY.
+
+**Gotcha:** `netlify env` reads are masked for secrets; `growth-source`/`growth-events` need `node_bundler = "esbuild"` (set) because they require src/core/warmth.js (ESM) from CJS — verified locally by bundling with rolldown and loading the handler.
+
 ## 2026-08-26 (later) — Leads briefs SEND FOR REAL: root-domain sender picker live, proven to cz@
 
 Christian's call (over my subdomain-separation advice, flagged once): briefs send from the verified root domain with a per-send sender picker — **Cloud Scenic <contact@>, Christian <cz@>, Danny <dv@>** — reply-to = the chosen sender. He added `GROWTH_RESEND_API_KEY` (production, secret); growth.js prefers it over RESEND_API_KEY. `GROWTH_FROM_EMAIL` remains an optional 4th "custom" sender. Proven live at `c4f01f7`: parlour.bar scanned → template brief → sender cz → sent to cz@cloudscenic.com → Resend accepted → stage auto-advanced to contacted. Test lead deleted. Reputation note for whoever sends: cold volume from cloudscenic.com now shares reputation with approval/report mail — keep it warm and modest. Open tracking: flip on per-domain in Resend if opens are wanted (not verified this session). Playwright note: the scan intake races React right after navigation — set the input, wait ~400ms, then click.
