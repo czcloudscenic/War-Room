@@ -7,6 +7,8 @@ import { clientHealth, bottlenecks, approvalDelayFactor, paymentFactor, worstLev
 import { freshnessState, factsFreshness, truthGates } from '../src/core/truth.js';
 import { commandDigest } from '../src/core/commandDigest.js';
 import siteAudit from '../netlify/functions/_lib/siteAudit.js';
+import { scoreWarmth, WARM_MIN } from '../src/core/warmth.js';
+import leadCapture from '../netlify/functions/_lib/leadCapture.js';
 
 let pass = 0, fail = 0;
 const t = (name, cond) => { if (cond) { pass++; } else { fail++; console.error('FAIL:', name); } };
@@ -99,6 +101,43 @@ t('commandDigest returns tiers object', digest && typeof digest === 'object');
   t('brief: no em-dashes', !/—/.test(b.body_md) && !/—/.test(b.subject));
   t('normalizeUrl: bare host -> https + stripped www', normalizeUrl('www.Example.com/path?x=1').host === 'example.com' && normalizeUrl('example.com').href.startsWith('https://'));
   t('normalizeUrl: garbage -> null', normalizeUrl('not a url') === null || normalizeUrl('') === null);
+}
+
+/* ── warmth (Growth port) ── */
+{
+  const iso = (d) => new Date(NOW - d * 86400000).toISOString();
+  const sentAt = iso(2);
+  const cold = scoreWarmth({ name: 'X' }, { now: NOW });
+  t('warmth: empty lead is cold, 0', cold.band === 'cold' && cold.score === 0);
+  const personOnly = scoreWarmth({ contact_name: 'Maria Lopez', contact_title: 'Owner', contact_email: 'm@x.com' }, { now: NOW });
+  t('warmth: person alone = warming at most, person gate true', personOnly.gates.person && personOnly.band !== 'warm');
+  const full = scoreWarmth(
+    { contact_name: 'Maria Lopez', contact_title: 'Owner', contact_email: 'm@x.com', direct_phone: '555', signal_verified_at: iso(3), signal_posted_at: iso(3), signal_url: 'https://x/careers', signal_role: 'Marketing Manager', fit: 'high', review_count: 40, updated_at: iso(1) },
+    { now: NOW, events: [{ kind: 'sent', at: sentAt, meta: {} }, { kind: 'opened', at: iso(1), meta: { sent_at: sentAt } }, { kind: 'clicked', at: iso(1), meta: { sent_at: sentAt } }] });
+  t('warmth: all three gates = WARM', full.band === 'warm' && full.score >= WARM_MIN && full.gates.person && full.gates.trigger && full.gates.engaged);
+  t('warmth: reasons are readable', full.reasons.some(r => /Owner Maria Lopez/.test(r)) && full.reasons.some(r => /Hiring/.test(r)) && full.reasons.some(r => /Clicked/.test(r)));
+  const scanner = scoreWarmth(full === null ? {} : { contact_name: 'Maria Lopez', contact_email: 'm@x.com', signal_verified_at: iso(3), signal_url: 'u' },
+    { now: NOW, events: [{ kind: 'opened', at: new Date(new Date(sentAt).getTime() + 30e3).toISOString(), meta: { sent_at: sentAt } }] });
+  t('warmth: open 30s after send = link scanner, not engaged', scanner.gates.engaged === false);
+  const stale = scoreWarmth({ contact_name: 'Maria Lopez', contact_email: 'm@x.com', signal_verified_at: iso(60), signal_url: 'u', updated_at: iso(60) }, { now: NOW });
+  t('warmth: 60d-old signal is not a trigger gate + decays', stale.gates.trigger === false && stale.factors.decay < 0);
+  const lowfit = scoreWarmth({ contact_name: 'A B', contact_email: 'a@b.c', fit: 'low' }, { now: NOW });
+  t('warmth: low fit without signal caps below warming', lowfit.band === 'cold' && lowfit.score < 35);
+  t('warmth: optout is a hard zero', scoreWarmth({ contact_name: 'A B', contact_email: 'a@b.c', optout: true }, { now: NOW }).score === 0);
+}
+
+/* ── leadCapture normalization + suppression (the choke point's pure parts) ── */
+{
+  const { normPhone, normDomain, normCompany, normCity, suppressionMatch } = leadCapture;
+  t('normPhone: +1 and punctuation collapse to last 10', normPhone('+1 (951) 555-0199') === '9515550199' && normPhone('951.555.0199') === '9515550199');
+  t('normDomain: strips protocol/www/path', normDomain('https://www.Acme-Roofing.com/about?x=1') === 'acme-roofing.com');
+  t('normCompany: legal suffixes + punctuation dropped', normCompany('Acme Roofing, Inc.') === 'acme roofing' && normCompany('ACME ROOFING LLC') === 'acme roofing');
+  t('normCity: lowercase words only', normCity('Riverside, CA') === 'riverside ca');
+  const maps = { domains: new Map([['parlour.bar', { why: 'existing client', who: 'Parlour Bar' }]]), phones: new Map([['9515550199', { why: 'opted out', who: 'X' }]]), names: new Map([['acme roofing', { why: 'existing client', who: 'Acme' }]]) };
+  t('suppression: matches by domain', suppressionMatch(maps, { website: 'https://www.parlour.bar/menu' })?.on === 'domain');
+  t('suppression: matches by phone', suppressionMatch(maps, { phone: '(951) 555-0199' })?.on === 'phone');
+  t('suppression: matches by normalized name', suppressionMatch(maps, { name: 'ACME Roofing Inc' })?.on === 'name');
+  t('suppression: clean row passes', suppressionMatch(maps, { name: 'Sunset Plumbing', website: 'sunsetplumbing.com', phone: '9095550000' }) === null);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -114,7 +114,7 @@ export default function AppRoutes({ activeNav, agents, aiEnabled, clientContent,
 
       {/* GROWTH / LEADS (Phase C §3.C.4) — scan → audit → brief → convert */}
       {activeNav === "leads" && (
-        <GrowthRoute isMobile={isMobile} setActiveNav={setActiveNav}
+        <GrowthRoute isMobile={isMobile} setActiveNav={setActiveNav} clients={clients}
           openClient={(id) => { const c = clients.find(x => x.id === id); if (c) { switchClient(c); setWorkspaceClientId(c.id); setActiveNav("clientworkspace"); } }} />
       )}
 
