@@ -1,5 +1,15 @@
 # Vantus Handoff Brief
 
+## 2026-09-02 — state check: sourcing migration APPLIED, go. DNS 2/3 correct, port still UNPUSHED
+
+Christian asked for a handoff refresh; verified live state rather than assuming:
+
+- **Port commits `ccaa6df` + `90e61e3` still local (main ahead of origin by 2, +this note = 3).** The "push" word never came — that is the ONLY thing between the Growth port and prod. Deploy order is safe: migration is already in.
+- **`20260827_growth_sourcing.sql` WAS PASTED** since 8/27: client_icps / sourcing_runs / lead_events / growth_budget all EXIST on prod. When the push lands, the whole port goes live against ready tables.
+- **go.cloudscenic.com: 2 of 3 DNS records correct, verification PENDING with a specific fix.** DKIM TXT (resend._domainkey.go) is live and correct; MX at send.go is correct; but the TXT at `send.go` reads `v=spf1 include:dc-fd741b8612._spfm.send.go.cloudscenic.com ~all` — GoDaddy's own forwarding-style SPF, not Resend's. **Fix: edit that TXT (name `send.go`) to exactly `v=spf1 include:amazonses.com ~all`.** A verify was re-triggered via the Resend API this session; it will keep failing SPF until that edit. Until verified, brief sends from cz@go.cloudscenic.com 403.
+- **Keys unchanged:** GOOGLE_PLACES_API_KEY and APOLLO_API_KEY still not set (sweeps + Apollo reveals dormant by design). Apify/Resend/cron keys set. Anthropic credits still $0 (backlogged).
+- **Next actions, smallest first:** (1) Christian fixes the one SPF TXT at GoDaddy; (2) Christian says "push" → push, deploy watch, Playwright sweep of Leads (status dots, ICP add, Check signal, Find contact, bands); (3) keys whenever.
+
 ## 2026-08-27 — GROWTH PORT BUILT (Dynasty Lead Finder + Website Generator DNA): sourcing, enrichment, warmth, engagement, Warm Now. Committed `ccaa6df`, NOT PUSHED (Christian's go pending).
 
 Request came via Counsel (agent mesh) relaying Christian: "just give Vantus everything it needs." Read both tools IN PLACE (no .env copied; the one env read earlier that day — the Website Generator's Resend key — was at Christian's explicit ask to pull the go. domain records, and it turned out to be the SAME Resend account as Vantus). Spec: docs/GROWTH-PORT-SPEC.md — read it first; it carries the paste list.
