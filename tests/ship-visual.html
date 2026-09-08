@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Ship | Local crew study</title>
+<body style="margin:0;background:#080808;color:#ddd;font:13px system-ui">
+  <header style="padding:14px 24px;display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+    <strong>AGENT SHIP / CREW STUDY</strong>
+    <span>LOCAL FIXTURES ONLY · NO AUTH OR DATABASE</span>
+    <label>View <select id="view"><option value="ship">Painted ship</option><option value="lineup">Crew comparison</option></select></label>
+    <label>Pose <select id="pose"><option>idle</option><option>walk</option><option>work</option><option>climb</option><option>sleep</option></select></label>
+    <label><input id="play" type="checkbox"> Play fixture</label>
+    <label><input id="procedural" type="checkbox"> Sean fallback</label>
+    <label><input id="reverse" type="checkbox"> Face left</label>
+    <label><input id="lower" type="checkbox"> Lower deck</label>
+  </header>
+  <main id="stage" style="width:1280px;height:720px;margin:auto;position:relative"></main>
+  <footer style="padding:12px 24px;line-height:1.8">
+    <div id="stats">Loading artwork and existing Sean GLBs…</div>
+    <div>Ship: production camera, lights, tint, scale and sloped floor projection. Comparison: enlarged to inspect silhouette.</div>
+    <div>Only this local page synthesizes poses. The production receipt engine is imported unchanged.</div>
+  </footer>
+  <script type="module">
+    import * as THREE from 'three';
+    import { createAgentFigure } from '../src/ship/crewModels.js';
+    import { createCrewFigure } from '../src/ship/crewGLB.js';
+    import { createShipSim } from '../src/ship/shipEngine.js';
+    import { WORLD_W, WORLD_H, DECKS, floorYAt } from '../src/ship/world.js';
+    import { positionCrew } from '../src/core/shipStations.js';
+
+    const controls = Object.fromEntries(['view', 'pose', 'play', 'procedural', 'reverse', 'lower'].map(id => [id, document.getElementById(id)]));
+    const params = new URLSearchParams(location.search);
+    for (const [key, el] of Object.entries(controls)) {
+      if (params.has(key)) el.type === 'checkbox' ? el.checked = params.get(key) === '1' : el.value = params.get(key);
+    }
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(1.5);
+    renderer.setSize(WORLD_W, WORLD_H);
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.getElementById('stage').append(renderer.domElement);
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#080808');
+    const camera = new THREE.PerspectiveCamera(35, WORLD_W / WORLD_H, 1, 4000);
+    camera.position.set(0, 0, 1141);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.15));
+    scene.add(new THREE.HemisphereLight('#7fb4e0', '#161616', 0.7));
+    const key = new THREE.DirectionalLight('#bcd9f5', 0.5);
+    key.position.set(-200, 300, 400);
+    scene.add(key);
+    const texture = await new THREE.TextureLoader().loadAsync('/ship-interior.jpg');
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_W, WORLD_H), new THREE.MeshBasicMaterial({ map: texture }));
+    scene.add(plate);
+    const crew = positionCrew([], 1788883200000).filter(m => !m.future);
+    const sim = createShipSim();
+    sim.setCrew(crew);
+    let figures = [];
+    let clock = 1500;
+    let last = performance.now();
+
+    // Match ShipScene3D's existing tint verbatim. Material authoring must work
+    // under the real host; a prettier harness-only light rig would hide bugs.
+    function productionTint(figure, member) {
+      const tint = new THREE.Color(member.color);
+      figure.group.traverse(o => {
+        if (o.isMesh && o.material && 'emissive' in o.material && o.material.color) {
+          const m = o.material;
+          const lum = m.color.r * 0.3 + m.color.g * 0.59 + m.color.b * 0.11;
+          if (lum < 0.16) m.color.lerp(tint, 0.45);
+          m.emissive.copy(m.color).multiplyScalar(0.4);
+        }
+      });
+    }
+    function rebuild() {
+      for (const f of figures) f.dispose();
+      const lineup = controls.view.value === 'lineup';
+      const members = lineup ? [crew[0], ...crew] : crew;
+      figures = members.map((member, i) => {
+        const useRig = member.name === 'Sean' && !controls.procedural.checked && (!lineup || i === 0);
+        const figure = (useRig ? createCrewFigure : createAgentFigure)(member);
+        productionTint(figure, member);
+        scene.add(figure.group);
+        return Object.assign(figure, { member, useRig });
+      });
+      draw();
+    }
+    function draw() {
+      const lineup = controls.view.value === 'lineup';
+      plate.visible = !lineup;
+      const sprites = sim.getSprites();
+      figures.forEach((fig, i) => {
+        const source = sprites.find(s => s.name === fig.member.name);
+        const deck = controls.lower.checked ? 1 : source.deck;
+        const sp = { ...source, deck, anim: controls.pose.value, animT: clock, facing: controls.reverse.checked ? -1 : 1, state: controls.pose.value === 'work' ? 'working' : 'idle' };
+        fig.update(sp, clock);
+        const scale = lineup ? 8 : Math.min(105, Math.max(66, 62 + 0.05 * sp.x)) / 34;
+        fig.group.scale.multiplyScalar(scale);
+        fig.group.position.set(lineup ? (i - 2) * 238 : sp.x - WORLD_W / 2, lineup ? -125 : WORLD_H / 2 - floorYAt(deck, sp.x), deck === 1 ? 26 : 18);
+      });
+      renderer.render(scene, camera);
+      const rigs = figures.map(f => {
+        let skinned = 0, meshes = 0;
+        f.group.traverse(o => { if (o.isSkinnedMesh) skinned++; if (o.isMesh) meshes++; });
+        return { name: f.member.name, requestedRig: f.useRig, skinned, meshes };
+      });
+      document.getElementById('stats').textContent = `${controls.view.value} · ${controls.pose.value} · t=${Math.round(clock)}ms · ${renderer.info.render.calls} draw calls · ${renderer.info.render.triangles.toLocaleString()} triangles · ${rigs.filter(r => r.skinned).length} rigged / ${figures.length} figures`;
+      window.shipStudy.stats = { rigs, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, time: clock };
+    }
+    window.shipStudy = { stats: null, setTime(t) { clock = t; draw(); }, figures: () => figures, scene, renderer, camera };
+    for (const key of ['view', 'procedural']) controls[key].addEventListener('change', rebuild);
+    for (const key of ['pose', 'reverse', 'lower']) controls[key].addEventListener('change', draw);
+    rebuild();
+    renderer.setAnimationLoop(now => {
+      if (controls.play.checked) clock += Math.min(100, Math.max(0, now - last));
+      last = now;
+      draw();
+    });
+  </script>
+</body>
+</html>
