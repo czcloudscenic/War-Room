@@ -223,3 +223,93 @@ Branch: `codex/grunt-2026-08-13b`
 - No App, constants, ContentIntelRoute, migration, dependency, environment, deployment, paid API, remote, or production data changes were made.
 - Existing dirty Netlify artifacts and `deno.lock` in the shared checkout were preserved untouched.
 - No push or PR was performed.
+
+## 2026-09-08 Agent Ship handover: contract conflict
+
+### Prepared
+
+- Created isolated worktree `/private/tmp/vantus-grunt-2026-09-08` on `codex/grunt-2026-09-08`, based on `52416c0aa6292d020dd36642d8f190254a0955f0`. Today's branch did not already exist.
+- Inspected the live checkout's git state and handoff. Its checked-out branch remains `main`; existing modified `.netlify/` artifacts and untracked `deno.lock` were left untouched.
+- The founder supplied both original reference PNGs in this conversation. The handover's claim that the original reference is missing is superseded by these attachments.
+
+### Conflict requiring Christian's direction
+
+- The AGENTS.md contract supplied in this session says: "Do not make architectural decisions" and "If a task prompt conflicts with this file / This file wins. Stop, write the conflict to CODEX_NOTES.md, and wait."
+- The Agent Ship handover says: "You may rearchitect" and explicitly assigns the decision to retain or delete the parked hull stack (Fix #10).
+- Paused before implementation as the contract requires. Christian should confirm whether this handover is an explicit exception to the no-architectural-decisions rule. No separate approval is needed for the isolated worktree, already expressly requested.
+- The standing prohibition on paid API actions also remains in effect. Optional Lane B can be skipped without preventing Lane A; no generation calls were made.
+
+### Validation
+
+- `git status --short --branch` and `git worktree list` inspected the existing checkout and worktrees.
+- `git branch --list 'codex/grunt-2026-09-08'` returned no branch before creation.
+- `git worktree add -b codex/grunt-2026-09-08 /private/tmp/vantus-grunt-2026-09-08 52416c0aa6292d020dd36642d8f190254a0955f0` succeeded.
+- `git diff --check` passed for this appended note.
+- Build and tests were not run because work stopped at the instruction conflict. No claim is made about baseline build/test health.
+
+### Explicitly not done
+
+- No ship source, receipt logic, artwork, crew asset, dependency, configuration, secret, database, or live checkout file was changed.
+- No visual harness, before/after screenshots, crew improvement, orphan removal, parked-stack decision, or mobile fix was completed.
+- No paid API call, deployment, push, PR, or commit was performed. This note remains uncommitted; no commit was made without its required preceding build.
+
+## 2026-09-08 (later) Counsel: rescue + sculpt completion + character pipeline restart
+
+Codex exhausted its credits mid-task, after doing the work but before committing
+or updating this file. The conflict entry above was its last write and is now
+stale: it says no harness and no crew improvement were completed. Both existed
+on disk, uncommitted, in a /private/tmp worktree.
+
+### Rescued and committed (nothing pushed)
+
+- `ae55026` Codex's local crew study harness, `tests/ship-visual.html` (untracked when found).
+- `a0a6d1e` Codex's sculpted crew geometry in `src/ship/crewModels.js`: profileGeom
+  lofted CatmullRom profiles, ellipsoid masses, panelGeom, rewritten wardrobes for
+  the four commissioned crew.
+- `9fc1de8` Counsel completed the pass Codex left unwired. `finishSculpt()` and
+  `SCULPTED` were defined but never called. Now gated to the four commissioned
+  crew, merged per articulation group so update() still poses. The host tint rule
+  is baked into vertex colors at build time and merged meshes are flagged
+  `userData.sculpted`; `ShipScene3D` skips them, otherwise one shared material
+  washes the whole body a single flat color. Merged geometries dispose per figure.
+
+Validation: `npm run build` green, `npm test` 53/53, 24 merged surfaces across the
+4 crew measured live in the harness. NOT done: a before/after visual comparison
+against the pre-sculpt baseline. Treat the procedural crew as the fallback path.
+
+### Character pipeline (Christian: "muse scrappy & slate to look like the first sean")
+
+The first Sean is a rigged GLB. Procedural geometry cannot reach it, so the
+pipeline was restarted. Assets staged OUTSIDE the repo at `~/vantus-crew-staging/`
+(unrigged meshes must never ship; see the 8/20 note about a static sean.glb).
+
+- MUSE: mesh COMPLETE, job `d2983a45-3daf-480c-816b-6c7e674c3482`, 30 credits,
+  textured, verified 1 mesh / 1 image / 0 skins / 0 animations. Saved as
+  `~/vantus-crew-staging/muse-mesh.glb`. Confirms again that multi_image_to_3d
+  silently ignores rigging flags. NEXT: `3d_rigging` twice on that job id,
+  height_meters 1.8, animation_action_id 30 (walk) then 0 (idle).
+- SCRAPPY + SLATE: A-pose turnarounds generated and split into 4 single-figure
+  crops each, gap-aware padding so no neighbour bleeds in. Ready to upload.
+  NEXT: media_upload + media_confirm the 4 crops, then multi_image_to_3d, then rig x2.
+- First turnaround pass for both was discarded: arms hung against the torso and
+  Slate's were pinned under the greatcoat, the documented cause of every early rig
+  failure. Forcing "wide A-pose, triangular white gap between arm and ribcage,
+  arms must NOT hang down" fixed it. Scrappy's usable sheet came back cel-shaded
+  with black outlines where Sean and Slate are painterly; a style-matched retry was
+  submitted and rejected by the daily cap, so his mesh will look flatter than
+  Sean's unless that sheet is regenerated first.
+
+### THE BLOCKER IS UNCHANGED
+
+Higgsfield is still in the billing grace state. Today's allowance was roughly 4
+images + 1 3D job before both endpoints returned "You've reached the daily
+generation limit for your grace period." The allowance does refill daily, so this
+is doable across days, but fixing billing collapses it into one sitting.
+Credits are not the constraint: 2,753.5 on Ultra.
+
+### Explicitly not done
+
+- No push, no PR, no deploy, no migration. `main` untouched; all work is on
+  `codex/grunt-2026-09-08`.
+- No GLB was added to `public/crew/` and no `CREW_GLB` line was uncommented.
+  Muse's mesh is unrigged and must not ship in that state.
