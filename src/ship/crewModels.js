@@ -150,8 +150,8 @@ function panelGeom(id, points) {
 // pivot. One neutral, lightable material cannot be repeatedly saturated by the
 // host's per-mesh signature tint. Vertex colors carry cloth folds and subtle
 // value variation; there is no emissive skin, eye glow, or extra texture load.
-function finishSculpt(rig, material, ownedGeometries) {
-  for (const child of [...rig.children]) if (child.isGroup) finishSculpt(child, material, ownedGeometries);
+function finishSculpt(rig, material, ownedGeometries, tint) {
+  for (const child of [...rig.children]) if (child.isGroup) finishSculpt(child, material, ownedGeometries, tint);
   const meshes = rig.children.filter(o => o.isMesh);
   if (!meshes.length) return;
   const geometries = meshes.map(mesh => {
@@ -160,7 +160,14 @@ function finishSculpt(rig, material, ownedGeometries) {
     g.applyMatrix4(mesh.matrix);
     const p = g.attributes.position, n = g.attributes.normal;
     const colors = new Float32Array(p.count * 3);
-    const c = mesh.material.color;
+    // Same rule ShipScene3D applies per mesh: near-black garments carry 45% of
+    // the agent's signature color. Baked here because the merged figure has one
+    // shared material the host can no longer tint part by part.
+    const c = mesh.material.color.clone();
+    if (tint) {
+      const lum = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
+      if (lum < 0.16) c.lerp(tint, 0.45);
+    }
     for (let i = 0; i < p.count; i++) {
       // Low contrast surface variation, deterministic and independent of time.
       const grain = Math.sin(p.getX(i) * 17 + p.getY(i) * 29 + p.getZ(i) * 13) * 0.025;
@@ -178,6 +185,7 @@ function finishSculpt(rig, material, ownedGeometries) {
   for (const mesh of meshes) rig.remove(mesh);
   const mesh = new THREE.Mesh(merged, material);
   mesh.name = `${rig.name || 'body'}-surface`;
+  mesh.userData.sculpted = true; // colors already baked — host must not tint again
   rig.add(mesh);
 }
 
@@ -516,6 +524,17 @@ export function createAgentFigure({ name, color, future = false }) {
   const { arm: armR, fore: foreR } = buildArm(1);
   rig.add(armL, armR);
 
+  // ── Sculpt pass: one lightable material per articulation group ──────────────
+  // Commissioned crew only; the future roster keeps its primitive wardrobe.
+  // Merged per group so update() can still pose rig/head/arms/forearms/legs.
+  const ownedGeometries = [];
+  if (SCULPTED.has(String(name || ''))) {
+    const surface = M(makeMat(0xffffff, { future }));
+    surface.vertexColors = true;   // per-part color + cloth shading live in the mesh
+    surface.flatShading = false;   // lofted profiles are smooth; boxes keep their own normals
+    finishSculpt(rig, surface, ownedGeometries, agentColor);
+  }
+
   // ── Status light (above head, on group so it never lies down) ───────────────
   const statusMat = M(new THREE.MeshStandardMaterial({
     color: 0x111318,
@@ -635,6 +654,7 @@ export function createAgentFigure({ name, color, future = false }) {
     // Geometries are module-level shared cache — intentionally NOT disposed
     // here (other live figures reuse them; the cache is small and bounded).
     for (const m of mats) m.dispose();
+    for (const g of ownedGeometries) g.dispose(); // merged surfaces are per-figure, not cached
     if (tagTexture) tagTexture.dispose();
     if (group.parent) group.parent.remove(group);
   }

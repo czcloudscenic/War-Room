@@ -113,6 +113,10 @@ function SceneContent({ simRef, crew }) {
         // them turns the Quarters bunks into colored noise.
         const tint = new THREE.Color(member.color || '#2AABFF');
         fig.group.traverse((o) => {
+          // Sculpted crew already carry the tint in their vertex colors; the
+          // merged figure shares one material, so tinting it here would wash
+          // the whole body one color instead of just the near-black garments.
+          if (o.userData && o.userData.sculpted) return;
           if (o.isMesh && o.material && 'emissive' in o.material && o.material.color) {
             const m = o.material;
             const lum = m.color.r * 0.3 + m.color.g * 0.59 + m.color.b * 0.11;
