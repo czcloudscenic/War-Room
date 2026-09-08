@@ -1,9 +1,10 @@
 // ── Agent Ship crew models ────────────────────────────────────────────────────
-// Procedural low-poly crew figures for the cinematic 2.5D ship scene.
+// Procedural crew figures for the cinematic 2.5D ship scene.
 // ORIGINAL stylized humans in a dark-cyberpunk wardrobe language — long leather
 // coats, dark glasses, one striking red dress. NO film-character or real-actor
-// likenesses: heads stay featureless beyond the emissive visor / eye-light
-// language, so identity comes purely from silhouette, wardrobe, and color.
+// likenesses: faces are simple original sculpts, with identity coming from
+// silhouette, wardrobe, and color. The four commissioned crew use smooth
+// anatomical profiles; the future roster keeps its existing wardrobe.
 //
 // Every named ROSTER member (src/core/shipStations.js) gets a distinct
 // wardrobe built from primitive geometry:
@@ -31,6 +32,7 @@
 //   fig.dispose();
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // ── Palette / proportions (world units; figure stands ~34 tall) ──────────────
 const COAT_COLOR = 0x12151c;
@@ -83,6 +85,101 @@ const torusGeom = (r, tube, rs, ts) =>
   cachedGeom(`t:${r},${tube},${rs},${ts}`, () => new THREE.TorusGeometry(r, tube, rs, ts));
 const sphereGeom = (r, ws, hs) =>
   cachedGeom(`s:${r},${ws},${hs}`, () => new THREE.SphereGeometry(r, ws, hs));
+
+const SCULPTED = new Set(['Sean', 'Muse', 'Scrappy', 'Slate']);
+
+// Elliptical cross sections, smoothly interpolated along y. Unlike cylinders
+// and boxes these describe a jaw, shoulders, waist, hips and a cloth hem.
+// Profiles and their deterministic folds are cached, never rebuilt in update.
+function profileGeom(id, profile, folds = 0, opening = 0) {
+  return cachedGeom(`profile:${id}`, () => {
+    const curve = new THREE.CatmullRomCurve3(profile.map(([y, x, z]) => new THREE.Vector3(x, y, z)), false, 'centripetal');
+    const rows = (profile.length - 1) * 5, columns = 24;
+    const positions = [], uv = [], indices = [];
+    for (let i = 0; i <= rows; i++) {
+      const p = curve.getPoint(i / rows);
+      for (let j = 0; j <= columns; j++) {
+        const a = opening + (Math.PI * 2 - opening * 2) * j / columns;
+        const ripple = 1 + folds * Math.sin(a * 7 + p.y * 0.35) * Math.sin(Math.PI * i / rows);
+        positions.push(Math.sin(a) * Math.max(0.015, p.x) * ripple, p.y, Math.cos(a) * Math.max(0.015, p.z) * ripple);
+        uv.push(j / columns, i / rows);
+        if (i < rows && j < columns) {
+          const k = i * (columns + 1) + j;
+          indices.push(k, k + columns + 1, k + 1, k + 1, k + columns + 1, k + columns + 2);
+        }
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(indices);
+    g.computeVertexNormals();
+    // The duplicated UV seam must share its normal on closed surfaces.
+    if (!opening) {
+      const normals = g.attributes.normal;
+      const normal = new THREE.Vector3();
+      for (let i = 0; i <= rows; i++) {
+        const a = i * (columns + 1), b = a + columns;
+        normal.set(normals.getX(a) + normals.getX(b), normals.getY(a) + normals.getY(b), normals.getZ(a) + normals.getZ(b)).normalize();
+        normals.setXYZ(a, normal.x, normal.y, normal.z);
+        normals.setXYZ(b, normal.x, normal.y, normal.z);
+      }
+    }
+    return g;
+  });
+}
+
+function ellipsoid(t, name, material, x, y, z, sx, sy, sz, parent = t.rig) {
+  const m = t.part(name, sphereGeom(1, 16, 12), material, x, y, z, parent);
+  m.scale.set(sx, sy, sz);
+  return m;
+}
+
+function panelGeom(id, points) {
+  return cachedGeom(`panel:${id}`, () => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(points.flat(), 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(points.flatMap((_, i) => [i % 2, Math.floor(i / 2)]), 2));
+    g.setIndex([0, 1, 2, 0, 2, 3]);
+    g.computeVertexNormals();
+    return g;
+  });
+}
+
+// Bake garment/skin colors into smooth geometry, then batch by articulation
+// pivot. One neutral, lightable material cannot be repeatedly saturated by the
+// host's per-mesh signature tint. Vertex colors carry cloth folds and subtle
+// value variation; there is no emissive skin, eye glow, or extra texture load.
+function finishSculpt(rig, material, ownedGeometries) {
+  for (const child of [...rig.children]) if (child.isGroup) finishSculpt(child, material, ownedGeometries);
+  const meshes = rig.children.filter(o => o.isMesh);
+  if (!meshes.length) return;
+  const geometries = meshes.map(mesh => {
+    mesh.updateMatrix();
+    const g = mesh.geometry.clone();
+    g.applyMatrix4(mesh.matrix);
+    const p = g.attributes.position, n = g.attributes.normal;
+    const colors = new Float32Array(p.count * 3);
+    const c = mesh.material.color;
+    for (let i = 0; i < p.count; i++) {
+      // Low contrast surface variation, deterministic and independent of time.
+      const grain = Math.sin(p.getX(i) * 17 + p.getY(i) * 29 + p.getZ(i) * 13) * 0.025;
+      const shade = 0.88 + 0.12 * Math.max(0, n.getY(i)) + grain;
+      colors[i * 3] = c.r * shade;
+      colors[i * 3 + 1] = c.g * shade;
+      colors[i * 3 + 2] = c.b * shade;
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    return g;
+  });
+  const merged = mergeGeometries(geometries, false);
+  for (const g of geometries) g.dispose();
+  ownedGeometries.push(merged);
+  for (const mesh of meshes) rig.remove(mesh);
+  const mesh = new THREE.Mesh(merged, material);
+  mesh.name = `${rig.name || 'body'}-surface`;
+  rig.add(mesh);
+}
 
 // Name-tag texture: 24px Geist Mono in the agent color on transparent bg.
 // Returns null in non-DOM environments (headless tests) — the tag sprite
@@ -162,73 +259,85 @@ function wardrobeGeneric(t) {
 // Sean — the calm lead: full-length black trench, slightly flared, knee-length
 // tail, slim rectangular dark visor strip, short dark hair, upright posture.
 function wardrobeSean(t) {
-  const trench = t.cloth(0x101319, { roughness: 0.6, metalness: 0.2 }); // leather sheen
-  t.part('trench-lower', boxGeom(10.8, 13, 5.6), trench, 0, 13.8, 0); // hem at the knee
-  t.part('trench-upper', boxGeom(8.2, 8, 4.8), trench, 0, 23.2, 0);
-  t.part('trench-collar', boxGeom(7.2, 2.4, 5.4), trench, 0, 27.4, 0);
-  t.part('trench-belt', boxGeom(8.6, 1.4, 4.6), t.cloth(0x0b0e14), 0, 19.2, 0.6);
-  t.part('coat-tail', boxGeom(7.6, 8.5, 1.3), trench, 0, 10.5, -3.1); // knee-length tail
-  addRim(t, 4.6, 16.8, 2.7, 18);
-  t.part('hair-short', boxGeom(4.6, 1.5, 4.4), t.cloth(0x141821), 0, 4.4, -0.2, t.headGroup);
-  // Slim rectangular dark shades strip — wider + flatter than the generic visor.
-  t.part('visor-strip', boxGeom(5.2, 0.9, 0.55), t.glow(0x0c0f15, 0.3), 0, 2.4, 2.4, t.headGroup);
+  const coat = t.cloth(0x4a505a), seam = t.cloth(0x7c828c), shirt = t.cloth(0x30343d);
+  t.part('trench-body', profileGeom('sean-torso', [[15,3.4,1.9],[19,2.9,1.7],[23.5,4,2.05],[25.6,4.25,1.8],[27,2.15,1.4],[27.5,1.1,1]]), coat, 0,0,0);
+  t.part('trench-flare', profileGeom('sean-hem', [[6.3,5.05,2.5],[10,4.5,2.3],[15,3.5,1.9],[19.5,2.95,1.7]], 0.035, 0.26), coat, 0,0,0);
+  t.part('shirt-front', profileGeom('sean-shirt', [[19,1.8,1.7],[24,2.1,2],[26.6,1.2,1.5]]), shirt, 0,0,0.2);
+  for (const side of [-1,1]) {
+    t.part('trench-lapel', panelGeom('sean-lapel-' + side, [[side*1.1,27,1.5],[side*3.4,25.5,1.7],[side*1.3,21,2.05],[side*0.7,24,2.15]]), seam, 0,0,0.12);
+  }
+  t.part('trench-belt', profileGeom('sean-belt', [[18.7,3.1,1.85],[19.35,3.1,1.85]]), shirt, 0,0,0);
+  t.P.armColor = 0x4a505a;
+  t.P.armX = 4.0;
+  t.P.legW = 2.5;
+  t.P.legSwing = 0.42;
+  const hair = t.cloth(0x343943);
+  ellipsoid(t, 'short-hair', hair, 0,4.6,-0.25,1.82,0.95,1.55,t.headGroup);
+  const glasses = t.cloth(0x353d48);
+  for (const side of [-1,1]) ellipsoid(t, 'visor-lens', glasses, side*0.83,3.15,1.47,0.72,0.32,0.16,t.headGroup);
+  t.part('visor-bridge', boxGeom(0.42,0.13,0.15), glasses, 0,3.15,1.59,t.headGroup);
 }
 
 // Muse — THE red dress: tapered knee-length satin silhouette in her color,
 // blonde shoulder-length hair, no coat, elegant (subtler) idle.
 function wardrobeMuse(t) {
-  const dressHex = t.agentColor.clone().multiplyScalar(0.82).getHex();
-  const dress = t.cloth(dressHex, { roughness: 0.35, metalness: 0.18 });
-  // slight emissive lift so the satin catches light among the dark coats
-  dress.emissive.copy(t.agentColor);
-  dress.emissiveIntensity = 0.12;
-  // Tapered skirt: hem at y=7 (knee). Legs are shortened to a 6-unit visible
-  // shin (still hip-pivoted) so the scissor never clips the hem.
-  t.part('dress-skirt', cylinderGeom(4.0, 3.6, 15, 8), dress, 0, 14.5, 0);
-  t.part('dress-bodice', boxGeom(6.2, 5, 3.8), dress, 0, 24, 0);
-  t.part('hair-blonde', boxGeom(5.6, 6.6, 5.0), t.cloth(0xd9c489, { roughness: 0.7 }),
-    0, 2.4, -0.5, t.headGroup); // falls to the shoulders
-  t.part('eye-light', boxGeom(3.8, 0.7, 0.5), t.glow(HEAD_COLOR, 0.3), 0, 2.4, 2.4, t.headGroup);
-  addRim(t, 3.6, 14.5, 1.4, 13, 0.5, 0.5);
-  t.P.armColor = 0x20242f;   // sleeveless read
-  t.P.legW = 2.2; t.P.legD = 2.6;
-  t.P.legVisible = 6;        // shin only — hem owns the rest
-  t.P.legSwing = 0.44;       // stride stays under the hem
-  t.P.idleBob = 0.5;         // elegant, subtler bob
-  t.P.idleSway = 0.6;
+  const dress = t.cloth(0xa43c53), seam = t.cloth(0x652d40);
+  t.part('satin-dress', profileGeom('muse-dress', [[4.8,3.55,1.8],[8,3.05,1.65],[12.5,2.8,1.6],[16.3,3.45,1.9],[19.9,2.35,1.4],[22.5,2.95,1.8],[24.4,3.05,1.65]], 0.025, 0.11), dress, 0,0,0);
+  const skin = t.cloth(0xb5abab);
+  t.part('shoulders', profileGeom('muse-shoulders', [[23.2,2.9,1.6],[25.5,3.25,1.4],[26.45,2.6,1.15],[27.6,0.85,0.8]]), skin, 0,0,0);
+  for (const side of [-1,1]) {
+    t.part('dress-strap', panelGeom('muse-strap-' + side, [[side*2.35,24,1.5],[side*2.75,24,1.5],[side*2.4,26.1,1.1],[side*2.03,26.2,1.15]]), seam, 0,0,0.05);
+  }
+  // Hair lives behind and beside the face, never a box enclosing the head.
+  const hair = t.cloth(0x9b9d98), strand = t.cloth(0x777d80);
+  ellipsoid(t,'hair-crown',hair,0,4.2,-0.6,1.95,1.2,1.5,t.headGroup);
+  ellipsoid(t,'hair-back',hair,0,1.9,-1.0,1.95,2.9,0.85,t.headGroup);
+  for (const side of [-1,1]) {
+    ellipsoid(t,'hair-lock',side === -1 ? hair : strand,side*1.72,1.9,-0.1,0.56,2.9,0.8,t.headGroup).rotation.z=side*0.12;
+  }
+  t.P.armColor = 0xb5abab;
+  t.P.armX = 3.25;
+  t.P.armRadius = 0.65;
+  t.P.legW = 1.9;
+  t.P.legColor = 0xa19a9e;
+  t.P.legSwing = 0.24;
+  t.P.kneeSwing = 0.32;
+  t.P.armSwing = 0.25;
 }
 
 // Scrappy — the operator: chunky layered sweater (no coat), headset band with
 // an emissive mic dot in his color, extra forward lean at the console.
 function wardrobeScrappy(t) {
-  const knit = t.cloth(0x2c313d, { roughness: 0.95, metalness: 0.05 }); // lighter charcoal
-  t.part('sweater-lower', boxGeom(11, 9, 6), knit, 0, 17.5, 0); // wider torso box
-  t.part('sweater-upper', boxGeom(9.6, 7, 5.4), knit, 0, 23.7, 0);
-  t.part('sweater-roll', boxGeom(7.8, 1.8, 5.8), knit, 0, 27.2, 0);
-  addRim(t, 5.0, 17.5, 2.8, 12, 0.6, 0.55);
-  t.part('headset-band', torusGeom(2.85, 0.32, 6, 12), t.cloth(0x161a22),
-    0, 2.0, 0, t.headGroup); // over-the-head band
-  t.part('headset-mic', sphereGeom(0.42, 6, 5), t.glow(0x0c0f15, 0.9),
-    1.9, 0.7, 2.4, t.headGroup); // tiny mic dot in his color
-  addDefaultVisor(t);
-  t.P.armColor = 0x2c313d;
-  t.P.workLean = 0.07; // a few degrees more hunch in 'work'
+  const knit = t.cloth(0x636671), cuff = t.cloth(0x454a55);
+  t.part('sweater', profileGeom('scrappy-knit', [[14.8,3.6,1.9],[16,4.1,2.15],[20,3.75,2.1],[23.5,4.4,2.15],[25.6,4.55,1.85],[27,2.25,1.3],[27.6,1.1,1]], 0.025), knit,0,0,0);
+  t.part('sweater-hem', profileGeom('scrappy-hem', [[14.7,3.65,1.95],[15.65,3.85,2.05]],0.018),cuff,0,0,0);
+  t.part('roll-neck', profileGeom('scrappy-neck', [[26.6,1.4,1.2],[27.7,1.2,1.1]]),cuff,0,0,0);
+  const hair=t.cloth(0x3c4048), headset=t.cloth(0x808694);
+  ellipsoid(t,'cropped-hair',hair,0,4.5,-0.3,1.85,1,1.55,t.headGroup);
+  t.part('headset-band', torusGeom(2.02,0.16,8,32),headset,0,3.1,-0.2,t.headGroup);
+  for(const side of [-1,1]) ellipsoid(t,'earcup',cuff,side*1.97,2.65,0,0.32,0.63,0.58,t.headGroup);
+  const mic=t.part('mic-boom',cylinderGeom(0.12,0.12,1.8,8),headset,1.8,1.7,0.9,t.headGroup);
+  mic.rotation.x=-0.8;
+  ellipsoid(t,'mic-tip',cuff,1.7,1.05,1.5,0.24,0.2,0.3,t.headGroup);
+  t.P.armX=4.4; t.P.armColor=0x636671; t.P.armRadius=1.02;
+  t.P.workLean=0.07;
 }
 
 // Slate — the mentor: bald, broadest shoulders, longest coat, small oval
 // glasses (two tiny emissive rings), deliberate slower walk.
 function wardrobeSlate(t) {
-  const coat = t.cloth(0x10141b, { roughness: 0.65, metalness: 0.18 });
-  t.part('coat-longest', boxGeom(11, 15, 5.8), coat, 0, 12.5, 0); // hem at mid-shin
-  t.part('coat-broad', boxGeom(9.4, 8, 5.2), coat, 0, 23.2, 0);   // broader shoulders
-  t.part('coat-collar', boxGeom(8, 2.4, 5.6), coat, 0, 27.4, 0);
-  addRim(t, 4.9, 15, 2.8, 19);
-  const ring = torusGeom(0.55, 0.13, 5, 10);
-  const lens = t.glow(0x0c0f15, 0.55);
-  t.part('glasses-l', ring, lens, -1.05, 2.4, 2.45, t.headGroup); // small oval glasses
-  t.part('glasses-r', ring, lens, 1.05, 2.4, 2.45, t.headGroup);
-  t.P.armX = 5.9;      // wider shoulder set
-  t.P.walkFreq = 0.85; // deliberate pace
+  const coat=t.cloth(0x50565e), lapel=t.cloth(0x848993), shirt=t.cloth(0x383e49);
+  t.part('greatcoat-body',profileGeom('slate-torso',[[15,3.7,2.1],[19.5,3.4,2.05],[23.4,4.6,2.4],[25.7,4.85,2.05],[27.3,2.4,1.45],[27.7,1.25,1.1]]),coat,0,0,0);
+  t.part('greatcoat-hem',profileGeom('slate-hem',[[4.8,5.1,2.8],[10,4.8,2.6],[15,3.85,2.2],[19.5,3.4,2.05]],0.024,0.22),coat,0,0,0);
+  t.part('undershirt',profileGeom('slate-shirt',[[19,1.8,2.05],[25,2.2,2.2],[27,1.3,1.5]]),shirt,0,0,0.15);
+  for(const side of [-1,1]) {
+    t.part('greatcoat-lapel',panelGeom('slate-lapel-'+side,[[side*1.2,27.3,1.6],[side*3.6,25.7,1.9],[side*1.5,20.5,2.2],[side*0.8,24.2,2.3]]),lapel,0,0,0.1);
+    const glasses=t.part('spectacles',torusGeom(0.58,0.09,8,24),lapel,side*0.83,3.15,1.6,t.headGroup);
+    glasses.scale.y=0.68;
+  }
+  t.part('spectacle-bridge',boxGeom(0.5,0.12,0.14),lapel,0,3.15,1.64,t.headGroup);
+  t.P.armX=4.75; t.P.armColor=0x50565e; t.P.armRadius=1.04;
+  t.P.walkFreq=0.85; t.P.legSwing=0.36;
 }
 
 // Route — utility vest over shirt, flat cap.
