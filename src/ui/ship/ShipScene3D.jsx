@@ -117,6 +117,11 @@ function SceneContent({ simRef, crew }) {
           // merged figure shares one material, so tinting it here would wash
           // the whole body one color instead of just the near-black garments.
           if (o.userData && o.userData.sculpted) return;
+          // Rigged GLB crew carry real textures and a glTF material whose
+          // emissiveIntensity defaults to 1 — the 0.4 self-glow below is a
+          // legibility hack for flat procedural figures and simply bleaches
+          // a real character. Leave skinned meshes alone.
+          if (o.isSkinnedMesh) return;
           if (o.isMesh && o.material && 'emissive' in o.material && o.material.color) {
             const m = o.material;
             const lum = m.color.r * 0.3 + m.color.g * 0.59 + m.color.b * 0.11;

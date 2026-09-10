@@ -23,7 +23,7 @@
   <script type="module">
     import * as THREE from 'three';
     import { createAgentFigure } from '../src/ship/crewModels.js';
-    import { createCrewFigure } from '../src/ship/crewGLB.js';
+    import { createCrewFigure, CREW_GLB } from '../src/ship/crewGLB.js';
     import { createShipSim } from '../src/ship/shipEngine.js';
     import { WORLD_W, WORLD_H, DECKS, floorYAt } from '../src/ship/world.js';
     import { positionCrew } from '../src/core/shipStations.js';
@@ -67,6 +67,8 @@
     function productionTint(figure, member) {
       const tint = new THREE.Color(member.color);
       figure.group.traverse(o => {
+        if (o.userData && o.userData.sculpted) return;
+        if (o.isSkinnedMesh) return;   // mirror ShipScene3D
         if (o.isMesh && o.material && 'emissive' in o.material && o.material.color) {
           const m = o.material;
           const lum = m.color.r * 0.3 + m.color.g * 0.59 + m.color.b * 0.11;
@@ -80,7 +82,9 @@
       const lineup = controls.view.value === 'lineup';
       const members = lineup ? [crew[0], ...crew] : crew;
       figures = members.map((member, i) => {
-        const useRig = member.name === 'Sean' && !controls.procedural.checked && (!lineup || i === 0);
+        // Ask exactly what ShipScene3D asks: is this member in CREW_GLB?
+        // Hardcoding 'Sean' meant the harness could not see any new character.
+        const useRig = !!CREW_GLB[member.name] && !controls.procedural.checked && (!lineup || i === 0);
         const figure = (useRig ? createCrewFigure : createAgentFigure)(member);
         productionTint(figure, member);
         scene.add(figure.group);

@@ -22,7 +22,7 @@ export const CREW_GLB = {
   Sean: { walk: '/crew/sean.glb', idle: '/crew/sean_idle.glb' },
   // Muse: { walk: '/crew/muse.glb', idle: '/crew/muse_idle.glb' },
   // Scrappy: { walk: '/crew/scrappy.glb', idle: '/crew/scrappy_idle.glb' },
-  // Slate: { walk: '/crew/slate.glb', idle: '/crew/slate_idle.glb' },
+  Slate: { walk: '/crew/slate.glb', idle: '/crew/slate_idle.glb' },
 };
 
 const FIGURE_HEIGHT = 34;   // logical units — must match crewModels' proportions
