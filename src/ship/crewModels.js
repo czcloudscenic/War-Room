@@ -164,14 +164,23 @@ function finishSculpt(rig, material, ownedGeometries, tint) {
     // the agent's signature color. Baked here because the merged figure has one
     // shared material the host can no longer tint part by part.
     const c = mesh.material.color.clone();
-    if (tint) {
-      const lum = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
-      if (lum < 0.16) c.lerp(tint, 0.45);
+    const lum0 = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
+    if (tint && lum0 < 0.16) {
+      // Signature hue, but KEEP the part's own value. Lerping alone collapsed
+      // coat, shirt and belt onto one flat colour because every garment here is
+      // near-black — that is what made the crew read as monochrome cut-outs.
+      c.lerp(tint, 0.45);
+      const target = 0.30 + 2.2 * lum0;            // 0.00-0.16 -> 0.30-0.65
+      const cur = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
+      if (cur > 0.001) c.multiplyScalar(target / cur);
     }
     for (let i = 0; i < p.count; i++) {
       // Low contrast surface variation, deterministic and independent of time.
-      const grain = Math.sin(p.getX(i) * 17 + p.getY(i) * 29 + p.getZ(i) * 13) * 0.025;
-      const shade = 0.88 + 0.12 * Math.max(0, n.getY(i)) + grain;
+      const grain = Math.sin(p.getX(i) * 17 + p.getY(i) * 29 + p.getZ(i) * 13) * 0.03;
+      // A 12% spread cannot describe a body. Hemispheric term reads the form,
+      // a small sideways term separates the silhouette edges from the torso.
+      const ny = n.getY(i), nx = n.getX(i);
+      const shade = 0.62 + 0.38 * (0.5 + 0.5 * ny) + 0.08 * nx + grain;
       colors[i * 3] = c.r * shade;
       colors[i * 3 + 1] = c.g * shade;
       colors[i * 3 + 2] = c.b * shade;
