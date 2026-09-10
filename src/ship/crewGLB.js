@@ -20,7 +20,7 @@ import { createAgentFigure, makeNameTexture } from './crewModels.js';
 // land in public/crew/ (recipe in HANDOFF.md 2026-08-20).
 export const CREW_GLB = {
   Sean: { walk: '/crew/sean.glb', idle: '/crew/sean_idle.glb' },
-  // Muse: { walk: '/crew/muse.glb', idle: '/crew/muse_idle.glb' },
+  Muse: { walk: '/crew/muse.glb', idle: '/crew/muse_idle.glb' },
   // Scrappy: { walk: '/crew/scrappy.glb', idle: '/crew/scrappy_idle.glb' },
   Slate: { walk: '/crew/slate.glb', idle: '/crew/slate_idle.glb' },
 };
