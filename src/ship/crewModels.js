@@ -169,8 +169,13 @@ function finishSculpt(rig, material, ownedGeometries, tint) {
       // Signature hue, but KEEP the part's own value. Lerping alone collapsed
       // coat, shirt and belt onto one flat colour because every garment here is
       // near-black — that is what made the crew read as monochrome cut-outs.
-      c.lerp(tint, 0.45);
-      const target = 0.30 + 2.2 * lum0;            // 0.00-0.16 -> 0.30-0.65
+      // Sean is the reference: a real character sits IN the dark ship, dark,
+      // modelled by the key light. Tinting hard and lifting value turned the
+      // procedural crew into glowing UI markers pasted ON the painting. Keep
+      // them near their original darkness, take only a hint of signature hue,
+      // and let the directional key describe the form.
+      c.lerp(tint, 0.22);
+      const target = 0.05 + 1.05 * lum0;           // 0.00-0.16 -> 0.05-0.22
       const cur = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
       if (cur > 0.001) c.multiplyScalar(target / cur);
     }

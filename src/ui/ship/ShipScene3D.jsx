@@ -168,9 +168,17 @@ function SceneContent({ simRef, crew }) {
     <>
       {/* Art is unlit (MeshBasicMaterial); these lights shape the CREW so they
           read against the dark painting instead of sinking into it. */}
-      <ambientLight intensity={1.15} />
-      <hemisphereLight args={['#7fb4e0', '#161616', 0.7]} />
-      <directionalLight position={[-200, 300, 400]} intensity={0.5} color="#bcd9f5" />
+      {/* Ambient carries no direction, so it cannot describe a body. At 1.15
+          against a 0.5 key it was drowning the only light that models form —
+          which is why the crew read as flat cut-outs regardless of geometry.
+          Key now leads; ambient and hemisphere are lift, not illumination.
+          The painted plate is MeshBasicMaterial (unlit), so this moves the crew
+          and drones only and cannot touch the artwork. Keep tests/ship-visual.html
+          identical or the harness stops predicting production. */}
+      <ambientLight intensity={0.42} />
+      <hemisphereLight args={['#7fb4e0', '#161616', 0.55]} />
+      <directionalLight position={[-260, 220, 520]} intensity={1.75} color="#bcd9f5" />
+      <directionalLight position={[320, 120, -200]} intensity={0.42} color="#4d6f9a" />
       <Suspense fallback={null}>
         <ArtPlane />
       </Suspense>
