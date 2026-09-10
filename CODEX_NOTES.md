@@ -253,6 +253,40 @@ Branch: `codex/grunt-2026-08-13b`
 - No visual harness, before/after screenshots, crew improvement, orphan removal, parked-stack decision, or mobile fix was completed.
 - No paid API call, deployment, push, PR, or commit was performed. This note remains uncommitted; no commit was made without its required preceding build.
 
+## 2026-09-10 Agent Ship: sculpt verification and crew landing status
+
+### Task 1 result
+
+- Reused `tests/ship-visual.html` in the isolated worktree with the production camera (`fov 35`, `z=1141`), lighting, tint pass, scale formula, floor projection, and deterministic local fixtures.
+- Captured the pre-sculpt comparison from commit `a0a6d1e` and the wired comparison from commit `9fc1de8` with the same lineup, idle pose, camera, and renderer: `/private/tmp/vantus-crew-evidence-2026-09-08/before-lineup.png` and `/private/tmp/vantus-crew-evidence-2026-09-08/after-lineup.png`. The ship-scale captures are `/private/tmp/vantus-crew-evidence-2026-09-08/before-ship.png` and `after-ship.png`.
+- Verdict: **improved**. Before wiring, the four procedural figures were rectangular blocks with boxed hair, no readable facial planes, and clothing that collapsed into one saturated host-tint shape. After wiring, the commissioned figures have tapered lofted bodies, separate shoulder/lapel planes, dress and coat hems, smooth head and hair masses, and identity details such as glasses and a headset. They read as stylized original people at the calibrated camera distance. Sean's rigged GLB remains visibly more human and is the quality reference.
+- The wired sculpt harness measured 43 draw calls / 46,429 triangles for the five-figure lineup, versus 65 draw calls / 32,765 triangles before; the triangle increase is bounded by cached smooth geometry and is acceptable for this local comparison. The ship view measured 34 draw calls / 42,485 triangles after wiring.
+- No bake widening was needed. The current `0.88 + 0.12 * max(0, normalY) + grain` range preserves the profile shading without restoring the pre-sculpt saturated blocks. A further widening would risk over-darkening the already low-key painted plate.
+
+### Crew landing status
+
+- Only `public/crew/sean.glb` and `public/crew/sean_idle.glb` exist in this worktree. `CREW_GLB` remains unchanged with Sean enabled and Muse, Scrappy, and Slate commented out.
+- Counsel's outside staging directory contains `muse-mesh.glb`, A-pose source sheets, and no rigged landing pairs. The unrigged mesh was not copied into `public/crew/`.
+- Because no new pair has appeared, no character line was uncommented, no normalization change was made, and no compression/replacement was attempted. The existing `createCrewFigure()` fallback remains intact for every absent or failed GLB.
+
+### Recommendations for Counsel
+
+- Parked hull: keep the current painting-as-world path for this pass. The parked modeled hull should remain Counsel's decision because reviving or deleting it is architectural scope.
+- Ship stack: the current sculpt merge is safe for movement because surfaces are merged per articulation group and marked `userData.sculpted`; `ShipScene3D` skips the host tint on those merged surfaces. Sean's GLB path still swaps from procedural immediately and keeps the tag/status furniture outside the loaded rig.
+- The main remaining visual gap is asset fidelity for Muse, Scrappy, and Slate. Procedural fallbacks now carry readable silhouettes, but they should be replaced only after each walk/idle pair is present and verified at the same 34-unit normalization contract.
+
+### Validation
+
+- `npm run build` passed after the sculpt changes: Vite 8.1.2, 171 modules transformed, ShipRoute chunk 987.95 kB raw.
+- Local Playwright harness passed: Sean loaded as `1` skinned figure; procedural fallback lineup loaded as 4 non-skinned figures; both ship and lineup screenshots rendered without page errors.
+- `npm test` passed: 53 passed, 0 failed. `git diff --check` passed after this note was appended.
+
+### Explicitly not done
+
+- No paid API calls, asset generation, deployment, push, PR, database change, mobile work, parked-hull decision, or orphan-file deletion.
+- No Muse, Scrappy, or Slate GLB was added because no rigged pair exists in `public/crew/` yet.
+- No GLB compression was attempted because the explicitly authorized four-character compression pass cannot be completed until all four commissioned pairs are present; Sean originals remain untouched.
+
 ## 2026-09-08 (later) Counsel: rescue + sculpt completion + character pipeline restart
 
 Codex exhausted its credits mid-task, after doing the work but before committing
