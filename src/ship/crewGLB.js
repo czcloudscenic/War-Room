@@ -181,6 +181,14 @@ export function createCrewFigure({ name, color, future = false }) {
     }
     mixer?.update(dt);
 
+    // Name plates: loud for whoever is actually working, quiet for everyone else.
+    // "The moment everything has a badge, the one that matters is invisible."
+    // Eased rather than snapped so a state change reads as a change, not a cut.
+    if (!proc) {
+      const tagTarget = anim === 'work' ? 1 : (sprite?.state === 'active' ? 0.62 : 0.2);
+      tagMat.opacity += (tagTarget - tagMat.opacity) * 0.06;
+    }
+
     // Status light: green pulse when working, agent color when active, dim gray idle.
     if (anim === 'work') {
       statusMat.emissive.copy(colGreen);

@@ -157,7 +157,7 @@ function SceneContent({ simRef, crew }) {
       // measured human-scale factor survives every animation state.
       fig.group.scale.multiplyScalar(humanScaleAt(sp.x));
     }
-    fxRef.current?.update(t);
+    fxRef.current?.update(t, activityCount);
     dronesRef.current?.update(t);
     // parallax: camera drift toward the pointer + a slow living sway and a
     // barely-perceptible breathe on depth — the frame never sits fully still

@@ -20,6 +20,7 @@
 // (zero per-frame allocation).
 
 import * as THREE from 'three';
+import { STATIONS } from '../core/shipStations.js';
 
 // ---------------------------------------------------------------------------
 // coordinate helpers + deterministic hash (no Math.random anywhere)
@@ -58,6 +59,20 @@ const SCREENS = [
   [1149, 537, 50, 16, 2],  // 15 blue desk screen, far-right lower room
 ];
 const SHIMMER_SCREENS = [0, 4, 11]; // refresh with a quick vertical shimmer
+
+// Which station does each screen belong to? Nearest station anchor in the same
+// logical 1280x720 art space. Computed once. This is what lets the FX layer be
+// driven by real receipts instead of a timer: a room whose agent actually did
+// work in the last 48h glows brighter than one nobody has touched.
+const SCREEN_STATION = SCREENS.map(([x, y]) => {
+  let best = null, bestD = Infinity;
+  for (const st of STATIONS) {
+    const sx = (st.px / 100) * 1280, sy = (st.py / 100) * 720;
+    const d = (sx - x) * (sx - x) + (sy - y) * (sy - y);
+    if (d < bestD) { bestD = d; best = st.id; }
+  }
+  return best;
+});
 
 // [logicalX, logicalY, width, height]
 const LAMPS = [
@@ -394,12 +409,22 @@ export function createShipArtFX() {
   const rainTop = 410, rainWrap = 840;
   const cloudWrap = 1920;
 
-  function update(t) {
+  function update(t, activity) {
     const s = t * 0.001;
+    // Busyness per station, 0..1, eased so one receipt already reads.
+    const busy = (id) => {
+      if (!activity) return 0;
+      const n = activity[id];
+      const c = Array.isArray(n) ? n.length : (Number(n) || 0);
+      return c <= 0 ? 0 : Math.min(1, Math.sqrt(c) / 3);
+    };
+    let totalBusy = 0;
+    if (activity) for (const st of STATIONS) totalBusy += busy(st.id);
+    const shipBusy = Math.min(1, totalBusy / 4);
 
     // 1. holo-core: breathing glow + rising particles + pulsing light
     coreMat.opacity = 0.16 + 0.048 * Math.sin(s * 0.8) + 0.01 * Math.sin(s * 5.3);
-    coreLight.intensity = 11500 + 3200 * Math.sin(s * 1.1) + 280 * Math.sin(s * 9.7);
+    coreLight.intensity = (11500 + 3200 * Math.sin(s * 1.1) + 280 * Math.sin(s * 9.7)) * (1 + shipBusy * 0.5);
     for (let i = 0; i < CORE_PARTICLES; i++) {
       const r = 26 * Math.sqrt(hash(i * 11 + 41));
       const ang = hash(i * 11 + 42) * 6.2832 + s * (0.3 + hash(i * 11 + 43) * 0.4);
@@ -432,6 +457,9 @@ export function createShipArtFX() {
         a = 0.05 + 0.018 * Math.sin(s * 3.1 + ph) + 0.009 * Math.sin(s * 7.3 + ph * 2);
       }
       if (a < 0.012) a = 0.012;
+      // Real work in this room lifts its screens. Idle rooms stay quiet - the
+      // doc's rule: do not signal everything, or the one that matters vanishes.
+      a *= 1 + busy(SCREEN_STATION[i]) * 1.35;
       setQuadColor(scr.col, i, a * 0.78, a * 0.94, a); // cyan-white tint
     }
     // shimmer bars: quick vertical refresh sweep on 3 screens
