@@ -110,11 +110,26 @@ export function createCrewFigure({ name, color, future = false }) {
       mixer = new THREE.AnimationMixer(model);
       const walkClip = walkGltf.animations?.[0];
       const idleClip = idleGltf.animations?.[0];
-      if (walkClip) walkAction = mixer.clipAction(walkClip);
+      // Four characters playing one idle clip in perfect lockstep reads as
+      // uncanny long before anyone can say why - a crowd moving in unison is
+      // the tell that they are puppets. Give each crew member a deterministic
+      // phase offset and a slightly different pace, hashed from the name so it
+      // is stable across reloads.
+      let h = 0;
+      for (let i = 0; i < String(name || '').length; i++) h = (h * 31 + String(name).charCodeAt(i)) >>> 0;
+      const phase01 = (h % 1000) / 1000;
+      const pace = 0.90 + ((h >>> 10) % 1000) / 1000 * 0.20;   // 0.90-1.10
+      const prime = (act, clip) => {
+        if (!act) return act;
+        act.timeScale = pace;
+        act.time = phase01 * (clip?.duration || 1);
+        return act;
+      };
+      if (walkClip) walkAction = prime(mixer.clipAction(walkClip), walkClip);
       // The idle clip binds by bone name — both GLBs come from the same rig
       // pass on the same mesh, so names match. Guarded anyway: a bind failure
       // leaves walk-only, which still reads fine.
-      try { if (idleClip) idleAction = mixer.clipAction(idleClip); } catch { idleAction = null; }
+      try { if (idleClip) idleAction = prime(mixer.clipAction(idleClip), idleClip); } catch { idleAction = null; }
       current = idleAction || walkAction;
       current?.play();
 
@@ -131,7 +146,10 @@ export function createCrewFigure({ name, color, future = false }) {
   function setAction(next) {
     if (!next || next === current) return;
     next.enabled = true;
-    next.reset().play();
+    // Deliberately NOT reset() - that snaps the clip back to t=0 and would put
+    // the whole crew back in lockstep the first time they all change state.
+    next.paused = false;
+    next.play();
     if (current) current.crossFadeTo(next, 0.25, false);
     current = next;
   }
