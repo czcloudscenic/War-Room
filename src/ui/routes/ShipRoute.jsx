@@ -68,6 +68,9 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
   const crew = useMemo(() => positionCrew(events, Date.now()), [events, tick]);
   const activity = useMemo(() => stationActivity(events), [events]);
   const commissioned = crew.filter(c => !c.future);
+  const blockedCount = (content || []).filter(x => (x.block_reason || x.qc_status === 'blocked') && !['Posted', 'Scrapped'].includes(x.status)).length;
+  const approvalsCount = (content || []).filter(x => ['Need Copy Approval', 'Need Content Approval'].includes(x.status)).length;
+  const shipAlerts = { approvals: approvalsCount, blocked: blockedCount };
   const workingNow = commissioned.filter(c => c.state === 'working').length;
 
   const selStation = selectedStation ? stationById(selectedStation) : null;
@@ -118,8 +121,10 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
             {/* The cinematic ship: the reference-matched artwork IS the world,
                 with the live 3D crew inside it. The fully modeled variant
                 (ShipWorld3D) stays in-repo pending its art-direction pass. */}
+            {/* Attention beacons run off the same two numbers the mission bar
+                shows, so the world can never claim something the bar denies. */}
             {view === '3d' && (HAS_WEBGL
-              ? <ShipScene3D crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
+              ? <ShipScene3D crew={crew} activity={activity} alerts={shipAlerts} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
               : <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />)}
             {view === 'map' && <ShipMap crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />}
 
@@ -129,8 +134,8 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
                 ['Active agents', `${commissioned.filter(c => c.receipts48h > 0).length}/${commissioned.length}`, '#2AABFF'],
                 ['Working now', String(workingNow), workingNow ? '#30d158' : 'rgba(255,255,255,0.5)'],
                 ['Done 48h', String(events.length), '#30d158'],
-                ['Blocked', String((content || []).filter(x => (x.block_reason || x.qc_status === 'blocked') && !['Posted', 'Scrapped'].includes(x.status)).length), '#E5E5EA'],
-                ['Approvals', String((content || []).filter(x => ['Need Copy Approval', 'Need Content Approval'].includes(x.status)).length), '#bf5af2'],
+                ['Blocked', String(blockedCount), '#E5E5EA'],
+                ['Approvals', String(approvalsCount), '#bf5af2'],
                 ['Backup', backupOk === false ? 'FAIL' : backupOk ? 'OK' : '—', backupOk === false ? '#ff453a' : '#30d158'],
               ].map(([label, value, color]) => (
                 <div key={label} style={{ flex: 1, textAlign: 'center', padding: '11px 6px', borderRight: '1px solid rgba(255,255,255,0.05)' }}>

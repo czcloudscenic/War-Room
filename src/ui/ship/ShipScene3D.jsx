@@ -7,6 +7,7 @@ import { createShipSim } from '../../ship/shipEngine.js';
 import { createCrewFigure } from '../../ship/crewGLB.js';
 import { createShipArtFX } from '../../ship/shipArtFX.js';
 import { createDrones } from '../../ship/drones.js';
+import { createBeacons } from '../../ship/beacons.js';
 
 // Crew scale: tuned against the artwork's furniture — figures read right at
 // ~70-105 logical units (full art-measured human scale of 130 overwhelmed the
@@ -82,6 +83,8 @@ function SceneContent({ simRef, crew }) {
   const figuresRef = useRef(new Map());
   const fxRef = useRef(null);
   const dronesRef = useRef(null);
+  const beaconsRef = useRef(null);
+  const alertsRef = useRef(alerts);
 
   // FX group once
   useEffect(() => {
@@ -91,7 +94,11 @@ function SceneContent({ simRef, crew }) {
     const drones = createDrones();
     dronesRef.current = drones;
     scene.add(drones.group);
+    const beacons = createBeacons();
+    beaconsRef.current = beacons;
+    scene.add(beacons.group);
     return () => {
+      scene.remove(beacons.group); beacons.dispose();
       scene.remove(fx.group); fx.dispose();
       scene.remove(drones.group); drones.dispose();
     };
@@ -143,6 +150,8 @@ function SceneContent({ simRef, crew }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  alertsRef.current = alerts;
+
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime * 1000;
     simRef.current.tick(Math.min(delta * 1000, 100), t);
@@ -159,6 +168,7 @@ function SceneContent({ simRef, crew }) {
     }
     fxRef.current?.update(t, activityCount);
     dronesRef.current?.update(t);
+    beaconsRef.current?.update(t, alertsRef.current);
     // parallax: camera drift toward the pointer + a slow living sway and a
     // barely-perceptible breathe on depth — the frame never sits fully still
     const targetX = pointer.x * 18 + Math.sin(t / 8000) * 9;
@@ -191,7 +201,7 @@ function SceneContent({ simRef, crew }) {
   );
 }
 
-export default function ShipScene3D({ crew = [], activity = {}, onStation, selectedStation }) {
+export default function ShipScene3D({ crew = [], activity = {}, alerts = {}, onStation, selectedStation }) {
   const simRef = useRef(null);
   if (!simRef.current) simRef.current = createShipSim();
   useEffect(() => { simRef.current.setCrew(crew); }, [crew]);
