@@ -55,6 +55,13 @@ export function createCrewFigure({ name, color, future = false }) {
   group.add(proc.group);
 
   // ── Overhead furniture (ours, so it survives the proc→GLB swap) ────────────
+  // One deterministic hash per crew member, reused for animation phase, pace and
+  // the idle look-around. Stable across reloads so a character always behaves
+  // like themselves.
+  let NAME_HASH = 0;
+  for (let i = 0; i < String(name || '').length; i++) NAME_HASH = (NAME_HASH * 31 + String(name).charCodeAt(i)) >>> 0;
+  const PHASE01 = (NAME_HASH % 1000) / 1000;
+
   const tagTexture = makeNameTexture(name, `#${agentColor.getHexString()}`);
   const tagMat = new THREE.SpriteMaterial({ map: tagTexture || null, transparent: true, opacity: 0, depthWrite: false });
   const tag = new THREE.Sprite(tagMat);
@@ -115,10 +122,8 @@ export function createCrewFigure({ name, color, future = false }) {
       // the tell that they are puppets. Give each crew member a deterministic
       // phase offset and a slightly different pace, hashed from the name so it
       // is stable across reloads.
-      let h = 0;
-      for (let i = 0; i < String(name || '').length; i++) h = (h * 31 + String(name).charCodeAt(i)) >>> 0;
-      const phase01 = (h % 1000) / 1000;
-      const pace = 0.90 + ((h >>> 10) % 1000) / 1000 * 0.20;   // 0.90-1.10
+      const phase01 = PHASE01;
+      const pace = 0.90 + ((NAME_HASH >>> 10) % 1000) / 1000 * 0.20;   // 0.90-1.10
       const prime = (act, clip) => {
         if (!act) return act;
         act.timeScale = pace;
@@ -167,6 +172,22 @@ export function createCrewFigure({ name, color, future = false }) {
     // Facing + posture (same language as the procedural rig).
     const faceY = facing === 1 ? 0.35 : Math.PI - 0.35;
     rig.rotation.set(0, faceY, 0);
+    // Idle crew used to hold a post perfectly still, which reads as a prop.
+    // An occasional slow glance costs nothing and, per the notes, "anything that
+    // looks at something reads as aware". Period and direction are hashed, so
+    // the crew never glance together.
+    let lookY = 0;
+    if (anim !== 'walk' && anim !== 'climb') {
+      const period = 9 + (NAME_HASH % 7);                 // 9-15s per character
+      const u = ((time / period) + PHASE01) % 1;
+      if (u < 0.30) {
+        const dir = ((NAME_HASH >>> 3) & 1) ? 1 : -1;
+        const swing = Math.sin((u / 0.30) * Math.PI);     // ease out and back
+        lookY = dir * swing * 0.40;
+      }
+    }
+    rig.rotation.y += lookY;
+
     if (anim === 'walk') {
       rig.rotation.x = 0.04;
       setAction(walkAction || idleAction);
