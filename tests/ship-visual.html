@@ -44,11 +44,11 @@
     const camera = new THREE.PerspectiveCamera(35, WORLD_W / WORLD_H, 1, 4000);
     camera.position.set(0, 0, 1141);
     // MUST mirror ShipScene3D's rig exactly - a prettier harness hides bugs.
-    scene.add(new THREE.AmbientLight(0xffffff, 0.42));
-    scene.add(new THREE.HemisphereLight('#7fb4e0', '#161616', 0.55));
-    const rim = new THREE.DirectionalLight('#4d6f9a', 0.42);
-    rim.position.set(320, 120, -200); scene.add(rim);
-    const key = new THREE.DirectionalLight('#bcd9f5', 1.75);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.20));
+    scene.add(new THREE.HemisphereLight('#6f9fcc', '#0e1014', 0.34));
+    const rim = new THREE.DirectionalLight('#4fa8e8', 1.10);
+    rim.position.set(240, 260, -320); scene.add(rim);
+    const key = new THREE.DirectionalLight('#b8d4f0', 1.35);
     key.position.set(-260, 220, 520);
     scene.add(key);
     const texture = await new THREE.TextureLoader().loadAsync('/ship-interior.jpg');

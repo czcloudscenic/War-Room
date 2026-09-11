@@ -35,6 +35,47 @@ const STATUS_GRAY = 0x3a4150;
 // procedural figures. Adjust here if a future provider ships a different axis.
 const MODEL_YAW = 0;
 
+// ── Compositing the crew into the plate ──────────────────────────────────────
+// The painting is dark, cool, rim-lit and painterly. A Meshy/Blender character
+// arrives the opposite: evenly lit, saturated, glossy. No amount of scale or
+// walk tuning fixes that mismatch; grading does. Every figure gets:
+//   saturation  pulled toward the plate's near-monochrome palette
+//   exposure    knocked down so garment highlights sit UNDER the holo screens
+//   tint        a cool cast, matching the key/rim rig in ShipScene3D
+//   selfGlow    a whisper of emissive so shadow sides never go fully black
+//   roughness   forced matte — specular pings are the loudest sticker tell
+// Tune here, verify in tests/ship-scene.html (which mounts the real scene).
+const GRADE = { saturation: 0.58, exposure: 0.70, tint: [0.84, 0.91, 1.0], selfGlow: 0.06, roughness: 0.94 };
+// Contact shadow ellipse (logical units, figure is FIGURE_HEIGHT tall).
+const SHADOW = { w: 30, h: 7.5, y: 0.4, opacity: 0.62 };
+
+function gradeIntoPlate(m) {
+  if (!m || !('emissive' in m) || !m.color) return;
+  if (m.map) {
+    m.emissive = new THREE.Color(0xffffff);
+    m.emissiveMap = m.map;
+    m.emissiveIntensity = GRADE.selfGlow;
+  } else {
+    m.emissiveIntensity = Math.min(m.emissiveIntensity ?? 0, GRADE.selfGlow);
+  }
+  m.color.multiply(new THREE.Color(GRADE.tint[0] * GRADE.exposure, GRADE.tint[1] * GRADE.exposure, GRADE.tint[2] * GRADE.exposure));
+  if ('roughness' in m) m.roughness = Math.max(m.roughness ?? 1, GRADE.roughness);
+  if ('metalness' in m) m.metalness = 0;
+  if ('envMapIntensity' in m) m.envMapIntensity = 0;
+  // Saturation is a shader-side move: the albedo AND the self-glow both pass
+  // through it, so the figure cannot re-saturate itself via emissive.
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uPlateSat = { value: GRADE.saturation };
+    const desat = (v) => `{ float l = dot(${v}.rgb, vec3(0.299, 0.587, 0.114)); ${v}.rgb = mix(vec3(l), ${v}.rgb, uPlateSat); }`;
+    shader.fragmentShader = shader.fragmentShader
+      .replace('uniform vec3 diffuse;', 'uniform vec3 diffuse;\nuniform float uPlateSat;')
+      .replace('#include <map_fragment>', '#include <map_fragment>\n  ' + desat('diffuseColor'))
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  ' + desat('totalEmissiveRadiance'));
+  };
+  m.customProgramCacheKey = () => 'plate-grade';
+  m.needsUpdate = true;
+}
+
 const loader = new GLTFLoader();
 const loadGLB = (url) => new Promise((res, rej) => loader.load(url, res, undefined, rej));
 
@@ -90,6 +131,18 @@ export function createCrewFigure({ name, color, future = false }) {
   workGlow.scale.set(26, 26, 1);
   workGlow.position.y = 20;
   group.add(workGlow);
+  // Contact shadow: the one cue that makes a figure STAND on the painted deck
+  // instead of floating in front of it. The camera looks straight into the
+  // plate, so a floor-flat decal would be edge-on and invisible; a soft dark
+  // ellipse billboarded at the feet, tucked just behind them, is the 2.5D
+  // equivalent and reads correctly from the ship camera.
+  const shadowMat = new THREE.SpriteMaterial({
+    map: glowTex, transparent: true, opacity: 0, depthWrite: false, color: 0x000000,
+  });
+  const contactShadow = new THREE.Sprite(shadowMat);
+  contactShadow.scale.set(SHADOW.w, SHADOW.h, 1);
+  contactShadow.position.set(0, SHADOW.y, -1.5);
+  group.add(contactShadow);
 
   const statusMat = new THREE.MeshStandardMaterial({ color: 0x111318, emissive: STATUS_GRAY, emissiveIntensity: 0.5 });
   const statusLight = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 6), statusMat);
@@ -122,17 +175,13 @@ export function createCrewFigure({ name, color, future = false }) {
       wrap.add(model);
       wrap.rotation.y = MODEL_YAW;
 
-      // A faint self-glow keeps the character readable against the dark
-      // painting (same trick that saved the procedural crew), without the
-      // signature-color garment tint — the real wardrobe carries identity now.
+      // Composite the scan into the painting (see gradeIntoPlate): the export
+      // arrives front-lit, saturated and glossy, which is exactly what makes a
+      // real character read as a sticker on a painted plate.
       model.traverse((o) => {
         if (o.isMesh && o.material) {
           o.frustumCulled = false; // skinned bounds lag the animation
-          if ('emissive' in o.material && o.material.map) {
-            o.material.emissive = new THREE.Color(0xffffff);
-            o.material.emissiveMap = o.material.map;
-            o.material.emissiveIntensity = 0.22;
-          }
+          gradeIntoPlate(o.material);
           ownedMaterials.push(o.material);
         }
       });
@@ -167,6 +216,7 @@ export function createCrewFigure({ name, color, future = false }) {
       proc = null;
       tagMat.opacity = 1;
       statusLight.visible = true;
+      shadowMat.opacity = SHADOW.opacity;
     })
     .catch(() => { /* GLB missing/broken — procedural figure stays, tag stays his */ });
 
@@ -261,6 +311,7 @@ export function createCrewFigure({ name, color, future = false }) {
     tagMat.dispose();
     if (tagTexture) tagTexture.dispose();
     glowTex.dispose(); glowMat.dispose();
+    shadowMat.dispose();
     statusMat.dispose();
     statusLight.geometry.dispose();
     if (group.parent) group.parent.remove(group);

@@ -190,10 +190,14 @@ function SceneContent({ simRef, crew, activityCount = {}, alerts = {} }) {
           The painted plate is MeshBasicMaterial (unlit), so this moves the crew
           and drones only and cannot touch the artwork. Keep tests/ship-visual.html
           identical or the harness stops predicting production. */}
-      <ambientLight intensity={0.42} />
-      <hemisphereLight args={['#7fb4e0', '#161616', 0.55]} />
-      <directionalLight position={[-260, 220, 520]} intensity={1.75} color="#bcd9f5" />
-      <directionalLight position={[320, 120, -200]} intensity={0.42} color="#4d6f9a" />
+      {/* Rig matches the plate: low fill, a cool key from the screen wall, and
+          a cyan rim from behind so the silhouette separates from the hull the
+          way the painted figures' would. Crew materials are graded to sit
+          under this (crewGLB.js GRADE). Mirror any change in tests/ship-visual.html. */}
+      <ambientLight intensity={0.20} />
+      <hemisphereLight args={['#6f9fcc', '#0e1014', 0.34]} />
+      <directionalLight position={[-260, 220, 520]} intensity={1.35} color="#b8d4f0" />
+      <directionalLight position={[240, 260, -320]} intensity={1.10} color="#4fa8e8" />
       <Suspense fallback={null}>
         <ArtPlane />
       </Suspense>

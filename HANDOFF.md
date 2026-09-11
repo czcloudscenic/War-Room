@@ -1,5 +1,23 @@
 # Vantus Handoff Brief
 
+## 2026-09-10 (Counsel, evening) — SHIP: crew composited into the plate, real-scene harness, GLBs 47MB → 15MB. Committed on main, NOT pushed.
+
+Christian's verdict on the day's 17 ship commits: "can't get it right." Counsel rendered the route outside the login (see harness below) and diagnosed a direction problem, not a tuning one: the painting is dark, cool and painterly; the Meshy crew arrived front-lit, saturated and glossy, so they read as stickers no matter how scale or walk was tuned. Doctrine keeps them photoreal (Matrix archetypes), so the fix is compositing.
+
+**Shipped (one commit, build green, 53/53):**
+1. `crewGLB.js` `gradeIntoPlate()` — every crew material is desaturated (0.58) and knocked down (exposure 0.70, cool tint) in the shader via `onBeforeCompile`, forced matte (roughness 0.94, metalness 0), self-glow cut from 0.22 to 0.06. Tunables in `GRADE`.
+2. Contact shadow — a soft black ellipse billboarded at the feet (`SHADOW`), fades in with the real character. This is the cue that makes a figure stand ON the deck instead of floating in front of it.
+3. Light rig in `ShipScene3D.jsx` — ambient 0.42 → 0.20, hemi 0.55 → 0.34, key 1.75 → 1.35, and the 0.42 fill became a real cyan rim (1.10, from behind-above) so silhouettes separate from the hull. `tests/ship-visual.html` mirrored line for line.
+4. **`tests/ship-scene.html` + `.jsx` — mounts the REAL `ShipScene3D`** with stand-in receipts, no login. `?scenario=mixed|empty|all`. This closes the "harness is structurally blind" item: the 9/10 ReferenceError would have shown up here as a black canvas. Screenshot it before every ship commit. `npm run dev` then `/tests/ship-scene.html`.
+5. Crew GLBs: textures were 2048² PNG (7.2 MB of Sean's 9 MB). Resized to 1024² and converted to WebP with gltf-transform; meshes untouched, rigs untouched, no decoder needed (EXT_texture_webp is native to GLTFLoader). 47 MB → 15 MB, verified loading and rendering identically in the harness. Originals in `~/vantus-crew-staging/crew-originals-2026-09-10/`. Remaining 1.8 MB per file is mesh; `gltf-transform quantize` would halve it again if wanted (also decoder-free).
+
+**Verified visually** (harness screenshots, mixed + empty scenarios): crew sit in the plate, Slate's coat carries the cyan rim, Muse's dress reads as wardrobe rather than a highlight, the empty deck shows idle crew at home posts.
+
+**Flag, not changed:** the sentinel drone's search beam is warm red-orange (`drones.js` beamMat 0xff5340 / haze 0xff7a5c). It is a Matrix sentinel by design, but it is the one warm hue in the scene and the doctrine says none. Danny or Christian decide; a one-line color swap either way.
+
+**Not done:** merging walk+idle into one GLB per character (retargeting risk noted in the master brief; not worth it now that files are 1.9 MB), Fix #10 / the 3 orphaned files, mobile guard.
+
+
 ## 2026-09-10 — INFRA MOVED to Cloud Scenic + all four crew are real characters. Rigging solved locally. Long session, several self-inflicted breakages, all recorded.
 
 **Netlify + Supabase both now live under Cloud Scenic. Verified, not assumed.**
