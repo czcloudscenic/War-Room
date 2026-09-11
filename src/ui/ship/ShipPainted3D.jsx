@@ -1,0 +1,342 @@
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
+import * as THREE from 'three';
+import { WORLD_W, WORLD_H, ROOMS, DECKS, floorYAt } from '../../ship/world.js';
+import { STATIONS } from '../../core/shipStations.js';
+import { createShipSim } from '../../ship/shipEngine.js';
+import { createCrewFigure } from '../../ship/crewGLB.js';
+import { createShipArtFX } from '../../ship/shipArtFX.js';
+import { createDrones } from '../../ship/drones.js';
+import { createBeacons } from '../../ship/beacons.js';
+import ShipHUD from './ShipHUD.jsx';
+
+// ── The painted world in motion ──────────────────────────────────────────────
+// Danny's requirement (9/11): it has to look like the concept art AND move.
+// So the concept art IS the ship: the painting with its background removed
+// rides a flight rig (bank, breathe, bob) while painted environment plates,
+// generated in the same brushwork, stream behind it with parallax: a storm
+// and city plate far back, a tunnel-wall plate that fades in for enclosed
+// stretches, and a keyed foreground-structure layer closest to the hull. Rain
+// falls in front. The crew, sentinels, beacons and receipt rules are unchanged.
+const PLATES = {
+  cutout: '/ship/ship-cutout.webp',
+  open: '/ship/plate-open.jpg',
+  tunnel: '/ship/plate-tunnel.jpg',
+  fg: '/ship/plate-fg.webp',
+};
+// Layer depths (scene z; camera at CAM_Z looking at z=0) and scroll speeds in
+// texture units per second. The world streams toward +X, so offsets decrease.
+const LAYERS = {
+  open:   { z: -700, w: 3400, h: 1457, speed: 0.010 },
+  tunnel: { z: -350, w: 2700, h: 1157, speed: 0.048 },
+  fg:     { z: -150, w: 2450, h: 1050, speed: 0.115 },
+};
+// Enclosed stretches: a 46 s cycle, tunnel walls up for 18 s with 2.5 s ramps.
+const TUNNEL = { period: 46000, start: 24000, end: 42000, ramp: 2500 };
+const tunnelPresence = (t) => {
+  const c = t % TUNNEL.period;
+  const up = Math.min(1, Math.max(0, (c - TUNNEL.start) / TUNNEL.ramp));
+  const down = Math.min(1, Math.max(0, (TUNNEL.end - c) / TUNNEL.ramp));
+  return Math.min(up, down);
+};
+
+// Crew scale: tuned against the artwork's furniture — figures read right at
+// ~70-105 logical units (full art-measured human scale of 130 overwhelmed the
+// bays). Scale follows x so crew match the painting's own depth.
+const humanScaleAt = (x) => Math.min(74, Math.max(46, 43 + 0.035 * x)) / 34;
+
+// ── Phase 1: the cinematic ship in real 3D (2.5D uplift) ─────────────────────
+// The painted hull becomes a plane in a live three.js scene: parallax camera,
+// volumetric holo-core FX, and the crew as articulated 3D figures walking the
+// same receipt-driven engine paths as every other rendering. The simulation
+// stays the single source of truth — this is a renderer, not a new reality.
+// Original crew models only (no film likenesses, per the spec's likeness rule).
+
+const CAM_Z = 1141; // fits the 1280×720 art plane exactly at fov 35
+const mono = { fontFamily: "'Geist Mono', monospace" };
+
+const toThreeX = (x) => x - WORLD_W / 2;
+const toThreeY = (y) => WORLD_H / 2 - y;
+
+// Feet projection onto the painted floor lines (same math as the 2D renderer).
+function projectFeetY(sp) {
+  const f0 = floorYAt(0, sp.x), f1 = floorYAt(1, sp.x);
+  const span = (DECKS[1].floorY - DECKS[0].floorY) || 1;
+  const p = Math.min(1, Math.max(0, (sp.y - DECKS[0].floorY) / span));
+  return f0 + (f1 - f0) * p;
+}
+
+function ShipCutout() {
+  const tex = useLoader(THREE.TextureLoader, PLATES.cutout);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return (
+    <mesh position={[0, 0, 0]} renderOrder={3}>
+      <planeGeometry args={[WORLD_W, WORLD_H]} />
+      <meshBasicMaterial map={tex} transparent alphaTest={0.02} depthWrite />
+    </mesh>
+  );
+}
+
+// A streaming plate: mirrored repeat makes any plate tile seamlessly.
+function Plate({ url, layer, opacityRef, renderOrder, alpha = false }) {
+  const tex = useLoader(THREE.TextureLoader, url);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.MirroredRepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  const matRef = useRef(null);
+  useFrame((state, delta) => {
+    tex.offset.x -= layer.speed * delta;
+    if (opacityRef && matRef.current) matRef.current.opacity = opacityRef.current;
+  });
+  return (
+    <mesh position={[0, 0, layer.z]} renderOrder={renderOrder}>
+      <planeGeometry args={[layer.w, layer.h]} />
+      <meshBasicMaterial ref={matRef} map={tex} transparent={alpha || !!opacityRef} alphaTest={alpha ? 0.02 : 0} depthWrite={!alpha && !opacityRef} opacity={opacityRef ? 0 : 1} />
+    </mesh>
+  );
+}
+
+// Rain in front of everything: 320 streaks falling and wrapping, allocation-free.
+function Rain() {
+  const geo = useMemo(() => {
+    const n = 320; const pos = new Float32Array(n * 6);
+    for (let i = 0; i < n; i++) {
+      const x = (Math.sin(i * 12.9898) * 43758.5453 % 1) * 1600 - 800;
+      const y = (Math.sin(i * 78.233) * 43758.5453 % 1) * 900 - 450;
+      const len = 18 + ((i * 7) % 5) * 5;
+      pos.set([x, y, 0, x - 3, y - len, 0], i * 6);
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); return g;
+  }, []);
+  const mat = useMemo(() => new THREE.LineBasicMaterial({ color: 0x9fbfe0, transparent: true, opacity: 0.22, depthWrite: false }), []);
+  useFrame((state, delta) => {
+    const p = geo.attributes.position.array; const dy = 520 * delta; const dx = -140 * delta;
+    for (let i = 0; i < p.length; i += 6) {
+      p[i + 1] -= dy; p[i + 4] -= dy; p[i] += dx; p[i + 3] += dx;
+      if (p[i + 4] < -460) { const len = p[i + 1] - p[i + 4]; p[i + 1] = 460; p[i + 4] = 460 - len; }
+      if (p[i] < -820) { p[i] += 1640; p[i + 3] += 1640; }
+    }
+    geo.attributes.position.needsUpdate = true;
+  });
+  return <lineSegments geometry={geo} material={mat} position={[0, 0, 240]} renderOrder={6} />;
+}
+
+function SceneContent({ simRef, crew, activityCount = {}, alerts = {}, contactsRef, enclosedRef }) {
+  const { scene, camera, pointer } = useThree();
+  const figuresRef = useRef(new Map());
+  // The ship rig: cutout + crew + station FX bank and breathe together.
+  const rigRef = useRef(null);
+  if (!rigRef.current) { rigRef.current = new THREE.Group(); rigRef.current.name = 'paintedShipRig'; }
+  const tunnelOpacity = useRef(0);
+  const fxRef = useRef(null);
+  const dronesRef = useRef(null);
+  const beaconsRef = useRef(null);
+  const alertsRef = useRef(alerts);   // kept fresh below without re-running the scene effect
+
+  // FX group once
+  useEffect(() => {
+    const rig = rigRef.current;
+    scene.add(rig);
+    const fx = createShipArtFX();
+    fxRef.current = fx;
+    rig.add(fx.group);
+    const drones = createDrones();
+    dronesRef.current = drones;
+    scene.add(drones.group);
+    const beacons = createBeacons();
+    beaconsRef.current = beacons;
+    scene.add(beacons.group);
+    return () => {
+      scene.remove(beacons.group); beacons.dispose();
+      rig.remove(fx.group); fx.dispose();
+      scene.remove(drones.group); drones.dispose();
+      scene.remove(rig);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Figures follow the roster present in crew
+  useEffect(() => {
+    const map = figuresRef.current;
+    for (const member of crew) {
+      // Future crew don't render in the painting — their ghost meshes read as
+      // glitch boxes against the art. They stay listed in Map/List views.
+      if (member.future) continue;
+      if (!map.has(member.name)) {
+        const fig = createCrewFigure({ name: member.name, color: member.color, future: member.future });
+        // Pop against the dark painting: near-black garments take the member's
+        // signature color, and every surface self-glows so nobody reads as a
+        // silhouette sunk into the hull. Future crew stay ghosted — glowing
+        // them turns the Quarters bunks into colored noise.
+        const tint = new THREE.Color(member.color || '#2AABFF');
+        fig.group.traverse((o) => {
+          // Sculpted crew already carry the tint in their vertex colors; the
+          // merged figure shares one material, so tinting it here would wash
+          // the whole body one color instead of just the near-black garments.
+          if (o.userData && o.userData.sculpted) return;
+          // Rigged GLB crew carry real textures and a glTF material whose
+          // emissiveIntensity defaults to 1 — the 0.4 self-glow below is a
+          // legibility hack for flat procedural figures and simply bleaches
+          // a real character. Leave skinned meshes alone.
+          if (o.isSkinnedMesh) return;
+          if (o.isMesh && o.material && 'emissive' in o.material && o.material.color) {
+            const m = o.material;
+            const lum = m.color.r * 0.3 + m.color.g * 0.59 + m.color.b * 0.11;
+            if (lum < 0.16) m.color.lerp(tint, 0.45);
+            m.emissive.copy(m.color).multiplyScalar(0.4);
+          }
+        });
+        map.set(member.name, fig);
+        rigRef.current.add(fig.group);
+      }
+    }
+    // Dev-only hook for tests/ship-scene.html: lets the harness measure bones,
+    // materials and positions of the live figures. Stripped from prod builds.
+    if (import.meta.env.DEV && typeof window !== 'undefined') window.__shipPainted = { scene, figures: map, sim: simRef.current, rig: rigRef.current };
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [crew]);
+
+  useEffect(() => () => {
+    for (const fig of figuresRef.current.values()) { fig.group.parent?.remove(fig.group); fig.dispose(); }
+    figuresRef.current.clear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  alertsRef.current = alerts;
+
+  useFrame((state, delta) => {
+    const t = state.clock.elapsedTime * 1000;
+    simRef.current.tick(Math.min(delta * 1000, 100), t);
+    const sprites = simRef.current.getSprites();
+    for (const sp of sprites) {
+      const fig = figuresRef.current.get(sp.name);
+      if (!fig) continue;
+      const feetY = projectFeetY(sp);
+      fig.group.position.set(toThreeX(sp.x), toThreeY(feetY), sp.deck === 1 ? 26 : 18);
+      fig.update(sp, t);
+      // Applied after fig.update (which manages its own deck scale) so the
+      // measured human-scale factor survives every animation state.
+      fig.group.scale.multiplyScalar(humanScaleAt(sp.x));
+    }
+    fxRef.current?.update(t, activityCount);
+    dronesRef.current?.update(t);
+    if (contactsRef && dronesRef.current?.getContacts) dronesRef.current.getContacts(contactsRef.current);
+    beaconsRef.current?.update(t, alertsRef.current);
+    // Flight: bank, breathe, bob; a little more shake inside the tunnels.
+    const presence = tunnelPresence(t);
+    tunnelOpacity.current = presence;
+    if (enclosedRef) enclosedRef.current = presence > 0.5;
+    const rig = rigRef.current;
+    const shake = 1 + presence * 0.8;
+    rig.rotation.z = (Math.sin(t / 6100) * 0.012 + Math.sin(t / 2300) * 0.004) * shake;
+    rig.rotation.x = Math.sin(t / 4700) * 0.008 * shake;
+    rig.position.y = Math.sin(t / 3300) * 5 * shake;
+    rig.position.x = Math.sin(t / 5100) * 4;
+    // parallax: camera drift toward the pointer + a slow living sway and a
+    // barely-perceptible breathe on depth — the frame never sits fully still
+    const targetX = pointer.x * 18 + Math.sin(t / 8000) * 9;
+    const targetY = pointer.y * 10 + Math.cos(t / 10500) * 6;
+    camera.position.x += (targetX - camera.position.x) * 0.04;
+    camera.position.y += (targetY - camera.position.y) * 0.04;
+    camera.position.z = CAM_Z + Math.sin(t / 14000) * 14;
+    camera.lookAt(0, 0, 0);
+  });
+
+  return (
+    <>
+      {/* Art is unlit (MeshBasicMaterial); these lights shape the CREW so they
+          read against the dark painting instead of sinking into it. */}
+      {/* Ambient carries no direction, so it cannot describe a body. At 1.15
+          against a 0.5 key it was drowning the only light that models form —
+          which is why the crew read as flat cut-outs regardless of geometry.
+          Key now leads; ambient and hemisphere are lift, not illumination.
+          The painted plate is MeshBasicMaterial (unlit), so this moves the crew
+          and drones only and cannot touch the artwork. Keep tests/ship-visual.html
+          identical or the harness stops predicting production. */}
+      {/* Rig matches the plate: low fill, a cool key from the screen wall, and
+          a cyan rim from behind so the silhouette separates from the hull the
+          way the painted figures' would. Crew materials are graded to sit
+          under this (crewGLB.js GRADE). Mirror any change in tests/ship-visual.html. */}
+      <ambientLight intensity={0.20} />
+      <hemisphereLight args={['#6f9fcc', '#0e1014', 0.34]} />
+      <directionalLight position={[-260, 220, 520]} intensity={1.35} color="#b8d4f0" />
+      <directionalLight position={[240, 260, -320]} intensity={1.10} color="#4fa8e8" />
+      <Suspense fallback={null}>
+        <Plate url={PLATES.open} layer={LAYERS.open} renderOrder={0} />
+        <Plate url={PLATES.tunnel} layer={LAYERS.tunnel} opacityRef={tunnelOpacity} renderOrder={1} />
+        <Plate url={PLATES.fg} layer={LAYERS.fg} renderOrder={2} alpha />
+        <primitive object={rigRef.current}>
+          <ShipCutout />
+        </primitive>
+        <Rain />
+      </Suspense>
+    </>
+  );
+}
+
+export default function ShipPainted3D({ crew = [], activity = {}, alerts = {}, onStation, selectedStation, signals = {} }) {
+  const simRef = useRef(null);
+  const contactsRef = useRef([]);
+  const enclosedRef = useRef(false);
+  const tunnelLike = useRef({ get enclosed() { return enclosedRef.current; } });
+  if (!simRef.current) simRef.current = createShipSim();
+  useEffect(() => { simRef.current.setCrew(crew); }, [crew]);
+
+  const [hover, setHover] = useState(null);
+  const counts = useMemo(
+    () => Object.fromEntries(Object.entries(activity).map(([k, v]) => [k, Array.isArray(v) ? v.length : v])),
+    [activity]
+  );
+  const litStations = useMemo(() => {
+    const lit = new Set();
+    for (const m of crew) if (!m.future && (m.state === 'working' || m.state === 'active')) lit.add(m.station);
+    return lit;
+  }, [crew]);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', aspectRatio: `${WORLD_W} / ${WORLD_H}`, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.09)', background: '#05060a' }}>
+      <Canvas
+        dpr={[1, 1.75]}
+        camera={{ fov: 35, near: 1, far: 4000, position: [0, 0, CAM_Z] }}
+        gl={{ antialias: true, alpha: false, toneMapping: THREE.NoToneMapping }}
+        style={{ position: 'absolute', inset: 0 }}
+      >
+        <SceneContent simRef={simRef} crew={crew} activityCount={counts} alerts={alerts} contactsRef={contactsRef} enclosedRef={enclosedRef} />
+      </Canvas>
+      <ShipHUD contactsRef={contactsRef} signals={signals} tunnelRef={tunnelLike} />
+
+      {/* Station chips — HTML overlay anchored to the art (clickable) */}
+      {ROOMS.map(r => {
+        const meta = STATIONS.find(s => s.id === r.id);
+        const cx = ((r.x0 + r.x1) / 2 / WORLD_W) * 100;
+        // Chips ride the painted deck slope: anchored above each bay's real
+        // floor line instead of one flat row.
+        const cxLogical = (r.x0 + r.x1) / 2;
+        const top = ((floorYAt(r.deck, cxLogical) - (r.deck === 0 ? 152 : 160)) / WORLD_H) * 100;
+        const lit = litStations.has(r.id);
+        const isSel = selectedStation === r.id;
+        const count = counts[r.id] || 0;
+        return (
+          <button
+            key={r.id}
+            onClick={() => onStation?.(r.id)}
+            onMouseEnter={() => setHover(r.id)}
+            onMouseLeave={() => setHover(h => (h === r.id ? null : h))}
+            style={{
+              position: 'absolute', left: `${cx}%`, top: `${top}%`, transform: 'translateX(-50%)',
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px',
+              background: 'rgba(6,8,13,0.72)', backdropFilter: 'blur(4px)',
+              border: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.45)' : 'rgba(255,255,255,0.14)'}`,
+              borderRadius: 5, cursor: 'pointer',
+              fontSize: 8.5, letterSpacing: 0.8, textTransform: 'uppercase', ...mono,
+              color: lit ? '#bfe3ff' : 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap',
+            }}>
+            {meta?.n} {meta?.label}
+            {count > 0 && <span style={{ color: '#2AABFF', fontWeight: 700 }}>{count}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

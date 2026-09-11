@@ -4,6 +4,7 @@ import { positionCrew, stationActivity, stationById, ROSTER } from '../../core/s
 import ShipGame from '../ship/ShipGame.jsx';
 import ShipScene3D from '../ship/ShipScene3D.jsx';
 import ShipWorld3D from '../ship/ShipWorld3D.jsx';
+import ShipPainted3D from '../ship/ShipPainted3D.jsx';
 import ShipMap from '../ship/ShipMap.jsx';
 
 // WebGL gate: the 3D scene needs it; the 2D canvas ship is the fallback skin.
@@ -100,6 +101,7 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             {toggle('3d', '3D View')}
+            {toggle('model', 'Model View')}
             {toggle('art', 'Art View')}
             {toggle('map', 'Map View')}
             {toggle('list', 'List View')}
@@ -128,6 +130,9 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
             {/* 3D View (9/11): the modeled hull in a streaming undercity, the
                 ship in flight. Art View keeps the painted plate. */}
             {view === '3d' && (HAS_WEBGL
+              ? <ShipPainted3D crew={crew} activity={activity} alerts={shipAlerts} signals={{ backupOk, linkOk: sb ? (events.length || tasks.length ? true : null) : false, lastReceiptTs: events[0]?.ts || null }} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
+              : <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />)}
+            {view === 'model' && (HAS_WEBGL
               ? <ShipWorld3D crew={crew} activity={activity} signals={{ backupOk, linkOk: sb ? (events.length || tasks.length ? true : null) : false, lastReceiptTs: events[0]?.ts || null }} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
               : <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />)}
             {view === 'art' && (HAS_WEBGL

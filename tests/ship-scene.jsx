@@ -12,6 +12,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import ShipScene3D from '../src/ui/ship/ShipScene3D.jsx';
 import ShipWorld3D from '../src/ui/ship/ShipWorld3D.jsx';
+import ShipPainted3D from '../src/ui/ship/ShipPainted3D.jsx';
 import { positionCrew, stationActivity } from '../src/core/shipStations.js';
 
 const now = Date.now();
@@ -24,7 +25,7 @@ const SCENARIOS = {
 const params = new URLSearchParams(location.search);
 const scenario = params.get('scenario') || 'mixed';
 const view = params.get('view') || 'scene'; // scene = painted plate (ShipScene3D) | world = modeled hull (ShipWorld3D)
-const View = view === 'world' ? ShipWorld3D : ShipScene3D;
+const View = view === 'world' ? ShipWorld3D : view === 'painted' ? ShipPainted3D : ShipScene3D;
 const events = SCENARIOS[scenario] || SCENARIOS.mixed;
 const crew = positionCrew(events, now);
 const activity = stationActivity(events);

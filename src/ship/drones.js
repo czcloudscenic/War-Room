@@ -232,6 +232,14 @@ export function createDrones() {
     }
   }
 
+  // Radar contacts for the HUD: real positions, scene units.
+  function getContacts(out) {
+    out.length = 0;
+    for (const { g, p } of drones) out.push({ x: g.position.x, z: g.position.z * 60, y: g.position.y, kind: p.s < 0.4 ? 'far' : 'escort' });
+    out.push({ x: attacker.position.x, z: attacker.position.z * 60, y: attacker.position.y, kind: 'pass' });
+    return out;
+  }
+
   function dispose() {
     group.traverse((o) => {
       if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); }
@@ -239,5 +247,5 @@ export function createDrones() {
     group.clear();
   }
 
-  return { group, update, dispose };
+  return { group, update, getContacts, dispose };
 }
