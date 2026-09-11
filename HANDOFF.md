@@ -1,5 +1,22 @@
 # Vantus Handoff Brief
 
+## 2026-09-11 (Counsel, evening) — DIRECTION LOCKED: the modeled world becomes the game. Real props in every room, painted backdrop, fly-to camera, sentinels in the world. Pushed.
+
+Christian, after seeing the painted view up close: "the hull isn't even 3D, it's just an image... make the inside hull a 3D world they can interact with like a video game", then "more realistic, 6k, actual shapes and sizes but close to the reference", with the Animatrix "Final Flight of the Osiris" as the feel (tunnels, banking, sentinel pursuit). So the Model View is the future; the painted 3D View stays the default until the model world overtakes it.
+
+**Shipped this pass:**
+- **Room props (`src/ship/roomProps.js`, `public/props/*.glb`):** nine Tripo text-to-3D props, one per room kind (bridge holo table, operator console, status board, lab scanner arch, security gate, holo core, machinery bank, sleeper pod, vault cabinet). Raw output was 1.4M triangles / 40 MB each; simplified 20x, 1k WebP textures, quantized → about 1.6 MB each (14 MB total, loaded only when the Model View mounts). Placed at each room's center on its floor behind the walk lane, scaled to a target height per kind (`PROP_MANIFEST`). The procedural furniture (merged mesh 'props') hides once the first prop lands.
+- **Painted backdrop in the modeled world:** the concept-art storm/city plate far behind (z -1500) and a darker second rank (z -950), mirrored-repeat scrolling, so the horizon is painting instead of gradient.
+- **Model View interaction:** same model as the painted view: click a chip → camera flies into the room (2.3x), Escape / top-left chip returns, wheel zooms to 2.6x, drag pans, pointer parallax. Chips are low inside each bay and projected every frame through the camera and the flight rig.
+- **Painted view fixes from Christian's notes:** chips inside bays (were on the plating), sentinels tripled with 12 heavier tentacles, background depth (mid rank + drifting haze + vignette), patrol sentinels drift with the world (only the attacker rides the hull), cockpit/quarters bays recalibrated so Sean stands inside the glass.
+
+**Next lifts, in order (this is the game plan):**
+1. Interior fidelity: room walls and decks from the concept art baked as textures (or generated wall panels per room kind), better lamp pooling, and a second prop per room so bays are not one object each.
+2. Crew at work: typing/console clips (Mixamo, Christian downloads), agents face their prop, walk paths that avoid props.
+3. Osiris feel: tunnel pursuit sequence (sentinels close in when the tunnel is enclosed), hull shake, sparks at the attacker's cut point, camera hand-held drift.
+4. Resolution: the hull GLB at full 124k tris is in; props could go back to 0.1 ratio (3 MB each) when the look is settled; DPR cap 1.75 → 2 on desktop.
+5. The painted view retires to Art View once the model world is ahead of it.
+
 ## 2026-09-11 (Counsel, late) — NEW HULL SHAPE in both views. 3D View: repainted concept art with the armored hover-pad hull. Model View: a generated 3D hull (Meshy) around the procedural interior, cut away, pads pulsing. Pushed.
 
 Christian's reference: an armored plated hovercraft with a forward cockpit block, cyan ring hover pads under the belly and on outrigger arms, antenna masts, twin turret (`~/Desktop/dacian-falx-1.jpg`).

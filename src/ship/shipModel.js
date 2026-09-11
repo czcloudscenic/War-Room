@@ -618,6 +618,7 @@ export function createShipModel(options = {}) {
   // ── API ────────────────────────────────────────────────────────────────────
   return {
     group,
+    rooms,
     update,
     getStationAnchor(id) {
       const a = anchors.get(id);

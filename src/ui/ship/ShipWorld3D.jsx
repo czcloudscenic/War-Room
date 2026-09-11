@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import React, { Suspense, useEffect, useRef, useState, useMemo } from 'react';
+import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -15,6 +15,7 @@ import { createGreebles } from '../../ship/greebles.js';
 import { createTunnel } from '../../ship/tunnel.js';
 import { createSentinels3D } from '../../ship/sentinels3d.js';
 import { createHullGLB } from '../../ship/hullGLB.js';
+import { createRoomProps } from '../../ship/roomProps.js';
 import ShipHUD from './ShipHUD.jsx';
 
 // Grunge textures generated for the cinematic pass (public/textures/). Loaded
@@ -63,6 +64,29 @@ function Effects() {
 const mono = { fontFamily: "'Geist Mono', monospace" };
 const WORLD_CREW_SCALE = 2.05;
 
+// ── Painted backdrop behind the modeled world (the concept-art plates) ──────
+// Same plates the painted view streams; here they sit behind the 3D city so
+// the horizon and storm read as painting instead of gradient.
+const BACKDROP = [
+  { url: '/ship/plate-open.jpg', z: -1500, w: 6400, h: 2743, speed: 0.004, opacity: 1, y: 120 },
+  { url: '/ship/plate-open.jpg', z: -950, w: 4200, h: 1800, speed: 0.014, opacity: 0.55, y: -420, tint: 0x7f93ad },
+];
+function BackdropPlate({ url, z, w, h, speed, opacity = 1, y = 0, tint = 0xffffff }) {
+  const base = useLoader(THREE.TextureLoader, url);
+  const tex = useMemo(() => { const t = base.clone(); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.MirroredRepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping; t.needsUpdate = true; return t; }, [base]);
+  useFrame((state, delta) => { tex.offset.x -= speed * delta; });
+  return (
+    <mesh position={[0, y, z]} renderOrder={-2}>
+      <planeGeometry args={[w, h]} />
+      <meshBasicMaterial map={tex} color={tint} transparent={opacity < 1} opacity={opacity} depthWrite={opacity >= 1} fog={false} />
+    </mesh>
+  );
+}
+
+// Interaction: fly into a station on click, wheel zoom, drag pan (same model
+// as the painted view). Focus targets are room centers in scene space.
+const VIEW_LIMITS = { zoomMin: 1, zoomMax: 2.6, stationZoom: 2.3, panX: 420, panY: 220 };
+
 // logical y (2D engine) → scene y: standing = deck height, climbing lerps.
 function sceneY(sp) {
   const span = (LOGICAL_DECKS[1].floorY - LOGICAL_DECKS[0].floorY) || 1;
@@ -70,8 +94,10 @@ function sceneY(sp) {
   return DECK_Y[0] + (DECK_Y[1] - DECK_Y[0]) * p;
 }
 
-function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut }) {
+function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, selectedStation, viewRef, chipEls }) {
   const { scene, camera, pointer, size } = useThree();
+  const focus = useRef({ x: CAMERA.target[0], y: CAMERA.target[1], zoom: 1 });
+  const _anchor = useRef(new THREE.Vector3());
   const figuresRef = useRef(new Map());
   const modelRef = useRef(null);
   const envRef = useRef(null);
@@ -79,6 +105,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut }) {
   const tunnelRef = useRef(null);
   const sentinelsRef = useRef(null);
   const hullRef = useRef(null);
+  const propsRef = useRef(null);
   // Everything that IS the ship (hull, greebles, crew) hangs under one rig so
   // the whole vessel can bank and breathe while the world streams past it.
   const shipRigRef = useRef(null);
@@ -128,11 +155,19 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut }) {
       } });
       hullRef.current = hull;
       shipRigRef.current.add(hull.group);
+      // Real props replace the primitive furniture room by room as they load.
+      const props = createRoomProps({ rooms: model.rooms, onFirstReady: () => {
+        const prim = model.group.getObjectByName('props');
+        if (prim) prim.visible = false;
+      } });
+      propsRef.current = props;
+      shipRigRef.current.add(props.group);
     });
     return () => {
       disposed = true;
       if (model) { rig.remove(model.group); model.dispose(); }
       if (hullRef.current) { rig.remove(hullRef.current.group); hullRef.current.dispose(); hullRef.current = null; }
+      if (propsRef.current) { rig.remove(propsRef.current.group); propsRef.current.dispose(); propsRef.current = null; }
       if (textures.current) for (const t of Object.values(textures.current)) t?.dispose();
       rig.remove(greebles.group); greebles.dispose();
       scene.remove(env.group); env.dispose();
@@ -198,6 +233,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut }) {
     greeblesRef.current?.update(t);
     tunnelRef.current?.update(delta);
     hullRef.current?.update(t);
+    propsRef.current?.update(t);
     sentinelsRef.current?.update(t);
     if (contactsRef) sentinelsRef.current?.getContacts(contactsRef.current);
     // Flight: a slow bank and a breathing pitch on the whole vessel, plus a
@@ -207,11 +243,37 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut }) {
     rig.rotation.z = Math.sin(t / 6100) * 0.014 + Math.sin(t / 2300) * 0.004;
     rig.rotation.x = Math.sin(t / 4700) * 0.010;
     rig.position.y = Math.sin(t / 3300) * 5;
-    const tx = CAMERA.position[0] + pointer.x * CAMERA.parallax.x + Math.sin(t / 9000) * 6;
-    const ty = CAMERA.position[1] + pointer.y * CAMERA.parallax.y + Math.cos(t / 12000) * 4;
-    camera.position.x += (tx - camera.position.x) * 0.04;
-    camera.position.y += (ty - camera.position.y) * 0.04;
-    camera.lookAt(...CAMERA.target);
+    // Camera: station focus + wheel zoom + pan, eased; parallax damped when zoomed.
+    const v = viewRef?.current || { zoom: 1, panX: 0, panY: 0 };
+    const room = selectedStation ? ROOMS.find(r => r.id === selectedStation) : null;
+    const f = focus.current;
+    const wantX = room ? toSceneX((room.x0 + room.x1) / 2) : CAMERA.target[0] + v.panX;
+    const wantY = room ? DECK_Y[room.deck] + 60 : CAMERA.target[1] + v.panY;
+    const wantZoom = (room ? VIEW_LIMITS.stationZoom : 1) * v.zoom;
+    f.x += (wantX - f.x) * 0.06; f.y += (wantY - f.y) * 0.06; f.zoom += (wantZoom - f.zoom) * 0.06;
+    const par = 1 / f.zoom;
+    const dx = CAMERA.position[0] - CAMERA.target[0], dy = CAMERA.position[1] - CAMERA.target[1];
+    const tx = f.x + (dx + pointer.x * CAMERA.parallax.x * 1.8 + Math.sin(t / 9000) * 6) * par;
+    const ty = f.y + (dy + pointer.y * CAMERA.parallax.y * 1.8 + Math.cos(t / 12000) * 4) * par;
+    camera.position.x += (tx - camera.position.x) * 0.06;
+    camera.position.y += (ty - camera.position.y) * 0.06;
+    camera.position.z = CAMERA.position[2] / f.zoom;
+    camera.lookAt(f.x, f.y, 0);
+    // Station chips: low inside each bay, projected through the live camera
+    // and the flight rig every frame.
+    if (chipEls?.current) {
+      camera.updateMatrixWorld();
+      const rigNode = shipRigRef.current;
+      for (const r of ROOMS) {
+        const el = chipEls.current.get(r.id); if (!el) continue;
+        const p = _anchor.current.set(toSceneX(r.x0 + 14), DECK_Y[r.deck] + 6, WALK_Z + 12);
+        rigNode.localToWorld(p).project(camera);
+        const onScreen = p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2;
+        el.style.left = ((p.x + 1) / 2 * 100) + '%';
+        el.style.top = ((1 - p.y) / 2 * 100) + '%';
+        el.style.opacity = onScreen ? '' : '0';
+      }
+    }
   });
 
   return (
@@ -231,6 +293,9 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut }) {
       />
       {/* three r155+ uses physical falloff: at this scene scale (rooms ~200
           units) pooled lamps need candela-scale intensities to exist at all. */}
+      <Suspense fallback={null}>
+        {BACKDROP.map((b, i) => <BackdropPlate key={i} {...b} />)}
+      </Suspense>
       {ROOMS.map(r => (
         <pointLight
           key={r.id}
@@ -257,6 +322,24 @@ export default function ShipWorld3D({ crew = [], activity = {}, onStation, selec
 
   const [chipAnchors, setChipAnchors] = useState({});
   const [hover, setHover] = useState(null);
+  const viewRef = useRef({ zoom: 1, panX: 0, panY: 0 });
+  const chipEls = useRef(new Map());
+  const dragRef = useRef(null);
+  const onWheel = (e) => { const v = viewRef.current; v.zoom = Math.min(VIEW_LIMITS.zoomMax, Math.max(VIEW_LIMITS.zoomMin, v.zoom * (1 - e.deltaY * 0.0012))); };
+  const onPointerDown = (e) => { if (e.button !== 0) return; dragRef.current = { x: e.clientX, y: e.clientY }; };
+  const onPointerMove = (e) => {
+    const d = dragRef.current; if (!d) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y; d.x = e.clientX; d.y = e.clientY;
+    const v = viewRef.current; const k = 1.1 / v.zoom;
+    v.panX = Math.max(-VIEW_LIMITS.panX, Math.min(VIEW_LIMITS.panX, v.panX - dx * k));
+    v.panY = Math.max(-VIEW_LIMITS.panY, Math.min(VIEW_LIMITS.panY, v.panY + dy * k));
+  };
+  const onPointerUp = () => { dragRef.current = null; };
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape' && selectedStation) onStation?.(selectedStation); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedStation, onStation]);
   const counts = useMemo(
     () => Object.fromEntries(Object.entries(activity).map(([k, v]) => [k, Array.isArray(v) ? v.length : v])),
     [activity]
@@ -268,7 +351,8 @@ export default function ShipWorld3D({ crew = [], activity = {}, onStation, selec
   }, [crew]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.09)', background: '#05060a' }}>
+    <div onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
+      style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.09)', background: '#05060a', touchAction: 'none' }}>
       <Canvas
         dpr={[1, 1.75]}
         camera={{ fov: CAMERA.fov, near: 1, far: 6000, position: CAMERA.position }}
@@ -277,13 +361,22 @@ export default function ShipWorld3D({ crew = [], activity = {}, onStation, selec
         onCreated={({ gl }) => { gl.localClippingEnabled = true; }}
         style={{ position: 'absolute', inset: 0 }}
       >
-        <SceneContent simRef={simRef} crew={crew} onChipAnchors={setChipAnchors} contactsRef={contactsRef} tunnelOut={tunnelOut} />
+        <SceneContent simRef={simRef} crew={crew} onChipAnchors={setChipAnchors} contactsRef={contactsRef} tunnelOut={tunnelOut} selectedStation={selectedStation} viewRef={viewRef} chipEls={chipEls} />
       </Canvas>
       <ShipHUD contactsRef={contactsRef} signals={signals} tunnelRef={tunnelOut} />
 
+      {selectedStation && (
+        <button onClick={() => onStation?.(selectedStation)} style={{
+          position: 'absolute', left: 12, top: 12, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 10px',
+          background: 'rgba(6,8,13,0.78)', backdropFilter: 'blur(4px)', border: '1px solid #2AABFF', borderRadius: 6, cursor: 'pointer',
+          fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', ...mono, color: '#bfe3ff', whiteSpace: 'nowrap',
+        }}>
+          <span style={{ color: 'rgba(255,255,255,0.5)' }}>←</span>
+          {STATIONS.find(s => s.id === selectedStation)?.n} {STATIONS.find(s => s.id === selectedStation)?.label}
+          <span style={{ color: 'rgba(255,255,255,0.4)' }}>· ESC</span>
+        </button>
+      )}
       {ROOMS.map(r => {
-        const a = chipAnchors[r.id];
-        if (!a) return null;
         const meta = STATIONS.find(s => s.id === r.id);
         const lit = litStations.has(r.id);
         const isSel = selectedStation === r.id;
@@ -291,19 +384,21 @@ export default function ShipWorld3D({ crew = [], activity = {}, onStation, selec
         return (
           <button
             key={r.id}
+            ref={(el) => { if (el) chipEls.current.set(r.id, el); else chipEls.current.delete(r.id); }}
             onClick={() => onStation?.(r.id)}
             onMouseEnter={() => setHover(r.id)}
             onMouseLeave={() => setHover(h => (h === r.id ? null : h))}
             style={{
-              position: 'absolute', left: `${a.left}%`, top: `${a.top}%`, transform: 'translateX(-50%)',
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px',
-              background: 'rgba(6,8,13,0.72)', backdropFilter: 'blur(4px)',
-              border: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.45)' : 'rgba(255,255,255,0.14)'}`,
-              borderRadius: 5, cursor: 'pointer',
-              fontSize: 8.5, letterSpacing: 0.8, textTransform: 'uppercase', ...mono,
-              color: lit ? '#bfe3ff' : 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap',
+              position: 'absolute', left: '-100%', top: '-100%', transform: 'translate(0, -100%)',
+              display: 'inline-flex', alignItems: 'center', gap: 5, padding: '1px 6px',
+              background: 'rgba(4,6,10,0.62)', backdropFilter: 'blur(3px)',
+              border: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.4)' : 'rgba(255,255,255,0.10)'}`,
+              borderLeft: `2px solid ${lit ? '#2AABFF' : 'rgba(229,229,234,0.35)'}`,
+              borderRadius: 3, cursor: 'pointer', transition: 'opacity 200ms',
+              fontSize: 7.5, letterSpacing: 0.9, textTransform: 'uppercase', ...mono,
+              color: lit ? '#bfe3ff' : 'rgba(229,229,234,0.62)', whiteSpace: 'nowrap',
             }}>
-            {meta?.n} {meta?.label}
+            <span style={{ color: 'rgba(229,229,234,0.4)' }}>{meta?.n}</span> {meta?.label}
             {count > 0 && <span style={{ color: '#2AABFF', fontWeight: 700 }}>{count}</span>}
           </button>
         );
