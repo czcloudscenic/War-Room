@@ -14,6 +14,7 @@ import { createEnvironment } from '../../ship/environment3d.js';
 import { createGreebles } from '../../ship/greebles.js';
 import { createTunnel } from '../../ship/tunnel.js';
 import { createSentinels3D } from '../../ship/sentinels3d.js';
+import { createHullGLB } from '../../ship/hullGLB.js';
 import ShipHUD from './ShipHUD.jsx';
 
 // Grunge textures generated for the cinematic pass (public/textures/). Loaded
@@ -77,6 +78,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut }) {
   const greeblesRef = useRef(null);
   const tunnelRef = useRef(null);
   const sentinelsRef = useRef(null);
+  const hullRef = useRef(null);
   // Everything that IS the ship (hull, greebles, crew) hangs under one rig so
   // the whole vessel can bank and breathe while the world streams past it.
   const shipRigRef = useRef(null);
@@ -105,7 +107,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut }) {
     sentinelsRef.current = sentinels;
     scene.add(sentinels.group);
     // Dev-only hook for tests/ship-scene.html: toggle layers, read positions.
-    if (import.meta.env.DEV && typeof window !== 'undefined') window.__shipWorld = { scene, rig, env, greebles, tunnel, sentinels, figures: figuresRef.current, model: () => modelRef.current };
+    if (import.meta.env.DEV && typeof window !== 'undefined') window.__shipWorld = { scene, rig, env, greebles, tunnel, sentinels, figures: figuresRef.current, model: () => modelRef.current, hull: () => hullRef.current };
     const textures = { current: null };
     loadShipTextures((tex) => {
       if (disposed) { for (const t of Object.values(tex)) t?.dispose(); return; }
@@ -116,10 +118,21 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut }) {
       // accents (Basic materials) neither, or the shadow map fills with lamps.
       model.group.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshLambertMaterial) { o.castShadow = true; o.receiveShadow = true; } });
       shipRigRef.current.add(model.group);
+      // The generated hull replaces the procedural shell once it lands; the
+      // decks, rooms and props inside stay exactly as calibrated.
+      // The procedural shell stays: inside the GLB it is hidden anyway, and
+      // its top armor slab caps the rooms so the window never shows a cavity.
+      const hull = createHullGLB({ onReady: () => {
+        const rim = model.group.getObjectByName('cutawayRim');
+        if (rim) rim.visible = false;
+      } });
+      hullRef.current = hull;
+      shipRigRef.current.add(hull.group);
     });
     return () => {
       disposed = true;
       if (model) { rig.remove(model.group); model.dispose(); }
+      if (hullRef.current) { rig.remove(hullRef.current.group); hullRef.current.dispose(); hullRef.current = null; }
       if (textures.current) for (const t of Object.values(textures.current)) t?.dispose();
       rig.remove(greebles.group); greebles.dispose();
       scene.remove(env.group); env.dispose();
@@ -184,6 +197,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut }) {
     envRef.current?.update(t);
     greeblesRef.current?.update(t);
     tunnelRef.current?.update(delta);
+    hullRef.current?.update(t);
     sentinelsRef.current?.update(t);
     if (contactsRef) sentinelsRef.current?.getContacts(contactsRef.current);
     // Flight: a slow bank and a breathing pitch on the whole vessel, plus a
@@ -260,6 +274,7 @@ export default function ShipWorld3D({ crew = [], activity = {}, onStation, selec
         camera={{ fov: CAMERA.fov, near: 1, far: 6000, position: CAMERA.position }}
         gl={{ antialias: true, alpha: false, toneMapping: THREE.NoToneMapping }}
         shadows={{ type: THREE.PCFShadowMap }}
+        onCreated={({ gl }) => { gl.localClippingEnabled = true; }}
         style={{ position: 'absolute', inset: 0 }}
       >
         <SceneContent simRef={simRef} crew={crew} onChipAnchors={setChipAnchors} contactsRef={contactsRef} tunnelOut={tunnelOut} />

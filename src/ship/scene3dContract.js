@@ -26,7 +26,7 @@ export const HULL_3D = {
 // looking gently down into the cutaway.
 export const CAMERA = {
   fov: 33,
-  position: [140, 110, 1250],   // half-width at this depth ≈ 715 > hull 600: whole ship in frame with margin
+  position: [140, 110, 1420],   // half-width at this depth ≈ 810: the 1464-long exterior hull fits with margin
   target: [10, -10, 0],
   parallax: { x: 26, y: 14 },           // pointer-driven drift amplitude
 };

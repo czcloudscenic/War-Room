@@ -66,7 +66,7 @@ export function createTunnel() {
   const matPipe = lambert(0x121721);
   const matLamp = basic(new THREE.Color(PALETTE.amber).multiplyScalar(0.9).getHex());
   const glowTex = makeGlowTexture();
-  const matLampHalo = basic(0xdfe6f0, { map: glowTex, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const matLampHalo = basic(0xdfe6f0, { map: glowTex, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const matCable = lambert(0x07080b);
 
   // One streamed element = an instanced mesh with one instance per segment.
@@ -106,7 +106,7 @@ export function createTunnel() {
   streamed(new THREE.BoxGeometry(54, 9, 6), matLamp, 2, (seg, k, i) => ({
     x: (hash(i + 29) - 0.5) * 60, y: k === 0 ? LAMP_TOP_Y : LAMP_LOW_Y, z: WALL_Z + 16, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1,
   }));
-  streamed(new THREE.PlaneGeometry(300, 300), matLampHalo, 2, (seg, k, i) => ({
+  streamed(new THREE.PlaneGeometry(200, 200), matLampHalo, 2, (seg, k, i) => ({
     x: (hash(i + 29) - 0.5) * 60, y: (k === 0 ? LAMP_TOP_Y : LAMP_LOW_Y) - 10, z: WALL_Z + 26, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1,
   }));
   // Floor grating far below, so the trench has a bottom when it is enclosed.

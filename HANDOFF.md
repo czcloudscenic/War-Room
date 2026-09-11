@@ -1,5 +1,19 @@
 # Vantus Handoff Brief
 
+## 2026-09-11 (Counsel, late) — NEW HULL SHAPE in both views. 3D View: repainted concept art with the armored hover-pad hull. Model View: a generated 3D hull (Meshy) around the procedural interior, cut away, pads pulsing. Pushed.
+
+Christian's reference: an armored plated hovercraft with a forward cockpit block, cyan ring hover pads under the belly and on outrigger arms, antenna masts, twin turret (`~/Desktop/dacian-falx-1.jpg`).
+
+**3D View (default, painted):** GPT Image 2.5 repainted ONLY the exterior of the concept art into that hull (4 variants generated; #4 chosen because it keeps the original composition and interior, so the calibrated rooms, floor lines and chips still hold). Cut out with the background remover → `public/ship/ship-cutout-v2.webp` (585 KB). v1 kept as a fallback file. Verified in the harness: crew on the decks, chips on rooms, pads glowing under the belly.
+
+**Model View (modeled world):** `src/ship/hullGLB.js` (new) loads `public/hull/hull.glb` (Meshy image-to-3D from the reference, 124k tris, simplified + 1k WebP texture + quantized = 3.7 MB; the Tripo alternative was 1.9M tris / 58 MB and rejected). Normalized to the contract (nose at -X: the generation puts the cockpit at +X, so it is turned about Y; symmetry was on so both flanks carry the outrigger rings), scaled 1.22x the contract length and 1.32x in Y so real plating survives above and below the decks, and CUT AWAY with a window: five clipping planes with `clipIntersection` remove only fragments inside the room box (x -556..598, y -198..252, z > -150), so nose, stern, top armor, keel and pads survive. `gl.localClippingEnabled` is set on the Canvas. FrontSide on purpose (the shell's inner faces read as a grey cavity through the window; culled, the rooms' own back panel closes it). The procedural shell stays (hidden inside the GLB, its top slab caps the rooms); only the cutaway rim is hidden. Hover pads glow via emissiveMap = base map tinted cyan, pulsing in `update(t)`. Camera pulled to z 1420 to hold the longer hull. Tunnel lamp halos toned down (0.22, 200 px).
+
+**Harness:** `tests/model-view.html?src=/hull/hull.glb` is a login-free GLB viewer (bounds and triangle count in the bar). `tests/ship-scene.html?view=world|painted|scene`.
+
+**Honest state of Model View:** the exterior is now the real ship; the interior is still the procedural box rooms (props are primitives). It reads as a technical cutaway, not the painting. It is the right base for "fully animate the whole ship" (rig banks, pads pulse, tunnel streams, sentinels escort, crew walk on real floors), but the next lift is interior fidelity: either generated 3D props per room (same Meshy path) or baked painted textures on the room walls from the concept art.
+
+**Higgsfield spend today:** about 9 image generations, 2 background removals, 2 image-to-3D jobs; balance was 663 credits at the start.
+
 ## 2026-09-11 (Counsel, afternoon) — THE CONCEPT ART FLIES. 3D View = the painting itself in motion, generated painted plates behind it, fly-to-station, zoom, pan, cursor-tracking hunter. Pushed.
 
 Christian: "push it but I need it to look like the concept art", then "it needs to be crazy interactive." The modeled hull could never look like the painting, so the painting became the ship:
