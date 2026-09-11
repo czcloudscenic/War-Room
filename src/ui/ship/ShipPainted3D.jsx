@@ -19,7 +19,9 @@ import ShipHUD from './ShipHUD.jsx';
 // stretches, and a keyed foreground-structure layer closest to the hull. Rain
 // falls in front. The crew, sentinels, beacons and receipt rules are unchanged.
 const PLATES = {
-  cutout: '/ship/ship-cutout.webp',
+  // v2 (9/11): the hull repainted into the armored hover-pad silhouette
+  // Christian chose, interior layout unchanged; v1 kept as a fallback file.
+  cutout: '/ship/ship-cutout-v2.webp',
   open: '/ship/plate-open.jpg',
   tunnel: '/ship/plate-tunnel.jpg',
   fg: '/ship/plate-fg.webp',
