@@ -1,5 +1,53 @@
 # Vantus Handoff Brief
 
+## 2026-09-10 — INFRA MOVED to Cloud Scenic + all four crew are real characters. Rigging solved locally. Long session, several self-inflicted breakages, all recorded.
+
+**Netlify + Supabase both now live under Cloud Scenic. Verified, not assumed.**
+- Netlify site `majestic-cassata-aa16e9` (`6d97835e-1874-43d7-9465-f93afd68c6fb`) moved from the personal team `cz-mwalysu` to **Cloud Scenic** (`69a5bd3afc07a04153d6d6b9`); plan `nf_team_dev` -> `nf_team_pro`. All 30 env vars, `usevantus.com`, SSL, deploy history and the GitHub App link survived. Fresh CI build verified green under the new team.
+- Supabase project `wjcstqqihtebkpyuacop` transferred org-to-org (separate login, so: invite current login as Owner of target org, accept, then transfer). **Ref, anon key, service key and JWT secret all unchanged**, so the 4 hardcoded CSP entries in netlify.toml and the 4 env vars needed no edit and nobody was signed out. Verified 24 tables / 184 rows byte-identical against a pre-transfer snapshot (`~/vantus-migration-backup/`).
+- **Netlify secret env values are WRITE-ONLY** — 6 of the 30 cannot be read back by CLI or API. A rebuild-from-scratch would strand them. Always transfer, never rebuild. `netlify env:get <NAME> --context production` returns real values for non-secret vars only.
+
+**THE OUTAGE, and the standing risk it leaves.** Vantus was down and nobody knew: the Supabase project had **auto-paused from inactivity** (agents went quiet 8/21 on $0 Anthropic credits, last human sign-in 8/27, free tier pauses after ~7 idle days).
+- Tell-tale: **the project hostname stops resolving** (`dig +short <ref>.supabase.co` returns nothing). The site still serves 200 because the SPA is static, and every function 401s on auth *before* it reaches the DB, so the outage is completely masked.
+- Mid-restore it returns Cloudflare **521**, then PostgREST answers **PGRST205 "could not find the table in the schema cache"** with 0 tables. That is NOT data loss.
+- **To settle "is the data gone": query `/auth/v1/admin/users` with the service key.** GoTrue reads Postgres directly and bypasses PostgREST's schema cache.
+- **It will pause again on a free plan.** 8 client tenants + 9 crons. The plan decision is still open.
+
+**ALL FOUR CREW ARE NOW REAL RIGGED CHARACTERS** — Sean, Slate, Muse, Scrappy live on prod.
+- **Rigging no longer needs Higgsfield or Mixamo.** Sean is already rigged with a 24-bone Mixamo-standard skeleton and walk/idle clips, and every crew mesh comes out of the same Meshy pipeline, so the rig transfers. `~/vantus-crew-staging/tools/rig-from-sean.sh <name> <mesh.glb>` does it headlessly in Blender in ~90s. Only the MESH step still needs Higgsfield.
+- Hard-won, all baked into the script: **scale the MESH to the rig, never the rig to the mesh** — a scaled armature makes the glTF exporter silently emit `skins=0` from a scene that looks perfectly valid (cost 3 attempts). Blender's bone-heat auto-weighting **fails outright on long coats**, so copy Sean's proven weights across with a `DATA_TRANSFER` modifier (`POLYINTERP_NEAREST`) instead. Flatten glTF import empties before parenting.
+- **A-pose is mandatory and must be eyeballed.** Muse's August crops were labelled A-pose in this file and were not (arms flat against the dress); that cost a 30-credit mesh and two failed rigs. ALWAYS open the crops and look at the arms before spending.
+- **Higgsfield grace-period cap** rations ~1 image + ~4 3D jobs/day on the old account. Christian switched the connector to a second Ultra account which is not capped. Note: media_ids do not carry across accounts, re-upload from `~/vantus-crew-staging/`.
+
+**Ship feel — five changes mined from `Station-Sciences/bot-crossing` (MIT, cloned to `~/reference/bot-crossing`).** Its `.claude/skills/agent-session-world/references/` docs are the same problem domain and worth reading before touching this route.
+- Crew no longer move in lockstep: per-character animation phase + 0.90-1.10x pace, hashed from the name.
+- **Activity drives ambience**: each of the 16 catalogued screens maps to its nearest station; a room whose agent actually worked in 48h lifts its screens up to 1.35x, and ship busyness lifts the holo-core light. (Sanity check: core-room screens resolve to `analytics`, matching the 8/17 measurement.)
+- Name plates ease to full opacity only while working, 0.62 active, 0.2 at rest.
+- Receipt-driven **work glow** per crew member, hidden entirely when idle.
+- **Attention beacons** (`src/ship/beacons.js`): a tall column through the hull from Comm Relay for approvals, Pipeline Grid for blocked. ShipRoute computes those counts ONCE and feeds both the mission bar and the beacons, so the world cannot claim what the numbers deny.
+- REMOVED after Christian rejected it: an idle "glance" that rotated the whole body ~23 degrees and read as figures on turntables. Head-only was tried and was worse — `headBone.rotation.y += lookY` accumulates on any frame the clip does not re-pose that bone (Muse's head hit 71 radians).
+
+**THE WALK: it was skating, and that is why nothing read as animated.** Measured from the glTF itself, one `Casual_Walk` cycle is **4.23 SECONDS** (human ~1.1s) and carries only 0.383 body-heights, ~0.09 bh/sec — against a glide of ~0.65 bh/sec. Seven times the travel the legs were paying for. Fixed by dropping `SPRITE.walkSpeed` 55 -> 30 (climb 40 -> 26) AND driving `walkAction.timeScale` from the distance actually covered each frame, clamped 0.6-6x. **Change one, retune both.**
+
+**GARMENTS were tearing in half mid-stride.** A dress or long coat is ONE tube around BOTH legs; nearest-surface transfer gives its left face to LeftUpLeg and its right to RightUpLeg. Fixed by rebalancing the hem band toward an even share of both legs plus hips, easing in below the hip. Two earlier attempts failed and are worth not repeating: smoothing all weights (then just the leg chain) left vertices unweighted and spiking into white shards; and a distance-to-bone test silently did nothing because **bone positions come back in a different scale from the mesh** — all measurements now come from the mesh's own bounding box.
+
+**CREW SCALE was tuned for stand-ins, not people.** `humanScaleAt` ran 66-105 logical units, tuned 8/17 against the blocky procedural figures. A real character occupies far more visual mass at the same height. Now **46-74**. `tests/ship-visual.html` duplicates this formula and must be changed in step.
+
+**I TOOK THE SHIP ROUTE DOWN FOR ~40 MINUTES. Read this before editing ShipScene3D.**
+- I passed `activityCount={activityCount}` from the outer component where **no such variable exists** — the memo is called `counts`. I invented the name from a grep that showed the memo body without its assignment line. ReferenceError during render of `ShipScene3D` itself, so the WHOLE ROUTE went black, not just the canvas. Anyone whose `vantus_active_nav` is `"ship"` lands straight on it and sees nothing.
+- **Neither gate could catch it.** It is a runtime scope error, not syntax, so `npm run build` passes; `npm test` is pure core math; and **`tests/ship-visual.html` builds its own scene and never mounts `ShipScene3D`**. That harness is structurally blind to the production component.
+- My first "fix" threaded the same non-existent name through as a prop and still crashed.
+- **Rules now: read the file before editing it (never blind regex insertion), and load the actual page before claiming a fix.** The free-identifier sweep used for the App.jsx split works well here — extract the component body, list free names, confirm each is a prop, local, or import.
+
+**OPEN**
+- **Supabase plan** — free tier will auto-pause again. Decide before the next idle week.
+- **Anthropic credits still $0** — no receipts since 8/21, so the ship renders an honestly empty deck and no crew ever walks in production. This is also what let the database idle out.
+- `tests/ship-visual.html` does not render `ShipScene3D`. Until it does, every change to that route ships blind.
+- Compression never done: 4 characters ≈ 29MB of GLBs (Sean 9.0MB each, others 4.9-5.5MB). Blender's export is fatter than Higgsfield's (4.4MB in, 7.7MB out).
+- Fix #10 (parked hull, 1,775 lines) and the 3 orphaned files (1,349 lines, zero importers) still undecided.
+- Mobile unowned on this route: 988KB chunk plus GLBs, no guard.
+- Muse's dress and Slate's coat still distort somewhat in close-up; invisible at ship camera distance.
+
 ## 2026-09-02 — state check: sourcing migration APPLIED, go. DNS 2/3 correct, port still UNPUSHED
 
 Christian asked for a handoff refresh; verified live state rather than assuming:
