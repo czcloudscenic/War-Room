@@ -140,6 +140,9 @@ function SceneContent({ simRef, crew, activityCount = {}, alerts = {} }) {
         scene.add(fig.group);
       }
     }
+    // Dev-only hook for tests/ship-scene.html: lets the harness measure bones,
+    // materials and positions of the live figures. Stripped from prod builds.
+    if (import.meta.env.DEV && typeof window !== 'undefined') window.__shipDebug = { scene, figures: map, sim: simRef.current };
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [crew]);

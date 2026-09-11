@@ -46,6 +46,15 @@ const MODEL_YAW = 0;
 //   roughness   forced matte — specular pings are the loudest sticker tell
 // Tune here, verify in tests/ship-scene.html (which mounts the real scene).
 const GRADE = { saturation: 0.58, exposure: 0.70, tint: [0.84, 0.91, 1.0], selfGlow: 0.06, roughness: 0.94 };
+// Posture: the Meshy clips carry a built-in lean (measured 9/10 in the harness:
+// hips-to-head about 6.5 deg sideways and 5 deg forward on every crew member,
+// bind pose straight) and hang the arms 21-28 deg out from the body. Both read
+// as "crooked" at ship distance. The corrector below keeps the SMOOTHED spine
+// vertical (sway survives, the mean lean does not) and tucks the upper arms.
+// Arms: the clips are asymmetric (one arm hangs ~25 deg out, the other ~38),
+// so the tuck aims each upper arm at a TARGET hang angle instead of pulling
+// both by a fixed amount; armTuckMax caps how far a gesture gets flattened.
+const POSTURE = { spineTau: 1.2 /* s, EMA on the spine direction */, armTargetRad: 9 * Math.PI / 180, armTuckMaxRad: 32 * Math.PI / 180, workLean: 0.03, walkLean: 0.04 };
 // Contact shadow ellipse (logical units, figure is FIGURE_HEIGHT tall).
 const SHADOW = { w: 30, h: 7.5, y: 0.4, opacity: 0.62 };
 
@@ -159,6 +168,51 @@ export function createCrewFigure({ name, color, future = false }) {
   let lastT = null;
   let disposed = false;
   const ownedMaterials = [];
+  const postureBones = {};
+  let postureWrap = null;
+  const spineEMA = new THREE.Vector3(0, 1, 0);
+  let armTuckWeight = 1;   // eased to 0 while walking so the arm swing survives
+  const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _q = new THREE.Quaternion(), _qp = new THREE.Quaternion(), _m = new THREE.Matrix4();
+  const UP = new THREE.Vector3(0, 1, 0), DOWN = new THREE.Vector3(0, -1, 0);
+
+  // Runs after mixer.update: measure the spine in the wrap's frame, ease an
+  // average, and counter-rotate the wrap (pivot = feet) so the mean posture is
+  // upright. Then pull each upper arm toward the body by a fixed angle in the
+  // model frame, converted into the bone's local space so the forearm follows.
+  function correctPosture(dt, walking) {
+    const b = postureBones;
+    if (!postureWrap || !b.hips || !b.head) return;
+    armTuckWeight += ((walking ? 0 : 1) - armTuckWeight) * Math.min(1, dt * 6);
+    // Measure the spine in the BODY's own frame (inside the correction group,
+    // so the current correction is factored out). That vector is the clip's
+    // raw lean; the correction is SET, never accumulated, as the rotation that
+    // carries the smoothed raw lean to vertical.
+    postureWrap.updateMatrixWorld(true);
+    _m.copy(postureWrap.matrixWorld).invert();
+    b.hips.getWorldPosition(_v).applyMatrix4(_m);
+    b.head.getWorldPosition(_w).applyMatrix4(_m);
+    _w.sub(_v).normalize();
+    const k = 1 - Math.exp(-dt / POSTURE.spineTau);
+    spineEMA.lerp(_w, k).normalize();
+    postureWrap.quaternion.setFromUnitVectors(spineEMA, UP);
+    for (const arm of [b.leftArm, b.rightArm]) {
+      if (!arm || !arm.parent) continue;
+      arm.updateWorldMatrix(true, false);
+      const child = arm.children.find((c) => c.isBone);
+      if (!child) continue;
+      arm.getWorldPosition(_v); child.getWorldPosition(_w);
+      _w.sub(_v).normalize();                       // upper-arm direction, world
+      const full = _w.angleTo(DOWN);                // current hang angle from straight down
+      const ang = Math.min(POSTURE.armTuckMaxRad, Math.max(0, full - POSTURE.armTargetRad)) * armTuckWeight;
+      if (ang < 1e-4 || full < 1e-4) continue;
+      _q.setFromUnitVectors(_w, DOWN);              // full swing to vertical...
+      _q.slerp(new THREE.Quaternion(), 1 - ang / full); // ...limited to what reaches the target
+      arm.parent.getWorldQuaternion(_qp);
+      // world-space delta -> bone-local: q_local = inv(parentWorld) * q * parentWorld
+      _q.premultiply(_qp.clone().invert()).multiply(_qp);
+      arm.quaternion.premultiply(_q);
+    }
+  }
 
   Promise.all([loadGLB(spec.walk), loadGLB(spec.idle)])
     .then(([walkGltf, idleGltf]) => {
@@ -209,7 +263,20 @@ export function createCrewFigure({ name, color, future = false }) {
       current = idleAction || walkAction;
       current?.play();
 
-      rig.add(wrap);
+      // Posture corrector bones (Mixamo naming from the rig pass).
+      model.traverse((o) => {
+        if (!o.isBone) return;
+        if (/^hips$/i.test(o.name)) postureBones.hips = o;
+        else if (/^head$/i.test(o.name)) postureBones.head = o;
+        else if (/^leftarm$/i.test(o.name)) postureBones.leftArm = o;
+        else if (/^rightarm$/i.test(o.name)) postureBones.rightArm = o;
+      });
+      // The corrector pivots a group whose origin is the rig origin = feet
+      // center, so a lean is removed by rotating the body about its feet.
+      postureWrap = new THREE.Group();
+      postureWrap.add(wrap);
+
+      rig.add(postureWrap);
       // Swap: procedural stand-in out, real character + our tag/light in.
       group.remove(proc.group);
       proc.dispose();
@@ -249,7 +316,7 @@ export function createCrewFigure({ name, color, future = false }) {
     rig.rotation.set(0, faceY, 0);
 
     if (anim === 'walk') {
-      rig.rotation.x = 0.04;
+      rig.rotation.x = POSTURE.walkLean;
       setAction(walkAction || idleAction);
       // Drive playback from the distance actually covered, not from an assumed
       // velocity: if something blocks the step, the legs slow with it.
@@ -266,12 +333,13 @@ export function createCrewFigure({ name, color, future = false }) {
       rig.rotation.y = Math.PI;
       setAction(walkAction || idleAction);
     } else if (anim === 'work') {
-      rig.rotation.x = 0.1; // lean into the console
+      rig.rotation.x = POSTURE.workLean; // a hint toward the console, not a hunch
       setAction(idleAction || walkAction);
     } else {
       setAction(idleAction || walkAction);
     }
     mixer?.update(dt);
+    correctPosture(dt, anim === 'walk' || anim === 'climb');
 
     // Work glow follows the receipt, with a low flicker so it reads as a console
     // being used rather than a lamp left on.
