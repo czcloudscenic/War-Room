@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 // ── Ship HUD: radar + comms, real signal only ────────────────────────────────
 // Radar: a top-down sweep of the space around the hull. Every blip is a
@@ -23,6 +23,8 @@ function fmtAge(ms) {
 
 export default function ShipHUD({ contactsRef, signals = {}, tunnelRef }) {
   const canvasRef = useRef(null);
+  const [, tick] = useState(0);
+  useEffect(() => { const id = setInterval(() => tick(n => n + 1), 500); return () => clearInterval(id); }, []);
   useEffect(() => {
     const c = canvasRef.current; if (!c) return;
     const ctx = c.getContext('2d'); if (!ctx) return;

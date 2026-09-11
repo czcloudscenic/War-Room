@@ -32,6 +32,10 @@ const activity = stationActivity(events);
 window.__ship = { scenario, crew, activity };
 document.getElementById('bar').textContent = `view=${view} · scenario=${scenario} · ` + crew.filter(c => !c.future).map(c => `${c.name}:${c.state}@${c.station}`).join(' · ');
 
-createRoot(document.getElementById('root')).render(
-  <View crew={crew} activity={activity} alerts={{ approvals: 2, blocked: 1 }} onStation={() => {}} selectedStation={null} />
-);
+// Stateful host so station selection (fly-to) can be exercised in the harness.
+function Host() {
+  const [selected, setSelected] = React.useState(null);
+  window.__selectStation = (id) => setSelected(s => (s === id ? null : id));
+  return <View crew={crew} activity={activity} alerts={{ approvals: 2, blocked: 1 }} onStation={(id) => setSelected(s => (s === id ? null : id))} selectedStation={selected} />;
+}
+createRoot(document.getElementById('root')).render(<Host />);

@@ -121,8 +121,14 @@ function Rain() {
   return <lineSegments geometry={geo} material={mat} position={[0, 0, 240]} renderOrder={6} />;
 }
 
-function SceneContent({ simRef, crew, activityCount = {}, alerts = {}, contactsRef, enclosedRef }) {
+// Interaction model: click a station chip and the camera flies into that
+// room; click it again (or press Escape) and it pulls back. The wheel zooms,
+// dragging pans, and the pointer drives real parallax across the depth layers.
+const VIEW_LIMITS = { zoomMin: 1, zoomMax: 2.4, stationZoom: 2.25, panX: 320, panY: 160 };
+
+function SceneContent({ simRef, crew, activityCount = {}, alerts = {}, contactsRef, enclosedRef, selectedStation, viewRef }) {
   const { scene, camera, pointer } = useThree();
+  const focus = useRef({ x: 0, y: 0, zoom: 1 });
   const figuresRef = useRef(new Map());
   // The ship rig: cutout + crew + station FX bank and breathe together.
   const rigRef = useRef(null);
@@ -220,6 +226,12 @@ function SceneContent({ simRef, crew, activityCount = {}, alerts = {}, contactsR
       fig.group.scale.multiplyScalar(humanScaleAt(sp.x));
     }
     fxRef.current?.update(t, activityCount);
+    // The hunter tracks the cursor: pointer (NDC) -> the art plane at z=0.
+    if (dronesRef.current?.setPointer) {
+      const halfH = Math.tan((camera.fov * Math.PI) / 360) * camera.position.z;
+      const halfW = halfH * camera.aspect;
+      dronesRef.current.setPointer(camera.position.x + pointer.x * halfW, camera.position.y + pointer.y * halfH);
+    }
     dronesRef.current?.update(t);
     if (contactsRef && dronesRef.current?.getContacts) dronesRef.current.getContacts(contactsRef.current);
     beaconsRef.current?.update(t, alertsRef.current);
@@ -233,14 +245,24 @@ function SceneContent({ simRef, crew, activityCount = {}, alerts = {}, contactsR
     rig.rotation.x = Math.sin(t / 4700) * 0.008 * shake;
     rig.position.y = Math.sin(t / 3300) * 5 * shake;
     rig.position.x = Math.sin(t / 5100) * 4;
-    // parallax: camera drift toward the pointer + a slow living sway and a
-    // barely-perceptible breathe on depth — the frame never sits fully still
-    const targetX = pointer.x * 18 + Math.sin(t / 8000) * 9;
-    const targetY = pointer.y * 10 + Math.cos(t / 10500) * 6;
-    camera.position.x += (targetX - camera.position.x) * 0.04;
-    camera.position.y += (targetY - camera.position.y) * 0.04;
-    camera.position.z = CAM_Z + Math.sin(t / 14000) * 14;
-    camera.lookAt(0, 0, 0);
+    // Where the camera wants to be: a station's room when one is selected,
+    // otherwise the pan point; zoom stacks the wheel on top of station zoom.
+    const v = viewRef?.current || { zoom: 1, panX: 0, panY: 0 };
+    const room = selectedStation ? ROOMS.find(r => r.id === selectedStation) : null;
+    const f = focus.current;
+    const wantX = room ? toThreeX((room.x0 + room.x1) / 2) : v.panX;
+    const wantY = room ? toThreeY(floorYAt(room.deck, (room.x0 + room.x1) / 2) - 70) : v.panY;
+    const wantZoom = (room ? VIEW_LIMITS.stationZoom : 1) * v.zoom;
+    f.x += (wantX - f.x) * 0.06; f.y += (wantY - f.y) * 0.06; f.zoom += (wantZoom - f.zoom) * 0.06;
+    // Parallax: the pointer moves the camera across the depth stack; every
+    // plate sits at its own z, so the shift IS the parallax. Damped when zoomed.
+    const par = 1 / f.zoom;
+    const targetX = f.x + (pointer.x * 42 + Math.sin(t / 8000) * 9) * par;
+    const targetY = f.y + (pointer.y * 24 + Math.cos(t / 10500) * 6) * par;
+    camera.position.x += (targetX - camera.position.x) * 0.06;
+    camera.position.y += (targetY - camera.position.y) * 0.06;
+    camera.position.z = CAM_Z / f.zoom + Math.sin(t / 14000) * 14;
+    camera.lookAt(f.x, f.y, 0);
   });
 
   return (
@@ -279,6 +301,27 @@ export default function ShipPainted3D({ crew = [], activity = {}, alerts = {}, o
   const simRef = useRef(null);
   const contactsRef = useRef([]);
   const enclosedRef = useRef(false);
+  // View state lives in a ref (no re-render per wheel tick); DOM handlers below.
+  const viewRef = useRef({ zoom: 1, panX: 0, panY: 0 });
+  const dragRef = useRef(null);
+  const onWheel = (e) => {
+    const v = viewRef.current;
+    v.zoom = Math.min(VIEW_LIMITS.zoomMax, Math.max(VIEW_LIMITS.zoomMin, v.zoom * (1 - e.deltaY * 0.0012)));
+  };
+  const onPointerDown = (e) => { if (e.button !== 0) return; dragRef.current = { x: e.clientX, y: e.clientY, moved: 0 }; };
+  const onPointerMove = (e) => {
+    const d = dragRef.current; if (!d) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y; d.x = e.clientX; d.y = e.clientY; d.moved += Math.abs(dx) + Math.abs(dy);
+    const v = viewRef.current; const k = 0.9 / v.zoom;
+    v.panX = Math.max(-VIEW_LIMITS.panX, Math.min(VIEW_LIMITS.panX, v.panX - dx * k));
+    v.panY = Math.max(-VIEW_LIMITS.panY, Math.min(VIEW_LIMITS.panY, v.panY + dy * k));
+  };
+  const onPointerUp = () => { dragRef.current = null; };
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape' && selectedStation) onStation?.(selectedStation); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedStation, onStation]);
   const tunnelLike = useRef({ get enclosed() { return enclosedRef.current; } });
   if (!simRef.current) simRef.current = createShipSim();
   useEffect(() => { simRef.current.setCrew(crew); }, [crew]);
@@ -295,19 +338,35 @@ export default function ShipPainted3D({ crew = [], activity = {}, alerts = {}, o
   }, [crew]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', aspectRatio: `${WORLD_W} / ${WORLD_H}`, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.09)', background: '#05060a' }}>
+    <div onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
+      style={{ position: 'relative', width: '100%', aspectRatio: `${WORLD_W} / ${WORLD_H}`, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.09)', background: '#05060a', cursor: dragRef.current ? 'grabbing' : 'default', touchAction: 'none' }}>
       <Canvas
         dpr={[1, 1.75]}
         camera={{ fov: 35, near: 1, far: 4000, position: [0, 0, CAM_Z] }}
         gl={{ antialias: true, alpha: false, toneMapping: THREE.NoToneMapping }}
         style={{ position: 'absolute', inset: 0 }}
       >
-        <SceneContent simRef={simRef} crew={crew} activityCount={counts} alerts={alerts} contactsRef={contactsRef} enclosedRef={enclosedRef} />
+        <SceneContent simRef={simRef} crew={crew} activityCount={counts} alerts={alerts} contactsRef={contactsRef} enclosedRef={enclosedRef} selectedStation={selectedStation} viewRef={viewRef} />
       </Canvas>
       <ShipHUD contactsRef={contactsRef} signals={signals} tunnelRef={tunnelLike} />
 
       {/* Station chips — HTML overlay anchored to the art (clickable) */}
+      {/* Zoomed in: the other chips are anchored to the rest framing and would
+          float over the wrong rooms, so they clear out and the selected one
+          becomes the way back. */}
+      {selectedStation && (
+        <button onClick={() => onStation?.(selectedStation)} style={{
+          position: 'absolute', left: 12, top: 12, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 10px',
+          background: 'rgba(6,8,13,0.78)', backdropFilter: 'blur(4px)', border: '1px solid #2AABFF', borderRadius: 6, cursor: 'pointer',
+          fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', ...mono, color: '#bfe3ff', whiteSpace: 'nowrap',
+        }}>
+          <span style={{ color: 'rgba(255,255,255,0.5)' }}>←</span>
+          {STATIONS.find(s => s.id === selectedStation)?.n} {STATIONS.find(s => s.id === selectedStation)?.label}
+          <span style={{ color: 'rgba(255,255,255,0.4)' }}>· ESC</span>
+        </button>
+      )}
       {ROOMS.map(r => {
+        if (selectedStation) return null;
         const meta = STATIONS.find(s => s.id === r.id);
         const cx = ((r.x0 + r.x1) / 2 / WORLD_W) * 100;
         // Chips ride the painted deck slope: anchored above each bay's real

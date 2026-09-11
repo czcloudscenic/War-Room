@@ -1,5 +1,18 @@
 # Vantus Handoff Brief
 
+## 2026-09-11 (Counsel, afternoon) — THE CONCEPT ART FLIES. 3D View = the painting itself in motion, generated painted plates behind it, fly-to-station, zoom, pan, cursor-tracking hunter. Pushed.
+
+Christian: "push it but I need it to look like the concept art", then "it needs to be crazy interactive." The modeled hull could never look like the painting, so the painting became the ship:
+
+- **`src/ui/ship/ShipPainted3D.jsx` (new, now the 3D View).** The painting with its background removed (`public/ship/ship-cutout.webp`, Higgsfield background remover, 266 KB) rides the flight rig (bank, breathe, bob; more shake in tunnels). Three environment plates generated with GPT Image 2.5 using the painting as the style reference stream behind it with true depth parallax: `plate-open.jpg` (storm + city, z -700, slow), `plate-tunnel.jpg` (tunnel wall, z -350, fades in on a 46 s cycle: 18 s enclosed with 2.5 s ramps), `plate-fg.webp` (keyed foreground structures, z -150, fastest). MirroredRepeatWrapping makes every plate tile seamlessly. Rain in front. Crew, station FX, beacons, sentinels, receipt rule unchanged. Radar contacts come from `drones.getContacts`.
+- **Interaction.** Click a station chip: the camera flies into that room (zoom 2.25x, eased), the other chips clear, the selected chip at top-left is the way back (or Escape). Wheel zooms 1x to 2.4x on top. Drag pans within bounds. The pointer drives parallax across the depth stack (damped when zoomed). The attacking sentinel's searchlight tracks the cursor and its eye brightens as you get close (`drones.setPointer`).
+- **Route toggles:** 3D View (painted, moving) · Model View (modeled hull from this morning) · Art View (still plate) · Map · List.
+- **Harness:** `tests/ship-scene.html?view=painted|world|scene`, stateful host, `window.__selectStation('cockpit')` to exercise fly-to. Dev hooks `window.__shipPainted` / `__shipWorld` / `__shipDebug`.
+- **Assets (Higgsfield, second account, ~$3 of credits):** originals in the session scratchpad only; the repo carries the compressed versions. Regenerate with the prompts in this session's log if a variant is wanted (e.g. a second open plate for variety).
+- **Anthropic:** Christian loaded $25 of credits today. Receipts resume when anyone runs an agent action; the crew then move on their own.
+
+**Known limits:** at 2.25x zoom the 2048-px painting is soft (an upscaled cutout, 4096 wide, would fix it: one Higgsfield upscale + re-cut). The tunnel plate's top edge is visible above the hull in some frames (make the plate taller or add a ceiling plate). The modeled-hull checker artifact from the morning is unresolved and now moot for the default view.
+
 ## 2026-09-11 (Counsel) — THE SHIP FLIES. Modeled hull is the 3D View; undercity streams past; sentinels escort; radar + comms HUD on real signal. Two commits on main, NOT pushed.
 
 Christian's call this morning: build Danny's list for real (moving ship, correct figures, realistic sentinels, radars, comms). That is impossible on a painting, so the parked Phase 2 modeled hull (`ShipWorld3D`) is now the **3D View**; the painted plate survives as **Art View**. Everything below was verified in `tests/ship-scene.html?view=world` (harness now mounts either view) before commit; build green, 53/53.

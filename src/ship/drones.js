@@ -154,6 +154,12 @@ export function createDrones() {
   );
   impactGlow.position.set(toX(ATTACK.impact.x), toY(ATTACK.impact.y), ATTACK.z);
   group.add(impactGlow);
+  // Cursor tracking: the attacker's searchlight swings toward the pointer
+  // (art-plane coords, set by the host each frame) and its eye brightens as
+  // the pointer closes in. Zero allocations; eased so it feels like a machine.
+  const pointerAt = { x: NaN, y: NaN };
+  function setPointer(x, y) { pointerAt.x = x; pointerAt.y = y; }
+  let aimZ = 0;
   const _muzzle = new THREE.Vector3();
   const _hit = new THREE.Vector3(toX(ATTACK.impact.x), toY(ATTACK.impact.y), ATTACK.z);
   const _dir = new THREE.Vector3();
@@ -172,7 +178,20 @@ export function createDrones() {
     for (let e = 0; e < ud.eyes.length; e++) {
       ud.eyes[e].material.opacity = 0.8 + 0.2 * Math.sin(t / 200 + e * 0.9);
     }
-    ud.beam.material.opacity = 0; // no searchlight — it's busy
+    // Searchlight tracks the cursor when there is one; otherwise it stays busy.
+    if (Number.isFinite(pointerAt.x)) {
+      const dx = (pointerAt.x - g.position.x) * (g.rotation.y === 0 ? 1 : -1);
+      const dy = pointerAt.y - g.position.y;
+      const want = Math.atan2(dx, -dy);
+      aimZ += (want - aimZ) * 0.08;
+      ud.beam.rotation.z = aimZ;
+      const dist = Math.hypot(pointerAt.x - g.position.x, pointerAt.y - g.position.y);
+      const near = Math.max(0, 1 - dist / 520);
+      ud.beam.material.opacity = 0.05 + near * 0.16;
+      ud.hunterEye.material.opacity = 0.6 + near * 0.4;
+    } else {
+      ud.beam.material.opacity = 0;
+    }
     for (let k = 0; k < ud.tentacles.length; k++) {
       const tt = ud.tentacles[k];
       for (let j = 0; j < tt.segs.length; j++) {
@@ -247,5 +266,5 @@ export function createDrones() {
     group.clear();
   }
 
-  return { group, update, getContacts, dispose };
+  return { group, update, getContacts, setPointer, dispose };
 }
