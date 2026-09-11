@@ -1,5 +1,15 @@
 # Vantus Handoff Brief
 
+## 2026-09-11 (Counsel, night) — INTERIOR WALLS AND DECKS: painted back-wall panels per room kind, concept-art material tiles on hull, bulkheads, decks. Pushed.
+
+- **`src/ship/roomWalls.js` (new):** one textured plane per room just in front of the procedural back panel (z = WALK_Z - ROOM_DEPTH + 6), cover-fitted (aspect kept, overflow cropped), Lambert with a low cyan-tinted emissive from the same map so screens and lamps in the panel glow and pulse. `WALL_MANIFEST` maps room kind → `public/walls/wall-*.jpg` (bridge, consoles, lab, machines, quarters, vault; grid/core reuse consoles, security reuses lab). Six panels generated with GPT Image 2.5 in the painting's style (4:3, 1k JPEG, ~300 KB each).
+- **Material tiles:** `public/textures/ship-{wall,deck,hull}.jpg` replaced with seamless concept-art tiles (bulkhead plating, wet deck grating, armor plating; the old grunge tiles are in the session scratchpad). `ship-ceiling.jpg` (ribs, pipes, cable looms) generated and shipped but not yet wired (the ceiling ribs are untextured Lambert; apply it to the underside of the deck slabs next).
+- **Lamp rig:** room point lights 70000 → 18000 cd (the props were blowing out white), ambient 0.30 → 0.38.
+- Chip styles no longer mix `border` with `borderLeft` (React warning).
+- **Higgsfield note:** the first batch failed 4 of 10 with "Out of credits on ultra (monthly) plan" while the balance showed 495 credits; a retry a minute later succeeded. Treat that error as transient and retry once before assuming the account is dry.
+
+**Next:** ceiling tile on the deck undersides; a second prop per room; crew face their prop and use typing/console clips (Mixamo, Christian downloads); the Osiris pursuit sequence; then resolution.
+
 ## 2026-09-11 (Counsel, evening) — DIRECTION LOCKED: the modeled world becomes the game. Real props in every room, painted backdrop, fly-to camera, sentinels in the world. Pushed.
 
 Christian, after seeing the painted view up close: "the hull isn't even 3D, it's just an image... make the inside hull a 3D world they can interact with like a video game", then "more realistic, 6k, actual shapes and sizes but close to the reference", with the Animatrix "Final Flight of the Osiris" as the feel (tunnels, banking, sentinel pursuit). So the Model View is the future; the painted 3D View stays the default until the model world overtakes it.

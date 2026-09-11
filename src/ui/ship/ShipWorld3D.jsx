@@ -16,6 +16,7 @@ import { createTunnel } from '../../ship/tunnel.js';
 import { createSentinels3D } from '../../ship/sentinels3d.js';
 import { createHullGLB } from '../../ship/hullGLB.js';
 import { createRoomProps } from '../../ship/roomProps.js';
+import { createRoomWalls } from '../../ship/roomWalls.js';
 import ShipHUD from './ShipHUD.jsx';
 
 // Grunge textures generated for the cinematic pass (public/textures/). Loaded
@@ -106,6 +107,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
   const sentinelsRef = useRef(null);
   const hullRef = useRef(null);
   const propsRef = useRef(null);
+  const wallsRef = useRef(null);
   // Everything that IS the ship (hull, greebles, crew) hangs under one rig so
   // the whole vessel can bank and breathe while the world streams past it.
   const shipRigRef = useRef(null);
@@ -162,12 +164,16 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       } });
       propsRef.current = props;
       shipRigRef.current.add(props.group);
+      const walls = createRoomWalls({ rooms: model.rooms });
+      wallsRef.current = walls;
+      shipRigRef.current.add(walls.group);
     });
     return () => {
       disposed = true;
       if (model) { rig.remove(model.group); model.dispose(); }
       if (hullRef.current) { rig.remove(hullRef.current.group); hullRef.current.dispose(); hullRef.current = null; }
       if (propsRef.current) { rig.remove(propsRef.current.group); propsRef.current.dispose(); propsRef.current = null; }
+      if (wallsRef.current) { rig.remove(wallsRef.current.group); wallsRef.current.dispose(); wallsRef.current = null; }
       if (textures.current) for (const t of Object.values(textures.current)) t?.dispose();
       rig.remove(greebles.group); greebles.dispose();
       scene.remove(env.group); env.dispose();
@@ -234,6 +240,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     tunnelRef.current?.update(delta);
     hullRef.current?.update(t);
     propsRef.current?.update(t);
+    wallsRef.current?.update(t);
     sentinelsRef.current?.update(t);
     if (contactsRef) sentinelsRef.current?.getContacts(contactsRef.current);
     // Flight: a slow bank and a breathing pitch on the whole vessel, plus a
@@ -281,7 +288,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       {/* Cinematic rig: deep-shadow base + pools of warm lamp light per room —
           the reference's contrast instead of an even wash. Bloom (Effects)
           turns the emissives into real glow. */}
-      <ambientLight intensity={0.30} color="#5a7492" />
+      <ambientLight intensity={0.38} color="#5a7492" />
       <hemisphereLight args={['#4a6a90', '#0b0d12', 0.45]} />
       {/* The one shadow-casting light: a cool key from high front-left, ortho
           frustum sized to the hull so the 2k map spends its texels on the ship. */}
@@ -300,7 +307,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
         <pointLight
           key={r.id}
           position={[toSceneX((r.x0 + r.x1) / 2), DECK_Y[r.deck] + DECK_CLEAR - 24, WALK_Z - 40]}
-          intensity={70000}
+          intensity={18000}
           distance={340}
           decay={2}
           color={r.id === 'analytics' ? '#7fc4ff' : '#cfd8e6'}
@@ -392,7 +399,9 @@ export default function ShipWorld3D({ crew = [], activity = {}, onStation, selec
               position: 'absolute', left: '-100%', top: '-100%', transform: 'translate(0, -100%)',
               display: 'inline-flex', alignItems: 'center', gap: 5, padding: '1px 6px',
               background: 'rgba(4,6,10,0.62)', backdropFilter: 'blur(3px)',
-              border: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.4)' : 'rgba(255,255,255,0.10)'}`,
+              borderTop: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.4)' : 'rgba(255,255,255,0.10)'}`,
+              borderRight: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.4)' : 'rgba(255,255,255,0.10)'}`,
+              borderBottom: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.4)' : 'rgba(255,255,255,0.10)'}`,
               borderLeft: `2px solid ${lit ? '#2AABFF' : 'rgba(229,229,234,0.35)'}`,
               borderRadius: 3, cursor: 'pointer', transition: 'opacity 200ms',
               fontSize: 7.5, letterSpacing: 0.9, textTransform: 'uppercase', ...mono,
