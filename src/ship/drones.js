@@ -51,12 +51,14 @@ function makeTentacle(mat) {
   return { root, segs };
 }
 
-function buildSentinel(scale) {
+export function buildSentinel(scale) {
   const g = new THREE.Group();
   // Lifted toward the storm-cloud gray — atmospheric haze so distant machines
   // read as shapes in the weather, not black blobs pasted on it.
-  const hullMat = new THREE.MeshStandardMaterial({ color: 0x2a3340, roughness: 0.45, metalness: 0.7 });
-  const darkMat = new THREE.MeshStandardMaterial({ color: 0x1e2632, roughness: 0.6, metalness: 0.55 });
+  // Roughness up from 0.45: with no environment map, low roughness on metal
+  // reads as black plastic. Mid roughness + the key light gives brushed steel.
+  const hullMat = new THREE.MeshStandardMaterial({ color: 0x2a3340, roughness: 0.58, metalness: 0.72 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x1e2632, roughness: 0.66, metalness: 0.6 });
 
   // armored head — flattened, faces +x
   const head = new THREE.Mesh(new THREE.SphereGeometry(15, 14, 12), hullMat);

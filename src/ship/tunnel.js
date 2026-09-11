@@ -39,6 +39,20 @@ const _q = new THREE.Quaternion();
 const _s = new THREE.Vector3();
 const _e = new THREE.Euler();
 
+// Soft radial glow for the lamp halos: a hard square card under bloom reads
+// as a grey slab passing overhead; a radial falloff reads as light.
+function makeGlowTexture() {
+  if (typeof document === 'undefined') return null;
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'); if (!g) return null;
+  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+  grad.addColorStop(0.35, 'rgba(255,255,255,0.22)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+}
+
 export function createTunnel() {
   const group = new THREE.Group();
   group.name = 'tunnel';
@@ -51,7 +65,8 @@ export function createTunnel() {
   const matGirder = lambert(0x04060a);
   const matPipe = lambert(0x121721);
   const matLamp = basic(new THREE.Color(PALETTE.amber).multiplyScalar(0.9).getHex());
-  const matLampHalo = basic(0xdfe6f0, { transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const glowTex = makeGlowTexture();
+  const matLampHalo = basic(0xdfe6f0, { map: glowTex, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const matCable = lambert(0x07080b);
 
   // One streamed element = an instanced mesh with one instance per segment.
@@ -145,6 +160,7 @@ export function createTunnel() {
   function dispose() {
     for (const g of geoms) g.dispose();
     for (const m of mats) m.dispose();
+    glowTex?.dispose();
     for (const part of parts) part.mesh.dispose?.();
   }
 

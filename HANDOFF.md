@@ -1,5 +1,25 @@
 # Vantus Handoff Brief
 
+## 2026-09-11 (Counsel) — THE SHIP FLIES. Modeled hull is the 3D View; undercity streams past; sentinels escort; radar + comms HUD on real signal. Two commits on main, NOT pushed.
+
+Christian's call this morning: build Danny's list for real (moving ship, correct figures, realistic sentinels, radars, comms). That is impossible on a painting, so the parked Phase 2 modeled hull (`ShipWorld3D`) is now the **3D View**; the painted plate survives as **Art View**. Everything below was verified in `tests/ship-scene.html?view=world` (harness now mounts either view) before commit; build green, 53/53.
+
+**Slice 1, art pass on the hull:** doctrine palette (PALETTE.amber is now the neutral attention token #E5E5EA, amberDeep a dim steel; city windows neutral) so there is no warm hue anywhere; the Tron cutaway rim cut from 0.38 to 0.10; PCF shadows (directional key with a 2k ortho map sized to the hull, `shadowSide: BackSide` on the two-sided Lambert shell per rendering-traps.md); FogExp2; bloom 0.75 → 0.28, exposure 1.35; camera reframed (fov 33, z 1250) so the whole hull sits in frame; crew scaled 2.05x so a person is about half the deck clearance. Shadows read faintly; contrast is the remaining art debt.
+
+**Slice 2, motion (`src/ship/tunnel.js`, new):** the hull stays put and the WORLD streams toward +X. A half-pipe undercity (back-wall plating, ceiling girders, pipes, neutral wall lamps with soft radial halos, floor grating, foreground cables) instanced with one instance per segment, 22-segment pattern with a 7-segment open stretch where the city and storm show, wrapped by re-indexing, zero per-frame allocation. `tunnel.enclosed` is a live getter. The camera only sees two bands (above the top armor 250..370 and below the keel -200..-380) so every passing element lives in one of those bands. Hull, greebles and crew hang under a `shipRig` group that banks (z), breathes (x) and bobs; amplitudes small enough that the chip anchors, projected once at rest, stay on their rooms.
+
+**Slice 3, sentinels (`src/ship/sentinels3d.js`, new; `buildSentinel` exported from drones.js):** same original squid machines, flown as an escort in scene space (NOT under the rig, so they move against the banking hull): stern-high at (590, 295, -60) scale 2.2, bow-low under the nose at (-560, -290, -120) scale 2.5, a far crosser at z -720 overtaking on a 34 s line, and a close foreground pass every 38 s (1.9 s, scale 3.4, z 620). Tentacles trail in the slipstream, searchlights sweep the plating. Metal roughness raised to 0.58 so it reads as brushed steel without an env map. Red hunter eye and nav light kept (the sentinel's signature; small).
+
+**Slice 4, HUD (`src/ui/ship/ShipHUD.jsx`, new):** radar bottom-left, a canvas sweep where every blip is a machine at its real scene position (`sentinels.getContacts`), hull drawn as a bar, ENCLOSED / OPEN AIR from the tunnel; comms bottom-right with HOME LINK, LAST BACKUP, LAST RECEIPT, CONTACTS, all fed by `ShipRoute` from the numbers it already trusts (`backupOk`, `events[0].ts`, Supabase presence). If a value is not known the panel says unknown. Nothing decorative.
+
+**GLBs:** unchanged from 9/10 (1.9 MB each, WebP). **Posture corrector** from 9/10 still active in both views.
+
+**Seen, not fixed:** a small checkerboard artifact at the top-center of the frame, above the hull, appeared in two captures about 9 s after load during an enclosed stretch, and did not reproduce in five toggled captures (halos / plates / girders / env / rig each hidden). If it shows again, hide `window.__shipWorld.sentinels.group` first (the one layer not toggled).
+
+**Not done, in order of value:** (1) Mixamo clips: the rigs are Mixamo-named, so a clean Idle / Typing / Walking retargets directly and would let the posture corrector be deleted; Christian downloads three FBX "without skin", Blender converts (script to write). (2) Contrast pass on the hull interior (the lamps at 70000 cd barely pool; shadows faint). (3) Mobile guard on the Ship route (988 KB chunk + GLBs). (4) Fix #10 / orphaned files. (5) The checker above.
+
+**Dev hooks (DEV only, stripped in prod):** `window.__shipDebug` (Art View figures) and `window.__shipWorld` (3D View: scene, rig, env, greebles, tunnel, sentinels, figures, model()). Use them from the harness before believing any visual change.
+
 ## 2026-09-10 (Counsel, evening) — SHIP: crew composited into the plate, real-scene harness, GLBs 47MB → 15MB. Committed on main, NOT pushed.
 
 Christian's verdict on the day's 17 ship commits: "can't get it right." Counsel rendered the route outside the login (see harness below) and diagnosed a direction problem, not a tuning one: the painting is dark, cool and painterly; the Meshy crew arrived front-lit, saturated and glossy, so they read as stickers no matter how scale or walk was tuned. Doctrine keeps them photoreal (Matrix archetypes), so the fix is compositing.

@@ -13,6 +13,8 @@ import { createShipModel } from '../../ship/shipModel.js';
 import { createEnvironment } from '../../ship/environment3d.js';
 import { createGreebles } from '../../ship/greebles.js';
 import { createTunnel } from '../../ship/tunnel.js';
+import { createSentinels3D } from '../../ship/sentinels3d.js';
+import ShipHUD from './ShipHUD.jsx';
 
 // Grunge textures generated for the cinematic pass (public/textures/). Loaded
 // leniently: a missing file just means that surface stays flat-colored.
@@ -67,13 +69,14 @@ function sceneY(sp) {
   return DECK_Y[0] + (DECK_Y[1] - DECK_Y[0]) * p;
 }
 
-function SceneContent({ simRef, crew, onChipAnchors }) {
+function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut }) {
   const { scene, camera, pointer, size } = useThree();
   const figuresRef = useRef(new Map());
   const modelRef = useRef(null);
   const envRef = useRef(null);
   const greeblesRef = useRef(null);
   const tunnelRef = useRef(null);
+  const sentinelsRef = useRef(null);
   // Everything that IS the ship (hull, greebles, crew) hangs under one rig so
   // the whole vessel can bank and breathe while the world streams past it.
   const shipRigRef = useRef(null);
@@ -96,7 +99,13 @@ function SceneContent({ simRef, crew, onChipAnchors }) {
     rig.add(greebles.group);
     const tunnel = createTunnel();
     tunnelRef.current = tunnel;
+    if (tunnelOut) tunnelOut.current = tunnel;
     scene.add(tunnel.group);
+    const sentinels = createSentinels3D();
+    sentinelsRef.current = sentinels;
+    scene.add(sentinels.group);
+    // Dev-only hook for tests/ship-scene.html: toggle layers, read positions.
+    if (import.meta.env.DEV && typeof window !== 'undefined') window.__shipWorld = { scene, rig, env, greebles, tunnel, sentinels, figures: figuresRef.current, model: () => modelRef.current };
     const textures = { current: null };
     loadShipTextures((tex) => {
       if (disposed) { for (const t of Object.values(tex)) t?.dispose(); return; }
@@ -115,6 +124,7 @@ function SceneContent({ simRef, crew, onChipAnchors }) {
       rig.remove(greebles.group); greebles.dispose();
       scene.remove(env.group); env.dispose();
       scene.remove(tunnel.group); tunnel.dispose();
+      scene.remove(sentinels.group); sentinels.dispose();
       scene.remove(rig);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -174,6 +184,8 @@ function SceneContent({ simRef, crew, onChipAnchors }) {
     envRef.current?.update(t);
     greeblesRef.current?.update(t);
     tunnelRef.current?.update(delta);
+    sentinelsRef.current?.update(t);
+    if (contactsRef) sentinelsRef.current?.getContacts(contactsRef.current);
     // Flight: a slow bank and a breathing pitch on the whole vessel, plus a
     // touch of bob. Amplitudes small enough that the station chips (projected
     // once, at rest) never drift off their rooms.
@@ -222,8 +234,10 @@ function SceneContent({ simRef, crew, onChipAnchors }) {
   );
 }
 
-export default function ShipWorld3D({ crew = [], activity = {}, onStation, selectedStation }) {
+export default function ShipWorld3D({ crew = [], activity = {}, onStation, selectedStation, signals = {} }) {
   const simRef = useRef(null);
+  const contactsRef = useRef([]);
+  const tunnelOut = useRef(null);
   if (!simRef.current) simRef.current = createShipSim();
   useEffect(() => { simRef.current.setCrew(crew); }, [crew]);
 
@@ -248,8 +262,9 @@ export default function ShipWorld3D({ crew = [], activity = {}, onStation, selec
         shadows={{ type: THREE.PCFShadowMap }}
         style={{ position: 'absolute', inset: 0 }}
       >
-        <SceneContent simRef={simRef} crew={crew} onChipAnchors={setChipAnchors} />
+        <SceneContent simRef={simRef} crew={crew} onChipAnchors={setChipAnchors} contactsRef={contactsRef} tunnelOut={tunnelOut} />
       </Canvas>
+      <ShipHUD contactsRef={contactsRef} signals={signals} tunnelRef={tunnelOut} />
 
       {ROOMS.map(r => {
         const a = chipAnchors[r.id];

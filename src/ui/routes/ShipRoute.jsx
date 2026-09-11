@@ -128,7 +128,7 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
             {/* 3D View (9/11): the modeled hull in a streaming undercity, the
                 ship in flight. Art View keeps the painted plate. */}
             {view === '3d' && (HAS_WEBGL
-              ? <ShipWorld3D crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
+              ? <ShipWorld3D crew={crew} activity={activity} signals={{ backupOk, linkOk: sb ? (events.length || tasks.length ? true : null) : false, lastReceiptTs: events[0]?.ts || null }} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
               : <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />)}
             {view === 'art' && (HAS_WEBGL
               ? <ShipScene3D crew={crew} activity={activity} alerts={shipAlerts} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
