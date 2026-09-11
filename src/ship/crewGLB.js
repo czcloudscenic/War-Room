@@ -68,6 +68,19 @@ export function createCrewFigure({ name, color, future = false }) {
   tag.scale.set(28, 7, 1);
   tag.position.y = TAG_Y;
   group.add(tag);
+  // Work glow: a soft additive pool at working height. "A prop for the working
+  // state... it reads as working from far enough away that nobody needs to zoom
+  // in." Only ever lit by a real receipt, never on a timer.
+  const glowTex = makeSoftDot();
+  const glowMat = new THREE.SpriteMaterial({
+    map: glowTex, transparent: true, opacity: 0, depthWrite: false,
+    blending: THREE.AdditiveBlending, color: agentColor.clone(),
+  });
+  const workGlow = new THREE.Sprite(glowMat);
+  workGlow.scale.set(26, 26, 1);
+  workGlow.position.y = 20;
+  group.add(workGlow);
+
   const statusMat = new THREE.MeshStandardMaterial({ color: 0x111318, emissive: STATUS_GRAY, emissiveIntensity: 0.5 });
   const statusLight = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 6), statusMat);
   statusLight.position.y = LIGHT_Y;
@@ -202,6 +215,12 @@ export function createCrewFigure({ name, color, future = false }) {
     }
     mixer?.update(dt);
 
+    // Work glow follows the receipt, with a low flicker so it reads as a console
+    // being used rather than a lamp left on.
+    const glowTarget = anim === 'work' ? 0.42 + 0.10 * Math.sin(time * 5.1 + PHASE01 * 6.28) : 0;
+    glowMat.opacity += (glowTarget - glowMat.opacity) * 0.08;
+    workGlow.visible = glowMat.opacity > 0.01;
+
     // Name plates: loud for whoever is actually working, quiet for everyone else.
     // "The moment everything has a badge, the one that matters is invisible."
     // Eased rather than snapped so a state change reads as a change, not a cut.
@@ -233,10 +252,30 @@ export function createCrewFigure({ name, color, future = false }) {
     for (const m of ownedMaterials) m.dispose?.();
     tagMat.dispose();
     if (tagTexture) tagTexture.dispose();
+    glowTex.dispose(); glowMat.dispose();
     statusMat.dispose();
     statusLight.geometry.dispose();
     if (group.parent) group.parent.remove(group);
   }
 
   return { group, update, dispose };
+}
+
+// Soft radial dot, drawn once per figure. Returns null outside a DOM so the
+// headless test harness and any SSR path stay safe.
+function makeSoftDot() {
+  if (typeof document === 'undefined') return null;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  if (!g) return null;
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,0.9)');
+  grad.addColorStop(0.45, 'rgba(255,255,255,0.25)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c);
+  t.needsUpdate = true;
+  return t;
 }
