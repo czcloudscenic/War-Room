@@ -101,7 +101,7 @@
         const deck = controls.lower.checked ? 1 : source.deck;
         const sp = { ...source, deck, anim: controls.pose.value, animT: clock, facing: controls.reverse.checked ? -1 : 1, state: controls.pose.value === 'work' ? 'working' : 'idle' };
         fig.update(sp, clock);
-        const scale = lineup ? 8 : Math.min(105, Math.max(66, 62 + 0.05 * sp.x)) / 34;
+        const scale = lineup ? 8 : Math.min(74, Math.max(46, 43 + 0.035 * sp.x)) / 34;
         fig.group.scale.multiplyScalar(scale);
         fig.group.position.set(lineup ? (i - 2) * 238 : sp.x - WORLD_W / 2, lineup ? -125 : WORLD_H / 2 - floorYAt(deck, sp.x), deck === 1 ? 26 : 18);
       });

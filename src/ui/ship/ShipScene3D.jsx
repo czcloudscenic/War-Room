@@ -12,7 +12,7 @@ import { createBeacons } from '../../ship/beacons.js';
 // Crew scale: tuned against the artwork's furniture — figures read right at
 // ~70-105 logical units (full art-measured human scale of 130 overwhelmed the
 // bays). Scale follows x so crew match the painting's own depth.
-const humanScaleAt = (x) => Math.min(105, Math.max(66, 62 + 0.05 * x)) / 34;
+const humanScaleAt = (x) => Math.min(74, Math.max(46, 43 + 0.035 * x)) / 34;
 
 // ── Phase 1: the cinematic ship in real 3D (2.5D uplift) ─────────────────────
 // The painted hull becomes a plane in a live three.js scene: parallax camera,
