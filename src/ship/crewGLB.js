@@ -185,21 +185,6 @@ export function createCrewFigure({ name, color, future = false }) {
     // Facing + posture (same language as the procedural rig).
     const faceY = facing === 1 ? 0.35 : Math.PI - 0.35;
     rig.rotation.set(0, faceY, 0);
-    // Idle crew used to hold a post perfectly still, which reads as a prop.
-    // An occasional slow glance costs nothing and, per the notes, "anything that
-    // looks at something reads as aware". Period and direction are hashed, so
-    // the crew never glance together.
-    let lookY = 0;
-    if (anim !== 'walk' && anim !== 'climb') {
-      const period = 9 + (NAME_HASH % 7);                 // 9-15s per character
-      const u = ((time / period) + PHASE01) % 1;
-      if (u < 0.30) {
-        const dir = ((NAME_HASH >>> 3) & 1) ? 1 : -1;
-        const swing = Math.sin((u / 0.30) * Math.PI);     // ease out and back
-        lookY = dir * swing * 0.40;
-      }
-    }
-    rig.rotation.y += lookY;
 
     if (anim === 'walk') {
       rig.rotation.x = 0.04;
