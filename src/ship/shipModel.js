@@ -129,7 +129,10 @@ export function createShipModel(options = {}) {
   // facing shell geometry, so single-sided lighting saw back faces and lit
   // them black under every lamp (ambient-only). Two-sided Lambert flips the
   // normal for back faces and the interior finally receives light.
-  const lambert = (c) => { const m = new THREE.MeshLambertMaterial({ color: c, side: THREE.DoubleSide }); mats.push(m); return m; };
+  // shadowSide BackSide: an open two-sided shell self-shadows to black from the
+  // front faces (rendering-traps.md, "Which side gets drawn"); render its
+  // shadow pass from the back faces instead.
+  const lambert = (c) => { const m = new THREE.MeshLambertMaterial({ color: c, side: THREE.DoubleSide, shadowSide: THREE.BackSide }); mats.push(m); return m; };
   const basic = (c, opts = {}) => { const m = new THREE.MeshBasicMaterial({ color: c, ...opts }); mats.push(m); return m; };
 
   const matHull = lambert(PALETTE.hull);
@@ -170,7 +173,7 @@ export function createShipModel(options = {}) {
     applyMap(matDeck, textures.deck, 6, 3);   // the two deck slabs
   }
 
-  const cRim = new THREE.Color(PALETTE.cyan).multiplyScalar(0.38);
+  const cRim = new THREE.Color(PALETTE.cyan).multiplyScalar(0.10); // was 0.38: the Tron outline
   const matRim = basic(cRim.getHex());                       // cutaway slice rim (low intensity)
   const matCyanA = basic(PALETTE.cyan);                      // cyan accents (static)
   const matAmberA = basic(PALETTE.amber);                    // amber accents (static)

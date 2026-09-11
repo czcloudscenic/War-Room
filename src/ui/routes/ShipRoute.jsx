@@ -3,6 +3,7 @@ import { sb } from '../../services/supabaseClient.js';
 import { positionCrew, stationActivity, stationById, ROSTER } from '../../core/shipStations.js';
 import ShipGame from '../ship/ShipGame.jsx';
 import ShipScene3D from '../ship/ShipScene3D.jsx';
+import ShipWorld3D from '../ship/ShipWorld3D.jsx';
 import ShipMap from '../ship/ShipMap.jsx';
 
 // WebGL gate: the 3D scene needs it; the 2D canvas ship is the fallback skin.
@@ -29,7 +30,7 @@ const DAY_MS = 86400000;
 const fmtT = (ts) => new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 export default function ShipRoute({ isMobile, clients = [], content = [], setActiveNav }) {
-  const [view, setView] = useState('3d'); // '3d' | 'map' | 'list'
+  const [view, setView] = useState('3d'); // '3d' (modeled, flying) | 'art' (painted plate) | 'map' | 'list'
   const [events, setEvents] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [backupOk, setBackupOk] = useState(null); // null = unknown
@@ -99,6 +100,7 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             {toggle('3d', '3D View')}
+            {toggle('art', 'Art View')}
             {toggle('map', 'Map View')}
             {toggle('list', 'List View')}
           </div>
@@ -123,7 +125,12 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
                 (ShipWorld3D) stays in-repo pending its art-direction pass. */}
             {/* Attention beacons run off the same two numbers the mission bar
                 shows, so the world can never claim something the bar denies. */}
+            {/* 3D View (9/11): the modeled hull in a streaming undercity, the
+                ship in flight. Art View keeps the painted plate. */}
             {view === '3d' && (HAS_WEBGL
+              ? <ShipWorld3D crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
+              : <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />)}
+            {view === 'art' && (HAS_WEBGL
               ? <ShipScene3D crew={crew} activity={activity} alerts={shipAlerts} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
               : <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />)}
             {view === 'map' && <ShipMap crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />}

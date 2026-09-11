@@ -25,9 +25,9 @@ export const HULL_3D = {
 // Camera: framed like the painting — slightly above and right of center,
 // looking gently down into the cutaway.
 export const CAMERA = {
-  fov: 34,
-  position: [170, 150, 1180],
-  target: [0, -30, 0],
+  fov: 33,
+  position: [140, 110, 1250],   // half-width at this depth ≈ 715 > hull 600: whole ship in frame with margin
+  target: [10, -10, 0],
   parallax: { x: 26, y: 14 },           // pointer-driven drift amplitude
 };
 
@@ -40,7 +40,10 @@ export const PALETTE = {
   rib: 0x1c212c,
   cyan: 0x2aabff,
   cyanSoft: 0x64d2ff,
-  amber: 0xffb45c,
-  amberDeep: 0xcc7a2e,
+  // Doctrine (9/10): no orange or warm hues anywhere. "amber" survives as the
+  // name of the second accent so nothing downstream renames, but it is now the
+  // neutral attention token (#E5E5EA family) and its deep variant a dim steel.
+  amber: 0xe5e5ea,
+  amberDeep: 0x7d8794,
   screen: 0x9fd8ff,
 };

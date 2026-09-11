@@ -33,7 +33,7 @@ const TOWER_FAR = 0x07090e;
 const HAZE = 0x0c1220;
 const RAIN_COLOR = 0x8fb6d9;
 const GLOW_COLOR = 0x5fb9ff;
-const WINDOW_WARM = new THREE.Color(0xffc478);
+const WINDOW_WARM = new THREE.Color(0xd9dde3); // neutral (doctrine: no warm hues)
 const WINDOW_COOL = new THREE.Color(0x7fd4ff);
 
 // ── texture helpers (radial gradients as DataTexture) ────────────────────────
