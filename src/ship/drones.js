@@ -229,15 +229,27 @@ export function createDrones() {
     impactGlow.scale.set(s, s, s);
   }
 
+  // The patrol machines belong to the WORLD, not the ship: the world streams
+  // toward +X, so each one drifts aft at its own residual speed (slower ones
+  // fall behind and re-enter off the nose; the fast one overtakes) instead of
+  // holding formation like an escort. Only the attacker is on the hull.
+  const DRIFT = [38, 52, -70, 44]; // world-relative x speed per machine, units/sec (+ = falls behind)
+  let lastT = null;
+  const driftX = [0, 0, 0, 0];
   function update(t) {
     updateAttacker(t);
+    const dt = lastT == null ? 0 : Math.min(0.1, (t - lastT) / 1000);
+    lastT = t;
     for (let i = 0; i < drones.length; i++) {
       const { g, p } = drones[i];
+      driftX[i] += (DRIFT[i] || 0) * dt;
+      if (driftX[i] > 1500) driftX[i] -= 3000;
+      if (driftX[i] < -1500) driftX[i] += 3000;
       const a = (t / p.period) * Math.PI * 2 + p.phase;
       const lx = p.cx + Math.sin(a) * p.rx;
       const ly = p.cy + Math.sin(a * 2 + p.phase) * p.ry;
       const prevX = g.position.x;
-      g.position.x = toX(lx);
+      g.position.x = toX(lx) + driftX[i];
       g.position.y = toY(ly) + Math.sin(t / 1100 + i * 2) * 3; // heavy hover bob
       const dx = g.position.x - prevX;
       g.rotation.y = dx >= 0 ? 0 : Math.PI;            // face travel
