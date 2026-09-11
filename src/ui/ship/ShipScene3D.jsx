@@ -78,13 +78,13 @@ function ArtPlane() {
   );
 }
 
-function SceneContent({ simRef, crew }) {
+function SceneContent({ simRef, crew, activityCount = {}, alerts = {} }) {
   const { scene, camera, pointer } = useThree();
   const figuresRef = useRef(new Map());
   const fxRef = useRef(null);
   const dronesRef = useRef(null);
   const beaconsRef = useRef(null);
-  const alertsRef = useRef(alerts);
+  const alertsRef = useRef(alerts);   // kept fresh below without re-running the scene effect
 
   // FX group once
   useEffect(() => {
@@ -225,7 +225,7 @@ export default function ShipScene3D({ crew = [], activity = {}, alerts = {}, onS
         gl={{ antialias: true, alpha: false, toneMapping: THREE.NoToneMapping }}
         style={{ position: 'absolute', inset: 0 }}
       >
-        <SceneContent simRef={simRef} crew={crew} />
+        <SceneContent simRef={simRef} crew={crew} activityCount={activityCount} alerts={alerts} />
       </Canvas>
 
       {/* Station chips — HTML overlay anchored to the art (clickable) */}
