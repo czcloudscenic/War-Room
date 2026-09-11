@@ -1,5 +1,16 @@
 # Vantus Handoff Brief
 
+## 2026-09-11 (Counsel, late night) — CEILINGS + SECOND PROPS. Pushed.
+
+- **Ceilings (`roomWalls.js`):** one tiled plane per deck, facing down, spanning the hull at each deck's ceiling height (top armor underside for deck 0, the deck-0 slab underside for deck 1), `public/textures/ship-ceiling.jpg` repeated 7x (ribs, pipes, cable looms), Lambert with a faint emissive so the lamps in the tile read.
+- **Companion props (`roomProps.js` `PROP_SECONDARY`):** nine more Tripo text-to-3D objects, one per room kind (nav pedestal, server cabinet, junction box + spool, analysis bench, scanner pillar, control pedestal, drum cluster, footlocker + bench, crate stack), placed off-center (`dx` as a fraction of room width) behind the walk lane. Same pipeline: simplify 0.05, 1k WebP, quantize → 1.4 to 1.7 MB each. `public/props` is now 18 files, 27 MB, loaded only when the Model View mounts.
+- Primitive 'props' and 'amberAccents' (the neutral bars: finance stacks, board slots) hide once the first real prop lands.
+- Verified in the harness wide and flown into Intel Core and Automation Bay.
+
+**Known:** two props still catch a hot top highlight (Foundry board, Lab arch) from the lamp directly above them; moving the room lamps forward of the props (z = WALK_Z + 10) is the fix. The ceiling is subtle at the wide framing and reads in fly-ins.
+
+**Next:** crew face their station prop and use work clips (Mixamo: Idle, Typing, Walking, FBX without skin, Christian's download); the Osiris pursuit sequence; lamps forward; then the resolution pass.
+
 ## 2026-09-11 (Counsel, night) — INTERIOR WALLS AND DECKS: painted back-wall panels per room kind, concept-art material tiles on hull, bulkheads, decks. Pushed.
 
 - **`src/ship/roomWalls.js` (new):** one textured plane per room just in front of the procedural back panel (z = WALK_Z - ROOM_DEPTH + 6), cover-fitted (aspect kept, overflow cropped), Lambert with a low cyan-tinted emissive from the same map so screens and lamps in the panel glow and pulse. `WALL_MANIFEST` maps room kind → `public/walls/wall-*.jpg` (bridge, consoles, lab, machines, quarters, vault; grid/core reuse consoles, security reuses lab). Six panels generated with GPT Image 2.5 in the painting's style (4:3, 1k JPEG, ~300 KB each).

@@ -8,7 +8,8 @@
 //   const walls = createRoomWalls({ rooms });  rig.add(walls.group); walls.update(t); walls.dispose();
 
 import * as THREE from 'three';
-import { WALK_Z, ROOM_DEPTH, DECK_CLEAR } from './scene3dContract.js';
+import { WALK_Z, ROOM_DEPTH, DECK_CLEAR, HULL_3D } from './scene3dContract.js';
+const CEILING_URL = '/textures/ship-ceiling.jpg';
 
 export const WALL_MANIFEST = {
   bridge:   '/walls/wall-bridge.jpg',
@@ -31,6 +32,24 @@ export function createRoomWalls({ rooms } = {}) {
   group.name = 'roomWalls';
   const mats = [];
   let disposed = false;
+  // Ceilings: one tiled plane per deck facing down, spanning the hull, at
+  // the underside of that deck's ceiling (top armor for deck 0, the deck-0
+  // slab for deck 1). Ribs, pipes and cable looms come from the tile.
+  const ceils = new Map();
+  for (const r of rooms) if (!ceils.has(r.deck)) ceils.set(r.deck, r.ceil);
+  tex(CEILING_URL).then((t) => {
+    if (disposed) return;
+    const t2 = t.clone(); t2.wrapS = t2.wrapT = THREE.RepeatWrapping; t2.repeat.set(7, 1); t2.needsUpdate = true;
+    const m = new THREE.MeshLambertMaterial({ map: t2, color: 0xb8c2cc, emissive: 0x6f8fb0, emissiveMap: t2, emissiveIntensity: 0.06 });
+    const w = HULL_3D.x1 - HULL_3D.x0, cx = (HULL_3D.x0 + HULL_3D.x1) / 2;
+    for (const [, ceilY] of ceils) {
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, ROOM_DEPTH + 30), m);
+      mesh.rotation.x = Math.PI / 2;                       // face down
+      mesh.position.set(cx, ceilY - 1.5, WALK_Z - ROOM_DEPTH / 2 + 10);
+      mesh.receiveShadow = true;
+      group.add(mesh);
+    }
+  }).catch(() => {});
   for (const r of rooms) {
     const url = WALL_MANIFEST[r.kind];
     if (!url) continue;

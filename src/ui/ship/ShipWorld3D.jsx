@@ -159,8 +159,10 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       shipRigRef.current.add(hull.group);
       // Real props replace the primitive furniture room by room as they load.
       const props = createRoomProps({ rooms: model.rooms, onFirstReady: () => {
-        const prim = model.group.getObjectByName('props');
-        if (prim) prim.visible = false;
+        // Primitive furniture and the neutral accent bars (finance stacks,
+        // board slots) retire once real props land; cyan accents (holo cone,
+        // core glass) stay because the props do not replace them.
+        for (const name of ['props', 'amberAccents']) { const o = model.group.getObjectByName(name); if (o) o.visible = false; }
       } });
       propsRef.current = props;
       shipRigRef.current.add(props.group);

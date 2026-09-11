@@ -25,6 +25,20 @@ export const PROP_MANIFEST = {
   vault:    { url: '/props/vault.glb',    height: 120, back: 95, yaw: 0.15 },
 };
 
+// Companion object per kind (9/11), placed off-center so a bay is never one
+// object: dx = fraction of the room width from center, height in scene units.
+export const PROP_SECONDARY = {
+  bridge:   { url: '/props/bridge-2.glb',   height: 52, back: 30, dx: 0.30, yaw: -0.5 },
+  consoles: { url: '/props/consoles-2.glb', height: 78, back: 100, dx: -0.32, yaw: 0.2 },
+  grid:     { url: '/props/grid-2.glb',     height: 46, back: 40, dx: 0.30, yaw: 0.4 },
+  lab:      { url: '/props/lab-2.glb',      height: 50, back: 95, dx: -0.30, yaw: 0 },
+  security: { url: '/props/security-2.glb', height: 96, back: 110, dx: 0.32, yaw: 0 },
+  core:     { url: '/props/core-2.glb',     height: 44, back: 20, dx: 0.34, yaw: -0.6 },
+  machines: { url: '/props/machines-2.glb', height: 48, back: 40, dx: -0.30, yaw: 0.3 },
+  bunks:    { url: '/props/bunks-2.glb',    height: 30, back: 40, dx: 0.30, yaw: 0.2 },
+  vault:    { url: '/props/vault-2.glb',    height: 60, back: 60, dx: -0.30, yaw: 0.5 },
+};
+
 const loader = new GLTFLoader();
 const cache = new Map(); // url -> Promise<gltf>
 const load = (url) => { if (!cache.has(url)) cache.set(url, new Promise((res, rej) => loader.load(url, res, undefined, rej))); return cache.get(url); };
@@ -35,10 +49,7 @@ export function createRoomProps({ rooms, onFirstReady } = {}) {
   const mats = [];
   let disposed = false, readyCount = 0;
 
-  for (const r of rooms) {
-    const spec = PROP_MANIFEST[r.kind];
-    if (!spec) continue;
-    load(spec.url).then((gltf) => {
+  const place = (r, spec, dx) => load(spec.url).then((gltf) => {
       if (disposed) return;
       const model = gltf.scene.clone(true);
       const box = new THREE.Box3().setFromObject(model);
@@ -50,7 +61,7 @@ export function createRoomProps({ rooms, onFirstReady } = {}) {
       model.position.set(-c.x, -box.min.y, -c.z);       // feet on the floor, centered
       wrap.add(model);
       wrap.rotation.y = spec.yaw || 0;
-      wrap.position.set(r.cx, r.floor + (spec.lift || 0), WALK_Z - spec.back);
+      wrap.position.set(r.cx + (dx || 0) * r.w, r.floor + (spec.lift || 0), WALK_Z - spec.back);
       model.traverse((o) => {
         if (!o.isMesh || !o.material) return;
         const m = o.material;
@@ -65,6 +76,11 @@ export function createRoomProps({ rooms, onFirstReady } = {}) {
       group.add(wrap);
       if (readyCount++ === 0) onFirstReady?.();
     }).catch(() => { /* prop missing: procedural stays for this room */ });
+  for (const r of rooms) {
+    const spec = PROP_MANIFEST[r.kind];
+    if (spec) place(r, spec, 0);
+    const sec = PROP_SECONDARY[r.kind];
+    if (sec) place(r, sec, sec.dx);
   }
 
   function update(t) {
