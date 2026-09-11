@@ -73,7 +73,11 @@ export function floorYAt(deck, x) {
 }
 
 // Sprite metrics (logical px). Agents render at 2× tile feel.
-export const SPRITE = { w: 14, h: 26, walkSpeed: 55, climbSpeed: 40 }; // px/sec
+// walkSpeed is tuned against the CLIP, not picked for feel: Casual_Walk covers
+// 0.383 body-heights per 4.23s cycle, so a figure ~85 logical units tall walks
+// naturally at ~30 u/s with the clip played about 4x. Change one, retune both,
+// or the feet start sliding.
+export const SPRITE = { w: 14, h: 26, walkSpeed: 30, climbSpeed: 26 }; // px/sec
 
 // Movement-rule states a sprite can be told to hold (mirror of positionCrew):
 // 'working' | 'active' | 'idle' | 'future'.

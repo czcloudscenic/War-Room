@@ -58,9 +58,19 @@ export function createCrewFigure({ name, color, future = false }) {
   // One deterministic hash per crew member, reused for animation phase, pace and
   // the idle look-around. Stable across reloads so a character always behaves
   // like themselves.
+  // Casual_Walk covers 0.383 body-heights per 4.23s cycle = 0.0905 bh/sec at
+  // timeScale 1. Crew read at roughly 85 logical units tall, so the clip's own
+  // pace is only ~7.7 u/s while the sim glides them far faster. Left alone the
+  // legs cycle at one rate and the body travels at another, which is exactly
+  // what makes a character look like it is skating rather than walking.
+  const CLIP_NATURAL_SPEED = 0.0905 * 85;   // logical units/sec at timeScale 1
+  let lastX = null;
   let NAME_HASH = 0;
   for (let i = 0; i < String(name || '').length; i++) NAME_HASH = (NAME_HASH * 31 + String(name).charCodeAt(i)) >>> 0;
   const PHASE01 = (NAME_HASH % 1000) / 1000;
+  // Per-character pace lives at figure scope: update() needs it every frame, and
+  // it used to be trapped inside the loader callback.
+  const PACE = 0.90 + ((NAME_HASH >>> 10) % 1000) / 1000 * 0.20;   // 0.90-1.10
 
   const tagTexture = makeNameTexture(name, `#${agentColor.getHexString()}`);
   const tagMat = new THREE.SpriteMaterial({ map: tagTexture || null, transparent: true, opacity: 0, depthWrite: false });
@@ -136,10 +146,9 @@ export function createCrewFigure({ name, color, future = false }) {
       // phase offset and a slightly different pace, hashed from the name so it
       // is stable across reloads.
       const phase01 = PHASE01;
-      const pace = 0.90 + ((NAME_HASH >>> 10) % 1000) / 1000 * 0.20;   // 0.90-1.10
       const prime = (act, clip) => {
         if (!act) return act;
-        act.timeScale = pace;
+        act.timeScale = PACE;
         act.time = phase01 * (clip?.duration || 1);
         return act;
       };
@@ -179,6 +188,9 @@ export function createCrewFigure({ name, color, future = false }) {
     const time = (Number(t) || 0) * 0.001;
     const dt = lastT == null ? 0.016 : Math.min(0.1, Math.max(0, (t - lastT) * 0.001));
     lastT = t;
+    const _x = Number(sprite?.x);
+    const prevX = lastX;
+    if (Number.isFinite(_x)) lastX = _x;
 
     group.scale.setScalar(sprite?.deck === 1 ? LOWER_DECK_SCALE : 1);
 
@@ -189,6 +201,17 @@ export function createCrewFigure({ name, color, future = false }) {
     if (anim === 'walk') {
       rig.rotation.x = 0.04;
       setAction(walkAction || idleAction);
+      // Drive playback from the distance actually covered, not from an assumed
+      // velocity: if something blocks the step, the legs slow with it.
+      if (walkAction && dt > 0) {
+        const x = Number(sprite?.x);
+        if (Number.isFinite(x) && prevX != null) {
+          const speed = Math.abs(x - prevX) / dt;
+          const want = speed / CLIP_NATURAL_SPEED;
+          const clamped = Math.max(0.6, Math.min(6, want)) * PACE;
+          walkAction.timeScale += (clamped - walkAction.timeScale) * 0.25;
+        }
+      }
     } else if (anim === 'climb') {
       rig.rotation.y = Math.PI;
       setAction(walkAction || idleAction);
