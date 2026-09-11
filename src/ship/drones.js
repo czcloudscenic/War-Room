@@ -16,16 +16,18 @@ const toY = (ly) => 360 - ly;
 // Flight paths in logical art coords — BACKGROUND ONLY: the storm sky above
 // the hull and the city band below it. They never cross the ship interior;
 // they're distant machines prowling around it (smaller + low z = depth).
+// Scale (9/11): tripled. A sentinel's head is wider than a person is tall;
+// at the old 0.34-0.5 they read as insects. Sky and city bands unchanged.
 const PATHS = [
-  { cx: 200, cy: 72, rx: 140, ry: 10, period: 36000, phase: 0.0, z: 2.5, s: 0.5 },  // high sky, off the nose
-  { cx: 1000, cy: 64, rx: 170, ry: 10, period: 46000, phase: 2.1, z: 2, s: 0.42 },  // high sky, stern side
-  { cx: 640, cy: 46, rx: 430, ry: 8, period: 70000, phase: 1.2, z: 1.5, s: 0.34 },  // far crosser along the storm line
-  { cx: 260, cy: 668, rx: 180, ry: 10, period: 40000, phase: 4.0, z: 2.5, s: 0.45 },// low over the city, under the bow
+  { cx: 190, cy: 60, rx: 150, ry: 12, period: 36000, phase: 0.0, z: 2.5, s: 1.5 },   // high sky, off the nose
+  { cx: 1010, cy: 54, rx: 170, ry: 12, period: 46000, phase: 2.1, z: 2, s: 1.3 },    // high sky, stern side
+  { cx: 640, cy: 36, rx: 430, ry: 8, period: 70000, phase: 1.2, z: 1.5, s: 0.95 },   // far crosser along the storm line
+  { cx: 250, cy: 672, rx: 190, ry: 12, period: 40000, phase: 4.0, z: 2.5, s: 1.4 },  // low over the city, under the bow
 ];
 
-const TENTACLES = 8;
-const SEGMENTS = 7;
-const SEG_LEN = 16;
+const TENTACLES = 12;
+const SEGMENTS = 9;
+const SEG_LEN = 17;
 
 function makeTentacle(mat) {
   // Chain of tapered segments, each pivoting at its top — sway cascades down.
@@ -57,18 +59,27 @@ export function buildSentinel(scale) {
   // read as shapes in the weather, not black blobs pasted on it.
   // Roughness up from 0.45: with no environment map, low roughness on metal
   // reads as black plastic. Mid roughness + the key light gives brushed steel.
-  const hullMat = new THREE.MeshStandardMaterial({ color: 0x2a3340, roughness: 0.58, metalness: 0.72 });
-  const darkMat = new THREE.MeshStandardMaterial({ color: 0x1e2632, roughness: 0.66, metalness: 0.6 });
+  const hullMat = new THREE.MeshStandardMaterial({ color: 0x2c3542, roughness: 0.48, metalness: 0.86 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x171d27, roughness: 0.6, metalness: 0.7 });
 
   // armored head — flattened, faces +x
   const head = new THREE.Mesh(new THREE.SphereGeometry(15, 14, 12), hullMat);
   head.scale.set(1.4, 0.95, 1.05);
   g.add(head);
-  // dorsal ridge plate
+  // dorsal ridge plate + armor collar + segmented back plates
   const ridge = new THREE.Mesh(new THREE.SphereGeometry(11, 10, 8), darkMat);
   ridge.scale.set(1.5, 0.55, 0.8);
   ridge.position.set(-2, 8.5, 0);
   g.add(ridge);
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(13.5, 2.6, 8, 20), darkMat);
+  collar.rotation.y = Math.PI / 2; collar.position.set(-8, -1, 0);
+  g.add(collar);
+  for (let k = 0; k < 3; k++) {
+    const plate = new THREE.Mesh(new THREE.SphereGeometry(7 - k * 1.2, 8, 6), k % 2 ? hullMat : darkMat);
+    plate.scale.set(1.1, 0.45, 1.15);
+    plate.position.set(-12 - k * 5.5, 5 - k * 1.5, 0);
+    g.add(plate);
+  }
   // side pods
   for (const side of [-1, 1]) {
     const pod = new THREE.Mesh(new THREE.SphereGeometry(5.5, 8, 8), darkMat);
@@ -124,9 +135,9 @@ export function buildSentinel(scale) {
 // laser bursts at the plating, trying to cut its way in. Nothing crazy: a
 // thin red beam in bursts + a flickering impact glow.
 const ATTACK = {
-  hover: { x: 838, y: 95 },   // where it holds position, just off the hull top
+  hover: { x: 838, y: 78 },   // where it holds position, just off the hull top
   impact: { x: 895, y: 168 }, // where the beam hits the plating
-  s: 0.55, z: 3.5,
+  s: 1.45, z: 3.5,
 };
 
 export function createDrones() {

@@ -29,7 +29,8 @@ const PLATES = {
 // Layer depths (scene z; camera at CAM_Z looking at z=0) and scroll speeds in
 // texture units per second. The world streams toward +X, so offsets decrease.
 const LAYERS = {
-  open:   { z: -700, w: 3400, h: 1457, speed: 0.010 },
+  open:   { z: -900, w: 4000, h: 1714, speed: 0.006 },   // far: sky + horizon towers
+  mid:    { z: -520, w: 3000, h: 1286, speed: 0.022 },   // mid: the same plate, lower, faster, darker = a second city rank
   tunnel: { z: -350, w: 2700, h: 1157, speed: 0.048 },
   fg:     { z: -150, w: 2450, h: 1050, speed: 0.115 },
 };
@@ -80,21 +81,53 @@ function ShipCutout() {
 }
 
 // A streaming plate: mirrored repeat makes any plate tile seamlessly.
-function Plate({ url, layer, opacityRef, renderOrder, alpha = false }) {
-  const tex = useLoader(THREE.TextureLoader, url);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = THREE.MirroredRepeatWrapping;
-  tex.wrapT = THREE.ClampToEdgeWrapping;
+function Plate({ url, layer, opacityRef, renderOrder, alpha = false, tint = 0xffffff, opacity = 1, yOffset = 0 }) {
+  const base = useLoader(THREE.TextureLoader, url);
+  // Each Plate scrolls its own texture instance (the loader caches by URL).
+  const tex = useMemo(() => { const t = base.clone(); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.MirroredRepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping; t.needsUpdate = true; return t; }, [base]);
   const matRef = useRef(null);
   useFrame((state, delta) => {
     tex.offset.x -= layer.speed * delta;
-    if (opacityRef && matRef.current) matRef.current.opacity = opacityRef.current;
+    if (opacityRef && matRef.current) matRef.current.opacity = opacityRef.current * opacity;
+  });
+  const isTransparent = alpha || !!opacityRef || opacity < 1;
+  return (
+    <mesh position={[0, yOffset, layer.z]} renderOrder={renderOrder}>
+      <planeGeometry args={[layer.w, layer.h]} />
+      <meshBasicMaterial ref={matRef} map={tex} color={tint} transparent={isTransparent} alphaTest={alpha ? 0.02 : 0} depthWrite={!isTransparent} opacity={opacityRef ? 0 : opacity} />
+    </mesh>
+  );
+}
+
+// Haze: big soft sprites drifting between the depth layers. Cheap volumetrics:
+// they catch the parallax and read as air between the city and the hull.
+function Haze() {
+  const tex = useMemo(() => {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const g = c.getContext('2d'); const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0, 'rgba(255,255,255,0.55)'); grad.addColorStop(0.5, 'rgba(255,255,255,0.14)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad; g.fillRect(0, 0, 256, 256);
+    const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+  }, []);
+  const sprites = useMemo(() => Array.from({ length: 9 }, (_, i) => ({
+    x: (i / 9) * 2600 - 1300, y: -260 + ((i * 37) % 5) * 90, z: -640 + (i % 3) * 150, s: 520 + (i % 4) * 140, o: 0.05 + (i % 3) * 0.02, v: 26 + (i % 3) * 9,
+  })), []);
+  const refs = useRef([]);
+  useFrame((state, delta) => {
+    for (let i = 0; i < sprites.length; i++) {
+      const sp = refs.current[i]; if (!sp) continue;
+      sp.position.x += sprites[i].v * delta;
+      if (sp.position.x > 1500) sp.position.x -= 3000;
+    }
   });
   return (
-    <mesh position={[0, 0, layer.z]} renderOrder={renderOrder}>
-      <planeGeometry args={[layer.w, layer.h]} />
-      <meshBasicMaterial ref={matRef} map={tex} transparent={alpha || !!opacityRef} alphaTest={alpha ? 0.02 : 0} depthWrite={!alpha && !opacityRef} opacity={opacityRef ? 0 : 1} />
-    </mesh>
+    <>
+      {sprites.map((h, i) => (
+        <sprite key={i} ref={(el) => { refs.current[i] = el; }} position={[h.x, h.y, h.z]} scale={[h.s * 1.8, h.s, 1]} renderOrder={1}>
+          <spriteMaterial map={tex} color={0x2a3a52} transparent opacity={h.o} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </sprite>
+      ))}
+    </>
   );
 }
 
@@ -128,7 +161,8 @@ function Rain() {
 // dragging pans, and the pointer drives real parallax across the depth layers.
 const VIEW_LIMITS = { zoomMin: 1, zoomMax: 2.4, stationZoom: 2.25, panX: 320, panY: 160 };
 
-function SceneContent({ simRef, crew, activityCount = {}, alerts = {}, contactsRef, enclosedRef, selectedStation, viewRef }) {
+function SceneContent({ simRef, crew, activityCount = {}, alerts = {}, contactsRef, enclosedRef, selectedStation, viewRef, chipEls }) {
+  const _anchor = useRef(new THREE.Vector3());
   const { scene, camera, pointer } = useThree();
   const focus = useRef({ x: 0, y: 0, zoom: 1 });
   const figuresRef = useRef(new Map());
@@ -265,6 +299,23 @@ function SceneContent({ simRef, crew, activityCount = {}, alerts = {}, contactsR
     camera.position.y += (targetY - camera.position.y) * 0.06;
     camera.position.z = CAM_Z / f.zoom + Math.sin(t / 14000) * 14;
     camera.lookAt(f.x, f.y, 0);
+    // Station chips live INSIDE their bays (low, at the floor line) and are
+    // projected through the live camera and the banking rig every frame, so
+    // they stay on their rooms through flight, zoom and pan.
+    if (chipEls?.current) {
+      camera.updateMatrixWorld();
+      const rig = rigRef.current;
+      for (const r of ROOMS) {
+        const el = chipEls.current.get(r.id); if (!el) continue;
+        const cx = r.x0 + 14;
+        const v = _anchor.current.set(toThreeX(cx), toThreeY(floorYAt(r.deck, cx) - 16), 22);
+        rig.localToWorld(v).project(camera);
+        const onScreen = v.z < 1 && Math.abs(v.x) < 1.2 && Math.abs(v.y) < 1.2;
+        el.style.left = ((v.x + 1) / 2 * 100) + '%';
+        el.style.top = ((1 - v.y) / 2 * 100) + '%';
+        el.style.opacity = onScreen ? '' : '0';
+      }
+    }
   });
 
   return (
@@ -288,7 +339,9 @@ function SceneContent({ simRef, crew, activityCount = {}, alerts = {}, contactsR
       <directionalLight position={[240, 260, -320]} intensity={1.10} color="#4fa8e8" />
       <Suspense fallback={null}>
         <Plate url={PLATES.open} layer={LAYERS.open} renderOrder={0} />
-        <Plate url={PLATES.tunnel} layer={LAYERS.tunnel} opacityRef={tunnelOpacity} renderOrder={1} />
+        <Plate url={PLATES.open} layer={LAYERS.mid} renderOrder={1} opacity={0.62} tint={0x8aa0bc} yOffset={-330} />
+        <Haze />
+        <Plate url={PLATES.tunnel} layer={LAYERS.tunnel} opacityRef={tunnelOpacity} renderOrder={2} />
         <Plate url={PLATES.fg} layer={LAYERS.fg} renderOrder={2} alpha />
         <primitive object={rigRef.current}>
           <ShipCutout />
@@ -305,6 +358,7 @@ export default function ShipPainted3D({ crew = [], activity = {}, alerts = {}, o
   const enclosedRef = useRef(false);
   // View state lives in a ref (no re-render per wheel tick); DOM handlers below.
   const viewRef = useRef({ zoom: 1, panX: 0, panY: 0 });
+  const chipEls = useRef(new Map());
   const dragRef = useRef(null);
   const onWheel = (e) => {
     const v = viewRef.current;
@@ -348,8 +402,10 @@ export default function ShipPainted3D({ crew = [], activity = {}, alerts = {}, o
         gl={{ antialias: true, alpha: false, toneMapping: THREE.NoToneMapping }}
         style={{ position: 'absolute', inset: 0 }}
       >
-        <SceneContent simRef={simRef} crew={crew} activityCount={counts} alerts={alerts} contactsRef={contactsRef} enclosedRef={enclosedRef} selectedStation={selectedStation} viewRef={viewRef} />
+        <SceneContent simRef={simRef} crew={crew} activityCount={counts} alerts={alerts} contactsRef={contactsRef} enclosedRef={enclosedRef} selectedStation={selectedStation} viewRef={viewRef} chipEls={chipEls} />
       </Canvas>
+      {/* Vignette: pulls the eye to the hull and kills the flat-plate read at the edges */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 45%, rgba(3,4,7,0.55) 100%)' }} />
       <ShipHUD contactsRef={contactsRef} signals={signals} tunnelRef={tunnelLike} />
 
       {/* Station chips — HTML overlay anchored to the art (clickable) */}
@@ -368,32 +424,29 @@ export default function ShipPainted3D({ crew = [], activity = {}, alerts = {}, o
         </button>
       )}
       {ROOMS.map(r => {
-        if (selectedStation) return null;
         const meta = STATIONS.find(s => s.id === r.id);
-        const cx = ((r.x0 + r.x1) / 2 / WORLD_W) * 100;
-        // Chips ride the painted deck slope: anchored above each bay's real
-        // floor line instead of one flat row.
-        const cxLogical = (r.x0 + r.x1) / 2;
-        const top = ((floorYAt(r.deck, cxLogical) - (r.deck === 0 ? 152 : 160)) / WORLD_H) * 100;
         const lit = litStations.has(r.id);
         const isSel = selectedStation === r.id;
         const count = counts[r.id] || 0;
+        // Position is written every frame by SceneContent (projected anchor).
         return (
           <button
             key={r.id}
+            ref={(el) => { if (el) chipEls.current.set(r.id, el); else chipEls.current.delete(r.id); }}
             onClick={() => onStation?.(r.id)}
             onMouseEnter={() => setHover(r.id)}
             onMouseLeave={() => setHover(h => (h === r.id ? null : h))}
             style={{
-              position: 'absolute', left: `${cx}%`, top: `${top}%`, transform: 'translateX(-50%)',
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px',
-              background: 'rgba(6,8,13,0.72)', backdropFilter: 'blur(4px)',
-              border: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.45)' : 'rgba(255,255,255,0.14)'}`,
-              borderRadius: 5, cursor: 'pointer',
-              fontSize: 8.5, letterSpacing: 0.8, textTransform: 'uppercase', ...mono,
-              color: lit ? '#bfe3ff' : 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap',
+              position: 'absolute', left: '-100%', top: '-100%', transform: 'translate(0, -100%)',
+              display: 'inline-flex', alignItems: 'center', gap: 5, padding: '1px 6px',
+              background: 'rgba(4,6,10,0.62)', backdropFilter: 'blur(3px)',
+              border: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.4)' : 'rgba(255,255,255,0.10)'}`,
+              borderLeft: `2px solid ${lit ? '#2AABFF' : 'rgba(229,229,234,0.35)'}`,
+              borderRadius: 3, cursor: 'pointer', transition: 'opacity 200ms',
+              fontSize: 7.5, letterSpacing: 0.9, textTransform: 'uppercase', ...mono,
+              color: lit ? '#bfe3ff' : 'rgba(229,229,234,0.62)', whiteSpace: 'nowrap',
             }}>
-            {meta?.n} {meta?.label}
+            <span style={{ color: 'rgba(229,229,234,0.4)' }}>{meta?.n}</span> {meta?.label}
             {count > 0 && <span style={{ color: '#2AABFF', fontWeight: 700 }}>{count}</span>}
           </button>
         );

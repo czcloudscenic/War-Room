@@ -25,18 +25,21 @@ export const DECKS = [
 // Rooms — every station from core/shipStations.js gets geometry here, mapped
 // to the artwork's visible room bays. kind survives for non-art renderers.
 export const ROOMS = [
-  { id: 'cockpit',    deck: 0, x0: 105,  x1: 400,  kind: 'bridge' },    // glass nose canopy + holo table + pilot chair
+  // 9/11 hull repaint (ship-cutout-v2): the nose is now a solid cockpit
+  // block; the glass bay opens at ~230. Same for the quarters on the lower
+  // deck. Stern block begins ~1185. Everything between is unchanged.
+  { id: 'cockpit',    deck: 0, x0: 230,  x1: 420,  kind: 'bridge' },    // glass canopy + holo table + pilot chair
   { id: 'intel',      deck: 0, x0: 430,  x1: 595,  kind: 'consoles' },  // blue blueprint-screen room
   { id: 'foundry',    deck: 0, x0: 625,  x1: 725,  kind: 'consoles' },  // dark locker/panel bay
   { id: 'pipeline',   deck: 0, x0: 755,  x1: 895,  kind: 'grid' },      // hanging-lamp bay before the big stern rib
   { id: 'qc',         deck: 0, x0: 945,  x1: 1115, kind: 'lab' },       // big teal wall-screen room
-  { id: 'gateway',    deck: 0, x0: 1125, x1: 1220, kind: 'security' },  // sternmost glass-panel bay
-  { id: 'quarters',   deck: 1, x0: 195,  x1: 395,  kind: 'bunks' },     // cable room with the reclined bunk
+  { id: 'gateway',    deck: 0, x0: 1125, x1: 1185, kind: 'security' },  // sternmost glass-panel bay
+  { id: 'quarters',   deck: 1, x0: 265,  x1: 400,  kind: 'bunks' },     // cable room with the reclined bunk
   { id: 'vault',      deck: 1, x0: 425,  x1: 605,  kind: 'vault' },     // tall dark cabinet + workstation bay
   { id: 'analytics',  deck: 1, x0: 620,  x1: 815,  kind: 'core' },      // the holo-core room (cylinder center ≈ x 684)
   { id: 'comm',       deck: 1, x0: 825,  x1: 915,  kind: 'consoles' },  // operator chair + wall screens right of the core
   { id: 'automation', deck: 1, x0: 950,  x1: 1085, kind: 'machines' },  // machinery/crate bay past the stern rib
-  { id: 'finance',    deck: 1, x0: 1090, x1: 1220, kind: 'consoles' },  // warm-lamp desk office at the stern
+  { id: 'finance',    deck: 1, x0: 1090, x1: 1185, kind: 'consoles' },  // desk office at the stern
 ];
 export const ENGINE_ROOM = { deck: 1, x0: 1210, x1: 1260, kind: 'engine' };
 
