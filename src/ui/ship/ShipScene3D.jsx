@@ -225,7 +225,7 @@ export default function ShipScene3D({ crew = [], activity = {}, alerts = {}, onS
         gl={{ antialias: true, alpha: false, toneMapping: THREE.NoToneMapping }}
         style={{ position: 'absolute', inset: 0 }}
       >
-        <SceneContent simRef={simRef} crew={crew} activityCount={activityCount} alerts={alerts} />
+        <SceneContent simRef={simRef} crew={crew} activityCount={counts} alerts={alerts} />
       </Canvas>
 
       {/* Station chips — HTML overlay anchored to the art (clickable) */}
