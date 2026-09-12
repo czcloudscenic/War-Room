@@ -20,9 +20,9 @@ import { createAgentFigure, makeNameTexture } from './crewModels.js';
 // land in public/crew/ (recipe in HANDOFF.md 2026-08-20).
 export const CREW_GLB = {
   Sean: { walk: '/crew/sean.glb', idle: '/crew/sean_idle.glb', work: '/crew/sean_work.glb' },
-  Muse: { walk: '/crew/muse.glb', idle: '/crew/muse_idle.glb' },
-  Scrappy: { walk: '/crew/scrappy.glb', idle: '/crew/scrappy_idle.glb' },
-  Slate: { walk: '/crew/slate.glb', idle: '/crew/slate_idle.glb' },
+  Muse: { walk: '/crew/muse.glb', idle: '/crew/muse_idle.glb', work: '/crew/muse_work.glb' },
+  Scrappy: { walk: '/crew/scrappy.glb', idle: '/crew/scrappy_idle.glb', work: '/crew/scrappy_work.glb' },
+  Slate: { walk: '/crew/slate.glb', idle: '/crew/slate_idle.glb', work: '/crew/slate_work.glb' },
 };
 
 const FIGURE_HEIGHT = 34;   // logical units — must match crewModels' proportions

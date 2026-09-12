@@ -1,5 +1,14 @@
 # Vantus Handoff Brief
 
+## 2026-09-12 (Counsel, early) — LAMPS FORWARD + CREW WORK CLIPS. Pushed.
+
+- **Lamps:** room point lights moved in front of the props (z = WALK_Z + 14, 22000 cd); the white blowouts on prop tops are gone and faces are lit.
+- **Crew face their stations:** `crewGLB.js` turns a working figure three-quarters toward the back wall (side from the sprite's facing) instead of squaring up to the camera.
+- **Work clips without Mixamo:** the Meshy rig service (`3d_rigging`, 8 credits each) re-rigged each crew member's own public GLB (`https://usevantus.com/crew/<name>.glb`) with the library action **Checkout_Gesture (id 34)**, the closest thing in the 678-clip catalog to operating a console (there is no typing clip). `CREW_GLB` now carries `work:` per character → `public/crew/<name>_work.glb`; the loader binds the clip by bone name onto the base mesh and `anim === 'work'` plays it. Verified in the harness: all four bind with no PropertyBinding warnings (Sean 19/24 bones moving, Muse 16, Scrappy 22, Slate 20). Work files hold a mesh copy they never render, so their textures were shrunk to 128 px WebP (each about 1.5 MB, mesh-dominated).
+- Mixamo is now optional: if Christian wants a true typing clip later, the same `work:` slot takes it.
+
+**Next:** the Osiris pursuit sequence (tunnel close-in, sentinels swarm and cut, hull shake, sparks), then the resolution pass. Optional: cleaner idle from the same library (Idle_02 / Idle_12) to retire the posture corrector.
+
 ## 2026-09-11 (Counsel, late night) — CEILINGS + SECOND PROPS. Pushed.
 
 - **Ceilings (`roomWalls.js`):** one tiled plane per deck, facing down, spanning the hull at each deck's ceiling height (top armor underside for deck 0, the deck-0 slab underside for deck 1), `public/textures/ship-ceiling.jpg` repeated 7x (ribs, pipes, cable looms), Lambert with a faint emissive so the lamps in the tile read.
