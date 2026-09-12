@@ -40,7 +40,7 @@ export function createRoomWalls({ rooms } = {}) {
   tex(CEILING_URL).then((t) => {
     if (disposed) return;
     const t2 = t.clone(); t2.wrapS = t2.wrapT = THREE.RepeatWrapping; t2.repeat.set(7, 1); t2.needsUpdate = true;
-    const m = new THREE.MeshLambertMaterial({ map: t2, color: 0xb8c2cc, emissive: 0x6f8fb0, emissiveMap: t2, emissiveIntensity: 0.06 });
+    const m = new THREE.MeshStandardMaterial({ map: t2, color: 0xb8c2cc, emissive: 0x6f8fb0, emissiveMap: t2, emissiveIntensity: 0.06, roughness: 0.85, metalness: 0.3 });
     const w = HULL_3D.x1 - HULL_3D.x0, cx = (HULL_3D.x0 + HULL_3D.x1) / 2;
     for (const [, ceilY] of ceils) {
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, ROOM_DEPTH + 30), m);
@@ -60,7 +60,7 @@ export function createRoomWalls({ rooms } = {}) {
       // Cover-fit: keep the panel's aspect, crop the overflow so nothing stretches.
       const img = t.image; const ia = img && img.width ? img.width / img.height : 1;
       const pa = w / h;
-      const m = new THREE.MeshLambertMaterial({ map: t, emissive: 0x9fd8ff, emissiveMap: t, emissiveIntensity: 0.2 });
+      const m = new THREE.MeshStandardMaterial({ map: t, emissive: 0x9fd8ff, emissiveMap: t, emissiveIntensity: 0.2, roughness: 0.82, metalness: 0.2 });
       if (ia > pa) { m.map.repeat.set(pa / ia, 1); m.map.offset.set((1 - pa / ia) / 2, 0); }
       else { m.map.repeat.set(1, ia / pa); m.map.offset.set(0, (1 - ia / pa) / 2); }
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);

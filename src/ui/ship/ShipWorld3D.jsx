@@ -4,8 +4,9 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { WORLD_W, ROOMS, DECKS as LOGICAL_DECKS } from '../../ship/world.js';
-import { toSceneX, DECK_Y, DECK_CLEAR, WALK_Z, CAMERA } from '../../ship/scene3dContract.js';
+import { toSceneX, DECK_Y, DECK_CLEAR, WALK_Z, CAMERA, HULL_3D } from '../../ship/scene3dContract.js';
 import { STATIONS } from '../../core/shipStations.js';
 import { createShipSim } from '../../ship/shipEngine.js';
 import { createCrewFigure } from '../../ship/crewGLB.js';
@@ -23,15 +24,22 @@ import ShipHUD from './ShipHUD.jsx';
 // leniently: a missing file just means that surface stays flat-colored.
 function loadShipTextures(onDone) {
   const loader = new THREE.TextureLoader();
-  const out = { hull: null, wall: null, deck: null };
-  let pending = 3;
+  const out = { hull: null, wall: null, deck: null, hullN: null, wallN: null, deckN: null };
+  let pending = 6;
   const finish = () => { if (--pending === 0) onDone(out); };
   for (const key of ['hull', 'wall', 'deck']) {
     loader.load(
       `/textures/ship-${key}.jpg`,
-      (tex) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.colorSpace = THREE.SRGBColorSpace; out[key] = tex; console.log(`[ship] texture ok: ${key}`); finish(); },
+      (tex) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; out[key] = tex; finish(); },
       undefined,
       () => { console.warn(`[ship] texture FAILED: ${key}`); finish(); }
+    );
+    // Sobel normal maps derived from the same tiles (linear, not sRGB).
+    loader.load(
+      `/textures/ship-${key}-n.jpg`,
+      (tex) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.anisotropy = 4; out[key + 'N'] = tex; finish(); },
+      undefined,
+      () => { finish(); }
     );
   }
 }
@@ -93,6 +101,21 @@ function sceneY(sp) {
   const span = (LOGICAL_DECKS[1].floorY - LOGICAL_DECKS[0].floorY) || 1;
   const p = Math.min(1, Math.max(0, (sp.y - LOGICAL_DECKS[0].floorY) / span));
   return DECK_Y[0] + (DECK_Y[1] - DECK_Y[0]) * p;
+}
+
+// Image-based lighting: a neutral room environment, low, so metals and the
+// wet deck have something to reflect. Its own effect so it cannot disturb the
+// scene-build effect; the key/rim rig still leads.
+function EnvironmentLight() {
+  const { scene, gl } = useThree();
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const tex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = tex;
+    scene.environmentIntensity = 0.32;
+    return () => { if (scene.environment === tex) scene.environment = null; tex.dispose(); pmrem.dispose(); };
+  }, [scene, gl]);
+  return null;
 }
 
 function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, selectedStation, viewRef, chipEls }) {
@@ -302,6 +325,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       />
       {/* three r155+ uses physical falloff: at this scene scale (rooms ~200
           units) pooled lamps need candela-scale intensities to exist at all. */}
+      <EnvironmentLight />
       <Suspense fallback={null}>
         {BACKDROP.map((b, i) => <BackdropPlate key={i} {...b} />)}
       </Suspense>
@@ -314,6 +338,10 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
           decay={2}
           color={r.id === 'analytics' ? '#7fc4ff' : '#cfd8e6'}
         />
+      ))}
+      {/* Hover-pad underglow: the cyan rings throw light down onto the undercity */}
+      {[-300, 300].map((x, i) => (
+        <pointLight key={'pad' + i} position={[x, HULL_3D.yBottom - 140, 60]} intensity={70000} distance={800} decay={2} color="#2aabff" />
       ))}
       {/* soft cool front fill so the cutaway's nearest faces never go void */}
       <pointLight position={[0, 100, 700]} intensity={120000} distance={2000} decay={2} color="#5a7492" />

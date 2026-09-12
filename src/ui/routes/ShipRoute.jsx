@@ -31,7 +31,7 @@ const DAY_MS = 86400000;
 const fmtT = (ts) => new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 export default function ShipRoute({ isMobile, clients = [], content = [], setActiveNav }) {
-  const [view, setView] = useState('3d'); // '3d' (modeled, flying) | 'art' (painted plate) | 'map' | 'list'
+  const [view, setView] = useState('model'); // 'model' (the 3D ship, default) | '3d' (painted, in motion) | 'art' (still plate) | 'map' | 'list'
   const [events, setEvents] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [backupOk, setBackupOk] = useState(null); // null = unknown
@@ -100,8 +100,8 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
             </p>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            {toggle('3d', '3D View')}
-            {toggle('model', 'Model View')}
+            {toggle('model', '3D View')}
+            {toggle('3d', 'Painted')}
             {toggle('art', 'Art View')}
             {toggle('map', 'Map View')}
             {toggle('list', 'List View')}

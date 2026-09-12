@@ -132,7 +132,10 @@ export function createShipModel(options = {}) {
   // shadowSide BackSide: an open two-sided shell self-shadows to black from the
   // front faces (rendering-traps.md, "Which side gets drawn"); render its
   // shadow pass from the back faces instead.
-  const lambert = (c) => { const m = new THREE.MeshLambertMaterial({ color: c, side: THREE.DoubleSide, shadowSide: THREE.BackSide }); mats.push(m); return m; };
+  // Standard (PBR) instead of Lambert: with an environment map in the scene
+  // the plating picks up reflections and the wet deck reads as wet. Two-sided
+  // with the shadow pass from the back faces (open shell, see rendering-traps).
+  const lambert = (c) => { const m = new THREE.MeshStandardMaterial({ color: c, side: THREE.DoubleSide, shadowSide: THREE.BackSide, roughness: 0.78, metalness: 0.35, envMapIntensity: 0.6 }); mats.push(m); return m; };
   const basic = (c, opts = {}) => { const m = new THREE.MeshBasicMaterial({ color: c, ...opts }); mats.push(m); return m; };
 
   const matHull = lambert(PALETTE.hull);
@@ -155,22 +158,29 @@ export function createShipModel(options = {}) {
   // lightened toward mid-grey so the map reads as the surface instead of
   // multiplying to black.
   const textures = options.textures || null;
-  const applyMap = (material, texture, repX, repY) => {
+  const applyMap = (material, texture, normal, repX, repY, opts = {}) => {
     if (!texture) return;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(repX, repY);
     texture.needsUpdate = true;
     material.map = texture;
-    material.bumpMap = texture;
-    material.bumpScale = 0.4;
-    material.color.lerp(new THREE.Color(0x8a8f99), 0.85);
+    if (normal) {
+      normal.wrapS = THREE.RepeatWrapping; normal.wrapT = THREE.RepeatWrapping; normal.repeat.set(repX, repY); normal.needsUpdate = true;
+      material.normalMap = normal;
+      material.normalScale = new THREE.Vector2(opts.normal ?? 0.9, opts.normal ?? 0.9);
+    } else {
+      material.bumpMap = texture; material.bumpScale = 0.4;
+    }
+    if (opts.roughness != null) material.roughness = opts.roughness;
+    if (opts.metalness != null) material.metalness = opts.metalness;
+    material.color.lerp(new THREE.Color(0x9096a2), 0.9);
     material.needsUpdate = true;
   };
   if (textures) {
-    applyMap(matHull, textures.hull, 6, 3);   // hull shell + nose + stern
-    applyMap(matWall, textures.wall, 3, 2);   // room back/partition walls
-    applyMap(matDeck, textures.deck, 6, 3);   // the two deck slabs
+    applyMap(matHull, textures.hull, textures.hullN, 6, 3, { roughness: 0.62, metalness: 0.55 });   // armor: metal
+    applyMap(matWall, textures.wall, textures.wallN, 3, 2, { roughness: 0.74, metalness: 0.4 });    // bulkheads
+    applyMap(matDeck, textures.deck, textures.deckN, 6, 3, { roughness: 0.42, metalness: 0.3, normal: 1.1 }); // wet deck: low roughness
   }
 
   const cRim = new THREE.Color(PALETTE.cyan).multiplyScalar(0.10); // was 0.38: the Tron outline
