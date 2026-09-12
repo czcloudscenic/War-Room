@@ -265,16 +265,21 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     tunnelRef.current?.update(delta);
     hullRef.current?.update(t);
     propsRef.current?.update(t);
+    const threat = sentinelsRef.current?.threat || 0;
     wallsRef.current?.update(t);
-    sentinelsRef.current?.update(t);
+    sentinelsRef.current?.update(t, { enclosed: !!tunnelRef.current?.enclosed });
     if (contactsRef) sentinelsRef.current?.getContacts(contactsRef.current);
     // Flight: a slow bank and a breathing pitch on the whole vessel, plus a
     // touch of bob. Amplitudes small enough that the station chips (projected
     // once, at rest) never drift off their rooms.
+    // Under pursuit the vessel shudders: fast low-amplitude shake stacked on
+    // the cruise sway, and the camera goes hand-held.
     const rig = shipRigRef.current;
-    rig.rotation.z = Math.sin(t / 6100) * 0.014 + Math.sin(t / 2300) * 0.004;
-    rig.rotation.x = Math.sin(t / 4700) * 0.010;
-    rig.position.y = Math.sin(t / 3300) * 5;
+    const shake = threat;
+    rig.rotation.z = Math.sin(t / 6100) * 0.014 + Math.sin(t / 2300) * 0.004 + Math.sin(t / 90) * 0.004 * shake;
+    rig.rotation.x = Math.sin(t / 4700) * 0.010 + Math.sin(t / 110) * 0.003 * shake;
+    rig.position.y = Math.sin(t / 3300) * 5 + Math.sin(t / 70) * 3 * shake;
+    rig.position.x = Math.sin(t / 5100) * 4 * shake;
     // Camera: station focus + wheel zoom + pan, eased; parallax damped when zoomed.
     const v = viewRef?.current || { zoom: 1, panX: 0, panY: 0 };
     const room = selectedStation ? ROOMS.find(r => r.id === selectedStation) : null;
@@ -287,9 +292,10 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     const dx = CAMERA.position[0] - CAMERA.target[0], dy = CAMERA.position[1] - CAMERA.target[1];
     const tx = f.x + (dx + pointer.x * CAMERA.parallax.x * 1.8 + Math.sin(t / 9000) * 6) * par;
     const ty = f.y + (dy + pointer.y * CAMERA.parallax.y * 1.8 + Math.cos(t / 12000) * 4) * par;
-    camera.position.x += (tx - camera.position.x) * 0.06;
-    camera.position.y += (ty - camera.position.y) * 0.06;
-    camera.position.z = CAMERA.position[2] / f.zoom;
+    const hand = (sentinelsRef.current?.threat || 0) * par;
+    camera.position.x += (tx + Math.sin(t / 130) * 6 * hand - camera.position.x) * 0.06;
+    camera.position.y += (ty + Math.cos(t / 97) * 4 * hand - camera.position.y) * 0.06;
+    camera.position.z = CAMERA.position[2] / f.zoom + Math.sin(t / 150) * 8 * hand;
     camera.lookAt(f.x, f.y, 0);
     // Station chips: low inside each bay, projected through the live camera
     // and the flight rig every frame.
