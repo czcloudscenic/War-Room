@@ -308,8 +308,8 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       {ROOMS.map(r => (
         <pointLight
           key={r.id}
-          position={[toSceneX((r.x0 + r.x1) / 2), DECK_Y[r.deck] + DECK_CLEAR - 24, WALK_Z - 40]}
-          intensity={18000}
+          position={[toSceneX((r.x0 + r.x1) / 2), DECK_Y[r.deck] + DECK_CLEAR - 30, WALK_Z + 14]}
+          intensity={22000}
           distance={340}
           decay={2}
           color={r.id === 'analytics' ? '#7fc4ff' : '#cfd8e6'}

@@ -19,7 +19,7 @@ import { createAgentFigure, makeNameTexture } from './crewModels.js';
 // Characters with generated rigs. Add a line per crew member as their GLBs
 // land in public/crew/ (recipe in HANDOFF.md 2026-08-20).
 export const CREW_GLB = {
-  Sean: { walk: '/crew/sean.glb', idle: '/crew/sean_idle.glb' },
+  Sean: { walk: '/crew/sean.glb', idle: '/crew/sean_idle.glb', work: '/crew/sean_work.glb' },
   Muse: { walk: '/crew/muse.glb', idle: '/crew/muse_idle.glb' },
   Scrappy: { walk: '/crew/scrappy.glb', idle: '/crew/scrappy_idle.glb' },
   Slate: { walk: '/crew/slate.glb', idle: '/crew/slate_idle.glb' },
@@ -164,6 +164,7 @@ export function createCrewFigure({ name, color, future = false }) {
   let mixer = null;
   let walkAction = null;
   let idleAction = null;
+  let workAction = null;
   let current = null;
   let lastT = null;
   let disposed = false;
@@ -260,6 +261,12 @@ export function createCrewFigure({ name, color, future = false }) {
       // pass on the same mesh, so names match. Guarded anyway: a bind failure
       // leaves walk-only, which still reads fine.
       try { if (idleClip) idleAction = prime(mixer.clipAction(idleClip), idleClip); } catch { idleAction = null; }
+      // Optional third clip (work / typing) from a separate GLB sharing the rig.
+      if (spec.work) loadGLB(spec.work).then((g) => {
+        if (disposed) return;
+        const clip = g.animations?.[0];
+        try { if (clip) workAction = prime(mixer.clipAction(clip), clip); } catch { workAction = null; }
+      }).catch(() => {});
       current = idleAction || walkAction;
       current?.play();
 
@@ -334,7 +341,10 @@ export function createCrewFigure({ name, color, future = false }) {
       setAction(walkAction || idleAction);
     } else if (anim === 'work') {
       rig.rotation.x = POSTURE.workLean; // a hint toward the console, not a hunch
-      setAction(idleAction || walkAction);
+      // Face the prop: three-quarter turn toward the back wall, side chosen by
+      // the sprite's facing so the body reads as turned, not spun.
+      rig.rotation.y = facing === 1 ? Math.PI * 0.72 : Math.PI * 1.28;
+      setAction(workAction || idleAction || walkAction);
     } else {
       setAction(idleAction || walkAction);
     }
