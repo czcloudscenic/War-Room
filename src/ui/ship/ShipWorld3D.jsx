@@ -397,7 +397,7 @@ export default function ShipWorld3D({ crew = [], activity = {}, onStation, selec
     <div onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
       style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.09)', background: '#05060a', touchAction: 'none' }}>
       <Canvas
-        dpr={[1, 1.75]}
+        dpr={[1, 2]}
         camera={{ fov: CAMERA.fov, near: 1, far: 6000, position: CAMERA.position }}
         gl={{ antialias: true, alpha: false, toneMapping: THREE.NoToneMapping }}
         shadows={{ type: THREE.PCFShadowMap }}
