@@ -9,6 +9,31 @@
 // depth reads. Pure three.js, no per-frame allocations, everything from t.
 
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+// ── Generated parts (9/14): a modeled head and a modeled tentacle segment
+// (Tripo text-to-3D) replace the primitive head and cylinder segments when
+// they load; the primitives stay as the stand-in and as the fallback. Both
+// are loaded once and cloned per machine / per segment.
+const PART_URLS = { head: '/sentinel/head.glb', tentacle: '/sentinel/tentacle.glb' };
+const partCache = new Map();
+function loadPart(key) {
+  if (!partCache.has(key)) {
+    partCache.set(key, new Promise((res) => {
+      if (typeof document === 'undefined') return res(null);
+      new GLTFLoader().load(PART_URLS[key], (g) => {
+        const m = g.scene;
+        const box = new THREE.Box3().setFromObject(m);
+        const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+        m.position.set(-c.x, -c.y, -c.z);
+        m.traverse((o) => { if (o.isMesh && o.material) { const mm = o.material; if ('roughness' in mm) mm.roughness = Math.max(mm.roughness ?? 0.6, 0.55); if ('metalness' in mm) mm.metalness = Math.max(mm.metalness ?? 0.5, 0.7); if ('envMapIntensity' in mm) mm.envMapIntensity = 0.5; } });
+        res({ scene: m, size });
+      }, undefined, () => res(null));
+    }));
+  }
+  return partCache.get(key);
+}
+const upgraded = [];   // sentinel groups waiting for parts
 
 const toX = (lx) => lx - 640;
 const toY = (ly) => 360 - ly;
@@ -127,7 +152,38 @@ export function buildSentinel(scale) {
   g.add(beam);
 
   g.scale.setScalar(scale);
-  g.userData = { eyes, hunterEye, nav, beam, tentacles };
+  g.userData = { eyes, hunterEye, nav, beam, tentacles, primitives: { head, ridge } };
+  // Upgrade: modeled head replaces the primitive head + plates (eyes, nav and
+  // beam stay ours: they are driven by state); modeled segments replace each
+  // tentacle's cylinders, keeping the same pivot chain so the writhe is unchanged.
+  loadPart('head').then((part) => {
+    if (!part || !g.parent) return;
+    const h = part.scene.clone(true);
+    const s = 44 / (Math.max(part.size.x, part.size.y, part.size.z) || 1);   // head ≈ 44 units long at scale 1
+    h.scale.setScalar(s);
+    h.rotation.y = 0;   // generated head already faces +X, like ours
+    g.add(h);
+    head.visible = false; ridge.visible = false;
+    g.children.forEach((c) => { if (c.geometry && c.geometry.type === 'SphereGeometry' && c !== head && c.material === darkMat) c.visible = false; });
+  });
+  loadPart('tentacle').then((part) => {
+    if (!part) return;
+    for (const tt of tentacles) {
+      for (let j = 0; j < tt.segs.length; j++) {
+        const seg = tt.segs[j];
+        const piece = part.scene.clone(true);
+        const len = SEG_LEN * 1.02, s = len / (part.size.y || 1);
+        const taper = 1 - j / (tt.segs.length + 2);
+        piece.scale.set(s * 0.8 * taper, s, s * 0.8 * taper);
+        piece.position.y = -SEG_LEN / 2;
+        // The segment's long axis runs diagonally in its own XY; turn it so it hangs down the chain (-Y).
+        piece.rotation.z = -Math.PI / 4;
+        piece.rotation.x = Math.PI;
+        seg.add(piece);
+        if (seg.material) { seg.material = seg.material.clone(); seg.material.visible = false; }
+      }
+    }
+  });
   return g;
 }
 

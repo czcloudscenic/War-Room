@@ -1,5 +1,13 @@
 # Vantus Handoff Brief
 
+## 2026-09-14 (Counsel, later) — "go": hull at 2k, light shafts + dust, modeled sentinel parts. Pushed.
+
+- **Hull texture:** `public/hull/hull.glb` repacked from the raw Meshy output with its 2048 base-color and metallic-roughness maps (WebP, quantized, 6.9 MB). Was a 1k downsize.
+- **Volumetrics (`src/ship/lightShafts.js`):** two crossed additive gradient cards under each room lamp (opacity ~0.09, pulsing) and 900 drifting dust motes across the cutaway. Scenery only.
+- **Modeled sentinel (`drones.js`):** two Tripo text-to-3D parts, `public/sentinel/head.glb` (2.2 MB) and `tentacle.glb` (0.7 MB), loaded once and cloned. The head replaces the primitive head + plates (eyes, nav light and searchlight stay ours, state-driven); each tentacle cylinder gets a modeled segment child with the same pivot chain, so the writhe and the pursuit animation are unchanged. Primitives remain as stand-in and fallback. Orientation: the head already faces +X; the segment's long axis is diagonal in its own XY, turned -45° about Z and flipped to hang down the chain. Both the painted view's drones and the 3D world's escorts use the builder, so both got the upgrade.
+
+**Verified:** harness wide + fly-ins; the docked cutter on the stern shows the modeled head and arms.
+
 ## 2026-09-14 (Counsel) — GOAL PASS: the full 3D ship, hyper-real Matrix, on localhost. Model world is the default 3D View. Pushed.
 
 Christian's /goal: "build the full 3d ship in a local host hyper realistic matrix". Delivered as the modeled world (`ShipWorld3D`), now the default **3D View** on the Ship route; the painted view is the **Painted** toggle, the still plate **Art View**. Run locally with `npm run dev` → the Ship route, or login-free at `/tests/ship-scene.html?view=world&scenario=all`.
