@@ -66,8 +66,9 @@ export function createRoomProps({ rooms, onFirstReady } = {}) {
         if (!o.isMesh || !o.material) return;
         const m = o.material;
         m.side = THREE.FrontSide;
-        if ('roughness' in m) m.roughness = Math.max(m.roughness ?? 0.7, 0.62);
-        if ('metalness' in m) m.metalness = Math.min(m.metalness ?? 0.3, 0.45);
+        if ('roughness' in m) m.roughness = Math.max(m.roughness ?? 0.7, 0.72);
+        if ('metalness' in m) m.metalness = Math.min(m.metalness ?? 0.3, 0.3);
+        if ('envMapIntensity' in m) m.envMapIntensity = 0.3;   // the bakes go chalk-white under full reflections
         // Low: the bakes carry white highlights that bloom into blobs at 0.28.
         if ('emissive' in m && m.map) { m.emissive = new THREE.Color(0x2aabff); m.emissiveMap = m.map; m.emissiveIntensity = 0.10; }
         o.castShadow = true; o.receiveShadow = true;
