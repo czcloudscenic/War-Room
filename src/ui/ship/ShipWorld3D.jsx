@@ -18,6 +18,7 @@ import { createSentinels3D } from '../../ship/sentinels3d.js';
 import { createHullGLB } from '../../ship/hullGLB.js';
 import { createRoomProps } from '../../ship/roomProps.js';
 import { createRoomWalls } from '../../ship/roomWalls.js';
+import { createLightShafts } from '../../ship/lightShafts.js';
 import ShipHUD from './ShipHUD.jsx';
 
 // Grunge textures generated for the cinematic pass (public/textures/). Loaded
@@ -131,6 +132,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
   const hullRef = useRef(null);
   const propsRef = useRef(null);
   const wallsRef = useRef(null);
+  const shaftsRef = useRef(null);
   // Everything that IS the ship (hull, greebles, crew) hangs under one rig so
   // the whole vessel can bank and breathe while the world streams past it.
   const shipRigRef = useRef(null);
@@ -192,6 +194,9 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       const walls = createRoomWalls({ rooms: model.rooms });
       wallsRef.current = walls;
       shipRigRef.current.add(walls.group);
+      const shafts = createLightShafts({ rooms: model.rooms });
+      shaftsRef.current = shafts;
+      shipRigRef.current.add(shafts.group);
     });
     return () => {
       disposed = true;
@@ -199,6 +204,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       if (hullRef.current) { rig.remove(hullRef.current.group); hullRef.current.dispose(); hullRef.current = null; }
       if (propsRef.current) { rig.remove(propsRef.current.group); propsRef.current.dispose(); propsRef.current = null; }
       if (wallsRef.current) { rig.remove(wallsRef.current.group); wallsRef.current.dispose(); wallsRef.current = null; }
+      if (shaftsRef.current) { rig.remove(shaftsRef.current.group); shaftsRef.current.dispose(); shaftsRef.current = null; }
       if (textures.current) for (const t of Object.values(textures.current)) t?.dispose();
       rig.remove(greebles.group); greebles.dispose();
       scene.remove(env.group); env.dispose();
@@ -267,6 +273,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     propsRef.current?.update(t);
     const threat = sentinelsRef.current?.threat || 0;
     wallsRef.current?.update(t);
+    shaftsRef.current?.update(t);
     sentinelsRef.current?.update(t, { enclosed: !!tunnelRef.current?.enclosed });
     if (contactsRef) sentinelsRef.current?.getContacts(contactsRef.current);
     // Flight: a slow bank and a breathing pitch on the whole vessel, plus a
