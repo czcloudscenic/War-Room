@@ -51,7 +51,7 @@ function Effects() {
   const { gl, scene, camera, size } = useThree();
   const composer = useMemo(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = 1.35;
+    gl.toneMappingExposure = 1.7;
     const c = new EffectComposer(gl);
     c.addPass(new RenderPass(scene, camera));
     // Bloom is seasoning, not the dish: 0.75 turned every emissive into neon.
@@ -142,7 +142,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     let disposed = false;
     // Tunnel haze: dense and near-black so the trench ends fall away into
     // nothing. Density is the limit for the hull still reading (see below).
-    scene.fog = new THREE.FogExp2(0x04060a, 0.00064);
+    scene.fog = new THREE.FogExp2(0x04060a, 0.00042);
     const env = createEnvironment();
     const greebles = createGreebles();
     greebles.group.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshLambertMaterial) { o.castShadow = true; o.receiveShadow = true; } });
@@ -325,12 +325,12 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       {/* Cinematic rig: deep-shadow base + pools of warm lamp light per room —
           the reference's contrast instead of an even wash. Bloom (Effects)
           turns the emissives into real glow. */}
-      <ambientLight intensity={0.24} color="#5a7492" />
-      <hemisphereLight args={['#4a6a90', '#05070a', 0.45]} />
+      <ambientLight intensity={0.46} color="#5a7492" />
+      <hemisphereLight args={['#4a6a90', '#05070a', 0.7]} />
       {/* The one shadow-casting light: a cool key from high front-left, ortho
           frustum sized to the hull so the 2k map spends its texels on the ship. */}
       <directionalLight
-        position={[-420, 620, 760]} intensity={2.4} color="#b9d3ee" castShadow
+        position={[-420, 620, 760]} intensity={3.4} color="#b9d3ee" castShadow
         shadow-mapSize-width={2048} shadow-mapSize-height={2048}
         shadow-camera-left={-1320} shadow-camera-right={1260} shadow-camera-top={1030} shadow-camera-bottom={-970}
         shadow-camera-near={10} shadow-camera-far={2300} shadow-bias={-0.0006} shadow-normalBias={2}
@@ -356,7 +356,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
         <pointLight key={'pad' + i} position={[x, HULL_3D.yBottom - 140, 60]} intensity={70000} distance={800} decay={2} color="#2aabff" />
       ))}
       {/* soft cool front fill so the cutaway's nearest faces never go void */}
-      <pointLight position={[0, 100, 700]} intensity={120000} distance={2000} decay={2} color="#5a7492" />
+      <pointLight position={[0, 100, 700]} intensity={200000} distance={2400} decay={2} color="#6f8db0" />
       <Effects />
     </>
   );

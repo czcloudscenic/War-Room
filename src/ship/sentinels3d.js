@@ -63,7 +63,7 @@ function clampOutsideHull(p) {
 
 // Escort slots in scene space. The ship flies toward -X; heads face -X.
 const ESCORTS = [
-  { name: 'stern-high', x: 590, y: HULL_3D.yTop + 45, z: -60, s: 2.2, drift: 40, period: 9000, phase: 0.0 },
+  { name: 'stern-high', x: 590, y: HULL_3D.yTop + 45, z: -60, s: 3.4, drift: 40, period: 9000, phase: 0.0 },
   // tight = where each escort holds under pursuit (always OUTSIDE the hull)
   // Under the bow, in the lower band left of the under-hull glow (the camera
   // frames x -580..820 at hull depth; anything further left is off screen).
@@ -80,7 +80,10 @@ const PURSUIT = {
   crawl: 40,                                       // it creeps +-this along x, slowly (period ~50 s => ~5 u/s)
   pitch: -0.7,                                     // body nose-down so the eyes look at the plating
   headLen: 44,                                     // modeled head length at scale 1 (drones.js)
-  grip: { base: -1.1, curl: 0.12, fan: 0.55 },     // arm pose on the plating (see animateBody)
+  // Grip: arms splay RADIALLY around the body like the film (some reach
+  // forward over the head, some aft, the sides reach over the flanks), each
+  // arcing down until the tip meets the plating. Not a bunch under the body.
+  grip: { base: -0.1, spread: 0.9, curl: 0.17, fan: 1.25 },
 };
 const SCAR_COUNT = 6, SCAR_LIFE = 6.0, SCAR_EVERY = 1000;   // glowing cut trail: ring of strips, s / ms
 
@@ -153,7 +156,7 @@ export function createSentinels3D() {
     for (let k = 0; k < ud.tentacles.length; k++) {
       const tt = ud.tentacles[k];
       const ring = tt.ring ?? (tt.phase / 1.7);
-      if (grip > 0) tt.root.rotation.x = Math.sin(ring) * (0.3 * (1 - grip) - G.fan * grip);
+      if (grip > 0) tt.root.rotation.x = Math.sin(ring) * (0.3 * (1 - grip) + G.fan * grip);
       else tt.root.rotation.x = Math.sin(ring) * 0.3;
       for (let j = 0; j < tt.segs.length; j++) {
         // Trailing in the slipstream: a travelling wave down each arm, faster
@@ -162,7 +165,7 @@ export function createSentinels3D() {
           + Math.sin(t / (520 / agitation) + tt.phase + j * 0.6 + i * 2) * (0.12 + j * 0.028);
         let z = trail;
         if (grip > 0) {
-          const hold = (j === 0 ? G.base : G.curl * j)
+          const hold = (j === 0 ? (G.base + G.spread * Math.cos(ring)) : G.curl * j)
             + Math.sin(t / 1400 + tt.phase + j * 0.5) * (0.03 + j * 0.006);   // small writhe: it is still alive
           z = trail + (hold - trail) * grip;
         }

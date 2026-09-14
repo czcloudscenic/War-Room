@@ -51,8 +51,8 @@ const PATHS = [
 ];
 
 const TENTACLES = 12;
-const SEGMENTS = 9;
-const SEG_LEN = 17;
+const SEGMENTS = 11;
+const SEG_LEN = 13;   // arm ≈ 3.2 head-lengths: long whips, not a bunch of legs
 
 function makeTentacle(mat) {
   // Chain of tapered segments, each pivoting at its top — sway cascades down.
@@ -163,6 +163,7 @@ export function buildSentinel(scale) {
     const s = 44 / (Math.max(part.size.x, part.size.y, part.size.z) || 1);   // head ≈ 44 units long at scale 1
     h.scale.setScalar(s);
     h.rotation.y = 0;   // generated head already faces +X, like ours
+    h.rotation.x = Math.PI;   // its socket ring was on top; rolled under, where the arms emerge
     g.add(h);
     head.visible = false; ridge.visible = false;
     g.children.forEach((c) => { if (c.geometry && c.geometry.type === 'SphereGeometry' && c !== head && c.material === darkMat) c.visible = false; });
