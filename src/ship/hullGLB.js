@@ -2,28 +2,185 @@
 // The generated exterior hull (Meshy image-to-3D from Christian's reference,
 // 9/11: armored plated hovercraft, forward cockpit block, cyan ring hover pads,
 // antenna masts, twin turret). It replaces the procedural box shell in the
-// modeled world: scaled to the hull contract (length 1200 along X, nose at
-// -X), and CUT AWAY on the camera side with a clipping plane so the procedural
-// decks and rooms inside stay visible. The renderer needs localClippingEnabled.
+// modeled world, scaled UNIFORMLY so the room block sits in its belly with a
+// real band of plating above and below, and CUT AWAY on the camera side with a
+// clipping window so the procedural decks and rooms inside stay visible. A
+// procedural "cut frame" (deck-edge beams, vertical ribs, top and bottom edge
+// plates) dresses the opening so it reads as a section through a vessel, not
+// a hole. The renderer needs localClippingEnabled.
 //
 //   const hull = createHullGLB({ onReady });
 //   rig.add(hull.group); hull.update(t); hull.dispose();
+//
+// Exports for the other systems (sentinels dock on the armor):
+//   HULL_BOUNDS   { x0, x1, y0, y1, z0, z1 } of the placed exterior, defaults
+//                 from the intended numbers, exact after the GLB lands.
+//   HULL_TOP_Y(x) y of the top armor at scene x along the centerline.
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { HULL_3D } from './scene3dContract.js';
+import { HULL_3D, DECK_Y, DECK_CLEAR, WALK_Z, toSceneX } from './scene3dContract.js';
+import { ROOMS } from './world.js';
 
 export const HULL_URL = '/hull/hull.glb';
-// The exterior must be BIGGER than the room block, or the cutaway window
-// removes almost all of it: 1.22x the contract length puts the nose block and
-// stern beyond the decks and the top armor and pad carriage outside the cut.
-const LENGTH = (HULL_3D.x1 - HULL_3D.x0) * 1.22;   // 1464
+
+// Measured proportions of hull.glb (154k verts, decoded 9/14): bounding box
+// height 0.4074 and depth 0.5013 of its length; along the centerline the top
+// armor plating sits at about +0.14 L and the belly at about -0.11 L (the
+// hover pads hang to -0.20 L, the masts and turret reach +0.20 L). The body
+// is therefore only ~0.25 L tall, so to keep true proportions (no Y stretch)
+// AND enclose the 450-tall room block with ~110 units of plating above the
+// top-deck ceiling (210) and below the lower-deck floor (-140), the hull has
+// to be ~1.92x the 1200 contract length: 2304 long, centered on the rooms.
+const SCALE = 1.92;
+const LENGTH = (HULL_3D.x1 - HULL_3D.x0) * SCALE;   // 2304
+const PROP = { h: 0.4074, d: 0.5013 };
+// The bounding-box center (masts and pads included) lands here. y 0 puts the
+// belly plating at ~-253 and the top armor at ~+322; z -60 keeps the hull's
+// centerline near the rooms' mid-depth so the top profile is honest at z≈0.
+const OFFSET = { x: 0, y: 0, z: -60 };
+const YAW = Math.PI;   // the generation puts the cockpit at +X; the contract wants the nose at -X
+
 // The cutaway is a WINDOW, not a half: five planes with clipIntersection
-// remove only fragments inside the box (x0..x1, y0..y1, z > zBack), so the
-// nose block, stern, top armor, keel and hover pads all survive and the rooms
-// show through the opening. The rooms' own back panel closes the window.
-const CUT = { x0: -556, x1: 598, y0: -198, y1: 252, zBack: -150 };
+// remove only fragments inside the box (x0..x1, y0..y1, z > zBack): exactly
+// the interior plus a small margin, so the nose block, stern, top armor, keel
+// and hover pads all survive and the rooms show through the opening. The
+// rooms' own back panel closes the window.
+export const CUT = {
+  x0: -570, x1: 610,
+  y0: DECK_Y[1] - 6,               // -146: lower-deck floor minus a lip
+  y1: DECK_Y[0] + DECK_CLEAR + 6,  //  216: upper-deck ceiling plus a lip
+  zBack: -150,
+};
+
+export const HULL_BOUNDS = {
+  x0: OFFSET.x - LENGTH / 2, x1: OFFSET.x + LENGTH / 2,                      // -1152 .. 1152
+  y0: OFFSET.y - LENGTH * PROP.h / 2, y1: OFFSET.y + LENGTH * PROP.h / 2,    //  -469 ..  469
+  z0: OFFSET.z - LENGTH * PROP.d / 2, z1: OFFSET.z + LENGTH * PROP.d / 2,    //  -637 ..  517
+};
+
+// Centerline top-armor profile, 40 bins nose→stern, as a fraction of the
+// length (95th percentile of y within |z| < 0.06 L per bin, measured from the
+// GLB; the dip at bins 7..11 is the low forward deck behind the nose block,
+// bin 21 is the turret). Replaced by the live measurement once the GLB lands.
+const TOP_PROFILE_DEFAULT = [
+  0.019, 0.012, -0.006, -0.012, 0.010, -0.001, -0.012, -0.037, -0.039, -0.052,
+  -0.061, -0.080, 0.081, 0.115, 0.126, 0.134, 0.135, 0.138, 0.150, 0.148,
+  0.145, 0.203, 0.155, 0.132, 0.164, 0.125, 0.141, 0.114, 0.151, 0.145,
+  0.151, 0.156, 0.120, 0.083, 0.061, 0.052, 0.043, 0.038, 0.015, -0.012,
+];
+let topProfile = TOP_PROFILE_DEFAULT.map((f) => OFFSET.y + f * LENGTH);
+
+// y of the top armor surface at scene x (centerline), 4 units under the
+// plating so a docked machine sits ON it. Clamped to the hull's ends.
+export function HULL_TOP_Y(x) {
+  const n = topProfile.length;
+  const u = (x - HULL_BOUNDS.x0) / (HULL_BOUNDS.x1 - HULL_BOUNDS.x0) * n - 0.5;
+  const i = Math.max(0, Math.min(n - 1, Math.floor(u)));
+  const k = Math.max(0, Math.min(n - 1, i + 1));
+  const t = Math.max(0, Math.min(1, u - i));
+  return topProfile[i] + (topProfile[k] - topProfile[i]) * t - 4;
+}
+
 const PAD = { color: 0x2aabff, base: 0.55, pulse: 0.35 };
+
+// ── Cut frame: the structure exposed by the section ──────────────────────────
+// Deck-edge beams at each floor (top flush with the floor so crew walk on
+// them), vertical ribs every 180 units that avoid the middle of every room,
+// end posts, and a top and bottom edge plate. Dark steel, shadowed, no clip.
+const FRAME = {
+  color: 0x151a22, roughness: 0.7, metalness: 0.5,
+  z: WALK_Z + 6,          // 46: the walk lane's front edge
+  beam: { h: 14, d: 22 },
+  rib: { w: 10, d: 18, every: 180, zProud: 8 },
+  plate: { h: 30, d: 26 },
+  inset: 4,               // frame ends sit just inside the window
+};
+
+function ribXs() {
+  const x0 = CUT.x0 + FRAME.inset + FRAME.rib.w / 2;
+  const x1 = CUT.x1 - FRAME.inset - FRAME.rib.w / 2;
+  // A rib may not stand in the central 60% of any room on either deck.
+  const blocked = ROOMS.map((r) => {
+    const a = toSceneX(r.x0), b = toSceneX(r.x1), c = (a + b) / 2, w = b - a;
+    return [c - 0.3 * w, c + 0.3 * w];
+  });
+  const xs = [x0, x1];
+  for (let x = Math.ceil(x0 / FRAME.rib.every) * FRAME.rib.every; x < x1; x += FRAME.rib.every) {
+    if (Math.abs(x - x0) < 60 || Math.abs(x - x1) < 60) continue;
+    if (blocked.some(([a, b]) => x > a && x < b)) continue;
+    xs.push(x);
+  }
+  return xs;
+}
+
+function createCutFrame() {
+  const g = new THREE.Group();
+  g.name = 'hullCutFrame';
+  const mat = new THREE.MeshStandardMaterial({ color: FRAME.color, roughness: FRAME.roughness, metalness: FRAME.metalness });
+  const add = (w, h, d, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(x, y, z);
+    m.castShadow = true; m.receiveShadow = true;
+    g.add(m);
+    return m;
+  };
+  const len = CUT.x1 - CUT.x0 - 2 * FRAME.inset;
+  const cx = (CUT.x0 + CUT.x1) / 2;
+  // Deck-edge beams: full length at each floor level, top flush with the floor.
+  for (const deck of [0, 1]) add(len, FRAME.beam.h, FRAME.beam.d, cx, DECK_Y[deck] - FRAME.beam.h / 2, FRAME.z);
+  // Top and bottom edge plates along the cut.
+  add(len, FRAME.plate.h, FRAME.plate.d, cx, CUT.y1 + FRAME.plate.h / 2, FRAME.z);
+  add(len, FRAME.plate.h, FRAME.plate.d, cx, CUT.y0 - FRAME.plate.h / 2, FRAME.z);
+  // Vertical ribs spanning plate to plate, standing a little proud of the beams.
+  const ribH = (CUT.y1 + FRAME.plate.h) - (CUT.y0 - FRAME.plate.h);
+  const ribY = (CUT.y1 + CUT.y0) / 2;
+  for (const x of ribXs()) add(FRAME.rib.w, ribH, FRAME.rib.d, x, ribY, FRAME.z + FRAME.rib.zProud);
+  return g;
+}
+
+// Measure the placed hull in the group's own space: exact bounds, and the
+// centerline top-armor profile (per-bin 95th percentile so the thin masts do
+// not pull it up). Runs once, ~150k vertices.
+function measure(group, wrap) {
+  group.updateMatrixWorld(true);
+  const toGroup = group.matrixWorld.clone().invert();
+  const box = new THREE.Box3();
+  const n = topProfile.length;
+  const bins = Array.from({ length: n }, () => []);
+  const v = new THREE.Vector3();
+  const m = new THREE.Matrix4();
+  wrap.traverse((o) => {
+    if (!o.isMesh || !o.geometry?.attributes?.position) return;
+    m.multiplyMatrices(toGroup, o.matrixWorld);
+    const pos = o.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(m);
+      box.expandByPoint(v);
+      if (Math.abs(v.z - OFFSET.z) < 0.06 * LENGTH) {
+        const b = Math.floor((v.x - HULL_BOUNDS.x0) / (HULL_BOUNDS.x1 - HULL_BOUNDS.x0) * n);
+        if (b >= 0 && b < n) bins[b].push(v.y);
+      }
+    }
+  });
+  if (box.isEmpty()) return;
+  Object.assign(HULL_BOUNDS, { x0: box.min.x, x1: box.max.x, y0: box.min.y, y1: box.max.y, z0: box.min.z, z1: box.max.z });
+  const prof = bins.map((a) => { if (a.length < 10) return null; a.sort((p, q) => p - q); return a[Math.floor(0.95 * (a.length - 1))]; });
+  // Fill empty bins from neighbours and knock out single-bin holes (a mast
+  // base with no centerline plating reads as a pit otherwise).
+  for (let i = 0; i < n; i++) {
+    if (prof[i] !== null) continue;
+    let l = i - 1; while (l >= 0 && prof[l] === null) l--;
+    let r = i + 1; while (r < n && prof[r] === null) r++;
+    const a = l >= 0 ? prof[l] : null, b = r < n ? prof[r] : null;
+    prof[i] = a !== null && b !== null ? (a + b) / 2 : (a ?? b ?? topProfile[i]);
+  }
+  for (let i = 1; i < n - 1; i++) {
+    const nb = Math.min(prof[i - 1], prof[i + 1]);
+    if (prof[i] < nb - 0.08 * LENGTH) prof[i] = (prof[i - 1] + prof[i + 1]) / 2;
+  }
+  topProfile = prof;
+}
 
 export function createHullGLB({ onReady } = {}) {
   const group = new THREE.Group();
@@ -42,27 +199,27 @@ export function createHullGLB({ onReady } = {}) {
   let disposed = false;
   let ready = false;
 
+  // The frame is procedural: it is there from the first frame, so the section
+  // never pops in after the hull.
+  group.add(createCutFrame());
+
   new GLTFLoader().load(HULL_URL, (gltf) => {
     if (disposed) return;
     const model = gltf.scene;
-    // Normalize: center, scale to the contract length, nose toward -X.
+    // Normalize: center on the bounding box, uniform scale to LENGTH, nose
+    // toward -X (turned about Y; symmetry was on, so both flanks carry the
+    // outrigger rings), then offset so the rooms sit in the belly.
     const box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
     const c = box.getCenter(new THREE.Vector3());
     const s = LENGTH / (size.x || 1);
-    // The generation puts the cockpit block at +X; the contract wants the
-    // nose at -X, so the model is turned about Y (symmetry was on, so both
-    // flanks carry the outrigger rings).
     model.position.set(-c.x, -c.y, -c.z);
     const turn = new THREE.Group();
-    turn.rotation.y = Math.PI;
+    turn.rotation.y = YAW;
     turn.add(model);
-    // Taller than true proportion (1.32x in Y) so a real band of plating
-    // survives above the top deck and below the lower one; a true-scale hull
-    // is only 70 units taller than the room block and the cut ate it all.
     const wrap = new THREE.Group();
-    wrap.scale.set(s, s * 1.32, s * 1.05);
-    wrap.position.set(0, 30, -60);
+    wrap.scale.setScalar(s);
+    wrap.position.set(OFFSET.x, OFFSET.y, OFFSET.z);
     wrap.add(turn);
     model.traverse((o) => {
       if (!o.isMesh || !o.material) return;
@@ -88,8 +245,9 @@ export function createHullGLB({ onReady } = {}) {
       mats.push(m);
     });
     group.add(wrap);
+    measure(group, wrap);
     ready = true;
-    onReady?.({ size: size.clone().multiplyScalar(s) });
+    onReady?.({ size: size.clone().multiplyScalar(s), bounds: { ...HULL_BOUNDS } });
   }, undefined, () => { /* missing hull: the procedural shell stays */ });
 
   function update(t) {

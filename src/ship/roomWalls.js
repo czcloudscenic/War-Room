@@ -56,11 +56,11 @@ export function createRoomWalls({ rooms } = {}) {
     tex(url).then((t) => {
       if (disposed) return;
       const h = (r.ceil - r.floor) - 6;
-      const w = r.w - 8;
+      const w = r.w - 8;   // 4 in from each bay edge: neighbours never overlap now that no partition sits between them
       // Cover-fit: keep the panel's aspect, crop the overflow so nothing stretches.
       const img = t.image; const ia = img && img.width ? img.width / img.height : 1;
       const pa = w / h;
-      const m = new THREE.MeshStandardMaterial({ map: t, emissive: 0x9fd8ff, emissiveMap: t, emissiveIntensity: 0.2, roughness: 0.82, metalness: 0.2 });
+      const m = new THREE.MeshStandardMaterial({ map: t, emissive: 0x9fd8ff, emissiveMap: t, emissiveIntensity: 0.16, roughness: 0.82, metalness: 0.2 });
       if (ia > pa) { m.map.repeat.set(pa / ia, 1); m.map.offset.set((1 - pa / ia) / 2, 0); }
       else { m.map.repeat.set(1, ia / pa); m.map.offset.set(0, (1 - ia / pa) / 2); }
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
@@ -71,7 +71,9 @@ export function createRoomWalls({ rooms } = {}) {
     }).catch(() => {});
   }
   function update(t) {
-    const k = 0.17 + 0.06 * (0.5 + 0.5 * Math.sin(t / 1700));
+    // 0.16 base: with the partitions gone a run of screen panels lines the
+    // whole open deck, and any brighter it becomes a light source of its own.
+    const k = 0.16 + 0.05 * (0.5 + 0.5 * Math.sin(t / 1700));
     for (const m of mats) m.emissiveIntensity = k;
   }
   function dispose() { disposed = true; group.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); group.clear(); }

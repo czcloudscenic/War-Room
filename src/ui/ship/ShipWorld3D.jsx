@@ -77,10 +77,9 @@ const WORLD_CREW_SCALE = 2.05;
 // ── Painted backdrop behind the modeled world (the concept-art plates) ──────
 // Same plates the painted view streams; here they sit behind the 3D city so
 // the horizon and storm read as painting instead of gradient.
-const BACKDROP = [
-  { url: '/ship/plate-open.jpg', z: -1500, w: 6400, h: 2743, speed: 0.004, opacity: 1, y: 120 },
-  { url: '/ship/plate-open.jpg', z: -950, w: 4200, h: 1800, speed: 0.014, opacity: 0.55, y: -420, tint: 0x7f93ad },
-];
+// 2026-09-14: none. The ship stays in the tunnel (tunnel.js encloses the hull),
+// so no painted city plates; the list stays so a plate can come back later.
+const BACKDROP = [];
 function BackdropPlate({ url, z, w, h, speed, opacity = 1, y = 0, tint = 0xffffff }) {
   const base = useLoader(THREE.TextureLoader, url);
   const tex = useMemo(() => { const t = base.clone(); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.MirroredRepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping; t.needsUpdate = true; return t; }, [base]);
@@ -141,9 +140,9 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
   useEffect(() => {
     let model = null;
     let disposed = false;
-    // Aerial haze: depth reads through fog, and the city falls away instead of
-    // sitting flat behind the hull. Density tuned so the stern still reads.
-    scene.fog = new THREE.FogExp2(0x070a10, 0.00052);
+    // Tunnel haze: dense and near-black so the trench ends fall away into
+    // nothing. Density is the limit for the hull still reading (see below).
+    scene.fog = new THREE.FogExp2(0x04060a, 0.00064);
     const env = createEnvironment();
     const greebles = createGreebles();
     greebles.group.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshLambertMaterial) { o.castShadow = true; o.receiveShadow = true; } });
@@ -326,15 +325,15 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       {/* Cinematic rig: deep-shadow base + pools of warm lamp light per room —
           the reference's contrast instead of an even wash. Bloom (Effects)
           turns the emissives into real glow. */}
-      <ambientLight intensity={0.38} color="#5a7492" />
-      <hemisphereLight args={['#4a6a90', '#0b0d12', 0.45]} />
+      <ambientLight intensity={0.24} color="#5a7492" />
+      <hemisphereLight args={['#4a6a90', '#05070a', 0.45]} />
       {/* The one shadow-casting light: a cool key from high front-left, ortho
           frustum sized to the hull so the 2k map spends its texels on the ship. */}
       <directionalLight
         position={[-420, 620, 760]} intensity={2.4} color="#b9d3ee" castShadow
         shadow-mapSize-width={2048} shadow-mapSize-height={2048}
-        shadow-camera-left={-760} shadow-camera-right={760} shadow-camera-top={420} shadow-camera-bottom={-320}
-        shadow-camera-near={200} shadow-camera-far={2400} shadow-bias={-0.0006} shadow-normalBias={2}
+        shadow-camera-left={-1320} shadow-camera-right={1260} shadow-camera-top={1030} shadow-camera-bottom={-970}
+        shadow-camera-near={10} shadow-camera-far={2300} shadow-bias={-0.0006} shadow-normalBias={2}
       />
       {/* three r155+ uses physical falloff: at this scene scale (rooms ~200
           units) pooled lamps need candela-scale intensities to exist at all. */}
@@ -346,7 +345,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
         <pointLight
           key={r.id}
           position={[toSceneX((r.x0 + r.x1) / 2), DECK_Y[r.deck] + DECK_CLEAR - 30, WALK_Z + 14]}
-          intensity={15000}
+          intensity={21000}
           distance={340}
           decay={2}
           color={r.id === 'analytics' ? '#7fc4ff' : '#cfd8e6'}

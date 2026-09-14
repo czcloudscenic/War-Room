@@ -14,7 +14,11 @@ export const DECK_CLEAR = 150;          // floor-to-ceiling per deck
 export const ROOM_DEPTH = 180;          // rooms extend z -140..+40
 export const WALK_Z = 40;               // crew walk lane (front edge of rooms)
 
-// Hull envelope for the model shell (cutaway open toward +Z).
+// Hull envelope for the procedural INTERIOR shell (cutaway open toward +Z):
+// the room block plus its slabs. The generated exterior (hullGLB.js) is
+// placed around this at true proportion and is much bigger; anything that
+// needs the exterior's surface or extents reads HULL_BOUNDS / HULL_TOP_Y
+// from hullGLB.js, not these numbers.
 export const HULL_3D = {
   x0: -600, x1: 600,                    // nose taper begins ~-460, engine block ~+470
   yTop: DECK_Y[0] + DECK_CLEAR + 40,    // 250
@@ -26,7 +30,12 @@ export const HULL_3D = {
 // looking gently down into the cutaway.
 export const CAMERA = {
   fov: 33,
-  position: [140, 110, 1420],   // half-width at this depth ≈ 810: the 1464-long exterior hull fits with margin
+  // The exterior hull is 2304 long (hullGLB.js), centered at z -60. At this
+  // depth (2300 to the hull's centerline) the half-width is ≈ 1310 on a
+  // 1.93:1 viewport (tan(16.5°) × aspect), 1.14× the 1152 half-length, so
+  // the nose block and stern clear the frame edges; y keeps the old ~4.5°
+  // downward pitch so the cut still reads as a section, not a plan.
+  position: [180, 150, 2120],
   target: [10, -10, 0],
   parallax: { x: 26, y: 14 },           // pointer-driven drift amplitude
 };

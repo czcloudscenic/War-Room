@@ -1,5 +1,19 @@
 # Vantus Handoff Brief
 
+## 2026-09-14 (Counsel + 4 agents) — THE REBUILD: Matrix hull proportions, open interior with stairs, sentinel attached and cutting, tunnel only. Pushed.
+
+Christian: "I just don't like the shape of anything: sentinel keeps clipping through the ship, it needs to be attached like the movie blasting lasers; don't like the outside world, keep it in tunnels; the ship size doesn't look like a Matrix ship; don't like all these walls, it needs stairs." Four agents ran in parallel on disjoint files; Counsel integrated and verified in the harness.
+
+- **Exterior (`hullGLB.js`, `scene3dContract.js`):** uniform scale 1.92x (length 2304), no Y stretch, centered (0,0,-60), Y-turn kept. Window CUT x -570..610, y -146..216, z > -150. New cut-frame group: deck-edge beams at y -140/60, plates, section ribs at x -566/-180/0/540/606. Exports `HULL_BOUNDS` (exact after load) and `HULL_TOP_Y(x)` (measured 40-bin centerline profile). Camera now [180,150,2120], fov 33; shadow frustum ±1320/1260.
+- **Interior (`shipModel.js`, `roomWalls.js`):** partitions and ladders removed. I-beam rib pairs at every former partition (back z -130, front z 58) tied by ceiling cross-beams. Switchback stairs at both LADDERS x (13 treads + landing, stringers, riser plates, handrails, stairwell columns, hatch cut through the deck-0 slab). Railing along the deck-0 cut edge (z 48, top 42, mid 21, posts every 90) broken at the openings. New merged mesh 'structure'. Known: crew still climb vertically at LADDERS x (climb anim) rather than walking treads; one bunk frame may clip a tread underside.
+- **Sentinel (`sentinels3d.js`, `drones.js`):** threat > 0.6 eases `attach`; the cutter's position = (dockX crawling ±40 around 470, HULL_TOP_Y(dockX) + 43.6, 30), pitched -0.7 rad; tentacles blend from trailing to a grip pose (seg0 -1.1 rad, +0.12/segment) with writhe; continuous beam from the head to a weld point on the plating, sparks 7%/frame, ring of 6 additive scars fading over 6 s. `clampOutsideHull` pushes every free machine out of HULL_BOUNDS+40. Painted view: `drones.update(t, { enclosed })` makes its beam continuous.
+- **Environment (`tunnel.js`, `environment3d.js`, ShipWorld3D lights/fog):** GAP removed, `enclosed` always true; back wall plating (y ±270), ceiling y 420, black water floor y -500 (MeshStandard, roughness 0.15, reflects the pads), front walkway ledge z 380, ring ribs every 2 segments, pipes, looms, neutral lamps with small halos (opacity 0.09, fog-obeying), steam, pad wash, drips. Outside world built but hidden (`OUTSIDE_VISIBLE`); BACKDROP empty; fog 0x04060a @ 0.00064; ambient 0.24. 17 draw calls for the enclosure.
+- **Integration fixes by Counsel:** halos were grey discs (fog-immune) → fog-obeying, 130 px, 0.09; camera 2240 → 2120; room lamps 21000 cd.
+
+**Verified:** wide frame reads as a Matrix hovercraft in a tunnel; fly-ins show open decks, stairs, railings; the docked sentinel grips the stern with its head on the plating.
+
+**Next:** crew walk the stair treads (shipEngine climb path → stair path), a second hunter head variant, crew idle clips from the rig library, and the painted view can retire once Christian stops using it.
+
 ## 2026-09-14 (Counsel, later) — "go": hull at 2k, light shafts + dust, modeled sentinel parts. Pushed.
 
 - **Hull texture:** `public/hull/hull.glb` repacked from the raw Meshy output with its 2048 base-color and metallic-roughness maps (WebP, quantized, 6.9 MB). Was a 1k downsize.

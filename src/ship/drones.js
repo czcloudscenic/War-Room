@@ -136,6 +136,7 @@ export function buildSentinel(scale) {
     t.base = -0.55 + Math.cos(a) * 0.18; // trail backward, slightly fanned
     t.root.rotation.x = Math.sin(a) * 0.3; // fan across depth
     t.phase = a * 1.7;
+    t.ring = a;              // position around the ring (sentinels3d fans the grip by it)
     g.add(t.root);
     tentacles.push(t);
   }
@@ -232,7 +233,7 @@ export function createDrones() {
   const _dir = new THREE.Vector3();
   const _up = new THREE.Vector3(0, 1, 0);
 
-  function updateAttacker(t) {
+  function updateAttacker(t, enclosed = false) {
     const g = attacker;
     // agitated hover: tight lissajous drift + bob, always facing the hull
     g.position.x = toX(ATTACK.hover.x) + Math.sin(t / 1400) * 6;
@@ -267,8 +268,9 @@ export function createDrones() {
         tt.segs[j].rotation.x = Math.sin(t / 900 + tt.phase * 1.3 + j * 0.4) * 0.08;
       }
     }
-    // laser bursts: ~1.4s on, ~2.4s off, with a fast cutting flicker while on
-    const firing = (t % 3800) < 1400;
+    // laser bursts: ~1.4s on, ~2.4s off, with a fast cutting flicker while on;
+    // inside a tunnel (enclosed) it cuts continuously, like the Osiris pursuit.
+    const firing = enclosed || (t % 3800) < 1400;
     _muzzle.set(g.position.x + 10, g.position.y - 4, ATTACK.z);
     _dir.subVectors(_hit, _muzzle);
     const len = _dir.length();
@@ -292,8 +294,10 @@ export function createDrones() {
   const DRIFT = [38, 52, -70, 44]; // world-relative x speed per machine, units/sec (+ = falls behind)
   let lastT = null;
   const driftX = [0, 0, 0, 0];
-  function update(t) {
-    updateAttacker(t);
+  // opts.enclosed (optional): the painted view's tunnel is closed in, so the
+  // attacker cuts continuously. Absent, the old burst behaviour holds.
+  function update(t, opts = {}) {
+    updateAttacker(t, !!opts.enclosed);
     const dt = lastT == null ? 0 : Math.min(0.1, (t - lastT) / 1000);
     lastT = t;
     for (let i = 0; i < drones.length; i++) {

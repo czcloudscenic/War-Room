@@ -1,6 +1,9 @@
 // ── Agent Ship — procedural low-poly 3D interior ─────────────────────────────
 // Replaces the painted backdrop with a real modeled cutaway hull. Low-poly
 // stylized homage to the painted art: chunky readable forms, emissive accents.
+// Decks are OPEN (no partitions): bays are defined by rib pairs, floor seams
+// and furniture; switchback steel stairs link the decks at each LADDERS x and
+// the upper deck's cut edge carries a railing (merged mesh 'structure').
 //
 // Pure ES module. Deterministic (no Math.random — index-seeded sin-hash).
 // All geometry/materials built ONCE at create; materials shared across meshes;
@@ -143,6 +146,11 @@ export function createShipModel(options = {}) {
   const matDeck = lambert(PALETTE.deck);
   const matWall = lambert(PALETTE.wall);
   const matRib = lambert(PALETTE.rib);
+  // Open-deck structure (ribs, stairs, railings): dark steel, single-sided
+  // solids. Lives in its own merged mesh ('structure') so the host's
+  // hide-by-name of 'props' (real GLB props landing) never takes the stairs.
+  const matStructure = new THREE.MeshStandardMaterial({ color: 0x4a515c, roughness: 0.7, metalness: 0.5, envMapIntensity: 0.6 });
+  mats.push(matStructure);
 
   // The big surfaces must be LIGHTABLE even with no textures (texture loads
   // can fail on a flaky connection): near-black albedo reflects nothing under
@@ -216,12 +224,35 @@ export function createShipModel(options = {}) {
   const bagHull = new MergeBag();      // armored outer skin
   const bagHullDark = new MergeBag();  // back hull wall, seams, dark plating
   const bagDeck = new MergeBag();      // two floor slabs
-  const bagWall = new MergeBag();      // partitions, room back panels
+  const bagWall = new MergeBag();      // deck end walls, room back panels, wall boards
   const bagProp = new MergeBag();      // desks, chairs, arches, rails, misc props
   const bagRim = new MergeBag();       // emissive cutaway rim + faint shaft edges
   const bagCyan = new MergeBag();      // bright cyan accents
   const bagAmber = new MergeBag();     // bright amber accents
   const bagGhost = new MergeBag();     // additive translucent cyan volumes
+  const bagStructure = new MergeBag(); // open-deck steel: ribs, stairs, railings
+
+  // ── stairwells (one per LADDERS x) ────────────────────────────────────────
+  // Switchback stair between decks, flights running along z so the whole
+  // thing fits in a 104-wide strip: the lower flight (A, on the -X side) climbs
+  // from the walk lane toward the back wall, a landing turns it, and the upper
+  // flight (B, centered just +X of the ladder x, where crew climb) comes back
+  // toward the cutaway edge and arrives through a hole in the deck-0 slab.
+  // Everything here is derived from the same numbers so the slab cut, rails
+  // and treads agree.
+  const STAIR = { rises: 14, tread: 22, pitch: 14, w: 52, landingD: 40, off: 10 };
+  const stairwells = shaftXs.map((sx) => {
+    const xB = sx + STAIR.off;             // upper flight center (crew climb at sx)
+    const xA = xB - STAIR.w;               // lower flight center, side by side
+    const zFirst = WALK_Z - 26;            // first tread center: one pitch behind the crew lane
+    const zLast = zFirst - 5 * STAIR.pitch;// sixth tread center (-42)
+    const zLandBack = zLast - STAIR.tread / 2 - STAIR.landingD; // -93
+    return {
+      sx, xB, xA, zFirst, zLast, zLandBack,
+      hole: { x0: xB - STAIR.w / 2, x1: xB + STAIR.w / 2, z0: zLandBack, z1: 52 }, // deck-0 slab cut
+    };
+  });
+  const inHole = (x) => stairwells.some((s) => x > s.hole.x0 - 2 && x < s.hole.x1 + 2);
 
   // ── 1. HULL SHELL ──────────────────────────────────────────────────────────
   // keel
@@ -253,11 +284,24 @@ export function createShipModel(options = {}) {
   }
 
   // ── 2. DECKS ───────────────────────────────────────────────────────────────
-  bagDeck.box(1135, SLAB_T, 202, 22, DECK_Y[0] - SLAB_T / 2, -49); // deck 0 (upper)
+  // deck 0 (upper): drawn in pieces so each stairwell arrives through a real
+  // opening (front z0..52 open in the hole's x-range; the back strip stays).
+  {
+    const D0 = { x0: 22 - 1135 / 2, x1: 22 + 1135 / 2, z0: -150, z1: 52, y: DECK_Y[0] - SLAB_T / 2 };
+    const slab = (x0, x1, z0, z1) => { if (x1 - x0 > 0.5) bagDeck.box(x1 - x0, SLAB_T, z1 - z0, (x0 + x1) / 2, D0.y, (z0 + z1) / 2); };
+    let cursor = D0.x0;
+    for (const s of [...stairwells].sort((a, b) => a.hole.x0 - b.hole.x0)) {
+      slab(cursor, s.hole.x0, D0.z0, D0.z1);              // full-depth run up to the hole
+      slab(s.hole.x0, s.hole.x1, D0.z0, s.hole.z0);       // back strip behind the hole
+      cursor = s.hole.x1;
+    }
+    slab(cursor, D0.x1, D0.z0, D0.z1);
+  }
   bagDeck.box(1065, SLAB_T, 202, 87, DECK_Y[1] - SLAB_T / 2, -49); // deck 1 (lower)
-  // panel seams (thin dark strips on the floor surface)
+  // panel seams (thin dark strips on the floor surface; none across a stairwell)
   for (let i = 0; i < 12; i++) {
-    bagHullDark.box(3, 1.6, 194, -510 + i * 96, DECK_Y[0] + 0.5, -49);
+    const x0 = -510 + i * 96;
+    if (!inHole(x0)) bagHullDark.box(3, 1.6, 194, x0, DECK_Y[0] + 0.5, -49);
     if (i < 11) bagHullDark.box(3, 1.6, 194, -420 + i * 96, DECK_Y[1] + 0.5, -49);
   }
 
@@ -271,19 +315,42 @@ export function createShipModel(options = {}) {
   bagRim.box(5, 168, 5, -604, 25, 57);                // nose cap slice
   bagRim.box(5, 448, 5, 645, 20, 52);                 // stern block slice
 
-  // ── 3. ROOMS: partitions + back panels ─────────────────────────────────────
+  // ── 3. ROOMS: open decks — structural ribs at bay boundaries + back panels ─
+  // No partitions between bays any more (the owner wants open sightlines along
+  // the whole deck, Nebuchadnezzar-style). Each former partition is a rib
+  // pair: an I-beam column against the back wall and one at the cutaway edge,
+  // tied by a ceiling cross-beam. Only the deck END walls stay solid.
   const partH = { 0: CEIL0 - DECK_Y[0], 1: CEIL1 - DECK_Y[1] };
   const partMidY = { 0: (CEIL0 + DECK_Y[0]) / 2, 1: (CEIL1 + DECK_Y[1]) / 2 };
-  // partition = full depth at back, door gap at the walk lane (z -6..+40 open)
   const partition = (x, deck) => {
     bagWall.box(10, partH[deck], 134, x, partMidY[deck], -73);
+  };
+  const Z_RIB_BACK = Z_ROOM_BACK + 10;   // -130: column face against the back panel
+  const Z_RIB_FRONT = 58;                // at the cutaway slice, clear of the crew lane (z 34..46)
+  // I-beam: web + two flanges, `h` tall, standing on `y0`
+  const iBeam = (x, y0, z, h, ry = 0) => {
+    const cy = y0 + h / 2;
+    bagStructure.box(4, h, 14, x, cy, z, 0, ry);
+    bagStructure.box(12, h, 3, x, cy, z - 8.5, 0, ry);
+    bagStructure.box(12, h, 3, x, cy, z + 8.5, 0, ry);
+  };
+  const ribPair = (x, deck) => {
+    const y0 = DECK_Y[deck]; const h = partH[deck];
+    iBeam(x, y0, Z_RIB_BACK, h);
+    iBeam(x, y0, Z_RIB_FRONT, h);
+    // ceiling cross-beam joining the pair (12 wide, 14 deep in y)
+    const zc = (Z_RIB_BACK + Z_RIB_FRONT) / 2;
+    bagStructure.box(12, 14, Z_RIB_FRONT - Z_RIB_BACK, x, y0 + h - 7, zc);
+    // gusset plates where the beam meets each column
+    bagStructure.box(12, 10, 10, x, y0 + h - 19, Z_RIB_BACK + 12);
+    bagStructure.box(12, 10, 10, x, y0 + h - 19, Z_RIB_FRONT - 12);
   };
   for (const deck of [0, 1]) {
     const dr = rooms.filter((r) => r.deck === deck).sort((a, b) => a.x0 - b.x0);
     for (let i = 0; i < dr.length - 1; i++) {
       const b = (dr[i].x1 + dr[i + 1].x0) / 2;
-      if (shaftXs.some((sx) => Math.abs(sx - b) < 20)) continue; // lift shaft seam
-      partition(b, deck);
+      if (shaftXs.some((sx) => Math.abs(sx - b) < 20)) continue; // stairwell seam: framed below
+      ribPair(b, deck);
     }
   }
   partition(585, 0);                 // deck 0 aft end wall
@@ -518,13 +585,123 @@ export function createShipModel(options = {}) {
     glowMats.push(mat4(713, -60, zc));
   }
 
-  // ── 5. LIFT SHAFTS ─────────────────────────────────────────────────────────
-  for (const sx of shaftXs) {
-    bagProp.box(5, 220, 5, sx - 14, -30, 28);
-    bagProp.box(5, 220, 5, sx + 14, -30, 28);
-    for (let k = 0; k < 8; k++) bagProp.box(24, 3, 3, sx, -120 + k * 28, 28);
-    bagRim.box(2, 220, 2, sx - 17, -30, 31); // faint emissive shaft edges
-    bagRim.box(2, 220, 2, sx + 17, -30, 31);
+  // ── 5. STAIRS + RAILINGS (replace the lift-shaft ladders) ──────────────────
+  // Steel helpers. Cylinders are built axis-Y; rotate the template so the
+  // axis lies along the run, then place it with mat4.
+  const RAIL_R = 2.2; const MID_R = 1.6; const RAIL_H = 42; const MID_H = 21;
+  const cylX = (x0, x1, y, z, r) => {
+    const g = new THREE.CylinderGeometry(r, r, Math.abs(x1 - x0), 8); g.rotateZ(Math.PI / 2);
+    bagStructure.add(g, mat4((x0 + x1) / 2, y, z));
+  };
+  const cylZ = (z0, z1, x, y, r) => {
+    const g = new THREE.CylinderGeometry(r, r, Math.abs(z1 - z0), 8); g.rotateX(Math.PI / 2);
+    bagStructure.add(g, mat4(x, y, (z0 + z1) / 2));
+  };
+  // sloped member in the YZ plane from (z0,y0) to (z1,y1): cylinder or box
+  const slopeRx = (dz, dy) => Math.atan2(-dy, dz);
+  const cylSlope = (x, z0, y0, z1, y1, r) => {
+    const L = Math.hypot(z1 - z0, y1 - y0);
+    const g = new THREE.CylinderGeometry(r, r, L, 8); g.rotateX(Math.PI / 2);
+    bagStructure.add(g, mat4(x, (y0 + y1) / 2, (z0 + z1) / 2, slopeRx(z1 - z0, y1 - y0)));
+  };
+  const boxSlope = (x, z0, y0, z1, y1, w, h) => {
+    const L = Math.hypot(z1 - z0, y1 - y0);
+    bagStructure.add(new THREE.BoxGeometry(w, h, L), mat4(x, (y0 + y1) / 2, (z0 + z1) / 2, slopeRx(z1 - z0, y1 - y0)));
+  };
+  const post = (x, y0, z, h = RAIL_H) => bagStructure.box(3, h, 3, x, y0 + h / 2, z);
+  // straight double rail (top + mid) along x with posts every `every`
+  const railX = (x0, x1, y0, z, every = 90) => {
+    if (x1 - x0 < 6) return;
+    cylX(x0, x1, y0 + RAIL_H, z, RAIL_R);
+    cylX(x0, x1, y0 + MID_H, z, MID_R);
+    const n = Math.max(1, Math.round((x1 - x0) / every));
+    for (let k = 0; k <= n; k++) post(x0 + (x1 - x0) * (k / n), y0, z);
+  };
+  const railZ = (z0, z1, y0, x, every = 90) => {
+    if (Math.abs(z1 - z0) < 6) return;
+    cylZ(z0, z1, x, y0 + RAIL_H, RAIL_R);
+    cylZ(z0, z1, x, y0 + MID_H, MID_R);
+    const n = Math.max(1, Math.round(Math.abs(z1 - z0) / every));
+    for (let k = 0; k <= n; k++) post(x, y0, z0 + (z1 - z0) * (k / n));
+  };
+
+  const RISE = (DECK_Y[0] - DECK_Y[1]) / STAIR.rises;   // 14.29 per step
+  const stepY = (i) => DECK_Y[1] + i * RISE;             // tread top of rise i
+  for (const s of stairwells) {
+    const { xA, xB, zFirst, zLast, zLandBack } = s;
+    const hw = STAIR.w / 2;
+    const yLand = stepY(7);
+    const zLandFront = zLast - STAIR.tread / 2;          // landing meets flight A's top tread
+    // flight A (lower): treads 1..6 climbing toward the back wall
+    for (let i = 1; i <= 6; i++) {
+      const zc = zFirst - (i - 1) * STAIR.pitch;
+      bagStructure.box(STAIR.w, 6, STAIR.tread, xA, stepY(i) - 3, zc);
+      bagStructure.box(STAIR.w - 6, RISE - 6, 2, xA, stepY(i) - 3 - RISE / 2, zc + STAIR.tread / 2 - 1); // riser plate
+    }
+    // landing: spans both flights, turns the run
+    bagStructure.box(STAIR.w * 2, 6, STAIR.landingD, (xA + xB) / 2, yLand - 3, (zLandBack + zLandFront) / 2);
+    // flight B (upper): treads 8..13 climbing back toward the cutaway edge
+    for (let i = 8; i <= 13; i++) {
+      const zc = zLast + (i - 8) * STAIR.pitch;
+      bagStructure.box(STAIR.w, 6, STAIR.tread, xB, stepY(i) - 3, zc);
+      bagStructure.box(STAIR.w - 6, RISE - 6, 2, xB, stepY(i) - 3 - RISE / 2, zc - STAIR.tread / 2 + 1);
+    }
+    // arrival plate at deck level: fills the hole in front of the last tread
+    const zArrive = zLast + 6 * STAIR.pitch - STAIR.tread / 2;  // where rise 14 (the deck) begins
+    bagStructure.box(STAIR.w, 6, s.hole.z1 - zArrive, xB, DECK_Y[0] - 3, (zArrive + s.hole.z1) / 2);
+    // stringers: one each side of each flight, running under the nosings
+    // (endpoints sit on the nosing line: rise 0 on the lower deck, rise 7 the landing, rise 14 the deck)
+    const aZ0 = zFirst + STAIR.tread / 2 + STAIR.pitch, aY0 = DECK_Y[1];
+    const aZ1 = zFirst - 6 * STAIR.pitch + STAIR.tread / 2, aY1 = yLand;
+    const bZ0 = zLast - STAIR.pitch - STAIR.tread / 2, bY0 = yLand;
+    const bZ1 = zArrive, bY1 = DECK_Y[0];
+    for (const dx of [-hw + 2, hw - 2]) {
+      boxSlope(xA + dx, aZ0, aY0 - 8, aZ1, aY1 - 8, 4, 12);
+      boxSlope(xB + dx, bZ0, bY0 - 8, bZ1, bY1 - 8, 4, 12);
+    }
+    // landing support: two columns to the lower deck + an edge beam
+    bagStructure.box(6, yLand - DECK_Y[1], 6, xA - hw + 3, (yLand + DECK_Y[1]) / 2, zLandBack + 3);
+    bagStructure.box(6, yLand - DECK_Y[1], 6, xB + hw - 3, (yLand + DECK_Y[1]) / 2, zLandBack + 3);
+    bagStructure.box(STAIR.w * 2, 8, 4, (xA + xB) / 2, yLand - 10, zLandFront + 2);
+    // handrails: outer edge of each flight (posts every 3 rises), then around the landing
+    const xRailA = xA - hw; const xRailB = xB + hw;
+    cylSlope(xRailA, aZ0 - STAIR.pitch, aY0 + 2 + RAIL_H, aZ1, aY1 + 2 + RAIL_H, RAIL_R);
+    cylSlope(xRailA, aZ0 - STAIR.pitch, aY0 + 2 + MID_H, aZ1, aY1 + 2 + MID_H, MID_R);
+    for (const i of [1, 4]) post(xRailA, stepY(i), zFirst - (i - 1) * STAIR.pitch + STAIR.tread / 2, RAIL_H + 2);
+    cylSlope(xRailB, bZ0, bY0 + 2 + RAIL_H, bZ1 + STAIR.pitch, bY1 + 2 + RAIL_H, RAIL_R);
+    cylSlope(xRailB, bZ0, bY0 + 2 + MID_H, bZ1 + STAIR.pitch, bY1 + 2 + MID_H, MID_R);
+    for (const i of [8, 11]) post(xRailB, stepY(i), zLast + (i - 8) * STAIR.pitch - STAIR.tread / 2, RAIL_H + 2);
+    railZ(zLandFront, zLandBack, yLand, xRailA, 60);     // landing -X edge
+    railX(xRailA, xRailB, yLand, zLandBack, 60);         // landing back edge
+    railZ(zLandBack, zLandFront, yLand, xRailB, 60);     // landing +X edge
+    // center divider rail between the two flights (on the shared edge)
+    post(xA + hw, DECK_Y[1], zFirst + STAIR.tread / 2 + 2, RAIL_H + 8);
+    cylSlope(xA + hw, aZ0 - STAIR.pitch, aY0 + 2 + RAIL_H, aZ1, aY1 + 2 + RAIL_H, RAIL_R);
+    cylSlope(xA + hw, bZ0, bY0 + 2 + RAIL_H, bZ1 + STAIR.pitch, bY1 + 2 + RAIL_H, RAIL_R);
+    // stairwell frame: two full-height columns against the back wall tie the
+    // decks together, with a beam under the deck-0 ceiling between them
+    const H_ALL = CEIL0 - DECK_Y[1];
+    iBeam(xA - hw - 8, DECK_Y[1], Z_RIB_BACK + 2, H_ALL);
+    iBeam(xB + hw + 8, DECK_Y[1], Z_RIB_BACK + 2, H_ALL);
+    bagStructure.box((xB + hw + 8) - (xA - hw - 8), 14, 14, (xA + xB) / 2, CEIL0 - 7, Z_RIB_BACK + 2);
+    // hatch surround on deck 0: rails along both sides and the back of the opening
+    const { x0: hx0, x1: hx1, z0: hz0, z1: hz1 } = s.hole;
+    railZ(hz1 - 2, hz0 - 3, DECK_Y[0], hx0 - 3, 60);
+    railZ(hz1 - 2, hz0 - 3, DECK_Y[0], hx1 + 3, 60);
+    railX(hx0 - 3, hx1 + 3, DECK_Y[0], hz0 - 3, 60);
+    // kick plate (coaming) around the opening
+    bagStructure.box(4, 5, hz1 - hz0, hx0 - 2, DECK_Y[0] + 2.5, (hz0 + hz1) / 2);
+    bagStructure.box(4, 5, hz1 - hz0, hx1 + 2, DECK_Y[0] + 2.5, (hz0 + hz1) / 2);
+  }
+  // deck-0 edge railing along the cutaway, broken only at the stair openings
+  {
+    const Z_EDGE = 48; const x0 = 22 - 1135 / 2 + 4; const x1 = 22 + 1135 / 2 - 4;
+    let cursor = x0;
+    for (const s of [...stairwells].sort((a, b) => a.hole.x0 - b.hole.x0)) {
+      railX(cursor, s.hole.x0 - 3, DECK_Y[0], Z_EDGE);
+      cursor = s.hole.x1 + 3;
+    }
+    railX(cursor, x1, DECK_Y[0], Z_EDGE);
   }
 
   // ── build merged meshes ────────────────────────────────────────────────────
@@ -546,6 +723,7 @@ export function createShipModel(options = {}) {
   addMerged(bagCyan, matCyanA, 'cyanAccents');
   addMerged(bagAmber, matAmberA, 'amberAccents');
   addMerged(bagGhost, matGhost, 'holoVolumes');
+  addMerged(bagStructure, matStructure, 'structure');
 
   // ── build instanced meshes ─────────────────────────────────────────────────
   const instanced = [];

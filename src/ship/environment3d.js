@@ -5,10 +5,14 @@
 // built once in createEnvironment(); update(t) mutates buffers only (zero
 // per-frame allocations). No Math.random — all variation is index-seeded.
 //
-// Draw calls: sky(1) + clouds(1 instanced) + city towers(3 instanced layers)
-//           + window lights(1 Points) + rain(1 LineSegments) + haze planes(3)
-//           + under-hull glow(1) = 11.
-// Particles: 400 window lights + 300 rain streaks = 700.
+// 2026-09-14: the ship now stays in the tunnel (tunnel.js is a full
+// enclosure), so the outside world is HIDDEN: everything but the rain is
+// built as before and set `visible = false` (OUTSIDE_VISIBLE), and the rain
+// is cut down to sparse drips confined to the tunnel's height. The code path
+// is unchanged so the outside can come back with one flag.
+//
+// Draw calls while hidden: rain(1 LineSegments) = 1. Particles: 40 drips.
+// (Visible: sky + clouds + 3 tower layers + windows + rain + 3 haze + glow = 11.)
 
 import * as THREE from 'three';
 import { HULL_3D } from './scene3dContract.js';
@@ -32,6 +36,7 @@ const TOWER_MID = 0x0a0d13;
 const TOWER_FAR = 0x07090e;
 const HAZE = 0x0c1220;
 const RAIN_COLOR = 0x8fb6d9;
+const OUTSIDE_VISIBLE = false;               // the ship stays in the tunnel: hide the world outside
 const GLOW_COLOR = 0x5fb9ff;
 const WINDOW_WARM = new THREE.Color(0xd9dde3); // neutral (doctrine: no warm hues)
 const WINDOW_COOL = new THREE.Color(0x7fd4ff);
@@ -199,9 +204,13 @@ function buildWindows() {
 }
 
 // ── rain (one LineSegments of thin streaks, outside the hull only) ───────────
+// Confined to the tunnel enclosure (ceiling y 420 → water y -500, back wall
+// z -460 → ledge z 380) and drawn sparse: only RAIN_DRAWN of the RAIN_COUNT
+// streaks render (drawRange), so the buffer layout is unchanged.
 const RAIN_COUNT = 300;
-const RAIN_Y_MAX = 400;
-const RAIN_Y_MIN = -350;
+const RAIN_DRAWN = 40;
+const RAIN_Y_MAX = 420;
+const RAIN_Y_MIN = -500;
 const RAIN_RANGE = RAIN_Y_MAX - RAIN_Y_MIN;
 // hull exclusion box (padded so no drop clips the cutaway interior)
 const RX = 700;                       // |x| < RX is "over the hull"
@@ -217,14 +226,14 @@ function buildRain() {
     // deterministic rejection: re-hash until the column is outside the hull box
     do {
       x = (rnd(i, 31 + salt) - 0.5) * 2800;   // x ±1400
-      z = -650 + rnd(i, 47 + salt) * 900;     // z -650..250
+      z = -440 + rnd(i, 47 + salt) * 800;     // z -440..360, inside the tunnel
       salt += 101;
     } while (Math.abs(x) < RX && z > RZ0 && z < RZ1);
     drops[i * 4] = x;
     drops[i * 4 + 1] = z;
     drops[i * 4 + 2] = rnd(i, 33) * RAIN_RANGE;      // phase offset in the fall cycle
-    drops[i * 4 + 3] = 950 + rnd(i, 34) * 450;       // fast fall, units/s
-    const len = 42 + rnd(i, 35) * 30;
+    drops[i * 4 + 3] = 620 + rnd(i, 34) * 320;       // drips, not a downpour, units/s
+    const len = 26 + rnd(i, 35) * 26;
     // head vertex
     positions[i * 6] = x;
     positions[i * 6 + 1] = RAIN_Y_MAX;
@@ -244,6 +253,7 @@ function buildRain() {
     depthWrite: false,
     fog: false,
   });
+  geo.setDrawRange(0, RAIN_DRAWN * 2);
   const lines = new THREE.LineSegments(geo, mat);
   lines.frustumCulled = false;
   return { lines, drops };
@@ -312,6 +322,8 @@ export function createEnvironment() {
     haze2, haze1, haze0,
     glow,
   );
+  // The outside world stays built but hidden while the ship lives in the tunnel.
+  for (const o of [sky, clouds.mesh, cityFar, cityMid, cityNear, windows.points, haze2, haze1, haze0, glow]) o.visible = OUTSIDE_VISIBLE;
 
   // preallocated scratch (zero per-frame allocations)
   const dummy = new THREE.Object3D();
@@ -337,6 +349,8 @@ export function createEnvironment() {
       rainArr[i * 6 + 4] = y + len;
     }
     rainPos.needsUpdate = true;
+
+    if (!OUTSIDE_VISIBLE) return;   // nothing below is on screen
 
     // window twinkle: index+t deterministic brightness pulse
     for (let i = 0; i < WINDOW_COUNT; i++) {
