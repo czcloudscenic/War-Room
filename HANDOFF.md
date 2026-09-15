@@ -1,5 +1,14 @@
 # Vantus Handoff Brief
 
+## 2026-09-14 (Counsel, night) — brighter tunnel rig; the movie sentinel; crew walk the stairs; cleaner idles. Pushed.
+
+- **Brightness:** exposure 1.7, ambient 0.46, hemisphere 0.7, key 3.4, front fill 200000, fog 0.00042 (the tunnel pass had overshot dark).
+- **The docked cutter is now a purpose-generated model** (`public/sentinel/perched-a.glb`, Tripo, 2.1 MB): a sentinel in the wrapped gripping pose, long tentacle legs on the plating, bulbous riveted head, red eye. `sentinels3d.js`: the animated machine flies in and lands as before; at land > 0.5 it hides and the perched model shows at (dockX, HULL_TOP_Y(dockX) - 2, dockZ), scaled to ~300 units across, facing the nose, breathing 1%, shuddering with the cut; the beam's muzzle moves to the perched head. `perched-b.glb` (a crouched beetle variant with a base plate) is in the folder unused. The animated machine's arms are also long whips now (11 segs x 13) with a radial grip pose, and the head is rolled so its socket sits under the body.
+- **Crew walk the stairs** (`shipEngine.js`, `ShipWorld3D.jsx`, `crewGLB.js` climb branch): `sprite.climbT` 0..1 and `sprite.climbDir`; the placement maps climbT onto the real switchback path (walk lane → lower flight A at sx-42 rising z 30→-70 → landing crossing to sx+10 → upper flight B back to z 28 → hatch), arc-length sampled, feet within 2 units of tread tops, heading from motion, walk clip time-scaled. Stair numbers are duplicated from `shipModel.js` STAIR: change both together. Not yet watched in a browser (climbs only happen on station changes).
+- **Idle clips:** rig library Idle_02 re-rigged onto all four crew (`public/crew/<name>_idle2.glb`, slimmed); `CREW_GLB.idle` points at them. The posture corrector is still on; it can likely go now.
+
+**Note for whoever drives the Playwright browser:** Christian uses that same browser himself (ShareGrid tabs were open in it). Leave his tabs alone; use tab 0 for the harness.
+
 ## 2026-09-14 (Counsel + 4 agents) — THE REBUILD: Matrix hull proportions, open interior with stairs, sentinel attached and cutting, tunnel only. Pushed.
 
 Christian: "I just don't like the shape of anything: sentinel keeps clipping through the ship, it needs to be attached like the movie blasting lasers; don't like the outside world, keep it in tunnels; the ship size doesn't look like a Matrix ship; don't like all these walls, it needs stairs." Four agents ran in parallel on disjoint files; Counsel integrated and verified in the harness.

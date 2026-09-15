@@ -96,11 +96,75 @@ function BackdropPlate({ url, z, w, h, speed, opacity = 1, y = 0, tint = 0xfffff
 // as the painted view). Focus targets are room centers in scene space.
 const VIEW_LIMITS = { zoomMin: 1, zoomMax: 2.6, stationZoom: 2.3, panX: 420, panY: 220 };
 
-// logical y (2D engine) → scene y: standing = deck height, climbing lerps.
-function sceneY(sp) {
+// ── Crew placement ───────────────────────────────────────────────────────────
+// Standing/walking crew: x = logical x, y = deck height, z = walk lane (+lane).
+// Climbing crew (anim 'climb', climbDir ≠ 0) walk the switchback stair built
+// by shipModel.js at the same LADDERS x instead of levitating: the engine's
+// climbT (0 start floor → 1 target floor) is mapped by arc length onto a
+// polyline through the real treads. Numbers mirror shipModel's STAIR block
+// (off 10, w 52, pitch 14, tread 22, landing z -107..-67, 14 rises of 200/14):
+//   lower flight A center x = sx-42, tread-center line y = -140 + (30 - z), z 30 → -70
+//   landing            y = -40 (mid deck), z -70 → -84, x crosses sx-42 → sx+10
+//   upper flight B center x = sx+10, tread-center line y = -40 + (z+70)·100/98, z -70 → 28
+// Path (climb UP; descents run it backwards), cumulative fraction of 420 units:
+//   walk lane → foot of A 0.10 → top of A 0.44 → landing crossed 0.60 → foot of B 0.63
+//   → top of B 0.96 → hatch plate/walk lane 1.0.
+const STAIR_PATHS = new Map();
+function stairPath(sx, lane) {
+  const key = sx + ':' + lane;
+  let path = STAIR_PATHS.get(key);
+  if (path) return path;
+  const xA = sx - 42 + lane * 0.5, xB = sx + 10 + lane * 0.5;
+  const yMid = (DECK_Y[0] + DECK_Y[1]) / 2;
+  const pts = [
+    [sx, DECK_Y[1], WALK_Z + lane],  // walk lane, deck 1
+    [xA, DECK_Y[1], 30],             // foot of flight A (rise 0 nosing)
+    [xA, yMid, -70],                 // top of flight A, onto the landing
+    [xA, yMid, -84],                 // into the landing
+    [xB, yMid, -84],                 // across the landing
+    [xB, yMid, -70],                 // foot of flight B
+    [xB, DECK_Y[0], 28],             // top of flight B (rise 14 = deck 0)
+    [sx, DECK_Y[0], WALK_Z + lane],  // hatch arrival plate → walk lane, deck 0
+  ];
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) {
+    const [ax, ay, az] = pts[i - 1], [bx, by, bz] = pts[i];
+    cum.push(cum[i - 1] + Math.hypot(bx - ax, by - ay, bz - az));
+  }
+  path = { pts, cum, total: cum[cum.length - 1] };
+  STAIR_PATHS.set(key, path);
+  return path;
+}
+const isClimbing = (sp) => sp.anim === 'climb' && (sp.climbDir === 1 || sp.climbDir === -1);
+const _stairOut = [0, 0, 0];
+// Point on the stair path for a climbing sprite (u = distance fraction; a
+// descent is the same path walked from the deck-0 end).
+function stairPoint(sp, lane) {
+  const path = stairPath(toSceneX(sp.x), lane);
+  const t = Math.min(1, Math.max(0, Number(sp.climbT) || 0));
+  const d = (sp.climbDir === -1 ? 1 - t : t) * path.total;
+  let i = 1;
+  while (i < path.cum.length - 1 && path.cum[i] < d) i++;
+  const a = path.pts[i - 1], b = path.pts[i];
+  const seg = path.cum[i] - path.cum[i - 1] || 1;
+  const k = Math.min(1, Math.max(0, (d - path.cum[i - 1]) / seg));
+  _stairOut[0] = a[0] + (b[0] - a[0]) * k;
+  _stairOut[1] = a[1] + (b[1] - a[1]) * k;
+  _stairOut[2] = a[2] + (b[2] - a[2]) * k;
+  return _stairOut;
+}
+function sceneX(sp, lane = 0) {
+  return isClimbing(sp) ? stairPoint(sp, lane)[0] : toSceneX(sp.x);
+}
+// logical y (2D engine) → scene y: standing = deck height, climbing follows the treads.
+function sceneY(sp, lane = 0) {
+  if (isClimbing(sp)) return stairPoint(sp, lane)[1];
   const span = (LOGICAL_DECKS[1].floorY - LOGICAL_DECKS[0].floorY) || 1;
   const p = Math.min(1, Math.max(0, (sp.y - LOGICAL_DECKS[0].floorY) / span));
   return DECK_Y[0] + (DECK_Y[1] - DECK_Y[0]) * p;
+}
+function sceneZ(sp, lane = 0) {
+  return isClimbing(sp) ? stairPoint(sp, lane)[2] : WALK_Z + lane;
 }
 
 // Image-based lighting: a neutral room environment, low, so metals and the
@@ -257,7 +321,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     for (const sp of sprites) {
       const fig = figuresRef.current.get(sp.name);
       if (!fig) continue;
-      fig.group.position.set(toSceneX(sp.x), sceneY(sp), WALK_Z + ((i++ % 3) - 1) * 6);
+      const lane = ((i++ % 3) - 1) * 6; fig.group.position.set(sceneX(sp, lane), sceneY(sp, lane), sceneZ(sp, lane));
       fig.update(sp, t);
       // Figures are authored 34 units tall against a 150-unit deck clearance
       // (23%); a person in a 3.5 m deck is about half of it. Scale after

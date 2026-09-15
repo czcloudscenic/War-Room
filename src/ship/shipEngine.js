@@ -107,6 +107,7 @@ export function createShipSim() {
           station: c.station, state: c.state, lastAction: c.lastAction ?? null,
           deck: room.deck, x: targetX, y: deckFloor(room.deck),
           facing: 1, anim: 'idle', animT: 0,
+          climbT: 0, climbDir: 0,
           path: [], targetX,
           rng: mulberry32(seedFromName(c.name)),
           wanderWait: 0, wanderX: null,
@@ -151,6 +152,9 @@ export function createShipSim() {
       if (s.future) { setAnim(s, 'sleep'); s.animT += dt; continue; }
 
       const wp = s.path[0];
+      // Stair progress is only meaningful mid-climb; clear it everywhere else so
+      // renderers can trust climbDir !== 0 as "on the stairs".
+      if (!wp || wp.type !== 'climb') { s.climbT = 0; s.climbDir = 0; }
       if (wp) {
         if (wp.type === 'walk') {
           setAnim(s, 'walk');
@@ -160,14 +164,23 @@ export function createShipSim() {
           if (Math.abs(dx) <= move) { s.x = wp.x; s.path.shift(); }
           else s.x += Math.sign(dx) * move;
           s.x = clampToHull(s.x);
-        } else { // climb: x snaps to the ladder, y slides between floor lines
+        } else { // climb: x snaps to the stair, y slides between floor lines
+          // The 2D sim keeps the vertical model (y between the two floorY
+          // lines); climbT (0 at the start floor, 1 at the target floor) and
+          // climbDir (+1 up toward deck 0, -1 down) let the 3D view walk the
+          // switchback treads instead of levitating. s.deck stays the origin
+          // deck until arrival, so the start floor is deckFloor(s.deck).
           setAnim(s, 'climb');
           s.x = wp.x;
+          const fy = deckFloor(s.deck);
           const ty = deckFloor(wp.deck);
+          s.climbDir = wp.deck < s.deck ? 1 : -1;
           const dy = ty - s.y;
           const move = SPRITE.climbSpeed * dtSec;
           if (Math.abs(dy) <= move) { s.y = ty; s.deck = wp.deck; s.path.shift(); }
           else s.y += Math.sign(dy) * move;
+          const span = ty - fy;
+          s.climbT = span ? Math.min(1, Math.max(0, (s.y - fy) / span)) : 1;
         }
         if (!s.path.length) { setAnim(s, restAnim(s)); if (s.anim === 'idle') resetWanderTimer(s); }
         s.animT += dt;
@@ -222,6 +235,7 @@ export function createShipSim() {
       name: s.name, color: s.color, future: s.future,
       x: s.x, y: s.y, deck: s.deck, facing: s.facing,
       anim: s.anim, animT: s.animT,
+      climbT: s.climbT, climbDir: s.climbDir,
       station: s.station, state: s.state, lastAction: s.lastAction,
     }));
   }
