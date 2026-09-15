@@ -18,11 +18,14 @@ import { createAgentFigure, makeNameTexture } from './crewModels.js';
 
 // Characters with generated rigs. Add a line per crew member as their GLBs
 // land in public/crew/ (recipe in HANDOFF.md 2026-08-20).
+// idle2 (9/14): the rig library's Idle_02 re-rigged onto each character; the
+// original Meshy idle leaned 6 deg and hung the arms out, which is what the
+// posture corrector below was compensating for.
 export const CREW_GLB = {
-  Sean: { walk: '/crew/sean.glb', idle: '/crew/sean_idle.glb', work: '/crew/sean_work.glb' },
-  Muse: { walk: '/crew/muse.glb', idle: '/crew/muse_idle.glb', work: '/crew/muse_work.glb' },
-  Scrappy: { walk: '/crew/scrappy.glb', idle: '/crew/scrappy_idle.glb', work: '/crew/scrappy_work.glb' },
-  Slate: { walk: '/crew/slate.glb', idle: '/crew/slate_idle.glb', work: '/crew/slate_work.glb' },
+  Sean: { walk: '/crew/sean.glb', idle: '/crew/sean_idle2.glb', work: '/crew/sean_work.glb' },
+  Muse: { walk: '/crew/muse.glb', idle: '/crew/muse_idle2.glb', work: '/crew/muse_work.glb' },
+  Scrappy: { walk: '/crew/scrappy.glb', idle: '/crew/scrappy_idle2.glb', work: '/crew/scrappy_work.glb' },
+  Slate: { walk: '/crew/slate.glb', idle: '/crew/slate_idle2.glb', work: '/crew/slate_work.glb' },
 };
 
 const FIGURE_HEIGHT = 34;   // logical units — must match crewModels' proportions
@@ -337,8 +340,32 @@ export function createCrewFigure({ name, color, future = false }) {
         }
       }
     } else if (anim === 'climb') {
-      rig.rotation.y = Math.PI;
+      // Stairs. ShipWorld3D walks the group along the switchback path, so face
+      // the way the figure is actually moving: toward the back wall on the
+      // lower flight, across the landing, toward the camera on the upper
+      // flight — reversed when descending. Heading comes from the group's own
+      // motion (model forward is +z, yaw = atan2(dx, dz)); climbDir/climbT only
+      // seed the first frame of a climb. State lives on rig.userData.
+      const st = rig.userData.climb || (rig.userData.climb = { x: NaN, z: NaN, t: -Infinity, yaw: faceY });
+      const fresh = !(t - st.t < 200) || !Number.isFinite(st.x);
+      const dir = sprite?.climbDir === -1 ? -1 : 1;
+      const lowerHalf = (Number(sprite?.climbT) || 0) < 0.5;
+      let yaw = ((lowerHalf ? dir : -dir) > 0) ? Math.PI : 0;
+      const dx = group.position.x - st.x, dz = group.position.z - st.z;
+      const dist = fresh ? 0 : Math.hypot(dx, dz);
+      if (!fresh && dist > 0.05) yaw = Math.atan2(dx, dz);
+      if (fresh) st.yaw = faceY;
+      const turn = Math.atan2(Math.sin(yaw - st.yaw), Math.cos(yaw - st.yaw));
+      st.yaw += turn * Math.min(1, dt * 10);
+      st.x = group.position.x; st.z = group.position.z; st.t = t;
+      rig.rotation.y = st.yaw;
+      rig.rotation.x = POSTURE.walkLean;
       setAction(walkAction || idleAction);
+      if (walkAction && dt > 0 && !fresh) {
+        const want = (dist / dt) / CLIP_NATURAL_SPEED;
+        const clamped = Math.max(0.6, Math.min(6, want)) * PACE;
+        walkAction.timeScale += (clamped - walkAction.timeScale) * 0.25;
+      }
     } else if (anim === 'work') {
       rig.rotation.x = POSTURE.workLean; // a hint toward the console, not a hunch
       // Face the prop: three-quarter turn toward the back wall, side chosen by

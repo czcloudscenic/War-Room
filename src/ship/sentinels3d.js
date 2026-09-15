@@ -21,6 +21,7 @@
 //   s.dispose();
 
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { buildSentinel } from './drones.js';
 import { HULL_3D } from './scene3dContract.js';
 import * as Hull from './hullGLB.js';
@@ -91,6 +92,25 @@ export function createSentinels3D() {
   const group = new THREE.Group();
   group.name = 'sentinels3d';
   let threat = 0;                                  // 0 open air .. 1 full pursuit, eased
+  // The docked cutter is a purpose-generated model in the wrapped, gripping
+  // pose (public/sentinel/perched-a.glb): once the animated machine has
+  // landed it hands off to this, which sits with its legs on the plating.
+  const perched = new THREE.Group();
+  perched.visible = false;
+  group.add(perched);
+  let perchedScale = 1, perchedLift = 0, perchedH = 100, perchedReady = false;
+  new GLTFLoader().load('/sentinel/perched-a.glb', (g) => {
+    const m = g.scene;
+    const box = new THREE.Box3().setFromObject(m);
+    const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+    perchedScale = 300 / (Math.max(size.x, size.z) || 1);      // ~300 units across the leg spread
+    m.position.set(-c.x, -box.min.y, -c.z);                    // feet on y = 0
+    perchedH = size.y * perchedScale;
+    m.traverse((o) => { if (o.isMesh && o.material) { const mm = o.material; if ('roughness' in mm) mm.roughness = Math.max(mm.roughness ?? 0.6, 0.5); if ('metalness' in mm) mm.metalness = Math.max(mm.metalness ?? 0.5, 0.75); if ('envMapIntensity' in mm) mm.envMapIntensity = 0.6; o.castShadow = true; } });
+    perched.add(m);
+    perched.rotation.y = Math.PI;                              // its eye faces +X; the ship flies -X
+    perchedReady = true;
+  }, undefined, () => {});
   let attach = 0;                                  // 0 flying .. 1 resting on the armor, eased
   // Cutting beam + sparks (Points burst, allocation-free)
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xe5e5ea, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -216,6 +236,18 @@ export function createSentinels3D() {
         clampOutsideHull(_free);
         const freeZ = Math.cos(a) * 0.12, freeX = Math.sin(a * 2) * 0.05;   // bank into the drift
         if (isCutter && land > 0) {
+          // Hand-off to the perched model once landed; the animated machine
+          // hides so the two never overlap.
+          const swap = perchedReady && land > 0.5;
+          g.visible = !swap;
+          perched.visible = swap;
+          if (swap) {
+            const k = (land - 0.5) * 2;
+            const sc = perchedScale * (0.85 + 0.15 * k) * (1 + Math.sin(t / 900) * 0.01);
+            perched.scale.setScalar(sc);
+            perched.position.set(dockX + Math.sin(t / 130) * 1.2, hullTopY(dockX) - 2 + Math.cos(t / 170) * 0.8, dockZ);
+            perched.rotation.z = Math.sin(t / 2100) * 0.02;
+          }
           // ATTACHED: body on the top armor, creeping, a fast low shudder from the cut.
           const sx = dockX + Math.sin(t / 130) * 1.2 * land;
           const sy = seatY + Math.cos(t / 170) * 0.8 * land;
@@ -241,7 +273,8 @@ export function createSentinels3D() {
     const cutting = attach > 0.5;
     const cutX = dockX - 30 + Math.sin(t / 1300) * 4;
     _hit.set(cutX, hullTopY(cutX) + 1, dockZ + 10 + Math.cos(t / 1700) * 3);
-    _muzzle.set(20, -4, 0).multiplyScalar(cutterUnit.e.s).applyEuler(cutter.rotation).add(cutter.position);
+    if (perched.visible) _muzzle.set(perched.position.x - 20, perched.position.y + perchedH * 0.62, perched.position.z + 6);
+    else _muzzle.set(20, -4, 0).multiplyScalar(cutterUnit.e.s).applyEuler(cutter.rotation).add(cutter.position);
     _dir.subVectors(_hit, _muzzle);
     const len = _dir.length();
     beam.position.copy(_muzzle).addScaledVector(_dir, 0.5);
