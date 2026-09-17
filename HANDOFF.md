@@ -1,5 +1,13 @@
 # Vantus Handoff Brief
 
+## 2026-09-17 (Counsel) — DIRECTION: the ship as Fallout Shelter. Rules doc + procedural joint layers. Pushed.
+
+Christian: "think like Fallout Shelter; joint points at knees/ankles/elbows/wrists/neck to maximize movement; then the pursuit event; assets maybe later." Read `docs/SHIP-GAME-RULES.md` (new) before touching game logic: stations = rooms, agents = dwellers, receipts = production, blocked items = incidents that spread, sentinel cut intensity from the oldest blocker's age, rush = the real agent action, morale = success ratio over 48 h. Build order is at the bottom of that doc.
+
+**Joint layers (`src/ship/crewPose.js`, new; wired in `crewGLB.js`):** the rigs already had the joints; these are procedural layers after the mixer and after `correctPosture`, in order legs → spine → arms → head, all weighted by the `POSE` config (exported): head look-at (neck 30 / head 70, ±70° yaw ±35° pitch, tau 0.25 s; work = the console, idle = wandering glances, `sprite.lookAt` or `figure.setLookTarget()` overrides), foot planting with analytic two-bone IK + pelvis follow (`figure.setGroundFn(fn)`; weight 1 idle/work, 0.6 walk, 0 climb), console reach (hands on a plane 34% of height, 9 ahead after tuning from 22 which exceeded the ~10-unit arm, 3 Hz alternating typing bob, 0.4 s ease), walk lean (max 6°) and `figure.impulse(strength)` recoil spring with head dip. Verified in the harness: heads yaw 11–38° toward consoles while working, hands ahead of the hips, feet on the floor, no console errors. Nothing calls `impulse()` yet: the pursuit event should.
+
+**Next (build order):** `computeBars` + `computeIncidents` in `shipStations.js` (pure), the top bar strip, station incident visuals, sentinel intensity from blocker age, rush, morale, drag-to-assign as intent.
+
 ## 2026-09-14 (Counsel, night) — brighter tunnel rig; the movie sentinel; crew walk the stairs; cleaner idles. Pushed.
 
 - **Brightness:** exposure 1.7, ambient 0.46, hemisphere 0.7, key 3.4, front fill 200000, fog 0.00042 (the tunnel pass had overshot dark).

@@ -15,6 +15,11 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { createAgentFigure, makeNameTexture } from './crewModels.js';
+import { POSE, createPoseLayers } from './crewPose.js';
+
+// Procedural layer tuning (head look, foot IK, console reach, lean/recoil)
+// lives in crewPose.js; re-exported so hosts can tune from one import.
+export { POSE };
 
 // Characters with generated rigs. Add a line per crew member as their GLBs
 // land in public/crew/ (recipe in HANDOFF.md 2026-08-20).
@@ -96,7 +101,11 @@ const loadGLB = (url) => new Promise((res, rej) => loader.load(url, res, undefin
 // re-parse per figure instead (crew count is 4 — cost is a few MB once each).
 export function createCrewFigure({ name, color, future = false }) {
   const spec = CREW_GLB[String(name || '')];
-  if (future || !spec) return createAgentFigure({ name, color, future });
+  if (future || !spec) {
+    // Procedural stand-in: same API shape, the pose hooks are no-ops.
+    const fig = createAgentFigure({ name, color, future });
+    return { ...fig, setLookTarget() {}, setGroundFn() {}, impulse() {} };
+  }
 
   const agentColor = new THREE.Color(color || '#2AABFF');
   const group = new THREE.Group();
@@ -178,6 +187,10 @@ export function createCrewFigure({ name, color, future = false }) {
   let armTuckWeight = 1;   // eased to 0 while walking so the arm swing survives
   const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _q = new THREE.Quaternion(), _qp = new THREE.Quaternion(), _m = new THREE.Matrix4();
   const UP = new THREE.Vector3(0, 1, 0), DOWN = new THREE.Vector3(0, -1, 0);
+  // Procedural layers on top of the clips (crewPose.js): head look-at, foot
+  // planting, console reach, lean + recoil. Bound once the GLB lands; the
+  // host-facing setters work before that and simply take effect on bind.
+  const pose = createPoseLayers({ figureHeight: FIGURE_HEIGHT, seed: NAME_HASH });
 
   // Runs after mixer.update: measure the spine in the wrap's frame, ease an
   // average, and counter-rotate the wrap (pivot = feet) so the mean posture is
@@ -285,6 +298,7 @@ export function createCrewFigure({ name, color, future = false }) {
       // center, so a lean is removed by rotating the body about its feet.
       postureWrap = new THREE.Group();
       postureWrap.add(wrap);
+      pose.bind(model, postureWrap);
 
       rig.add(postureWrap);
       // Swap: procedural stand-in out, real character + our tag/light in.
@@ -308,6 +322,8 @@ export function createCrewFigure({ name, color, future = false }) {
     current = next;
   }
 
+  const poseCtx = { dt: 0, time: 0, anim: 'idle', speed: 0, phase: PHASE01 * Math.PI * 2, group, rig, scale: 1, lookAt: null };
+
   function update(sprite, t) {
     if (proc) { proc.update(sprite, t); return; }
     const anim = sprite?.anim || 'idle';
@@ -319,7 +335,12 @@ export function createCrewFigure({ name, color, future = false }) {
     const prevX = lastX;
     if (Number.isFinite(_x)) lastX = _x;
 
+    // Host-space scale the group was last rendered with (hosts multiply a
+    // world factor on after update()); the pose layers use it to map their
+    // body-frame math to the host's ground / look coordinates.
+    const hostScale = _v.setFromMatrixScale(group.matrix).x || 1;
     group.scale.setScalar(sprite?.deck === 1 ? LOWER_DECK_SCALE : 1);
+    let speed = 0;   // sprite units/sec, for the walk lean
 
     // Facing + posture (same language as the procedural rig).
     const faceY = facing === 1 ? 0.35 : Math.PI - 0.35;
@@ -333,7 +354,7 @@ export function createCrewFigure({ name, color, future = false }) {
       if (walkAction && dt > 0) {
         const x = Number(sprite?.x);
         if (Number.isFinite(x) && prevX != null) {
-          const speed = Math.abs(x - prevX) / dt;
+          speed = Math.abs(x - prevX) / dt;
           const want = speed / CLIP_NATURAL_SPEED;
           const clamped = Math.max(0.6, Math.min(6, want)) * PACE;
           walkAction.timeScale += (clamped - walkAction.timeScale) * 0.25;
@@ -362,7 +383,8 @@ export function createCrewFigure({ name, color, future = false }) {
       rig.rotation.x = POSTURE.walkLean;
       setAction(walkAction || idleAction);
       if (walkAction && dt > 0 && !fresh) {
-        const want = (dist / dt) / CLIP_NATURAL_SPEED;
+        speed = dist / dt;
+        const want = speed / CLIP_NATURAL_SPEED;
         const clamped = Math.max(0.6, Math.min(6, want)) * PACE;
         walkAction.timeScale += (clamped - walkAction.timeScale) * 0.25;
       }
@@ -375,8 +397,13 @@ export function createCrewFigure({ name, color, future = false }) {
     } else {
       setAction(idleAction || walkAction);
     }
+    pose.restore();   // undo last frame's procedural deltas before the clips write
     mixer?.update(dt);
     correctPosture(dt, anim === 'walk' || anim === 'climb');
+    // Procedural layers, same order every frame: legs, spine, arms, head.
+    poseCtx.dt = dt; poseCtx.time = time; poseCtx.anim = anim; poseCtx.speed = speed;
+    poseCtx.scale = hostScale; poseCtx.lookAt = sprite?.lookAt || null;
+    pose.apply(poseCtx);
 
     // Work glow follows the receipt, with a low flicker so it reads as a console
     // being used rather than a lamp left on.
@@ -422,7 +449,12 @@ export function createCrewFigure({ name, color, future = false }) {
     if (group.parent) group.parent.remove(group);
   }
 
-  return { group, update, dispose };
+  return {
+    group, update, dispose,
+    setLookTarget: pose.setLookTarget,   // (point in group.position's frame | null, weight)
+    setGroundFn: pose.setGroundFn,       // fn(x, z) -> ground y, same frame; null = feet
+    impulse: pose.impulse,               // (strength) hull-impact recoil on the spine
+  };
 }
 
 // Soft radial dot, drawn once per figure. Returns null outside a DOM so the
