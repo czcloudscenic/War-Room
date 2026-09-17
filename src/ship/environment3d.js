@@ -6,12 +6,17 @@
 // per-frame allocations). No Math.random — all variation is index-seeded.
 //
 // 2026-09-14: the ship now stays in the tunnel (tunnel.js is a full
-// enclosure), so the outside world is HIDDEN: everything but the rain is
-// built as before and set `visible = false` (OUTSIDE_VISIBLE), and the rain
-// is cut down to sparse drips confined to the tunnel's height. The code path
-// is unchanged so the outside can come back with one flag.
+// enclosure), so the outside world is HIDDEN: everything is built as before
+// and set `visible = false` (OUTSIDE_VISIBLE). The code path is unchanged so
+// the outside can come back with one flag.
 //
-// Draw calls while hidden: rain(1 LineSegments) = 1. Particles: 40 drips.
+// 2026-09-17: RAIN IS OFF. There is no weather inside a sewer. The rain
+// LineSegments is still constructed (so the outside world comes back whole
+// with RAIN_VISIBLE + OUTSIDE_VISIBLE) but it is `visible = false` with an
+// empty draw range, and update() never touches its buffer. The only water in
+// the scene is the handful of ceiling drips in tunnel.js.
+//
+// Draw calls while hidden: 0. Particles: 0.
 // (Visible: sky + clouds + 3 tower layers + windows + rain + 3 haze + glow = 11.)
 
 import * as THREE from 'three';
@@ -37,6 +42,7 @@ const TOWER_FAR = 0x07090e;
 const HAZE = 0x0c1220;
 const RAIN_COLOR = 0x8fb6d9;
 const OUTSIDE_VISIBLE = false;               // the ship stays in the tunnel: hide the world outside
+const RAIN_VISIBLE = false;                  // and there is no weather in a tunnel: rain never renders
 const GLOW_COLOR = 0x5fb9ff;
 const WINDOW_WARM = new THREE.Color(0xd9dde3); // neutral (doctrine: no warm hues)
 const WINDOW_COOL = new THREE.Color(0x7fd4ff);
@@ -204,11 +210,11 @@ function buildWindows() {
 }
 
 // ── rain (one LineSegments of thin streaks, outside the hull only) ───────────
-// Confined to the tunnel enclosure (ceiling y 420 → water y -500, back wall
-// z -460 → ledge z 380) and drawn sparse: only RAIN_DRAWN of the RAIN_COUNT
-// streaks render (drawRange), so the buffer layout is unchanged.
+// OFF while the ship is in the tunnel: RAIN_DRAWN is 0 and the object is
+// invisible, so nothing of this renders and update() skips its buffer. The
+// builder is kept intact for the day the outside world comes back.
 const RAIN_COUNT = 300;
-const RAIN_DRAWN = 40;
+const RAIN_DRAWN = RAIN_VISIBLE ? 40 : 0;
 const RAIN_Y_MAX = 420;
 const RAIN_Y_MIN = -500;
 const RAIN_RANGE = RAIN_Y_MAX - RAIN_Y_MIN;
@@ -256,6 +262,7 @@ function buildRain() {
   geo.setDrawRange(0, RAIN_DRAWN * 2);
   const lines = new THREE.LineSegments(geo, mat);
   lines.frustumCulled = false;
+  lines.visible = RAIN_VISIBLE;
   return { lines, drops };
 }
 
@@ -339,16 +346,19 @@ export function createEnvironment() {
   function update(t) {
     const tSec = t * 0.001;
 
-    // rain: deterministic fall + wrap, mutate both streak vertices
-    for (let i = 0; i < RAIN_COUNT; i++) {
-      const speed = drops[i * 4 + 3];
-      const cycle = (drops[i * 4 + 2] + speed * tSec) % RAIN_RANGE;
-      const y = RAIN_Y_MAX - cycle;
-      const len = rainArr[i * 6 + 4] - rainArr[i * 6 + 1]; // preserved streak length
-      rainArr[i * 6 + 1] = y;
-      rainArr[i * 6 + 4] = y + len;
+    // rain: deterministic fall + wrap, mutate both streak vertices. Skipped
+    // entirely while RAIN_VISIBLE is false — the object does not render.
+    if (RAIN_VISIBLE) {
+      for (let i = 0; i < RAIN_COUNT; i++) {
+        const speed = drops[i * 4 + 3];
+        const cycle = (drops[i * 4 + 2] + speed * tSec) % RAIN_RANGE;
+        const y = RAIN_Y_MAX - cycle;
+        const len = rainArr[i * 6 + 4] - rainArr[i * 6 + 1]; // preserved streak length
+        rainArr[i * 6 + 1] = y;
+        rainArr[i * 6 + 4] = y + len;
+      }
+      rainPos.needsUpdate = true;
     }
-    rainPos.needsUpdate = true;
 
     if (!OUTSIDE_VISIBLE) return;   // nothing below is on screen
 

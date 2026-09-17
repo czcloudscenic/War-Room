@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { WALK_Z } from './scene3dContract.js';
+import { stationLightFor } from './stationPalette.js';
 
 // kind -> asset. height = target height in scene units; back = how far behind
 // the walk lane the prop sits (so crew walk in front of it); yaw = facing.
@@ -50,6 +51,7 @@ export function createRoomProps({ rooms, onFirstReady } = {}) {
   let disposed = false, readyCount = 0;
 
   const place = (r, spec, dx) => load(spec.url).then((gltf) => {
+    const pal = stationLightFor(r.id);
       if (disposed) return;
       const model = gltf.scene.clone(true);
       const box = new THREE.Box3().setFromObject(model);
@@ -70,7 +72,9 @@ export function createRoomProps({ rooms, onFirstReady } = {}) {
         if ('metalness' in m) m.metalness = Math.min(m.metalness ?? 0.3, 0.3);
         if ('envMapIntensity' in m) m.envMapIntensity = 0.3;   // the bakes go chalk-white under full reflections
         // Low: the bakes carry white highlights that bloom into blobs at 0.28.
-        if ('emissive' in m && m.map) { m.emissive = new THREE.Color(0x2aabff); m.emissiveMap = m.map; m.emissiveIntensity = 0.10; }
+        // Tinted by the bay's identity colour, so a prop belongs to its cell.
+        if ('emissive' in m && m.map) { m.emissive = new THREE.Color(pal.fill); m.emissiveMap = m.map; m.emissiveIntensity = 0.42; }
+        if (m.color) m.color.lerp(new THREE.Color(pal.fill), 0.22);
         o.castShadow = true; o.receiveShadow = true;
         mats.push(m);
       });
@@ -85,7 +89,7 @@ export function createRoomProps({ rooms, onFirstReady } = {}) {
   }
 
   function update(t) {
-    const k = 0.08 + 0.05 * (0.5 + 0.5 * Math.sin(t / 1100));
+    const k = 0.40 + 0.08 * (0.5 + 0.5 * Math.sin(t / 1100));
     for (const m of mats) if ('emissiveIntensity' in m && m.emissiveMap) m.emissiveIntensity = k;
   }
   function dispose() {

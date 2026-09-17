@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useRef, useState, useMemo } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -6,7 +6,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { WORLD_W, ROOMS, DECKS as LOGICAL_DECKS } from '../../ship/world.js';
-import { toSceneX, DECK_Y, DECK_CLEAR, WALK_Z, CAMERA, HULL_3D } from '../../ship/scene3dContract.js';
+import { toSceneX, DECK_Y, DECK_CLEAR, WALK_Z, ROOM_DEPTH, CAMERA, HULL_3D } from '../../ship/scene3dContract.js';
 import { STATIONS } from '../../core/shipStations.js';
 import { createShipSim } from '../../ship/shipEngine.js';
 import { createCrewFigure } from '../../ship/crewGLB.js';
@@ -18,6 +18,7 @@ import { createSentinels3D } from '../../ship/sentinels3d.js';
 import { createHullGLB } from '../../ship/hullGLB.js';
 import { createRoomProps } from '../../ship/roomProps.js';
 import { createRoomWalls } from '../../ship/roomWalls.js';
+import { stationLightFor, RIM_RATIO } from '../../ship/stationPalette.js';
 import { createLightShafts } from '../../ship/lightShafts.js';
 import ShipHUD from './ShipHUD.jsx';
 
@@ -176,15 +177,27 @@ function EnvironmentLight() {
     const pmrem = new THREE.PMREMGenerator(gl);
     const tex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = tex;
-    scene.environmentIntensity = 0.32;
+    // 0.12, down from 0.32: the room env was the grey wash. It lifted every
+    // surface in the frame by the same amount and the same hue, which is
+    // exactly what flattened hull, props, walls and crew into one value.
+    // The per-bay rig below does the lighting now; this only feeds metals
+    // and the wet deck something to reflect.
+    scene.environmentIntensity = 0.12;
     return () => { if (scene.environment === tex) scene.environment = null; tex.dispose(); pmrem.dispose(); };
   }, [scene, gl]);
   return null;
 }
 
-function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, selectedStation, viewRef, chipEls, cutRef }) {
-  const { scene, camera, pointer, size } = useThree();
+function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, selectedStation, viewRef, chipEls, cutRef, onBooted }) {
+  const { scene, camera, pointer, size, gl } = useThree();
   const focus = useRef({ x: CAMERA.target[0], y: CAMERA.target[1], zoom: 1 });
+  // Which bays a receipt says are live (the outer component has its own copy
+  // for the chips; SceneContent needs one for the bay lamps).
+  const litStations = useMemo(() => {
+    const lit = new Set();
+    for (const m of crew) if (!m.future && (m.state === 'working' || m.state === 'active')) lit.add(m.station);
+    return lit;
+  }, [crew]);
   const _anchor = useRef(new THREE.Vector3());
   const figuresRef = useRef(new Map());
   const modelRef = useRef(null);
@@ -200,6 +213,12 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
   // the whole vessel can bank and breathe while the world streams past it.
   const shipRigRef = useRef(null);
   if (!shipRigRef.current) { shipRigRef.current = new THREE.Group(); shipRigRef.current.name = 'shipRig'; }
+  // Light budget: the rig below is 24 point lights + 2 pad + 1 fill. The
+  // 9/14 note in HANDOFF records a frame going fully black (no console
+  // error) when the point-light count crossed this GPU's fragment-uniform
+  // limit, so the rims — the optional half of the rig — are only mounted
+  // where there is headroom. Losing them costs shape, never the colour.
+  const rimLights = (gl?.capabilities?.maxFragmentUniforms ?? 1024) >= 512;
 
   useEffect(() => {
     let model = null;
@@ -214,6 +233,25 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     greeblesRef.current = greebles;
     const rig = shipRigRef.current;
     scene.add(rig);
+    // ── BOOT GATE ────────────────────────────────────────────────────────────
+    // The scene used to pop in layers — stand-in crew, then the hull GLB, then
+    // props, then walls — which reads as a glitch before the ship appears. The
+    // whole rig stays invisible until the four big async pieces have landed
+    // (ship textures, hull GLB, first room prop, room walls) or 6 s have
+    // passed, whichever comes first; the overlay in ShipWorld3D fades out over
+    // 400 ms on the signal. Failures count as landed, so nothing can wedge it.
+    rig.visible = false;
+    const boot = { done: 0, need: 4, fired: false, timer: 0 };
+    const reveal = () => {
+      if (boot.fired) return;
+      boot.fired = true;
+      clearTimeout(boot.timer);
+      if (disposed) return;
+      rig.visible = true;
+      onBooted?.();
+    };
+    const bootPiece = () => { if (++boot.done >= boot.need) reveal(); };
+    boot.timer = setTimeout(reveal, 6000);   // never block past 6 s
     scene.add(env.group);
     rig.add(greebles.group);
     const tunnel = createTunnel();
@@ -224,16 +262,35 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     sentinelsRef.current = sentinels;
     scene.add(sentinels.group);
     // Dev-only hook for tests/ship-scene.html: toggle layers, read positions.
-    if (import.meta.env.DEV && typeof window !== 'undefined') window.__shipWorld = { scene, rig, env, greebles, tunnel, sentinels, figures: figuresRef.current, model: () => modelRef.current, hull: () => hullRef.current };
+    if (import.meta.env.DEV && typeof window !== 'undefined') window.__shipWorld = {
+      scene, rig, env, greebles, tunnel, sentinels, figures: figuresRef.current,
+      model: () => modelRef.current, hull: () => hullRef.current,
+      // Harness capture: the automated browser throttles rAF to 1 fps, so
+      // Playwright's screenshot (which waits for a presented frame) times out.
+      // This renders one frame on demand and hands back a PNG data URL.
+      grab: () => { gl.render(scene, camera); return gl.domElement.toDataURL('image/png'); },
+    };
     const textures = { current: null };
     loadShipTextures((tex) => {
       if (disposed) { for (const t of Object.values(tex)) t?.dispose(); return; }
+      bootPiece();                                   // piece 1/4: ship textures
       textures.current = tex;
       model = createShipModel({ textures: tex });
       modelRef.current = model;
       // Everything solid in the hull throws and catches shadow; emissive
       // accents (Basic materials) neither, or the shadow map fills with lamps.
       model.group.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshLambertMaterial) { o.castShadow = true; o.receiveShadow = true; } });
+      // Fallout Shelter separates its lit cells with DARK structure. Here the
+      // frame was reading at the same value as the rooms, so nothing popped.
+      // Knock the merged hull / deck / bulkhead materials down to 55% of their
+      // authored colour — in this view only, shipModel.js is untouched — and
+      // the twelve coloured bays become the only bright things in frame.
+      const dimmed = new Set();
+      for (const name of ['hull', 'hullDark', 'decks', 'walls']) {
+        const o = model.group.getObjectByName(name);
+        const m = o && o.material;
+        if (m && m.color && !dimmed.has(m)) { m.color.multiplyScalar(0.55); dimmed.add(m); }
+      }
       shipRigRef.current.add(model.group);
       // The generated hull replaces the procedural shell once it lands; the
       // decks, rooms and props inside stay exactly as calibrated.
@@ -242,6 +299,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       const hull = createHullGLB({ onReady: () => {
         const rim = model.group.getObjectByName('cutawayRim');
         if (rim) rim.visible = false;
+        bootPiece();                                 // piece 2/4: hull GLB
       } });
       hullRef.current = hull;
       shipRigRef.current.add(hull.group);
@@ -251,10 +309,11 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
         // board slots) retire once real props land; cyan accents (holo cone,
         // core glass) stay because the props do not replace them.
         for (const name of ['props', 'amberAccents']) { const o = model.group.getObjectByName(name); if (o) o.visible = false; }
+        bootPiece();                                 // piece 3/4: first room prop
       } });
       propsRef.current = props;
       shipRigRef.current.add(props.group);
-      const walls = createRoomWalls({ rooms: model.rooms });
+      const walls = createRoomWalls({ rooms: model.rooms, onReady: bootPiece });  // piece 4/4
       wallsRef.current = walls;
       shipRigRef.current.add(walls.group);
       const shafts = createLightShafts({ rooms: model.rooms });
@@ -263,6 +322,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     });
     return () => {
       disposed = true;
+      clearTimeout(boot.timer);
       if (model) { rig.remove(model.group); model.dispose(); }
       if (hullRef.current) { rig.remove(hullRef.current.group); hullRef.current.dispose(); hullRef.current = null; }
       if (propsRef.current) { rig.remove(propsRef.current.group); propsRef.current.dispose(); propsRef.current = null; }
@@ -392,8 +452,8 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       {/* Cinematic rig: deep-shadow base + pools of warm lamp light per room —
           the reference's contrast instead of an even wash. Bloom (Effects)
           turns the emissives into real glow. */}
-      <ambientLight intensity={0.46} color="#5a7492" />
-      <hemisphereLight args={['#4a6a90', '#05070a', 0.7]} />
+      <ambientLight intensity={0.95} color="#6d8aa8" />
+      <hemisphereLight args={['#5c80a8', '#0a0e14', 1.0]} />
       {/* The one shadow-casting light: a cool key from high front-left, ortho
           frustum sized to the hull so the 2k map spends its texels on the ship. */}
       <directionalLight
@@ -408,22 +468,45 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       <Suspense fallback={null}>
         {BACKDROP.map((b, i) => <BackdropPlate key={i} {...b} />)}
       </Suspense>
-      {ROOMS.map(r => (
-        <pointLight
-          key={r.id}
-          position={[toSceneX((r.x0 + r.x1) / 2), DECK_Y[r.deck] + DECK_CLEAR - 30, WALK_Z + 14]}
-          intensity={21000}
-          distance={340}
-          decay={2}
-          color={r.id === 'analytics' ? '#7fc4ff' : '#cfd8e6'}
-        />
-      ))}
+      {/* ── THE TWELVE CELLS ───────────────────────────────────────────────
+          One uniform grey lamp per room is what made the ship read as a
+          single washed value. Each bay now gets its own two-light rig from
+          STATION_PALETTE: a bright short-range FILL at the front of the bay
+          carrying the station's identity colour, and a low RIM behind the
+          crew, at 30%, in a deeper tone of the same family. The fill's
+          distance is the bay's own width (floored at 190 so a narrow bay's
+          lamp still reaches its floor, ~120 units below), so a cell lights
+          itself and stops at its neighbour instead of bleeding across the
+          deck. All twelve colours stay inside the cold/neutral band — see
+          the doctrine note in stationPalette.js. */}
+      {/* Bay light: ONE point light per bay, and only for the bays a receipt
+          says are live. Twelve fills plus twelve rims measured 1.2 fps in the
+          harness (30 point lights: every material recompiles and every
+          fragment loops them all). Fallout Shelter does not light its rooms
+          dynamically either — the room reads bright because it is PAINTED
+          bright. So colour identity now comes from the additive cell glow and
+          the tinted wall panel in roomWalls.js, and these few lamps only pick
+          out the bays that are actually working. */}
+      {ROOMS.filter(r => litStations.has(r.id)).slice(0, 4).map(r => {
+        const pal = stationLightFor(r.id);
+        const cx = toSceneX((r.x0 + r.x1) / 2);
+        return (
+          <pointLight
+            key={r.id}
+            position={[cx, DECK_Y[r.deck] + DECK_CLEAR - 30, WALK_Z + 14]}
+            intensity={pal.intensity * 0.9} distance={Math.max((r.x1 - r.x0) * 1.15, 190)} decay={2} color={pal.fill}
+          />
+        );
+      })}
       {/* Hover-pad underglow: the cyan rings throw light down onto the undercity */}
       {[-300, 300].map((x, i) => (
         <pointLight key={'pad' + i} position={[x, HULL_3D.yBottom - 140, 60]} intensity={70000} distance={800} decay={2} color="#2aabff" />
       ))}
-      {/* soft cool front fill so the cutaway's nearest faces never go void */}
-      <pointLight position={[0, 100, 700]} intensity={200000} distance={2400} decay={2} color="#6f8db0" />
+      {/* Soft cool front fill so the cutaway's nearest faces never go void.
+          Cut to a third (200k → 66k): at full strength this single lamp was
+          re-flattening everything the per-bay rig separates. It is a floor
+          now, not a light. */}
+      <pointLight position={[0, 100, 700]} intensity={66000} distance={2400} decay={2} color="#6f8db0" />
       <Effects />
     </>
   );
@@ -441,6 +524,18 @@ export default function ShipWorld3D({ crew = [], activity = {}, incidents = null
 
   const [chipAnchors, setChipAnchors] = useState({});
   const [hover, setHover] = useState(null);
+  // Boot gate (see SceneContent): the rig stays hidden and this black overlay
+  // covers the canvas until every big async piece has landed — or 6 s pass —
+  // so the ship arrives whole instead of assembling itself on screen. Then the
+  // overlay fades over 400 ms and is unmounted.
+  const [booted, setBooted] = useState(false);
+  const [overlayGone, setOverlayGone] = useState(false);
+  const onBooted = useCallback(() => setBooted(true), []);
+  useEffect(() => {
+    if (!booted) return undefined;
+    const id = setTimeout(() => setOverlayGone(true), 440);
+    return () => clearTimeout(id);
+  }, [booted]);
   const viewRef = useRef({ zoom: 1, panX: 0, panY: 0 });
   const chipEls = useRef(new Map());
   const dragRef = useRef(null);
@@ -475,14 +570,28 @@ export default function ShipWorld3D({ crew = [], activity = {}, incidents = null
       <Canvas
         dpr={[1, 2]}
         camera={{ fov: CAMERA.fov, near: 1, far: 6000, position: CAMERA.position }}
-        gl={{ antialias: true, alpha: false, toneMapping: THREE.NoToneMapping }}
+        gl={{ antialias: true, alpha: false, toneMapping: THREE.NoToneMapping, preserveDrawingBuffer: import.meta.env.DEV }}
         shadows={{ type: THREE.PCFShadowMap }}
         onCreated={({ gl }) => { gl.localClippingEnabled = true; }}
         style={{ position: 'absolute', inset: 0 }}
       >
-        <SceneContent simRef={simRef} crew={crew} onChipAnchors={setChipAnchors} contactsRef={contactsRef} tunnelOut={tunnelOut} selectedStation={selectedStation} viewRef={viewRef} chipEls={chipEls} cutRef={cutRef} />
+        <SceneContent simRef={simRef} crew={crew} onChipAnchors={setChipAnchors} contactsRef={contactsRef} tunnelOut={tunnelOut} selectedStation={selectedStation} viewRef={viewRef} chipEls={chipEls} cutRef={cutRef} onBooted={onBooted} />
       </Canvas>
       <ShipHUD contactsRef={contactsRef} signals={signals} tunnelRef={tunnelOut} />
+      {!overlayGone && (
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0, zIndex: 30,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#05060a',
+          opacity: booted ? 0 : 1, transition: 'opacity 400ms ease-out',
+          pointerEvents: booted ? 'none' : 'auto',
+        }}>
+          <span style={{
+            ...mono, fontSize: 10, letterSpacing: 3, textTransform: 'uppercase',
+            color: 'rgba(191,227,255,0.72)', animation: 'livePulse 1.6s ease-in-out infinite',
+          }}>Booting ship</span>
+        </div>
+      )}
 
       {selectedStation && (
         <button onClick={() => onStation?.(selectedStation)} style={{

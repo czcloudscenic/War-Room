@@ -80,8 +80,11 @@ export function floorYAt(deck, x) {
 // 0.383 body-heights per 4.23s cycle, so a figure ~85 logical units tall walks
 // naturally at ~30 u/s with the clip played about 4x. Change one, retune both,
 // or the feet start sliding.
-export const SPRITE = { w: 14, h: 26, walkSpeed: 30, climbSpeed: 26 }; // px/sec
+export const SPRITE = { w: 14, h: 26, walkSpeed: 46, climbSpeed: 34 }; // px/sec
 
 // Movement-rule states a sprite can be told to hold (mirror of positionCrew):
 // 'working' | 'active' | 'idle' | 'future'.
-export const WANDER = { min: 3000, max: 9000, radius: 60 }; // idle pacing inside a room, ms + px
+export const WANDER = { min: 1800, max: 5200, radius: 95 }; // idle pacing inside a room, ms + px
+// Working crew are not statues: every TASK.min..max ms they step to another
+// spot in their own bay (a second console, a rack) and settle back to work.
+export const TASK = { min: 7000, max: 17000, radius: 55, dwellMin: 2500, dwellMax: 6000 };

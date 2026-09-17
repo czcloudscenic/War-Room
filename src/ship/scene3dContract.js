@@ -35,7 +35,7 @@ export const CAMERA = {
   // 1.93:1 viewport (tan(16.5°) × aspect), 1.14× the 1152 half-length, so
   // the nose block and stern clear the frame edges; y keeps the old ~4.5°
   // downward pitch so the cut still reads as a section, not a plan.
-  position: [180, 150, 2120],
+  position: [120, 60, 1500],
   target: [10, -10, 0],
   parallax: { x: 26, y: 14 },           // pointer-driven drift amplitude
 };

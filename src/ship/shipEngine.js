@@ -6,7 +6,7 @@
 // then walk to a spot near the room center. Idle crew pace their room on a
 // deterministic per-sprite PRNG (no Math.random — replays are stable).
 
-import { DECKS, LADDERS, HULL, SPRITE, WANDER, roomById, roomCenter } from './world.js';
+import { DECKS, LADDERS, HULL, SPRITE, WANDER, TASK, roomById, roomCenter } from './world.js';
 import { ROSTER } from '../core/shipStations.js';
 
 const MAX_STEP_MS = 100;   // dt-spike clamp: no single integration step above this
@@ -89,6 +89,10 @@ export function createShipSim() {
     s.wanderWait = WANDER.min + s.rng() * (WANDER.max - WANDER.min);
   }
 
+  function resetTaskTimer(s) {
+    s.taskWait = TASK.min + s.rng() * (TASK.max - TASK.min);
+  }
+
   function setCrew(crewPositions = []) {
     const crew = crewPositions.filter(c => c && ROSTER_NAMES.has(c.name));
     const futureCount = crew.filter(c => c.future).length;
@@ -111,8 +115,10 @@ export function createShipSim() {
           path: [], targetX,
           rng: mulberry32(seedFromName(c.name)),
           wanderWait: 0, wanderX: null,
+          taskWait: 0, taskX: null,
         };
         resetWanderTimer(s);
+        resetTaskTimer(s);
         setAnim(s, restAnim(s));
         byName.set(c.name, s);
       } else {
@@ -133,6 +139,7 @@ export function createShipSim() {
           s.station = c.station;
           s.targetX = targetX;
           s.wanderX = null;
+          s.taskX = null;
           s.path = buildPath(s.deck, s.x, room.deck, targetX);
         }
       }
@@ -187,9 +194,36 @@ export function createShipSim() {
         continue;
       }
 
-      // Arrived. Working/active crew man their console; idle crew pace.
+      // Arrived. Working/active crew man their console, and every so often
+      // step to another spot in the same bay and settle back — a working
+      // agent that never moves reads as a prop.
       if (s.state === 'working' || s.state === 'active') {
-        setAnim(s, 'work');
+        const bay = roomById(s.station);
+        if (s.taskX != null) {
+          setAnim(s, 'walk');
+          const dx = s.taskX - s.x;
+          if (dx !== 0) s.facing = dx > 0 ? 1 : -1;
+          const move = SPRITE.walkSpeed * dtSec;
+          if (Math.abs(dx) <= move) {
+            s.x = s.taskX;
+            s.taskX = null;
+            setAnim(s, 'work');
+            resetTaskTimer(s);
+          } else s.x += Math.sign(dx) * move;
+          s.x = clampToRoom(clampToHull(s.x), bay);
+        } else {
+          setAnim(s, 'work');
+          s.taskWait -= dt;
+          if (s.taskWait <= 0) {
+            // Half the time head back to the assigned console spot, half the
+            // time to another point in the bay.
+            const target = s.rng() < 0.5
+              ? s.targetX
+              : clampToRoom(s.targetX + (s.rng() * 2 - 1) * TASK.radius, bay);
+            if (Math.abs(target - s.x) > EPS) s.taskX = target;
+            else resetTaskTimer(s);
+          }
+        }
         s.animT += dt;
         continue;
       }

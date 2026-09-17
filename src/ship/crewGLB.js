@@ -53,7 +53,12 @@ const MODEL_YAW = 0;
 //   selfGlow    a whisper of emissive so shadow sides never go fully black
 //   roughness   forced matte — specular pings are the loudest sticker tell
 // Tune here, verify in tests/ship-scene.html (which mounts the real scene).
-const GRADE = { saturation: 0.58, exposure: 0.70, tint: [0.84, 0.91, 1.0], selfGlow: 0.06, roughness: 0.94 };
+// 9/17: the grade was tuned to sink the crew INTO the painted plate. In the
+// modeled world that is the wrong job: it is one of the things making the
+// frame read as "multiple colors blending". The crew should be the most
+// saturated, most contrasty thing in a bay, like a Fallout Shelter dweller
+// against a lit room. Saturation and exposure go back up; matte stays.
+const GRADE = { saturation: 0.95, exposure: 1.0, tint: [0.96, 0.98, 1.0], selfGlow: 0.05, roughness: 0.9 };
 // Posture: the Meshy clips carry a built-in lean (measured 9/10 in the harness:
 // hips-to-head about 6.5 deg sideways and 5 deg forward on every crew member,
 // bind pose straight) and hang the arms 21-28 deg out from the body. Both read

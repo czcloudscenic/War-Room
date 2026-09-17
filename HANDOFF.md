@@ -1,5 +1,31 @@
 # Vantus Handoff Brief
 
+## 2026-09-17 (Counsel + 3 agents) — the Fallout Shelter read, wider tunnel, no weather, the sentinel seated, agents that move. Pushed.
+
+Christian's list: agents' movement, "multiple colors blending", load "glitches then goes into the actual ship", rain in a tunnel and too slow, tunnel too narrow (top sentinel clipping the roof), sentinel still not attached, "not looking like Fallout Shelter".
+
+**The colour complaint and the Fallout Shelter complaint were one problem.** FS rooms are bright, evenly lit, per-room COLOUR cells framed by dark structure. Ours was a uniform grey-blue wash.
+- `src/ship/stationPalette.js` (new): one identity per station, all inside the cold/neutral band (no warm hue) — icy cockpit, deep-blue intel, violet foundry, clinical qc, steel pipeline, green-cyan gateway, slate quarters, near-black vault with a cyan edge, bright cyan analytics, pale comm, teal automation, silver finance.
+- The bay is **painted bright, not lit bright**: the back panel glows at emissive 0.85 in its station colour and an additive "cell glow" card fills the bay opening at 0.72, and the props are tinted 0.22 toward the same colour with emissive 0.42. Only the bays a receipt says are live get a real lamp, max four.
+- **Do not add per-bay point lights.** Twelve fills plus twelve rims put 30 point lights in the scene; a dozen point lights has blanked the frame before on this project. The painted approach is also the historically correct one.
+- Structure recedes: environmentIntensity 0.32→0.12, front fill 200k→66k, hull/decks/walls material colours ×0.55 in ShipWorld3D only. Ambient 0.95 / hemi 1.0 carry the interior.
+- Crew grade relaxed (`crewGLB.js` GRADE saturation 0.58→0.95): it had been tuned to sink them INTO the old painted plate, which was making them part of the wash. They should be the most saturated thing in a bay.
+- Camera reframed to the CUTAWAY: [180,150,2120] → **[120,60,1500]**. FS fills the screen with rooms; the exterior may run off frame.
+
+**Agents move.** `world.js` gains `TASK` (7–17 s); working crew step to another spot in their own bay and settle back (`shipEngine.js`), so they are not statues. Walk speed 30→46, wander 1.8–5.2 s at radius 95. Verified headlessly: 44–65 units of travel per agent over 99 s of sim.
+
+**Tunnel** (agent): CEIL_Y 420→670, FLOOR_Y −500→−760, WALL_Z −580, FRONT_Z 540. Clearance above the masts 201, above a docked sentinel 270, above the cruising escort 375 — nothing can clip the roof. Ribs and lamps every segment, speed 240→384. **All weather removed**; 24 slow beads fall from the ceiling ribs only.
+
+**Sentinel** (agent): seated at `hullTopY(dockX) − 6` so the legs sink into the plating, scale 300→210, beam now ~123 units and vertical from the head's underside to a weld point directly beneath it, additive weld disc lying on the plating, sparks biased along the hull, contact shadow under the body.
+
+**Load gate** (agent): the rig stays hidden behind a "BOOTING SHIP" overlay until textures, hull, first prop and walls land, or 6 s, then fades in over 400 ms. Failures count as landed so it cannot wedge.
+
+### Two hard-won harness notes
+- **16.1M triangles**: the modeled tentacle segments were cloned onto ~660 segments at 29.6k tris each. Removed — at ship distance an arm is a few pixels and the primitive cylinders read identically. If a close-up ever needs them, attach to the first two segments of the cutter only. Scene is now ~2.3M tris. The sentinel head was rebuilt (weld → simplify 0.02) 99k → **39.7k**; plain `simplify` does nothing on these meshes without `weld` first.
+- **fps in the Playwright harness is meaningless**: frame gaps are exactly 1000.0 ms because the automated browser throttles rAF, even with an M3 Pro GPU and with every update() no-opped. Screenshots time out for the same reason. Use the new capture path instead: `window.__shipWorld.grab()` renders one frame and returns a PNG data URL (dev-only `preserveDrawingBuffer`); POST it to a tiny local writer (see /tmp/shot-server.mjs pattern) to get a file.
+
+**Next:** the bays can go brighter still; rush button; morale on the crew; incident visuals inside the bay.
+
 ## 2026-09-17 (Counsel, later) — game layer step 1: the three bars, incidents, morale, all from rows; the ship stops shaking. Pushed.
 
 - **Calm ship (Christian: "hard to click into anything"):** the pursuit shudder and the hand-held camera are gone; the rig keeps a slow cruise sway only (z ±0.006 rad over 9 s, y ±2.5) and pointer parallax is halved. Measured in the harness: chip drift 0.4 px over 1.5 s. The pursuit now shows in the cutter, sparks and the bars, not in motion.

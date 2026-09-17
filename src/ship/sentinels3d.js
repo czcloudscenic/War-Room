@@ -86,6 +86,21 @@ const PURSUIT = {
   // arcing down until the tip meets the plating. Not a bunch under the body.
   grip: { base: -0.1, spread: 0.9, curl: 0.17, fan: 1.25 },
 };
+// The perched model (public/sentinel/perched-a.glb), measured from its vertex
+// cloud (scratchpad tooling, 62874 verts, quantised int16 x node scale 0.4897):
+//   bbox 0.882 x 0.861 x 0.980 (x,y,z), legs splayed to the full x/z extent at
+//   the bottom, one compact head/body blob at the top: x -0.06..0.30 (centre
+//   +0.10), z +-0.14, y 0.20..0.43 (i.e. 0.73..1.0 of the height once the feet
+//   are dropped to y = 0). So the head sits above the leg spread, its snout
+//   offset forward (+x local, which is -x in the scene: the group is turned
+//   PI so the eye faces the way the ship flies).
+const PERCH = {
+  width: 210,        // world units across the widest span (leg spread)
+  sink: 6,           // feet set BELOW the plating: contact reads as pressure, no gap
+  headX: 0.113,      // head centre, as a fraction of the model's x size
+  muzzleY: 0.70,     // beam origin, as a fraction of the model's height (just under the head blob at 0.73)
+  shadow: 0.46,      // contact-shadow radius, as a fraction of `width`
+};
 const SCAR_COUNT = 6, SCAR_LIFE = 6.0, SCAR_EVERY = 1000;   // glowing cut trail: ring of strips, s / ms
 
 export function createSentinels3D() {
@@ -98,14 +113,21 @@ export function createSentinels3D() {
   const perched = new THREE.Group();
   perched.visible = false;
   group.add(perched);
-  let perchedScale = 1, perchedLift = 0, perchedH = 100, perchedReady = false;
+  // Model-local (feet at y = 0, unscaled) geometry of the machine, filled in
+  // from the loaded bbox: the height, and where its head/muzzle sits.
+  let perchedScale = 1, perchedH = 100, perchedReady = false;
+  let mdlH = 1, mdlHeadX = 0, mdlMuzzleY = 1;
   new GLTFLoader().load('/sentinel/perched-a.glb', (g) => {
     const m = g.scene;
     const box = new THREE.Box3().setFromObject(m);
     const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
-    perchedScale = 300 / (Math.max(size.x, size.z) || 1);      // ~300 units across the leg spread
+    perchedScale = PERCH.width / (Math.max(size.x, size.z) || 1);   // ~210 units across the leg spread
     m.position.set(-c.x, -box.min.y, -c.z);                    // feet on y = 0
+    mdlH = size.y;
+    mdlHeadX = PERCH.headX * size.x;                           // head centre, model units, local +x
+    mdlMuzzleY = PERCH.muzzleY * size.y;                       // beam leaves the head's underside
     perchedH = size.y * perchedScale;
+    if (import.meta.env?.DEV) console.log('[sentinels3d] perched-a bbox', size.x.toFixed(3), size.y.toFixed(3), size.z.toFixed(3), '-> scale', perchedScale.toFixed(1), 'height', perchedH.toFixed(1), 'muzzle', (mdlMuzzleY * perchedScale).toFixed(1), 'headX', (mdlHeadX * perchedScale).toFixed(1));
     m.traverse((o) => { if (o.isMesh && o.material) { const mm = o.material; if ('roughness' in mm) mm.roughness = Math.max(mm.roughness ?? 0.6, 0.5); if ('metalness' in mm) mm.metalness = Math.max(mm.metalness ?? 0.5, 0.75); if ('envMapIntensity' in mm) mm.envMapIntensity = 0.6; o.castShadow = true; } });
     perched.add(m);
     perched.rotation.y = Math.PI;                              // its eye faces +X; the ship flies -X
@@ -114,10 +136,22 @@ export function createSentinels3D() {
   let attach = 0;                                  // 0 flying .. 1 resting on the armor, eased
   // Cutting beam + sparks (Points burst, allocation-free)
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xe5e5ea, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.6, 1, 8, 1, true), beamMat);
+  // Narrow: the cut is a few centimetres of plating away, not a ship gun.
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 3.4, 1, 8, 1, true), beamMat);
   group.add(beam);
-  const impact = new THREE.Mesh(new THREE.SphereGeometry(9, 10, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+  const impact = new THREE.Mesh(new THREE.SphereGeometry(7, 10, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
   group.add(impact);
+  // The molten weld: a disc lying FLAT on the plating under the core, so the
+  // cut reads as burning into the surface rather than floating above it.
+  const weld = new THREE.Mesh(new THREE.CircleGeometry(16, 20), new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  weld.rotation.x = -Math.PI / 2;
+  group.add(weld);
+  // Contact shadow: a soft dark ellipse under the perched body, anchoring it.
+  const contact = new THREE.Mesh(new THREE.CircleGeometry(PERCH.width * PERCH.shadow, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, depthWrite: false }));
+  contact.rotation.x = -Math.PI / 2;
+  contact.scale.set(1, 1, 1.05);           // an ellipse matching the leg footprint (189 x 210)
+  contact.visible = false;
+  group.add(contact);
   const SPARKS = 140;
   const sparkPos = new Float32Array(SPARKS * 3), sparkVel = new Float32Array(SPARKS * 3), sparkLife = new Float32Array(SPARKS);
   const sparkGeo = new THREE.BufferGeometry(); sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
@@ -129,7 +163,7 @@ export function createSentinels3D() {
   group.add(impactLight);
   // Scars: a ring of thin additive strips laid flat on the top armor along the
   // cut trail, white-blue, fading over SCAR_LIFE seconds.
-  const scarGeo = new THREE.PlaneGeometry(90, 6);
+  const scarGeo = new THREE.PlaneGeometry(46, 5);   // short: the cut crawls, it does not slash
   const scars = [];
   for (let k = 0; k < SCAR_COUNT; k++) {
     const m = new THREE.Mesh(scarGeo, new THREE.MeshBasicMaterial({ color: 0xbfe4ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
@@ -138,10 +172,10 @@ export function createSentinels3D() {
     group.add(m);
     scars.push({ mesh: m, born: -1 });
   }
-  let scarNext = 0, scarLastAt = -Infinity;
+  let scarNext = 0, scarLastAt = -Infinity, perchedSc = 1;
   let sparkSeed = 1;
   const rnd = () => { sparkSeed = (sparkSeed * 16807) % 2147483647; return sparkSeed / 2147483647; };
-  const _up = new THREE.Vector3(0, 1, 0), _dir = new THREE.Vector3(), _muzzle = new THREE.Vector3(), _hit = new THREE.Vector3();
+  const _up = new THREE.Vector3(0, 1, 0), _dir = new THREE.Vector3(), _muzzle = new THREE.Vector3(), _hit = new THREE.Vector3(), _head = new THREE.Vector3();
   const _free = new THREE.Vector3(), _lightOff = new THREE.Vector3(0, 30, 40);
   let lastT = null;
   const units = ESCORTS.map((e) => {
@@ -246,7 +280,11 @@ export function createSentinels3D() {
             const k = (land - 0.5) * 2;
             const sc = perchedScale * (0.85 + 0.15 * k) * (1 + Math.sin(t / 900) * 0.01);
             perched.scale.setScalar(sc);
-            perched.position.set(dockX + Math.sin(t / 130) * 1.2, hullTopY(dockX) - 2 + Math.cos(t / 170) * 0.8, dockZ);
+            perchedSc = sc;
+            // SEATED: the model's feet are at y = 0 of its group, so dropping
+            // the group below the plating sinks the leg tips into it - contact
+            // reads as pressure, and there is no gap to see under the body.
+            perched.position.set(dockX + Math.sin(t / 130) * 1.2, hullTopY(dockX) - PERCH.sink + Math.cos(t / 170) * 0.5, dockZ);
             perched.rotation.z = Math.sin(t / 2100) * 0.02;
           }
           // ATTACHED: body on the top armor, creeping, a fast low shudder from the cut.
@@ -268,14 +306,25 @@ export function createSentinels3D() {
       }
       animateBody(g, t, i, 1 + threat * 1.4, g === cutter ? attach : 0);
     }
-    // Cutting: continuous while attached. Beam from the head's muzzle (the
-    // eyes, local +X, which faces -X and down once pitched) to the weld point
-    // on the armor just ahead of the seat; the point drags with the crawl.
+    // Cutting: continuous while attached, from the head's muzzle STRAIGHT DOWN
+    // into the plating the machine is standing on - a short weld, not a ray.
     const cutting = attach > 0.5;
-    const cutX = dockX - 30 + Math.sin(t / 1300) * 4;
-    _hit.set(cutX, hullTopY(cutX) + 1, dockZ + 10 + Math.cos(t / 1700) * 3);
-    if (perched.visible) _muzzle.set(perched.position.x - 20, perched.position.y + perchedH * 0.62, perched.position.z + 6);
-    else _muzzle.set(20, -4, 0).multiplyScalar(cutterUnit.e.s).applyEuler(cutter.rotation).add(cutter.position);
+    // The weld point is DIRECTLY BENEATH THE HEAD, not off to one side: the
+    // head's local +x offset, turned into the scene by the group's own
+    // rotation, so the beam is short and near vertical (about 120 units, and
+    // the machine is 210 across).
+    let cutX, cutZ;
+    if (perched.visible) {
+      _head.set(mdlHeadX * perchedSc, 0, 0).applyEuler(perched.rotation);
+      cutX = perched.position.x + _head.x + Math.sin(t / 1300) * 3;
+      cutZ = perched.position.z + _head.z + Math.cos(t / 1700) * 2;
+      _muzzle.set(cutX, perched.position.y + mdlMuzzleY * perchedSc, perched.position.z + _head.z);
+    } else {
+      cutX = dockX - 30 + Math.sin(t / 1300) * 4;
+      cutZ = dockZ + 10 + Math.cos(t / 1700) * 3;
+      _muzzle.set(20, -4, 0).multiplyScalar(cutterUnit.e.s).applyEuler(cutter.rotation).add(cutter.position);
+    }
+    _hit.set(cutX, hullTopY(cutX), cutZ);
     _dir.subVectors(_hit, _muzzle);
     const len = _dir.length();
     beam.position.copy(_muzzle).addScaledVector(_dir, 0.5);
@@ -287,6 +336,17 @@ export function createSentinels3D() {
     impact.material.opacity = on * (0.5 + 0.4 * Math.abs(Math.sin(t / 40)));
     const is = cutting ? 0.9 + 0.5 * Math.abs(Math.sin(t / 60)) : 0.001;
     impact.scale.set(is, is, is);
+    // Molten pool flat on the plating, pulsing with the cut.
+    weld.position.set(_hit.x, _hit.y + 0.5, _hit.z);
+    weld.material.opacity = on * cut * (0.32 + 0.3 * Math.abs(Math.sin(t / 55)));
+    const ws = cutting ? 0.8 + 0.3 * Math.abs(Math.sin(t / 90)) : 0.001;
+    weld.scale.set(ws, ws, ws);
+    // Contact shadow: anchors the body to the plating it is standing on.
+    contact.visible = perched.visible;
+    if (contact.visible) {
+      contact.position.set(perched.position.x, hullTopY(perched.position.x) + 1, perched.position.z);
+      contact.material.opacity = 0.5 * Math.min(1, (attach - 0.5) * 2);
+    }
     impactLight.position.copy(_hit).add(_lightOff);
     impactLight.intensity = on * cut * (60000 + 40000 * Math.abs(Math.sin(t / 50)));
     // Sparks: a steady spray off the weld point, fall under gravity, die
@@ -295,12 +355,20 @@ export function createSentinels3D() {
         sparkLife[i] -= dt;
         sparkVel[i * 3 + 1] -= 900 * dt;
         sparkPos[i * 3] += sparkVel[i * 3] * dt; sparkPos[i * 3 + 1] += sparkVel[i * 3 + 1] * dt; sparkPos[i * 3 + 2] += sparkVel[i * 3 + 2] * dt;
+        // They land back on the plating and skitter rather than falling through it.
+        if (sparkPos[i * 3 + 1] < _hit.y && sparkVel[i * 3 + 1] < 0) {
+          sparkPos[i * 3 + 1] = _hit.y;
+          sparkVel[i * 3 + 1] *= -0.25;
+          sparkVel[i * 3] *= 0.7; sparkVel[i * 3 + 2] *= 0.7;
+        }
         if (sparkLife[i] <= 0) { sparkPos[i * 3 + 1] = -99999; }
       } else if (cutting && rnd() < 0.07 * cut) {
         sparkLife[i] = 0.35 + rnd() * 0.5;
         sparkPos[i * 3] = _hit.x; sparkPos[i * 3 + 1] = _hit.y; sparkPos[i * 3 + 2] = _hit.z;
-        const ang = rnd() * Math.PI * 2, sp = 180 + rnd() * 260;
-        sparkVel[i * 3] = Math.cos(ang) * sp; sparkVel[i * 3 + 1] = 120 + rnd() * 320; sparkVel[i * 3 + 2] = Math.sin(ang) * sp * 0.6 + 80;
+        // Spray ALONG the plating: mostly sideways off the weld, only a modest
+        // lift, so they skitter across the armour instead of flying into space.
+        const ang = rnd() * Math.PI * 2, sp = 240 + rnd() * 320;
+        sparkVel[i * 3] = Math.cos(ang) * sp; sparkVel[i * 3 + 1] = 50 + rnd() * 150; sparkVel[i * 3 + 2] = Math.sin(ang) * sp * 0.85;
       } else if (sparkLife[i] < 0) { sparkPos[i * 3 + 1] = -99999; }
     }
     sparkGeo.attributes.position.needsUpdate = true;

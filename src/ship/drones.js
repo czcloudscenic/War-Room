@@ -168,24 +168,12 @@ export function buildSentinel(scale) {
     head.visible = false; ridge.visible = false;
     g.children.forEach((c) => { if (c.geometry && c.geometry.type === 'SphereGeometry' && c !== head && c.material === darkMat) c.visible = false; });
   });
-  loadPart('tentacle').then((part) => {
-    if (!part) return;
-    for (const tt of tentacles) {
-      for (let j = 0; j < tt.segs.length; j++) {
-        const seg = tt.segs[j];
-        const piece = part.scene.clone(true);
-        const len = SEG_LEN * 1.02, s = len / (part.size.y || 1);
-        const taper = 1 - j / (tt.segs.length + 2);
-        piece.scale.set(s * 0.8 * taper, s, s * 0.8 * taper);
-        piece.position.y = -SEG_LEN / 2;
-        // The segment's long axis runs diagonally in its own XY; turn it so it hangs down the chain (-Y).
-        piece.rotation.z = -Math.PI / 4;
-        piece.rotation.x = Math.PI;
-        seg.add(piece);
-        if (seg.material) { seg.material = seg.material.clone(); seg.material.visible = false; }
-      }
-    }
-  });
+  // NO modeled tentacle segments. Measured 2026-09-17 in the harness: cloning
+  // the 29.6k-triangle segment onto every one of ~660 segments put 16.1M
+  // triangles on screen and the scene ran at 1.2 fps. At ship distance an arm
+  // is a few pixels wide, so the 6-sided primitive cylinders read identically.
+  // If a close-up ever needs them, attach modeled segments to the FIRST TWO
+  // segments of the cutter only, never to every machine.
   return g;
 }
 
