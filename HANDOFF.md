@@ -1,5 +1,14 @@
 # Vantus Handoff Brief
 
+## 2026-09-17 (Counsel, later) — game layer step 1: the three bars, incidents, morale, all from rows; the ship stops shaking. Pushed.
+
+- **Calm ship (Christian: "hard to click into anything"):** the pursuit shudder and the hand-held camera are gone; the rig keeps a slow cruise sway only (z ±0.006 rad over 9 s, y ±2.5) and pointer parallax is halved. Measured in the harness: chip drift 0.4 px over 1.5 s. The pursuit now shows in the cutter, sparks and the bars, not in motion.
+- **`shipStations.js` game layer (pure, 12 new tests, 65/65):** `computeBars({content, health})` → pipeline (share of open items moved in 24 h), approvals (items at a human gate), health (link, backup, credits; names the first failure; amber "unknown" when nothing is known). `computeIncidents(content)` → one incident per blocked item in its station (`stationForItem` from status), spreading one hop along `SPREAD_ORDER` (foundry → qc → pipeline → comm) per 24 h unhandled; `cutIntensity = 0.4 + 0.6 * clamp(oldestHours/72)`. `computeMorale(events)` → success ratio per agent over 48 h, null without receipts.
+- **Wired:** ShipRoute renders the three bars in the top strip (green / neutral / red, label from the function) plus an INCIDENTS count when any exist; passes `incidents` and `morale` to ShipWorld3D. Chips with an incident pulse red with `!n` (title: count, oldest hours, spread). `sentinels3d.update(t, { enclosed, cut })` scales beam, impact light and spark rate by `cut`. Harness feeds two blocked items (one 30 h old) so Foundry shows !1 and QC !2 and cut = 0.65.
+- **Test file gotcha:** rolldown cannot bundle a dynamic `await import()` in tests/core.test.mjs; use static imports at the top. The tally line prints before the last block: new assertions go ABOVE `console.log(\`\\n${pass} passed...\`)`.
+
+**Next (build order):** station incident visuals in 3D (flicker + sparks in the bay, relight on clear), rush button in fly-in wired to `agent-action` with a 10-min cooldown and morale ±10, morale shown in fly-in, drag-to-assign as intent, then the pursuit event beats driven by incidents.
+
 ## 2026-09-17 (Counsel) — DIRECTION: the ship as Fallout Shelter. Rules doc + procedural joint layers. Pushed.
 
 Christian: "think like Fallout Shelter; joint points at knees/ankles/elbows/wrists/neck to maximize movement; then the pursuit event; assets maybe later." Read `docs/SHIP-GAME-RULES.md` (new) before touching game logic: stations = rooms, agents = dwellers, receipts = production, blocked items = incidents that spread, sentinel cut intensity from the oldest blocker's age, rush = the real agent action, morale = success ratio over 48 h. Build order is at the bottom of that doc.

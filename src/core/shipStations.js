@@ -96,3 +96,86 @@ export function stationActivity(events = []) {
   }
   return by;
 }
+
+// ── The game layer (docs/SHIP-GAME-RULES.md) ─────────────────────────────────
+// Pure functions. Every number here comes from real rows; nothing is timed.
+
+const H = 3600 * 1000;
+export const GATE_STATUSES = ['Need Copy Approval', 'Need Content Approval'];
+const DONE_STATUSES = ['Posted', 'Scrapped'];
+// Pipeline order an incident spreads along (rules doc §Incidents).
+export const SPREAD_ORDER = ['foundry', 'qc', 'pipeline', 'comm'];
+// Which station a blocked item lives in, from its status.
+const STATUS_STATION = {
+  'Ready For Copy Creation': 'foundry', 'Need Copy Approval': 'comm', 'Ready For Content Creation': 'foundry',
+  'Need Content Approval': 'comm', 'Needs Revisions': 'qc', 'Approved': 'pipeline', 'Ready For Schedule': 'pipeline', 'Scheduled': 'pipeline',
+};
+export const stationForItem = (item) => STATUS_STATION[item?.status] || 'pipeline';
+export const isBlocked = (item) => !!(item && (item.block_reason || item.qc_status === 'blocked') && !DONE_STATUSES.includes(item.status));
+
+/**
+ * The three top bars. Each: { value, level: 'green'|'amber'|'red', label }.
+ *   pipeline  share of open items that moved stage in the last 24 h (updated_at)
+ *   approvals count waiting at a human gate
+ *   health    link + backup (< 26 h) + credits, red names the first failure
+ */
+export function computeBars({ content = [], health = {} } = {}, now = Date.now()) {
+  const open = content.filter(i => !DONE_STATUSES.includes(i.status));
+  const moved = open.filter(i => i.updated_at && now - new Date(i.updated_at).getTime() < 24 * H).length;
+  const share = open.length ? moved / open.length : 0;
+  const pipeline = { value: share, level: share >= 0.3 ? 'green' : share >= 0.1 ? 'amber' : 'red', label: open.length ? `${Math.round(share * 100)}% moved 24h` : 'no open items' };
+  const waiting = content.filter(i => GATE_STATUSES.includes(i.status)).length;
+  const approvals = { value: waiting, level: waiting <= 2 ? 'green' : waiting <= 6 ? 'amber' : 'red', label: `${waiting} waiting` };
+  const backupFresh = health.backupAt ? now - new Date(health.backupAt).getTime() < 26 * H : !!health.backupOk;
+  const fails = [];
+  if (health.linkOk === false) fails.push('link down');
+  if (health.backupOk === false || (health.backupAt && !backupFresh)) fails.push('backup stale');
+  if (health.credits != null && health.credits <= 0) fails.push('no credits');
+  const known = health.linkOk != null || health.backupOk != null || health.backupAt != null || health.credits != null;
+  const healthBar = { value: fails.length ? 0 : known ? 1 : null, level: fails.length ? 'red' : known ? 'green' : 'amber', label: fails.length ? fails[0] : known ? 'nominal' : 'unknown' };
+  return { pipeline, approvals, health: healthBar };
+}
+
+/**
+ * Incidents: one per blocked item, in its station; after 24 h unhandled it
+ * also burns in the next station of SPREAD_ORDER (and so on, one hop per 24 h).
+ * Returns { byStation: { [id]: { count, oldestHours, spread } }, oldestHours, cutIntensity }.
+ * cutIntensity = 0.4 + 0.6 * clamp(oldestHours / 72) (the sentinel's cut).
+ */
+export function computeIncidents(content = [], now = Date.now()) {
+  const byStation = {};
+  let oldestHours = 0;
+  const bump = (id, hours, spread) => {
+    const s = byStation[id] || (byStation[id] = { count: 0, oldestHours: 0, spread: false });
+    s.count += 1; s.oldestHours = Math.max(s.oldestHours, hours); if (spread) s.spread = true;
+  };
+  for (const item of content) {
+    if (!isBlocked(item)) continue;
+    const since = item.blocked_at || item.updated_at;
+    const hours = since ? Math.max(0, (now - new Date(since).getTime()) / H) : 0;
+    oldestHours = Math.max(oldestHours, hours);
+    const home = stationForItem(item);
+    bump(home, hours, false);
+    const hops = Math.floor(hours / 24);
+    let idx = SPREAD_ORDER.indexOf(home);
+    for (let k = 0; k < hops && idx >= 0 && idx + 1 < SPREAD_ORDER.length; k++) { idx += 1; bump(SPREAD_ORDER[idx], hours - 24 * (k + 1), true); }
+  }
+  const cutIntensity = 0.4 + 0.6 * Math.min(1, oldestHours / 72);
+  return { byStation, oldestHours, cutIntensity };
+}
+
+/**
+ * Morale per agent: successes / (successes + failures) over 48 h of receipts.
+ * Unknown (null) when there are no receipts, never a default number.
+ */
+export function computeMorale(events = [], now = Date.now()) {
+  const out = {};
+  for (const m of ROSTER) {
+    if (!m.eventName) continue;
+    const mine = events.filter(e => e.agent_name === m.eventName && e.ts && now - new Date(e.ts).getTime() < 48 * H);
+    const ok = mine.filter(e => e.result_status === 'success').length;
+    const bad = mine.filter(e => e.result_status && e.result_status !== 'success').length;
+    out[m.name] = ok + bad ? ok / (ok + bad) : null;
+  }
+  return out;
+}

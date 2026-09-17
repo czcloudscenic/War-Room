@@ -9,6 +9,7 @@ import { commandDigest } from '../src/core/commandDigest.js';
 import siteAudit from '../netlify/functions/_lib/siteAudit.js';
 import { scoreWarmth, WARM_MIN } from '../src/core/warmth.js';
 import leadCapture from '../netlify/functions/_lib/leadCapture.js';
+import { computeBars, computeIncidents, computeMorale } from '../src/core/shipStations.js';
 
 let pass = 0, fail = 0;
 const t = (name, cond) => { if (cond) { pass++; } else { fail++; console.error('FAIL:', name); } };
@@ -140,5 +141,37 @@ t('commandDigest returns tiers object', digest && typeof digest === 'object');
   t('suppression: clean row passes', suppressionMatch(maps, { name: 'Sunset Plumbing', website: 'sunsetplumbing.com', phone: '9095550000' }) === null);
 }
 
+/* ── shipStations.js game layer (docs/SHIP-GAME-RULES.md) ── */
+{
+  const hoursAgo = (h) => new Date(NOW - h * 3600000).toISOString();
+  const bars = computeBars({ content: [
+    { status: 'Approved', updated_at: hoursAgo(2) }, { status: 'Scheduled', updated_at: hoursAgo(40) }, { status: 'Posted', updated_at: hoursAgo(1) },
+    { status: 'Need Copy Approval', updated_at: hoursAgo(50) },
+  ], health: { linkOk: true, backupOk: true, credits: 12 } }, NOW);
+  t('bars: pipeline share counts open items moved in 24h', Math.abs(bars.pipeline.value - 1 / 3) < 1e-9 && bars.pipeline.level === 'green');
+  t('bars: approvals counts gate statuses', bars.approvals.value === 1 && bars.approvals.level === 'green');
+  t('bars: health nominal when all known good', bars.health.level === 'green' && bars.health.label === 'nominal');
+  t('bars: health names the first failure', computeBars({ health: { linkOk: true, backupOk: false } }, NOW).health.label === 'backup stale');
+  t('bars: health unknown when nothing is known', computeBars({}, NOW).health.level === 'amber');
+  const inc = computeIncidents([
+    { status: 'Ready For Content Creation', block_reason: 'missing assets', updated_at: hoursAgo(30) },
+    { status: 'Needs Revisions', qc_status: 'blocked', updated_at: hoursAgo(2) },
+    { status: 'Posted', block_reason: 'old', updated_at: hoursAgo(90) },
+  ], NOW);
+  t('incidents: blocked items land in their station', inc.byStation.foundry?.count === 1 && inc.byStation.qc?.count === 2);
+  t('incidents: a 30h blocker has spread one hop', inc.byStation.qc?.spread === true);
+  t('incidents: done items never count', inc.oldestHours < 31);
+  t('incidents: cut intensity from the oldest blocker', Math.abs(inc.cutIntensity - (0.4 + 0.6 * 30 / 72)) < 1e-9);
+  t('incidents: none = base cut', computeIncidents([], NOW).cutIntensity === 0.4);
+  const morale = computeMorale([
+    { agent_name: 'Sean', ts: hoursAgo(1), result_status: 'success' }, { agent_name: 'Sean', ts: hoursAgo(3), result_status: 'failed' },
+    { agent_name: 'Sean', ts: hoursAgo(60), result_status: 'failed' }, { agent_name: 'Muse', ts: hoursAgo(5), result_status: 'success' },
+  ], NOW);
+  t('morale: ratio over 48h only', morale.Sean === 0.5 && morale.Muse === 1);
+  t('morale: unknown without receipts', morale.Scrappy === null);
+}
+
+
 console.log(`\n${pass} passed, ${fail} failed`);
+
 process.exit(fail ? 1 : 0);

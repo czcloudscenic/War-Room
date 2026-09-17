@@ -182,7 +182,7 @@ function EnvironmentLight() {
   return null;
 }
 
-function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, selectedStation, viewRef, chipEls }) {
+function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, selectedStation, viewRef, chipEls, cutRef }) {
   const { scene, camera, pointer, size } = useThree();
   const focus = useRef({ x: CAMERA.target[0], y: CAMERA.target[1], zoom: 1 });
   const _anchor = useRef(new THREE.Vector3());
@@ -337,7 +337,7 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     const threat = sentinelsRef.current?.threat || 0;
     wallsRef.current?.update(t);
     shaftsRef.current?.update(t);
-    sentinelsRef.current?.update(t, { enclosed: !!tunnelRef.current?.enclosed });
+    sentinelsRef.current?.update(t, { enclosed: !!tunnelRef.current?.enclosed, cut: cutRef?.current ?? 0.4 });
     if (contactsRef) sentinelsRef.current?.getContacts(contactsRef.current);
     // Flight: a slow bank and a breathing pitch on the whole vessel, plus a
     // touch of bob. Amplitudes small enough that the station chips (projected
@@ -346,10 +346,14 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     // the cruise sway, and the camera goes hand-held.
     const rig = shipRigRef.current;
     const shake = threat;
-    rig.rotation.z = Math.sin(t / 6100) * 0.014 + Math.sin(t / 2300) * 0.004 + Math.sin(t / 90) * 0.004 * shake;
-    rig.rotation.x = Math.sin(t / 4700) * 0.010 + Math.sin(t / 110) * 0.003 * shake;
-    rig.position.y = Math.sin(t / 3300) * 5 + Math.sin(t / 70) * 3 * shake;
-    rig.position.x = Math.sin(t / 5100) * 4 * shake;
+    // Calm by request (9/17): a slow cruise sway only. The pursuit no longer
+    // shakes the hull or the camera; it shows in the cutter, sparks and the
+    // bars instead, so the chips stay still enough to click.
+    rig.rotation.z = Math.sin(t / 9000) * 0.006;
+    rig.rotation.x = Math.sin(t / 7400) * 0.004;
+    rig.position.y = Math.sin(t / 4800) * 2.5;
+    rig.position.x = 0;
+    void shake;
     // Camera: station focus + wheel zoom + pan, eased; parallax damped when zoomed.
     const v = viewRef?.current || { zoom: 1, panX: 0, panY: 0 };
     const room = selectedStation ? ROOMS.find(r => r.id === selectedStation) : null;
@@ -360,12 +364,11 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
     f.x += (wantX - f.x) * 0.06; f.y += (wantY - f.y) * 0.06; f.zoom += (wantZoom - f.zoom) * 0.06;
     const par = 1 / f.zoom;
     const dx = CAMERA.position[0] - CAMERA.target[0], dy = CAMERA.position[1] - CAMERA.target[1];
-    const tx = f.x + (dx + pointer.x * CAMERA.parallax.x * 1.8 + Math.sin(t / 9000) * 6) * par;
-    const ty = f.y + (dy + pointer.y * CAMERA.parallax.y * 1.8 + Math.cos(t / 12000) * 4) * par;
-    const hand = (sentinelsRef.current?.threat || 0) * par;
-    camera.position.x += (tx + Math.sin(t / 130) * 6 * hand - camera.position.x) * 0.06;
-    camera.position.y += (ty + Math.cos(t / 97) * 4 * hand - camera.position.y) * 0.06;
-    camera.position.z = CAMERA.position[2] / f.zoom + Math.sin(t / 150) * 8 * hand;
+    const tx = f.x + (dx + pointer.x * CAMERA.parallax.x * 0.9 + Math.sin(t / 9000) * 4) * par;
+    const ty = f.y + (dy + pointer.y * CAMERA.parallax.y * 0.9 + Math.cos(t / 12000) * 3) * par;
+    camera.position.x += (tx - camera.position.x) * 0.06;
+    camera.position.y += (ty - camera.position.y) * 0.06;
+    camera.position.z = CAMERA.position[2] / f.zoom;
     camera.lookAt(f.x, f.y, 0);
     // Station chips: low inside each bay, projected through the live camera
     // and the flight rig every frame.
@@ -426,7 +429,10 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
   );
 }
 
-export default function ShipWorld3D({ crew = [], activity = {}, onStation, selectedStation, signals = {} }) {
+export default function ShipWorld3D({ crew = [], activity = {}, incidents = null, morale = {}, onStation, selectedStation, signals = {} }) {
+  // The sentinel cuts harder the longer the oldest blocker has been open (rules doc).
+  const cutRef = useRef(0.4);
+  cutRef.current = incidents?.cutIntensity ?? 0.4;
   const simRef = useRef(null);
   const contactsRef = useRef([]);
   const tunnelOut = useRef(null);
@@ -474,7 +480,7 @@ export default function ShipWorld3D({ crew = [], activity = {}, onStation, selec
         onCreated={({ gl }) => { gl.localClippingEnabled = true; }}
         style={{ position: 'absolute', inset: 0 }}
       >
-        <SceneContent simRef={simRef} crew={crew} onChipAnchors={setChipAnchors} contactsRef={contactsRef} tunnelOut={tunnelOut} selectedStation={selectedStation} viewRef={viewRef} chipEls={chipEls} />
+        <SceneContent simRef={simRef} crew={crew} onChipAnchors={setChipAnchors} contactsRef={contactsRef} tunnelOut={tunnelOut} selectedStation={selectedStation} viewRef={viewRef} chipEls={chipEls} cutRef={cutRef} />
       </Canvas>
       <ShipHUD contactsRef={contactsRef} signals={signals} tunnelRef={tunnelOut} />
 
@@ -494,6 +500,7 @@ export default function ShipWorld3D({ crew = [], activity = {}, onStation, selec
         const lit = litStations.has(r.id);
         const isSel = selectedStation === r.id;
         const count = counts[r.id] || 0;
+        const inc = incidents?.byStation?.[r.id];
         return (
           <button
             key={r.id}
@@ -508,13 +515,15 @@ export default function ShipWorld3D({ crew = [], activity = {}, onStation, selec
               borderTop: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.4)' : 'rgba(255,255,255,0.10)'}`,
               borderRight: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.4)' : 'rgba(255,255,255,0.10)'}`,
               borderBottom: `1px solid ${isSel ? '#2AABFF' : hover === r.id ? 'rgba(42,171,255,0.6)' : lit ? 'rgba(42,171,255,0.4)' : 'rgba(255,255,255,0.10)'}`,
-              borderLeft: `2px solid ${lit ? '#2AABFF' : 'rgba(229,229,234,0.35)'}`,
+              borderLeft: `2px solid ${inc ? '#ff453a' : lit ? '#2AABFF' : 'rgba(229,229,234,0.35)'}`,
               borderRadius: 3, cursor: 'pointer', transition: 'opacity 200ms',
               fontSize: 7.5, letterSpacing: 0.9, textTransform: 'uppercase', ...mono,
-              color: lit ? '#bfe3ff' : 'rgba(229,229,234,0.62)', whiteSpace: 'nowrap',
+              color: inc ? '#ffb3ad' : lit ? '#bfe3ff' : 'rgba(229,229,234,0.62)', whiteSpace: 'nowrap',
+              animation: inc ? 'livePulse 1.1s ease-in-out infinite' : 'none',
             }}>
             <span style={{ color: 'rgba(229,229,234,0.4)' }}>{meta?.n}</span> {meta?.label}
             {count > 0 && <span style={{ color: '#2AABFF', fontWeight: 700 }}>{count}</span>}
+            {inc && <span style={{ color: '#ff453a', fontWeight: 700 }} title={`${inc.count} blocked · oldest ${Math.round(inc.oldestHours)}h${inc.spread ? ' · spread' : ''}`}>!{inc.count}</span>}
           </button>
         );
       })}

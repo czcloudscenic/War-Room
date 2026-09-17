@@ -199,6 +199,7 @@ export function createSentinels3D() {
     const dt = lastT == null ? 0.016 : Math.min(0.1, (t - lastT) / 1000);
     lastT = t;
     const want = opts.enclosed ? 1 : 0;
+    const cut = Math.max(0.4, Math.min(1, opts.cut ?? 0.4));   // from the oldest blocker's age
     threat += (want - threat) * Math.min(1, dt * (want ? 0.9 : 0.5));
     const wantAttach = threat > PURSUIT.attachAt ? 1 : 0;
     attach += (wantAttach - attach) * Math.min(1, dt * (wantAttach ? 1.1 : 1.6));
@@ -281,13 +282,13 @@ export function createSentinels3D() {
     beam.scale.set(1, len, 1);
     beam.quaternion.setFromUnitVectors(_up, _dir.normalize());
     const on = cutting ? attach : 0;
-    beamMat.opacity = on * (0.55 + 0.35 * Math.abs(Math.sin(t / 45)));
+    beamMat.opacity = on * cut * (0.55 + 0.35 * Math.abs(Math.sin(t / 45)));
     impact.position.copy(_hit);
     impact.material.opacity = on * (0.5 + 0.4 * Math.abs(Math.sin(t / 40)));
     const is = cutting ? 0.9 + 0.5 * Math.abs(Math.sin(t / 60)) : 0.001;
     impact.scale.set(is, is, is);
     impactLight.position.copy(_hit).add(_lightOff);
-    impactLight.intensity = on * (60000 + 40000 * Math.abs(Math.sin(t / 50)));
+    impactLight.intensity = on * cut * (60000 + 40000 * Math.abs(Math.sin(t / 50)));
     // Sparks: a steady spray off the weld point, fall under gravity, die
     for (let i = 0; i < SPARKS; i++) {
       if (sparkLife[i] > 0) {
@@ -295,7 +296,7 @@ export function createSentinels3D() {
         sparkVel[i * 3 + 1] -= 900 * dt;
         sparkPos[i * 3] += sparkVel[i * 3] * dt; sparkPos[i * 3 + 1] += sparkVel[i * 3 + 1] * dt; sparkPos[i * 3 + 2] += sparkVel[i * 3 + 2] * dt;
         if (sparkLife[i] <= 0) { sparkPos[i * 3 + 1] = -99999; }
-      } else if (cutting && rnd() < 0.07) {
+      } else if (cutting && rnd() < 0.07 * cut) {
         sparkLife[i] = 0.35 + rnd() * 0.5;
         sparkPos[i * 3] = _hit.x; sparkPos[i * 3 + 1] = _hit.y; sparkPos[i * 3 + 2] = _hit.z;
         const ang = rnd() * Math.PI * 2, sp = 180 + rnd() * 260;

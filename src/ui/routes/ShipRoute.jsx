@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
-import { positionCrew, stationActivity, stationById, ROSTER } from '../../core/shipStations.js';
+import { positionCrew, stationActivity, stationById, ROSTER, computeBars, computeIncidents, computeMorale } from '../../core/shipStations.js';
 import ShipGame from '../ship/ShipGame.jsx';
 import ShipScene3D from '../ship/ShipScene3D.jsx';
 import ShipWorld3D from '../ship/ShipWorld3D.jsx';
@@ -73,6 +73,20 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
   const blockedCount = (content || []).filter(x => (x.block_reason || x.qc_status === 'blocked') && !['Posted', 'Scrapped'].includes(x.status)).length;
   const approvalsCount = (content || []).filter(x => ['Need Copy Approval', 'Need Content Approval'].includes(x.status)).length;
   const shipAlerts = { approvals: approvalsCount, blocked: blockedCount };
+  // The game layer (docs/SHIP-GAME-RULES.md): three bars, incidents, morale, all from rows.
+  const bars = useMemo(() => computeBars({ content, health: { linkOk: sb ? (events.length || tasks.length ? true : null) : false, backupOk } }, Date.now()), [content, events.length, tasks.length, backupOk, tick]);
+  const incidents = useMemo(() => computeIncidents(content, Date.now()), [content, tick]);
+  const morale = useMemo(() => computeMorale(events, Date.now()), [events, tick]);
+  const BAR_COLOR = { green: '#30d158', amber: '#E5E5EA', red: '#ff453a' };
+  const Bar = ({ name, bar, fill }) => (
+    <div title={bar.label} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 150 }}>
+      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, ...mono, color: 'rgba(255,255,255,0.55)' }}>{name}</span>
+      <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+        <div style={{ width: `${Math.round(Math.max(0.04, Math.min(1, fill)) * 100)}%`, height: '100%', background: BAR_COLOR[bar.level], transition: 'width 600ms ease' }} />
+      </div>
+      <span style={{ fontSize: 9, ...mono, color: BAR_COLOR[bar.level], whiteSpace: 'nowrap' }}>{bar.label}</span>
+    </div>
+  );
   const workingNow = commissioned.filter(c => c.state === 'working').length;
 
   const selStation = selectedStation ? stationById(selectedStation) : null;
@@ -112,6 +126,10 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
       {/* System strip — Danny's top bar, real signals only */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10, padding: '8px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
         <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, ...mono, color: 'rgba(255,255,255,0.6)' }}>AGENT SHIP <span style={{ color: '#30d158' }}>// ONLINE</span></span>
+        <Bar name="PIPELINE" bar={bars.pipeline} fill={bars.pipeline.value} />
+        <Bar name="APPROVALS" bar={bars.approvals} fill={bars.approvals.value ? Math.min(1, bars.approvals.value / 8) : 0} />
+        <Bar name="HEALTH" bar={bars.health} fill={bars.health.value == null ? 0.5 : bars.health.value} />
+        {incidents.oldestHours > 0 && <span style={{ fontSize: 9, ...mono, color: '#ff453a' }}>INCIDENTS {Object.values(incidents.byStation).reduce((a, s) => a + s.count, 0)} · oldest {Math.round(incidents.oldestHours)}h</span>}
         <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 700, letterSpacing: 2, ...mono, color: 'rgba(255,255,255,0.45)' }}>
           SYSTEM STATUS <span style={{ color: backupOk === false ? '#ff453a' : backupOk ? '#30d158' : 'rgba(255,255,255,0.4)' }}>● {backupOk === false ? 'BACKUP FAILED' : backupOk ? 'NOMINAL' : '—'}</span>
         </span>
@@ -133,7 +151,7 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
               ? <ShipPainted3D crew={crew} activity={activity} alerts={shipAlerts} signals={{ backupOk, linkOk: sb ? (events.length || tasks.length ? true : null) : false, lastReceiptTs: events[0]?.ts || null }} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
               : <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />)}
             {view === 'model' && (HAS_WEBGL
-              ? <ShipWorld3D crew={crew} activity={activity} signals={{ backupOk, linkOk: sb ? (events.length || tasks.length ? true : null) : false, lastReceiptTs: events[0]?.ts || null }} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
+              ? <ShipWorld3D crew={crew} activity={activity} incidents={incidents} morale={morale} signals={{ backupOk, linkOk: sb ? (events.length || tasks.length ? true : null) : false, lastReceiptTs: events[0]?.ts || null }} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
               : <ShipGame crew={crew} activity={activity} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />)}
             {view === 'art' && (HAS_WEBGL
               ? <ShipScene3D crew={crew} activity={activity} alerts={shipAlerts} onStation={(id) => setSelectedStation(id === selectedStation ? null : id)} selectedStation={selectedStation} />
