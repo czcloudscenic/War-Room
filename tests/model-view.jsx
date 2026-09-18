@@ -7,7 +7,9 @@ const p = new URLSearchParams(location.search);
 const src = p.get('src') || '/hull/hull-meshy.glb';
 const yaw = parseFloat(p.get('yaw') || '0.55'), pitch = parseFloat(p.get('pitch') || '0.18');
 const W = 1180, H = 664;
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+// preserveDrawingBuffer: the automated browser throttles rAF to 1 fps, so
+// Playwright screenshots time out; window.__grab() renders and returns a PNG.
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(W, H); renderer.setPixelRatio(1);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2;
 document.getElementById('root').appendChild(renderer.domElement);
@@ -28,4 +30,5 @@ new GLTFLoader().load(src, (g) => {
   window.__model = { size: [size.x, size.y, size.z], meshes, tris };
   renderer.render(scene, camera);
 }, undefined, (e) => { document.getElementById('bar').textContent = 'load failed: ' + e; });
+window.__grab = () => { renderer.render(scene, camera); return renderer.domElement.toDataURL('image/png'); };
 function loop() { renderer.render(scene, camera); requestAnimationFrame(loop); } loop();
