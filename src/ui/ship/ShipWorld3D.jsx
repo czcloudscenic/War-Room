@@ -269,6 +269,28 @@ function SceneContent({ simRef, crew, onChipAnchors, contactsRef, tunnelOut, sel
       // Playwright's screenshot (which waits for a presented frame) times out.
       // This renders one frame on demand and hands back a PNG data URL.
       grab: () => { gl.render(scene, camera); return gl.domElement.toDataURL('image/png'); },
+      camera,
+      // Does the whole hull sit inside the frame? Projects the hull's world
+      // bbox corners and returns the worst |NDC|; <= 1 is on-screen. Guessing
+      // this from a screenshot wastes a round trip per attempt.
+      fit: () => {
+        const h = hullRef.current;
+        const obj = h && (h.isObject3D ? h : h.group);   // createHullGLB returns an API, not the Object3D
+        if (!obj) return null;
+        const box = new THREE.Box3().setFromObject(obj);
+        camera.updateMatrixWorld();
+        const mvp = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        let mx = 0, my = 0;
+        const p = new THREE.Vector3();
+        for (let i = 0; i < 8; i++) {
+          p.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z);
+          p.applyMatrix4(mvp);
+          mx = Math.max(mx, Math.abs(p.x)); my = Math.max(my, Math.abs(p.y));
+        }
+        return { worstX: +mx.toFixed(3), worstY: +my.toFixed(3), fits: mx <= 1 && my <= 1,
+                 box: { x: [box.min.x | 0, box.max.x | 0], y: [box.min.y | 0, box.max.y | 0], z: [box.min.z | 0, box.max.z | 0] },
+                 camZ: +camera.position.z.toFixed(0), aspect: +camera.aspect.toFixed(3) };
+      },
     };
     const textures = { current: null };
     loadShipTextures((tex) => {
