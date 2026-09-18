@@ -179,3 +179,50 @@ export function computeMorale(events = [], now = Date.now()) {
   }
   return out;
 }
+
+// ── Rush (docs/SHIP-GAME-RULES.md §Rush) ─────────────────────────────────────
+// A human presses Rush; it runs that station's real agent action NOW. Never
+// automatic. Success pays a receipt, failure logs a failed one and starts an
+// incident there — both come back from the agent-action function, neither is
+// invented here. One station can be rushed once per 10 minutes, and the clock
+// is read off the receipts themselves: the newest receipt whose action belongs
+// to that station IS its last run as far as the ship is concerned.
+export const RUSH_COOLDOWN_MS = 10 * 60 * 1000;
+
+// The one action Rush runs per station. Every key is already in ACTION_STATION
+// and maps back to its own station (asserted in tests). A station missing here
+// has no agent action and cannot be rushed — the button says so.
+// needsItem: the handler refuses to run without a content item to work on.
+export const RUSH_ACTION = {
+  cockpit:   { action: 'sean_briefing',               needsItem: false },
+  intel:     { action: 'scrappy_hook_analysis',       needsItem: false },
+  foundry:   { action: 'muse_write_content',          needsItem: true  },
+  qc:        { action: 'qc_review',                   needsItem: true  },
+  pipeline:  { action: 'muse_generate_calendar',      needsItem: false },
+  analytics: { action: 'scrappy_analyze_performance', needsItem: false },
+};
+
+/** ACTION_STATION inverted: the action keys whose receipts prove work here. */
+export const actionsForStation = (stationId) => Object.keys(ACTION_STATION).filter(k => ACTION_STATION[k] === stationId);
+
+/**
+ * Can this station be rushed right now?
+ *   stationId : STATIONS id
+ *   events    : agent_events rows (any order; success or failed both count —
+ *               a failed rush still burns the cooldown)
+ *   now       : ms timestamp (injected so views and tests agree)
+ * Returns { ready, cooldownMsLeft, lastRushTs } — lastRushTs in ms, null when
+ * this station has never run its action.
+ */
+export function rushState(stationId, events = [], now = Date.now()) {
+  let lastRushTs = null;
+  for (const e of events) {
+    if (!e || !e.ts || ACTION_STATION[e.action_key] !== stationId) continue;
+    const ts = new Date(e.ts).getTime();
+    if (!Number.isFinite(ts)) continue;
+    if (lastRushTs == null || ts > lastRushTs) lastRushTs = ts;
+  }
+  if (lastRushTs == null) return { ready: true, cooldownMsLeft: 0, lastRushTs: null };
+  const cooldownMsLeft = Math.max(0, RUSH_COOLDOWN_MS - (now - lastRushTs));
+  return { ready: cooldownMsLeft === 0, cooldownMsLeft, lastRushTs };
+}

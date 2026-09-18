@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { sb } from '../../services/supabaseClient.js';
-import { positionCrew, stationActivity, stationById, ROSTER, computeBars, computeIncidents, computeMorale } from '../../core/shipStations.js';
+import { positionCrew, stationActivity, stationById, ROSTER, computeBars, computeIncidents, computeMorale, rushState, RUSH_ACTION, stationForItem, isBlocked } from '../../core/shipStations.js';
+import { apiFetch } from '../../services/apiFetch.js';
 import ShipGame from '../ship/ShipGame.jsx';
 import ShipScene3D from '../ship/ShipScene3D.jsx';
 import ShipWorld3D from '../ship/ShipWorld3D.jsx';
@@ -37,6 +38,14 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
   const [backupOk, setBackupOk] = useState(null); // null = unknown
   const [selectedStation, setSelectedStation] = useState(null);
   const [tick, setTick] = useState(0); // re-applies the movement rule as receipts age
+  // Rush (rules doc §Rush). rushLog holds the runs THIS session so a FAILED run
+  // still burns the 10-minute cooldown — the events feed only carries successes.
+  const [rushLog, setRushLog] = useState([]);
+  const [rushBusy, setRushBusy] = useState(false);
+  const [rushResult, setRushResult] = useState(null); // { stationId, ok, text }
+  // Anthropic credits: Vantus stores no balance, so this starts UNKNOWN and the
+  // gate stays open. It flips only when the API itself says the balance is out.
+  const [creditsOut, setCreditsOut] = useState(false);
   const nameOf = (id) => (clients.find(c => c.id === id)?.name) || null;
 
   useEffect(() => {
@@ -74,7 +83,7 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
   const approvalsCount = (content || []).filter(x => ['Need Copy Approval', 'Need Content Approval'].includes(x.status)).length;
   const shipAlerts = { approvals: approvalsCount, blocked: blockedCount };
   // The game layer (docs/SHIP-GAME-RULES.md): three bars, incidents, morale, all from rows.
-  const bars = useMemo(() => computeBars({ content, health: { linkOk: sb ? (events.length || tasks.length ? true : null) : false, backupOk } }, Date.now()), [content, events.length, tasks.length, backupOk, tick]);
+  const bars = useMemo(() => computeBars({ content, health: { linkOk: sb ? (events.length || tasks.length ? true : null) : false, backupOk, credits: creditsOut ? 0 : null } }, Date.now()), [content, events.length, tasks.length, backupOk, creditsOut, tick]);
   const incidents = useMemo(() => computeIncidents(content, Date.now()), [content, tick]);
   const morale = useMemo(() => computeMorale(events, Date.now()), [events, tick]);
   const BAR_COLOR = { green: '#30d158', amber: '#E5E5EA', red: '#ff453a' };
@@ -92,6 +101,58 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
   const selStation = selectedStation ? stationById(selectedStation) : null;
   const selReceipts = selectedStation ? (activity[selectedStation] || []).slice(0, 12) : [];
   const selCrew = selectedStation ? crew.filter(c => c.station === selectedStation) : [];
+  // ── Fly-in facts: output, blockers, morale, and the Rush gate ──────────────
+  // Every number below is counted off rows already loaded; nothing is invented.
+  const selOut24 = selectedStation
+    ? (activity[selectedStation] || []).filter(e => e.ts && Date.now() - new Date(e.ts).getTime() < DAY_MS).length
+    : 0;
+  const selIncident = selectedStation ? incidents.byStation[selectedStation] : null;
+  const selBlockers = selectedStation
+    ? (content || []).filter(i => isBlocked(i) && stationForItem(i) === selectedStation)
+    : [];
+  const rushCfg = selectedStation ? RUSH_ACTION[selectedStation] : null;
+  const rush = selectedStation ? rushState(selectedStation, [...rushLog, ...events], Date.now()) : null;
+  // The newest open item this station's action would work on.
+  const rushItem = selectedStation
+    ? (content || [])
+        .filter(i => !['Posted', 'Scrapped'].includes(i.status) && stationForItem(i) === selectedStation)
+        .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))[0] || null
+    : null;
+  const rushWhyNot = !selectedStation ? 'no station selected'
+    : !rushCfg ? 'no agent action at this station'
+    : !selCrew.some(c => !c.future) ? 'no agent assigned to this station'
+    : creditsOut ? 'no Anthropic credits'
+    : rush && !rush.ready ? `cooling down — ${Math.ceil(rush.cooldownMsLeft / 60000)} min left`
+    : (rushCfg.needsItem && !rushItem) ? 'no item waiting at this station'
+    : rushBusy ? 'running' : null;
+
+  // Rush: a human presses it, it runs the station's REAL action on the newest
+  // relevant item, once per 10 minutes. No retry, nothing sent to a client.
+  const runRush = async () => {
+    if (!selectedStation || !rushCfg || rushWhyNot) return;
+    const stationId = selectedStation, action = rushCfg.action, item = rushItem;
+    const payload = action === 'qc_review' ? { itemId: item.id }
+      : action === 'muse_write_content' ? { itemId: item.id, itemTitle: item.title, pillar: item.pillar, format: item.format, description: item.description, fieldToUpdate: 'caption' }
+      : {};
+    setRushBusy(true); setRushResult(null);
+    const started = new Date().toISOString();
+    try {
+      const res = await apiFetch('/api/agent-action', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, payload, client_id: item?.client_id || null }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.error || d.success === false) throw new Error(d.error || d.message || `Rush failed (${res.status})`);
+      const summary = d.message || d.summary || d.briefing || d.report || d.content || `${action} completed`;
+      setRushLog(prev => [{ ts: started, action_key: action, result_status: 'success' }, ...prev]);
+      setRushResult({ stationId, ok: true, text: String(summary).slice(0, 400) });
+    } catch (e) {
+      // The function logs the failed receipt itself; the cooldown burns either way.
+      setRushLog(prev => [{ ts: started, action_key: action, result_status: 'failed' }, ...prev]);
+      setRushResult({ stationId, ok: false, text: e.message });
+      if (/credit balance|out of credits|insufficient credit/i.test(e.message || '')) setCreditsOut(true);
+    } finally { setRushBusy(false); }
+  };
 
   const toggle = (key, label) => (
     <button key={key} onClick={() => setView(key)} style={{
@@ -193,6 +254,55 @@ export default function ShipRoute({ isMobile, clients = [], content = [], setAct
             </span>
             <button onClick={() => setSelectedStation(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 15, cursor: 'pointer', padding: 2 }}>×</button>
           </div>
+          {/* Fly-in facts (rules doc): who is here and their morale, what this
+              station made in 24 h, what is blocking it, and Rush. Morale is the
+              48 h success ratio — 'unknown' when no receipts, never a default. */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14, padding: '9px 11px', marginBottom: 10, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 8.5, letterSpacing: 1.4, ...mono, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Crew</span>
+              {selCrew.filter(c => !c.future).length === 0
+                ? <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>nobody here</span>
+                : selCrew.filter(c => !c.future).map(c => (
+                    <span key={c.name} style={{ fontSize: 11, ...mono, color: c.color }}>
+                      {c.name}
+                      <span style={{ color: morale[c.name] == null ? 'rgba(255,255,255,0.4)' : morale[c.name] < 0.4 ? '#ff453a' : morale[c.name] > 0.8 ? '#30d158' : '#E5E5EA', marginLeft: 6 }}>
+                        {morale[c.name] == null ? 'morale unknown' : `${Math.round(morale[c.name] * 100)}% morale`}
+                      </span>
+                    </span>
+                  ))}
+            </div>
+            <span style={{ fontSize: 10, ...mono, color: 'rgba(255,255,255,0.5)' }}>
+              OUTPUT <span style={{ color: selOut24 ? '#30d158' : 'rgba(255,255,255,0.4)' }}>{selOut24} receipts / 24h</span>
+            </span>
+            <span style={{ fontSize: 10, ...mono, color: 'rgba(255,255,255,0.5)' }}>
+              BLOCKERS <span style={{ color: selBlockers.length || selIncident ? '#ff453a' : 'rgba(255,255,255,0.4)' }}>
+                {selBlockers.length ? `${selBlockers.length} open` : selIncident ? `${selIncident.count} spread in` : 'none'}
+              </span>
+            </span>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 9 }}>
+              {rushWhyNot && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{rushWhyNot}</span>}
+              <button
+                onClick={runRush}
+                disabled={!!rushWhyNot}
+                title={rushWhyNot || `Runs ${rushCfg?.action} now — a real agent action, once every 10 minutes`}
+                style={{
+                  padding: '7px 16px', borderRadius: 8, fontSize: 11.5, fontWeight: 700, ...mono, letterSpacing: 1,
+                  cursor: rushWhyNot ? 'not-allowed' : 'pointer',
+                  background: rushWhyNot ? 'rgba(255,255,255,0.04)' : 'rgba(255,69,58,0.15)',
+                  border: `1px solid ${rushWhyNot ? 'rgba(255,255,255,0.12)' : 'rgba(255,69,58,0.45)'}`,
+                  color: rushWhyNot ? 'rgba(255,255,255,0.3)' : '#ff453a',
+                }}>{rushBusy ? 'RUSHING…' : 'RUSH'}</button>
+            </div>
+          </div>
+          {rushResult && rushResult.stationId === selectedStation && (
+            <div style={{ fontSize: 11, marginBottom: 10, padding: '8px 10px', borderRadius: 8, whiteSpace: 'pre-wrap',
+              background: rushResult.ok ? 'rgba(48,209,88,0.08)' : 'rgba(255,69,58,0.08)',
+              border: `1px solid ${rushResult.ok ? 'rgba(48,209,88,0.3)' : 'rgba(255,69,58,0.3)'}`,
+              color: rushResult.ok ? '#30d158' : '#ff453a' }}>
+              <span style={{ ...mono, fontSize: 9, letterSpacing: 1.4, textTransform: 'uppercase', opacity: 0.8 }}>{rushResult.ok ? 'Receipt' : 'Failed'} · </span>
+              {rushResult.text}
+            </div>
+          )}
           {selReceipts.length === 0 ? (
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>No receipts at this station in the last 48h — its lights stay off until real work lands here.</div>
           ) : (
