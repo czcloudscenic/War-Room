@@ -29,10 +29,10 @@ export { POSE };
 // original Meshy idle leaned 6 deg and hung the arms out, which is what the
 // posture corrector below was compensating for.
 export const CREW_GLB = {
-  Sean: { walk: '/crew/sean.glb', idle: '/crew/sean_idle2.glb', work: '/crew/sean_work.glb' },
-  Muse: { walk: '/crew/muse.glb', idle: '/crew/muse_idle2.glb', work: '/crew/muse_work.glb' },
-  Scrappy: { walk: '/crew/scrappy.glb', idle: '/crew/scrappy_idle2.glb', work: '/crew/scrappy_work.glb' },
-  Slate: { walk: '/crew/slate.glb', idle: '/crew/slate_idle2.glb', work: '/crew/slate_work.glb' },
+  Sean: { walk: '/crew/sean2_walk.glb', idle: '/crew/sean2_idle.glb', work: '/crew/sean2_work.glb' },
+  Muse: { walk: '/crew/muse2_walk.glb', idle: '/crew/muse2_idle.glb', work: '/crew/muse2_work.glb' },
+  Scrappy: { walk: '/crew/scrappy2_walk.glb', idle: '/crew/scrappy2_idle.glb', work: '/crew/scrappy2_work.glb' },
+  Slate: { walk: '/crew/slate2_walk.glb', idle: '/crew/slate2_idle.glb', work: '/crew/slate2_work.glb' },
 };
 
 const FIGURE_HEIGHT = 34;   // logical units — must match crewModels' proportions
