@@ -1,5 +1,71 @@
 # Vantus Handoff Brief
 
+## 2026-09-17 (late) — Christian's asset drop becomes the crew and the sentinel. Pushed through c06d4d0.
+
+Fifteen zips of Matrix and Fallout assets. The rule that came out of it: **use
+the assets, do not admire them.** An earlier pass converted the lot and wired
+almost none of it, and that was the complaint.
+
+**The crew are the Matrix cast.** Neo, Morpheus and the walking woman all
+arrived as STATIC meshes, no skeleton, so none could be dropped in as crew.
+Each is skinned with automatic weights to the Mixamo rig inside
+`mr-man-walking.fbx` (the only human-authored clip in the drop), then its bones
+RENAMED to the names `crewPose.js` binds: strip `mixamorig:`, `Spine1`->
+`Spine01`, `Spine2`->`Spine02`, `Neck`->`neck`. **Skip the rename and everything
+still renders while nothing drives it** - hips layer, joint limits, head
+look-at and the shared idle/work clips all fail silently. `missing_contract_bones`
+in the bind script is the check.
+
+Three auto-weighting failures on scanned characters, each with a fix worth
+keeping (all in `scratchpad/work/bindrig.py`):
+- **Long coat binds to the legs** and swings as a rigid slab with whichever
+  thigh won the vertex, shearing through the other. Coat verts get re-weighted
+  onto the spine chain by height so the hem follows the pelvis. This is the
+  same failure that tore every previous Slate build.
+- **Hair cards and glasses arms get claimed by a HAND bone** and stretch into a
+  spike across the frame. Everything above the neck is locked to neck/head.
+- **Orientation.** The woman imported feet-up. A "widest slice" test is wrong
+  for both arms-down and wide-stance figures; compare the FOOTPRINT of the
+  bottom slab against the top instead (soles cover ground, a skull crown
+  tapers). Neo 0.60 vs 0.11, the woman 29872 vs 96217.
+
+The woman in the red dress was NOT in the drop - the only woman there wears a
+striped shirt and jeans - so she is generated on the same 24-joint rig the
+earlier crew used. Morpheus keeps his fight stance because that stance IS his
+bind pose; the walk plays as a delta on top of it and reads combat-ready at
+crew scale.
+
+**Sentinel.** `/sentinel/head.glb` is now the real machine's body core, pulled
+out of the 3M-triangle FBX by keeping `Corpo|Body|Olho|Lente` and dropping
+`Garra|Braco|Aros`, decimated to 40k, rotated to face +X, re-materialled from
+tan plastic to dark metal. **Our procedural tentacles stay** - the model's arms
+are static and all the pursuit/attach behaviour lives in those tentacles.
+
+**Crew grade.** Black leather vanished against an unlit bay. Exposure cannot
+fix it (anything times black is still black), so `GRADE.darkFloor` puts a
+luminance floor under the darkest garments. The red dress is the check that it
+has not gone too far.
+
+### The hull swap that got reverted - do not redo it
+The Matrix hovercraft from `matrix-cruiser.zip` was fitted properly (scale
+2.37, nose already -X so YAW 0, every bay station clearing the deck block) and
+Christian rejected it on sight: the generated hull's greebled plating, masts
+and glowing pads read far more Matrix than a clean model. It is fully reverted.
+**The hull is settled. Leave it alone.**
+
+### Converted, on disk, still unused
+`scratchpad/out/`: `apu.glb` (APU walker, walk clip intact, x16.73 for 4 m),
+`fallout-room.glb` (open-fronted Fallout Shelter room, +X open face, 752 KB),
+`sentinel-hi.glb`, `matrix-cruiser.glb`. Unusable as delivered: Agent Arnold
+(1.5M tris, no skeleton), both Neo OBJs are static (that is why they get
+skinned), `woman-walking` has no rig despite the name.
+
+### Harness
+`window.__shipWorld.fit()` projects the hull bbox and returns the worst |NDC|;
+<= 1 is on-screen. The camera is not in the scene graph, so it is exposed on
+the same hook. Motion is verified by grabbing two frames ~6 s apart and
+diffing the crew band: 23% of pixels change when the crew are animating.
+
 ## 2026-09-17 (Counsel + 4 agents) — the pelvis, the joints, bays on the hull profile, Rush + morale, and a crew rebuild. Pushed through 70bbc41.
 
 **THE PELVIS (d20d337).** Christian: "add control joints in the hips so they don't stand/walk stupid — this has been the biggest error since day 1." He was right, and the cause was worse than missing joints: the joints existed and *nothing ever drove them*. `crewPose.js` drove look, feet, arms and spine; the Hips bone was touched only by a vertical foot-IK follow. New `hipsLayer` runs FIRST (hips lead, feet answer): walking reads the stride straight off the feet (u = forward separation, lift = foot height difference), leads with the swinging leg's hip, drops that hip on the airborne side, shifts over the planted foot, bobs twice per stride, counter-rotates the upper spine; standing is contrapposto with a weighted-leg swap every ~5.5 s. **Body-left is +x**, so leading with the left hip is a NEGATIVE yaw — get that backwards and the walk inverts.
