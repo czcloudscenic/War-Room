@@ -1,5 +1,31 @@
 # Vantus Handoff Brief
 
+## PAUSED 2026-09-17 ~19:50 — pick up HERE. Pushed through 72e9cc7, tree clean.
+
+**Open bug: crew stand bow-legged.** Christian's last two screenshots (Trinity
+at intel, Neo at cockpit) show both standing upright but with the legs splayed
+wide and knees bent outward. That is NOT the pelvis layer and NOT the twist
+(both fixed and verified). Measured in the raw clips a minute before pausing:
+
+    sean2_idle.glb     knee 152-156  thighSplay 33-36 deg  foot gap 27% of height
+    scrappy2_idle.glb  knee 150-155  thighSplay 35-38 deg  foot gap 26% of height
+    sean2_work.glb     knee 158-172  thighSplay 12-17 deg  foot gap 16% of height
+
+The wide stance IS the Idle_02 library clip (animation_action_id 11). A
+natural standing gap is ~10-12% of height. Fix options, in order of cost:
+(1) re-rig the crew's idle with a different library clip - id 0 "Idle" or 12
+"Idle_03" from `animation_actions` - via `3d_rigging` on the four `-r2` walk
+GLBs (8 credits each), pack, install as `<name>_idle-r3.glb`, bump filenames;
+(2) retarget a neutral idle from a Mixamo source if one turns up; (3) as a
+stopgap, narrow the stance procedurally in `legsLayer` by pulling each foot
+target toward the pelvis centreline (feet are already IK-solved there).
+Verify with `scratchpad/work/clipstance.py` (knee / thigh splay / foot gap)
+BEFORE installing, then in-scene at full rate.
+
+Harness: `node scratchpad/work/shot-server.mjs <dir>` + `npm run dev`;
+override rAF with setTimeout(0) to run full rate under Playwright;
+`__selectStation('intel')` gives a clear view of a standing figure.
+
 ## 2026-09-17 (night) — crew rebuilt on one auto-rigged skeleton; versioned asset names. Pushed through 86bb306.
 
 **Read this before touching the crew again.** Two rules came out of tonight, both paid for.
