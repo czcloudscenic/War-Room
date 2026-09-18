@@ -25,6 +25,7 @@ import {
   DECK_Y, DECK_CLEAR, ROOM_DEPTH, WALK_Z, HULL_3D, PALETTE, toSceneX,
 } from './scene3dContract.js';
 import { ROOMS, LADDERS, ENGINE_ROOM } from './world.js';
+import { bayProfileAt, HULL_TOP_Y, HULL_BOTTOM_Y } from './hullGLB.js';
 
 // ── deterministic variation ──────────────────────────────────────────────────
 const hash01 = (i) => {
@@ -284,10 +285,31 @@ export function createShipModel(options = {}) {
   }
 
   // ── 2. DECKS ───────────────────────────────────────────────────────────────
+  // Nothing inside may run out past the exterior's own silhouette. Deck 0's
+  // forward end reached x -545 where the measured top armour is still ~180
+  // units BELOW the deck (the hull is a long low prow up to x ≈ -460), so the
+  // slab poked out through the cutaway window. Walk each end inward until the
+  // hull actually covers it — capped at SLAB_TRIM_MAX and never past a room,
+  // so a bad profile can shorten a deck by at most a nose's worth.
+  const SLAB_TRIM_MAX = 90;
+  const deckSpan = (deck, x0, x1, ySurface, yUnder) => {
+    const dr = rooms.filter((r) => r.deck === deck);
+    const guardL = dr.length ? Math.min(...dr.map((r) => r.x0)) - 20 : x0;
+    const guardR = dr.length ? Math.max(...dr.map((r) => r.x1)) + 20 : x1;
+    const covered = (x) => HULL_TOP_Y(x) > ySurface + 8 && HULL_BOTTOM_Y(x) < yUnder - 8;
+    let a = x0; const limA = Math.min(guardL, x0 + SLAB_TRIM_MAX);
+    while (a < limA && !covered(a)) a += 5;
+    let b = x1; const limB = Math.max(guardR, x1 - SLAB_TRIM_MAX);
+    while (b > limB && !covered(b)) b -= 5;
+    return [a, b];
+  };
+  const DECK0_SPAN = deckSpan(0, 22 - 1135 / 2, 22 + 1135 / 2, DECK_Y[0], DECK_Y[0] - SLAB_T);
+  const DECK1_SPAN = deckSpan(1, 87 - 1065 / 2, 87 + 1065 / 2, DECK_Y[1], DECK_Y[1] - SLAB_T);
+
   // deck 0 (upper): drawn in pieces so each stairwell arrives through a real
   // opening (front z0..52 open in the hole's x-range; the back strip stays).
   {
-    const D0 = { x0: 22 - 1135 / 2, x1: 22 + 1135 / 2, z0: -150, z1: 52, y: DECK_Y[0] - SLAB_T / 2 };
+    const D0 = { x0: DECK0_SPAN[0], x1: DECK0_SPAN[1], z0: -150, z1: 52, y: DECK_Y[0] - SLAB_T / 2 };
     const slab = (x0, x1, z0, z1) => { if (x1 - x0 > 0.5) bagDeck.box(x1 - x0, SLAB_T, z1 - z0, (x0 + x1) / 2, D0.y, (z0 + z1) / 2); };
     let cursor = D0.x0;
     for (const s of [...stairwells].sort((a, b) => a.hole.x0 - b.hole.x0)) {
@@ -297,7 +319,8 @@ export function createShipModel(options = {}) {
     }
     slab(cursor, D0.x1, D0.z0, D0.z1);
   }
-  bagDeck.box(1065, SLAB_T, 202, 87, DECK_Y[1] - SLAB_T / 2, -49); // deck 1 (lower)
+  // deck 1 (lower)
+  bagDeck.box(DECK1_SPAN[1] - DECK1_SPAN[0], SLAB_T, 202, (DECK1_SPAN[0] + DECK1_SPAN[1]) / 2, DECK_Y[1] - SLAB_T / 2, -49);
   // panel seams (thin dark strips on the floor surface; none across a stairwell)
   for (let i = 0; i < 12; i++) {
     const x0 = -510 + i * 96;
@@ -308,8 +331,8 @@ export function createShipModel(options = {}) {
   // ── cutaway rim (slice at z ≈ zFront, like a cross-section diagram) ───────
   bagRim.box(1075, 5, 5, 75, HULL_3D.yTop - 7, 56);
   bagRim.box(1095, 5, 5, 67, -196, 56);
-  bagRim.box(1135, 4, 4, 22, DECK_Y[0] - 3, 54);
-  bagRim.box(1065, 4, 4, 87, DECK_Y[1] - 3, 54);
+  bagRim.box(DECK0_SPAN[1] - DECK0_SPAN[0], 4, 4, (DECK0_SPAN[0] + DECK0_SPAN[1]) / 2, DECK_Y[0] - 3, 54);
+  bagRim.box(DECK1_SPAN[1] - DECK1_SPAN[0], 4, 4, (DECK1_SPAN[0] + DECK1_SPAN[1]) / 2, DECK_Y[1] - 3, 54);
   bagRim.box(215, 5, 5, -532, 180, 56, 0, 0, 0.82);   // nose canopy slice
   bagRim.box(215, 5, 5, -535, -114, 56, 0, 0, -0.72); // nose keel slice
   bagRim.box(5, 168, 5, -604, 25, 57);                // nose cap slice
@@ -357,9 +380,23 @@ export function createShipModel(options = {}) {
   partition(-435, 1);                // deck 1 fore end wall
   // finance | engine bulkhead: back portion only, so the reactor stays clear
   bagWall.box(10, partH[1], 60, engine.x0 - 2, partMidY[1], -110);
-  // room back panels (in front of the hull back wall)
+  // Room back panels (in front of the hull back wall). Stepped to the SAME
+  // hull profile roomWalls.js paints to (bayProfileAt), plus a 6-unit frame,
+  // so the grey structural panel never shows above or below the lit painted
+  // one where the hull tapers. Ten steps across a bay: the painted panel
+  // covers all but a thin border, so the stepping is not visible.
+  const PANEL_COLS = 10;
   for (const r of rooms) {
-    bagWall.box(r.w - 6, partH[r.deck], 6, r.cx, partMidY[r.deck], Z_ROOM_BACK + 3);
+    const xa = r.cx - (r.w - 6) / 2, xb = r.cx + (r.w - 6) / 2;
+    const step = (xb - xa) / PANEL_COLS;
+    for (let i = 0; i < PANEL_COLS; i++) {
+      const xc = xa + (i + 0.5) * step;
+      const e = bayProfileAt(xc, r.floor, r.ceil);
+      const top = Math.min(r.ceil, e.top + 6);
+      const bot = Math.max(r.floor, e.bottom - 6);
+      if (top - bot < 2) continue;
+      bagWall.box(step + 0.6, top - bot, 6, xc, (top + bot) / 2, Z_ROOM_BACK + 3);
+    }
   }
 
   // ── instanced prop collections ─────────────────────────────────────────────

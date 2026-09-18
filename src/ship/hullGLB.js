@@ -13,9 +13,21 @@
 //   rig.add(hull.group); hull.update(t); hull.dispose();
 //
 // Exports for the other systems (sentinels dock on the armor):
-//   HULL_BOUNDS   { x0, x1, y0, y1, z0, z1 } of the placed exterior, defaults
-//                 from the intended numbers, exact after the GLB lands.
-//   HULL_TOP_Y(x) y of the top armor at scene x along the centerline.
+//   HULL_BOUNDS      { x0, x1, y0, y1, z0, z1 } of the placed exterior, defaults
+//                    from the intended numbers, exact after the GLB lands.
+//   HULL_TOP_Y(x)    y of the top armor at scene x along the centerline.
+//   HULL_BOTTOM_Y(x) y of the belly plating at scene x (hover pads and
+//                    outriggers rejected, so a pad cannot poison a bin).
+//   hullProfileAt(x) { top, bottom } in one call.
+//   bayProfileAt(x, floor, ceil)  the INTERIOR edge for a bay column: the
+//                    same measured silhouette mapped into a deck's band, so a
+//                    bay under the sloping bow is short and slanted and a bay
+//                    amidships is full height. roomWalls.js paints to it and
+//                    shipModel.js builds its back panels to it, which is how
+//                    the interior stops reading as flat rectangles pasted
+//                    inside a curved vessel.
+//   hullProfileVersion()  bumps once the real measurement replaces the
+//                    defaults, so shaped geometry can rebuild.
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -71,15 +83,88 @@ const TOP_PROFILE_DEFAULT = [
 ];
 let topProfile = TOP_PROFILE_DEFAULT.map((f) => OFFSET.y + f * LENGTH);
 
-// y of the top armor surface at scene x (centerline), 4 units under the
-// plating so a docked machine sits ON it. Clamped to the hull's ends.
-export function HULL_TOP_Y(x) {
-  const n = topProfile.length;
+// Centerline BELLY profile, same 40 bins, same measurement, 5th percentile
+// per bin — but only over samples above BELLY_REJECT. The ring hover pads and
+// the outriggers hang to about -0.20 L; without the rejection one pad drags a
+// whole bin 150 units under the real keel and the interior thinks it has
+// belly room it does not have. Measured from hull.glb and smoothed 3-tap
+// (the raw belly is greebled, and a jagged floor edge reads as noise).
+const BELLY_REJECT_F = -0.135;   // fraction of LENGTH: below this is a pad, not the keel
+const BELLY_SANE_F = -0.03;      // a belly sample above this means the bin saw no keel at all
+const BOTTOM_PROFILE_DEFAULT = [
+  -0.058, -0.075, -0.089, -0.099, -0.090, -0.086, -0.093, -0.109, -0.124, -0.128,
+  -0.121, -0.120, -0.120, -0.121, -0.113, -0.116, -0.108, -0.115, -0.104, -0.113,
+  -0.114, -0.124, -0.126, -0.114, -0.104, -0.094, -0.098, -0.091, -0.091, -0.086,
+  -0.093, -0.099, -0.104, -0.108, -0.111, -0.105, -0.098, -0.088, -0.087, -0.086,
+];
+let bottomProfile = BOTTOM_PROFILE_DEFAULT.map((f) => OFFSET.y + f * LENGTH);
+
+// Bin-interpolated read of a 40-bin profile at scene x, clamped to the ends.
+function sampleProfile(profile, x) {
+  const n = profile.length;
   const u = (x - HULL_BOUNDS.x0) / (HULL_BOUNDS.x1 - HULL_BOUNDS.x0) * n - 0.5;
   const i = Math.max(0, Math.min(n - 1, Math.floor(u)));
   const k = Math.max(0, Math.min(n - 1, i + 1));
   const t = Math.max(0, Math.min(1, u - i));
-  return topProfile[i] + (topProfile[k] - topProfile[i]) * t - 4;
+  return profile[i] + (profile[k] - profile[i]) * t;
+}
+
+// y of the top armor surface at scene x (centerline), 4 units under the
+// plating so a docked machine sits ON it. Clamped to the hull's ends.
+export function HULL_TOP_Y(x) {
+  return sampleProfile(topProfile, x) - 4;
+}
+
+// y of the belly plating at scene x, 4 units above it (the mirror of the
+// -4 above: an interior surface may sit ON the inner face, not through it).
+export function HULL_BOTTOM_Y(x) {
+  return sampleProfile(bottomProfile, x) + 4;
+}
+
+export function hullProfileAt(x) {
+  return { top: HULL_TOP_Y(x), bottom: HULL_BOTTOM_Y(x) };
+}
+
+// Bumped when the live measurement replaces the defaults. Shaped interior
+// geometry polls this and rebuilds; nothing has to be wired through the host.
+let profileVersion = 0;
+export function hullProfileVersion() { return profileVersion; }
+
+// ── The interior silhouette ──────────────────────────────────────────────────
+// The room block is INSET in the hull: amidships there is ~110 units of
+// plating over the top-deck ceiling and ~120 under the lower-deck floor, so a
+// naive "clamp the bay to the hull" does nothing for eleven of twelve bays.
+// The rule that actually tracks the exterior is the PLATING BAND: keep `above`
+// units of armour over a bay and `below` under it, and where the hull cannot
+// give that (the sloping bow, the thinning stern belly) take it out of the bay
+// instead — the bay's ceiling slopes down with the crown, its floor rises with
+// the keel. The hard clamp (never outside `top - inset` / `bottom + inset`)
+// rides on top, so no interior surface can ever poke through the skin.
+export const BAY = {
+  above: 110, below: 120,   // design plating band over/under the room block
+  inset: 10,                // hard clearance from the skin itself
+  lip: 3,                   // the old 3-unit lip off floor and ceiling
+  maxShrink: 0.5,           // a bay may lose at most half its clear height per edge
+  minHeight: 0.32,          // ...and never drops under this share of it
+};
+
+export function bayProfileAt(x, floor, ceil) {
+  const clear = ceil - floor;
+  const t = HULL_TOP_Y(x);
+  const b = HULL_BOTTOM_Y(x);
+  const cap = BAY.maxShrink * clear;
+  const drop = Math.min(cap, Math.max(0, BAY.above - (t - ceil)));
+  const rise = Math.min(cap, Math.max(0, BAY.below - (floor - b)));
+  let top = Math.min(ceil - BAY.lip - drop, t - BAY.inset);
+  let bottom = Math.max(floor + BAY.lip + rise, b + BAY.inset);
+  const minH = BAY.minHeight * clear;
+  if (top - bottom < minH) {
+    const c = (top + bottom) / 2;
+    top = c + minH / 2; bottom = c - minH / 2;
+    if (top > ceil - BAY.lip) { top = ceil - BAY.lip; bottom = top - minH; }
+    if (bottom < floor + BAY.lip) { bottom = floor + BAY.lip; top = bottom + minH; }
+  }
+  return { top, bottom };
 }
 
 const PAD = { color: 0x2aabff, base: 0.55, pulse: 0.35 };
@@ -148,6 +233,8 @@ function measure(group, wrap) {
   const box = new THREE.Box3();
   const n = topProfile.length;
   const bins = Array.from({ length: n }, () => []);
+  const bbins = Array.from({ length: n }, () => []);   // belly, pads rejected
+  const reject = OFFSET.y + BELLY_REJECT_F * LENGTH;
   const v = new THREE.Vector3();
   const m = new THREE.Matrix4();
   wrap.traverse((o) => {
@@ -159,27 +246,44 @@ function measure(group, wrap) {
       box.expandByPoint(v);
       if (Math.abs(v.z - OFFSET.z) < 0.06 * LENGTH) {
         const b = Math.floor((v.x - HULL_BOUNDS.x0) / (HULL_BOUNDS.x1 - HULL_BOUNDS.x0) * n);
-        if (b >= 0 && b < n) bins[b].push(v.y);
+        if (b >= 0 && b < n) {
+          bins[b].push(v.y);
+          if (v.y >= reject) bbins[b].push(v.y);   // a hover pad must not poison the bin
+        }
       }
     }
   });
   if (box.isEmpty()) return;
   Object.assign(HULL_BOUNDS, { x0: box.min.x, x1: box.max.x, y0: box.min.y, y1: box.max.y, z0: box.min.z, z1: box.max.z });
-  const prof = bins.map((a) => { if (a.length < 10) return null; a.sort((p, q) => p - q); return a[Math.floor(0.95 * (a.length - 1))]; });
-  // Fill empty bins from neighbours and knock out single-bin holes (a mast
-  // base with no centerline plating reads as a pit otherwise).
-  for (let i = 0; i < n; i++) {
-    if (prof[i] !== null) continue;
-    let l = i - 1; while (l >= 0 && prof[l] === null) l--;
-    let r = i + 1; while (r < n && prof[r] === null) r++;
-    const a = l >= 0 ? prof[l] : null, b = r < n ? prof[r] : null;
-    prof[i] = a !== null && b !== null ? (a + b) / 2 : (a ?? b ?? topProfile[i]);
-  }
+  // Fill empty bins from neighbours (shared by both profiles).
+  const fill = (prof, fallback) => {
+    for (let i = 0; i < n; i++) {
+      if (prof[i] !== null) continue;
+      let l = i - 1; while (l >= 0 && prof[l] === null) l--;
+      let r = i + 1; while (r < n && prof[r] === null) r++;
+      const a = l >= 0 ? prof[l] : null, b = r < n ? prof[r] : null;
+      prof[i] = a !== null && b !== null ? (a + b) / 2 : (a ?? b ?? fallback[i]);
+    }
+    return prof;
+  };
+  const pct = (a, q) => { if (a.length < 10) return null; a.sort((p, o) => p - o); return a[Math.floor(q * (a.length - 1))]; };
+
+  const prof = fill(bins.map((a) => pct(a, 0.95)), topProfile);
+  // Knock out single-bin holes (a mast base with no centerline plating reads
+  // as a pit otherwise).
   for (let i = 1; i < n - 1; i++) {
     const nb = Math.min(prof[i - 1], prof[i + 1]);
     if (prof[i] < nb - 0.08 * LENGTH) prof[i] = (prof[i - 1] + prof[i + 1]) / 2;
   }
   topProfile = prof;
+
+  // Belly: 5th percentile of the surviving samples. A bin whose answer comes
+  // out above BELLY_SANE_F saw only superstructure in the centerline band (no
+  // keel at all) — treat it as empty and interpolate, then smooth 3-tap.
+  const sane = OFFSET.y + BELLY_SANE_F * LENGTH;
+  const bprof = fill(bbins.map((a) => { const y = pct(a, 0.05); return y === null || y > sane ? null : y; }), bottomProfile);
+  bottomProfile = bprof.map((y, i) => (bprof[Math.max(0, i - 1)] + y + bprof[Math.min(n - 1, i + 1)]) / 3);
+  profileVersion++;
 }
 
 export function createHullGLB({ onReady } = {}) {

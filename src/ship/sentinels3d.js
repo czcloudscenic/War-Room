@@ -135,11 +135,25 @@ export function createSentinels3D() {
   }, undefined, () => {});
   let attach = 0;                                  // 0 flying .. 1 resting on the armor, eased
   // Cutting beam + sparks (Points burst, allocation-free)
-  const beamMat = new THREE.MeshBasicMaterial({ color: 0xe5e5ea, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  const beamMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending,
+    depthWrite: false, depthTest: false, fog: false,   // the machine must never occlude its own cut
+  });
+  const beamHazeMat = new THREE.MeshBasicMaterial({
+    color: 0xbfe3ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending,
+    depthWrite: false, depthTest: false, fog: false, side: THREE.DoubleSide,
+  });
   // Narrow: the cut is a few centimetres of plating away, not a ship gun.
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 3.4, 1, 8, 1, true), beamMat);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 5.2, 1, 10, 1, true), beamMat);
+  beam.renderOrder = 20;
+  beam.frustumCulled = false;
+  const beamHaze = new THREE.Mesh(new THREE.CylinderGeometry(11, 15, 1, 10, 1, true), beamHazeMat);
+  beamHaze.renderOrder = 19;
+  beamHaze.frustumCulled = false;
   group.add(beam);
-  const impact = new THREE.Mesh(new THREE.SphereGeometry(7, 10, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+  group.add(beamHaze);
+  const impact = new THREE.Mesh(new THREE.SphereGeometry(7, 10, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false }));
+  impact.renderOrder = 21;
   group.add(impact);
   // The molten weld: a disc lying FLAT on the plating under the core, so the
   // cut reads as burning into the surface rather than floating above it.
@@ -331,7 +345,11 @@ export function createSentinels3D() {
     beam.scale.set(1, len, 1);
     beam.quaternion.setFromUnitVectors(_up, _dir.normalize());
     const on = cutting ? attach : 0;
-    beamMat.opacity = on * cut * (0.55 + 0.35 * Math.abs(Math.sin(t / 45)));
+    beamMat.opacity = on * cut * (0.80 + 0.20 * Math.abs(Math.sin(t / 45)));
+    beamHazeMat.opacity = on * cut * (0.16 + 0.10 * Math.abs(Math.sin(t / 70)));
+    beamHaze.position.copy(beam.position);
+    beamHaze.scale.copy(beam.scale);
+    beamHaze.quaternion.copy(beam.quaternion);
     impact.position.copy(_hit);
     impact.material.opacity = on * (0.5 + 0.4 * Math.abs(Math.sin(t / 40)));
     const is = cutting ? 0.9 + 0.5 * Math.abs(Math.sin(t / 60)) : 0.001;
