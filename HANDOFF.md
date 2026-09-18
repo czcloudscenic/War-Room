@@ -30,6 +30,15 @@ accumulate. Stale mesh under new calibration is the one thing that produces
 it. If a crew member ever looks bent double again, check the filename before
 the code.
 
+**The twist at the hip (29cc87d).** Hips is the ROOT bone, so the pelvis
+layer's roll/yaw carried both thighs with it and the feet layer wrenched them
+back. The layer now hands each thigh the inverse delta in the pelvis's new
+frame: the pelvis tilts UNDER planted legs, and a thigh's world direction is
+bit-identical with the layer on or off (tested). Walking amplitudes halved
+because the retargeted Mixamo walk already carries pelvis motion. Verified on
+the live ShipRoute chunk: all four `-r2` crew files, `head-r2`, and the new
+amplitudes are what usevantus.com serves.
+
 **Sizing.** `calibrate()` in `crewGLB.js` sizes each figure from its posed
 skeleton on the first animated frame - measuring at LOAD reads a span of 0
 because the bones still sit at their raw node transforms before the first
