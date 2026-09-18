@@ -76,8 +76,8 @@ export const POSE = {
   hips: {
     weight: 1,
     // walking, driven by the stride phase read off the feet
-    yawMaxDeg: 8,         // pelvis leads with the swinging leg's hip
-    rollMaxDeg: 6,        // that same hip drops; the stance hip carries
+    yawMaxDeg: 4,         // pelvis leads with the swinging leg's hip (the retargeted walk already carries half of this)
+    rollMaxDeg: 3,        // that same hip drops; the stance hip carries
     swayAmp: 0.030,       // lateral shift over the stance foot, as a share of height
     bobAmp: 0.013,        // rise at mid-stance, dip at double support
     counterSpineDeg: 6,   // shoulders oppose the pelvis, or it reads as a lurch
@@ -86,7 +86,7 @@ export const POSE = {
     tau: 0.09,            // ease, so a change of gait is not a snap
     // standing
     standEveryS: 5.5, standEveryJitterS: 3,
-    standRollDeg: 5,      // the weighted hip rides HIGH
+    standRollDeg: 3,      // the weighted hip rides HIGH
     standSwayAmp: 0.028,  // and the body shifts over it
     standYawDeg: 3,
     standTau: 1.1,        // slow, so the shift is a settle and not a twitch
@@ -639,11 +639,23 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
 
     const wgt = P.weight;
     // Rotation, in the body frame, applied through the pelvis's parent.
+    //
+    // Hips is the ROOT bone: both thighs and the spine hang off it. Rotating
+    // it alone tilts the whole lower body, and the feet layer then drags the
+    // feet back to the deck, so the thighs end up wrenched against a pelvis
+    // that moved without them. That is the twist at the hip. A real pelvis
+    // tilts and turns UNDER the legs; the legs stay planted. So the same
+    // delta, inverted, goes straight back onto each thigh, and only the
+    // pelvis (and what rides on it above the waist) actually moves.
     if (Math.abs(yawDeg) > 1e-3 || Math.abs(rollDeg) > 1e-3) {
       _e.set(0, yawDeg * wgt * Math.PI / 180, rollDeg * wgt * Math.PI / 180, 'YZX');
       _qA.setFromEuler(_e);
       readBone(b.hips.parent, _pC, _qP);
       applyDelta(b.hips, _qA, _qP);
+      _qB.copy(_qA).invert();
+      readBone(b.hips, _pC, _qP);            // the pelvis AFTER its delta = the thighs' parent
+      applyDelta(b.lUpLeg, _qB, _qP);
+      applyDelta(b.rUpLeg, _qB, _qP);
     }
     // Translation: build the offset in the body frame, convert to the parent's
     // local space as a delta (same trick the feet layer uses for pelvisFollow).

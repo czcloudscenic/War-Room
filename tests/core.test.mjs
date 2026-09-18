@@ -373,13 +373,48 @@ t('commandDigest returns tiers object', digest && typeof digest === 'object');
     const pose = createPoseLayers({ figureHeight: 100, seed: 10 });
     pose.bind(rig.root, rig.root);
     pose.setGroundFn((x) => (x > 0 ? 6 : 0));
-    POSE.reach.weight = 0; POSE.feet.weight = 0;
+    // The pelvis layer owns a thigh counter-rotation of its own now, so it is
+    // silenced too: this block is about the LIMB layers being true no-ops.
+    const savedHipsW = POSE.hips.weight;
+    POSE.reach.weight = 0; POSE.feet.weight = 0; POSE.hips.weight = 0;
     const watched = [rig.LA.a, rig.LA.f, rig.RA.a, rig.L.up, rig.L.lo, rig.R.up];
     const before = watched.map((b) => b.quaternion.clone());
     run(pose, 'work', 40);
     t('joint limits: weight 0 leaves every arm and leg bone untouched',
       watched.every((b, i) => b.quaternion.angleTo(before[i]) < 1e-9));
-    POSE.reach.weight = 1; POSE.feet.weight = savedFeetW;
+    POSE.reach.weight = 1; POSE.feet.weight = savedFeetW; POSE.hips.weight = savedHipsW;
+  }
+
+  // 4b. The pelvis tilts and turns UNDER the legs. Hips is the root bone, so a
+  //     bare pelvis roll would carry both thighs with it and the feet layer
+  //     would then wrench them back: that was the twist at the hip. The layer
+  //     hands each thigh the inverse delta, so a thigh's WORLD direction must
+  //     be identical whether the pelvis moved or not.
+  {
+    const thighDir = (rig) => {
+      const a = new THREE.Vector3(), b = new THREE.Vector3();
+      rig.L.up.getWorldPosition(a); rig.L.lo.getWorldPosition(b);
+      return b.sub(a).normalize();
+    };
+    const savedFeet = POSE.feet.weight, savedReach = POSE.reach.weight;
+    POSE.feet.weight = 0; POSE.reach.weight = 0;       // isolate the pelvis
+    const rigOn = makeRig();
+    const poseOn = createPoseLayers({ figureHeight: 100, seed: 12 });
+    poseOn.bind(rigOn.root, rigOn.root);
+    POSE.hips.weight = 1;
+    run(poseOn, 'idle', 120);                           // long enough for contrapposto to settle
+    const dirOn = thighDir(rigOn);
+    const pelvisMoved = rigOn.hips.quaternion.angleTo(new THREE.Quaternion());
+    const rigOff = makeRig();
+    const poseOff = createPoseLayers({ figureHeight: 100, seed: 12 });
+    poseOff.bind(rigOff.root, rigOff.root);
+    POSE.hips.weight = 0;
+    run(poseOff, 'idle', 120);
+    const dirOff = thighDir(rigOff);
+    POSE.hips.weight = 1; POSE.feet.weight = savedFeet; POSE.reach.weight = savedReach;
+    t('hips: standing contrapposto actually moves the pelvis', pelvisMoved > 1e-3);
+    t('hips: the thigh keeps its world direction while the pelvis rolls under it',
+      dirOn.angleTo(dirOff) < 1e-6);
   }
 
   // 5. The shoulder is a cone about its rest direction: no frame may swing the
