@@ -29,10 +29,16 @@ export { POSE };
 // original Meshy idle leaned 6 deg and hung the arms out, which is what the
 // posture corrector below was compensating for.
 export const CREW_GLB = {
-  Sean: { walk: '/crew/sean2_walk.glb', idle: '/crew/sean2_idle.glb', work: '/crew/sean2_work.glb' },
-  Muse: { walk: '/crew/muse2_walk.glb', idle: '/crew/muse2_idle.glb', work: '/crew/muse2_work.glb' },
-  Scrappy: { walk: '/crew/scrappy2_walk.glb', idle: '/crew/scrappy2_idle.glb', work: '/crew/scrappy2_work.glb' },
-  Slate: { walk: '/crew/slate2_walk.glb', idle: '/crew/slate2_idle.glb', work: '/crew/slate2_work.glb' },
+  // The crew are the Matrix cast now, built from Christian's own asset drop.
+  // Neo, Morpheus and the walking woman arrived as STATIC meshes, so each is
+  // skinned to the Mixamo skeleton out of mr-man-walking.fbx (that file's walk
+  // is the one clip in the drop authored by a human) and its bones renamed to
+  // the names crewPose.js binds. The woman in the red dress was not in the
+  // drop and is generated on the same 24-joint rig the earlier crew used.
+  Sean: { walk: '/crew/neo.glb', idle: '/crew/sean2_idle.glb', work: '/crew/sean2_work.glb' },
+  Muse: { walk: '/crew/reddress.glb', idle: '/crew/muse2_idle.glb', work: '/crew/muse2_work.glb' },
+  Scrappy: { walk: '/crew/morpheus.glb', idle: '/crew/scrappy2_idle.glb', work: '/crew/scrappy2_work.glb' },
+  Slate: { walk: '/crew/lady.glb', idle: '/crew/slate2_idle.glb', work: '/crew/slate2_work.glb' },
 };
 
 const FIGURE_HEIGHT = 34;   // logical units — must match crewModels' proportions
@@ -60,7 +66,13 @@ const MODEL_YAW = 0;
 // frame read as "multiple colors blending". The crew should be the most
 // saturated, most contrasty thing in a bay, like a Fallout Shelter dweller
 // against a lit room. Saturation and exposure go back up; matte stays.
-const GRADE = { saturation: 0.95, exposure: 1.0, tint: [0.96, 0.98, 1.0], selfGlow: 0.05, roughness: 0.9 };
+// Raised 9/17 for the Matrix cast. Neo and Morpheus are black leather head to
+// toe, and against an unlit bay a 0x0c garment is indistinguishable from the
+// wall behind it. exposure alone cannot fix that (anything times black is
+// still black), so the lift has to come from selfGlow, with a floor under the
+// darkest garments so a coat reads as a silhouette instead of a hole. The
+// woman in the red dress is the check that it has not gone too far.
+const GRADE = { saturation: 0.95, exposure: 1.18, tint: [0.96, 0.98, 1.0], selfGlow: 0.05, roughness: 0.9, darkFloor: 0.085 };
 // Posture: the Meshy clips carry a built-in lean (measured 9/10 in the harness:
 // hips-to-head about 6.5 deg sideways and 5 deg forward on every crew member,
 // bind pose straight) and hang the arms 21-28 deg out from the body. Both read
@@ -83,6 +95,11 @@ function gradeIntoPlate(m) {
     m.emissiveIntensity = Math.min(m.emissiveIntensity ?? 0, GRADE.selfGlow);
   }
   m.color.multiply(new THREE.Color(GRADE.tint[0] * GRADE.exposure, GRADE.tint[1] * GRADE.exposure, GRADE.tint[2] * GRADE.exposure));
+  // Floor the near-blacks so leather still catches the bay light.
+  if (GRADE.darkFloor) {
+    const lum = m.color.r * 0.299 + m.color.g * 0.587 + m.color.b * 0.114;
+    if (lum < GRADE.darkFloor) m.color.lerp(new THREE.Color(GRADE.darkFloor, GRADE.darkFloor, GRADE.darkFloor * 1.08), 1 - lum / GRADE.darkFloor);
+  }
   if ('roughness' in m) m.roughness = Math.max(m.roughness ?? 1, GRADE.roughness);
   if ('metalness' in m) m.metalness = 0;
   if ('envMapIntensity' in m) m.envMapIntensity = 0;
