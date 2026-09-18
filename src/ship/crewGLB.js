@@ -16,6 +16,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { createAgentFigure, makeNameTexture } from './crewModels.js';
 import { POSE, createPoseLayers } from './crewPose.js';
+// Dev-only tuning handle: window.__crewPose.hips.weight = 0 isolates the layer.
+if (typeof window !== 'undefined' && import.meta.env?.DEV) window.__crewPose = POSE;
 
 // Procedural layer tuning (head look, foot IK, console reach, lean/recoil)
 // lives in crewPose.js; re-exported so hosts can tune from one import.

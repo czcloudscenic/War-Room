@@ -10,6 +10,8 @@ import siteAudit from '../netlify/functions/_lib/siteAudit.js';
 import { scoreWarmth, WARM_MIN } from '../src/core/warmth.js';
 import leadCapture from '../netlify/functions/_lib/leadCapture.js';
 import { computeBars, computeIncidents, computeMorale } from '../src/core/shipStations.js';
+import * as THREE from 'three';
+import { createPoseLayers, POSE } from '../src/ship/crewPose.js';
 
 let pass = 0, fail = 0;
 const t = (name, cond) => { if (cond) { pass++; } else { fail++; console.error('FAIL:', name); } };
@@ -171,6 +173,74 @@ t('commandDigest returns tiers object', digest && typeof digest === 'object');
   t('morale: unknown without receipts', morale.Scrappy === null);
 }
 
+
+
+/* ── crewPose hips: the pelvis layer (the "walks stupid" bug) ── */
+{
+  // A minimal Mixamo-named rig: Hips at 0.53 of a 100-unit stature, a spine
+  // chain, and two legs. Enough for the pelvis layer to read a stride from.
+  const makeRig = () => {
+    const bone = (name, x, y, z) => { const b = new THREE.Bone(); b.name = name; b.position.set(x, y, z); return b; };
+    const root = new THREE.Object3D();
+    const hips = bone('Hips', 0, 53, 0);
+    const sp = bone('Spine', 0, 8, 0), sp1 = bone('Spine01', 0, 8, 0), sp2 = bone('Spine02', 0, 8, 0);
+    const neck = bone('neck', 0, 8, 0), head = bone('Head', 0, 6, 0);
+    hips.add(sp); sp.add(sp1); sp1.add(sp2); sp2.add(neck); neck.add(head);
+    const leg = (side, sx) => {
+      const up = bone(side + 'UpLeg', sx, -4, 0), lo = bone(side + 'Leg', 0, -24, 0), ft = bone(side + 'Foot', 0, -24, 0), toe = bone(side + 'ToeBase', 0, -3, 6);
+      up.add(lo); lo.add(ft); ft.add(toe); hips.add(up); return { up, lo, ft };
+    };
+    const L = leg('Left', 5), R = leg('Right', -5);
+    const arm = (side, sx) => { const a = bone(side + 'Arm', sx, 0, 0), f = bone(side + 'ForeArm', 0, -12, 0), h = bone(side + 'Hand', 0, -11, 0); a.add(f); f.add(h); sp2.add(a); return { a, f, h }; };
+    arm('Left', 8); arm('Right', -8);
+    root.add(hips); root.updateMatrixWorld(true);
+    return { root, hips, L, R };
+  };
+  const ctxFor = (anim, dt) => ({ dt, time: 1, anim, speed: anim === 'walk' ? 46 : 0, group: new THREE.Object3D(), rig: new THREE.Object3D(), scale: 1 });
+
+  // Walking, left foot forward and airborne: the pelvis must lead with the
+  // left hip (negative yaw about Y, since +x is the body's left and a positive
+  // Y rotation carries +x backward) and drop on that same airborne side.
+  const rig = makeRig();
+  const pose = createPoseLayers({ figureHeight: 100, seed: 3 });
+  pose.bind(rig.root, rig.root);
+  rig.L.ft.position.z = 14; rig.L.ft.position.y += 4;   // left foot forward and lifted
+  rig.R.ft.position.z = -14;
+  rig.root.updateMatrixWorld(true);
+  const q0 = rig.hips.quaternion.clone(), p0 = rig.hips.position.clone();
+  // The host restores the clip pose before every apply(); without that the
+  // layer's deltas compound frame over frame. Mirror the real loop.
+  for (let i = 0; i < 40; i++) { pose.restore(); pose.apply(ctxFor('walk', 0.05)); }
+  const e = new THREE.Euler().setFromQuaternion(rig.hips.quaternion, 'YZX');
+  t('hips: walking pelvis leads with the swinging leg (yaw < 0)', e.y < -0.01);
+  t('hips: walking pelvis drops on the airborne side (roll < 0)', e.z < -0.005);
+  t('hips: walking pelvis shifts over the planted foot (x < 0)', rig.hips.position.x - p0.x < -0.05);
+  t('hips: the layer actually moved the pelvis', !rig.hips.quaternion.equals(q0));
+
+  // Weight 0 must be a true no-op.
+  const rig2 = makeRig();
+  const pose2 = createPoseLayers({ figureHeight: 100, seed: 3 });
+  pose2.bind(rig2.root, rig2.root);
+  rig2.L.ft.position.z = 14; rig2.L.ft.position.y += 4; rig2.R.ft.position.z = -14;
+  rig2.root.updateMatrixWorld(true);
+  const saveW = POSE.hips.weight; POSE.hips.weight = 0;
+  const q2 = rig2.hips.quaternion.clone(), x2 = rig2.hips.position.x;
+  for (let i = 0; i < 40; i++) { pose2.restore(); pose2.apply(ctxFor('walk', 0.05)); }
+  t('hips: weight 0 leaves the pelvis alone', rig2.hips.quaternion.angleTo(q2) < 1e-6 && Math.abs(rig2.hips.position.x - x2) < 1e-6);
+  POSE.hips.weight = saveW;
+
+  // Standing: contrapposto appears, and the weighted side swaps over time.
+  const rig3 = makeRig();
+  const pose3 = createPoseLayers({ figureHeight: 100, seed: 5 });
+  pose3.bind(rig3.root, rig3.root);
+  rig3.root.updateMatrixWorld(true);
+  for (let i = 0; i < 60; i++) { pose3.restore(); pose3.apply(ctxFor('idle', 0.05)); }
+  const rollA = new THREE.Euler().setFromQuaternion(rig3.hips.quaternion, 'YZX').z;
+  t('hips: standing takes the weight on one leg (hip roll is non-zero)', Math.abs(rollA) > 0.005);
+  for (let i = 0; i < 400; i++) { pose3.restore(); pose3.apply(ctxFor('idle', 0.05)); }   // ~20 s: at least one swap
+  const rollB = new THREE.Euler().setFromQuaternion(rig3.hips.quaternion, 'YZX').z;
+  t('hips: the weighted leg swaps over time', Math.sign(rollB) !== Math.sign(rollA) || Math.abs(rollB - rollA) > 0.01);
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 

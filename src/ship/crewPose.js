@@ -45,6 +45,31 @@ export const POSE = {
     ease: 0.4,            // seconds to fade in / out around the work state
     maxExtend: 0.97,      // fraction of the arm length a target may pull to
   },
+  // ── The pelvis (added 2026-09-17) ──────────────────────────────────────
+  // The oldest bug in the ship: nothing ever drove the Hips bone, so a
+  // character stood perfectly square on two straight legs and walked as if
+  // the legs were hinged to a board. Real hips do four things while walking
+  // (counter-rotate, drop on the swing side, shift over the stance foot, and
+  // rise and fall twice per stride) and one thing while standing (take the
+  // weight on one leg — contrapposto — and swap every few seconds).
+  hips: {
+    weight: 1,
+    // walking, driven by the stride phase read off the feet
+    yawMaxDeg: 8,         // pelvis leads with the swinging leg's hip
+    rollMaxDeg: 6,        // that same hip drops; the stance hip carries
+    swayAmp: 0.030,       // lateral shift over the stance foot, as a share of height
+    bobAmp: 0.013,        // rise at mid-stance, dip at double support
+    counterSpineDeg: 6,   // shoulders oppose the pelvis, or it reads as a lurch
+    strideRef: 0.20,      // foot separation at full stride, share of height
+    liftRef: 0.045,       // swing-foot clearance, share of height
+    tau: 0.09,            // ease, so a change of gait is not a snap
+    // standing
+    standEveryS: 5.5, standEveryJitterS: 3,
+    standRollDeg: 5,      // the weighted hip rides HIGH
+    standSwayAmp: 0.028,  // and the body shifts over it
+    standYawDeg: 3,
+    standTau: 1.1,        // slow, so the shift is a settle and not a twitch
+  },
   lean: { weight: 1, maxDeg: 6, speedRef: 30, tau: 0.2 },
   recoil: { weight: 1, hz: 2.4, damping: 0.35, kick: 0.9, maxDeg: 18, headDip: 0.6 },
 };
@@ -215,6 +240,9 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
     wrap.updateMatrixWorld(true);
     wrap.parent = p;
   }
+
+  // Pelvis state: eased stride signals plus the standing weight-shift clock.
+  const hipS = { u: 0, lift: 0, side: 1, sideEased: 1, nextShift: 2 };
 
   // ── Host API ────────────────────────────────────────────────────────────────
   // Target is in the frame the figure's group.position lives in (the host's
@@ -393,9 +421,89 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
   }
 
   // ctx: { dt, time, anim, speed, phase, group, rig, scale, lookAt }
+  // Pelvis. Runs FIRST: the feet layer plants the feet against whatever the
+  // pelvis just did, which is the right order (hips lead, feet answer).
+  function hipsLayer(ctx) {
+    const P = POSE.hips;
+    if (!hasLegs || !(P.weight > 0)) return;
+    const b = bones;
+    const dt = Math.max(0, Math.min(0.1, ctx.dt || 0.016));
+    // Height from the pelvis: on these rigs Hips sits at ~0.53 of stature.
+    posOf(b.hips, _pA);
+    const height = Math.max(1e-3, _pA.y / 0.53);
+    posOf(b.lFoot, _pB); posOf(b.rFoot, _pC);
+
+    const walking = ctx.anim === 'walk' || ctx.anim === 'climb';
+    let yawDeg = 0, rollDeg = 0, swayX = 0, bobY = 0, counterDeg = 0;
+
+    if (walking) {
+      // Stride phase straight off the feet: no clip times, no assumptions.
+      // u  > 0  left foot is forward     lift > 0  left foot is in the air
+      const u = clamp((_pB.z - _pC.z) / (P.strideRef * height), -1, 1);
+      const lift = clamp((_pB.y - _pC.y) / (P.liftRef * height), -1, 1);
+      const k = 1 - Math.exp(-dt / Math.max(1e-3, P.tau));
+      hipS.u += (u - hipS.u) * k;
+      hipS.lift += (lift - hipS.lift) * k;
+      // The body's LEFT is +x (facing +z, up +y). A positive rotation about Y
+      // carries +x toward -z, so leading with the left hip is a NEGATIVE yaw.
+      yawDeg = -P.yawMaxDeg * hipS.u;
+      // Positive roll about +z lifts +x, so the airborne side drops.
+      rollDeg = -P.rollMaxDeg * hipS.lift;
+      // Weight travels over the planted (lower) foot.
+      swayX = -P.swayAmp * height * hipS.lift;
+      // Highest with the feet together, lowest at double support: twice a stride.
+      bobY = P.bobAmp * height * (0.5 - Math.abs(hipS.u));
+      counterDeg = P.counterSpineDeg * hipS.u;
+    } else {
+      // Standing: take the weight on one leg and swap every few seconds.
+      hipS.nextShift -= dt;
+      if (hipS.nextShift <= 0) {
+        hipS.side = -hipS.side;
+        hipS.nextShift = P.standEveryS + (ctx.time % 1) * P.standEveryJitterS;
+      }
+      const k = 1 - Math.exp(-dt / Math.max(1e-3, P.standTau));
+      hipS.sideEased += (hipS.side - hipS.sideEased) * k;
+      const w = hipS.sideEased;
+      // Weighted hip rides high, body settles over it, a little off-square.
+      rollDeg = P.standRollDeg * w;
+      swayX = P.standSwayAmp * height * w;
+      yawDeg = P.standYawDeg * w;
+      counterDeg = -P.standRollDeg * 0.5 * w;
+      hipS.u += (0 - hipS.u) * Math.min(1, dt * 4);
+      hipS.lift += (0 - hipS.lift) * Math.min(1, dt * 4);
+    }
+
+    const wgt = P.weight;
+    // Rotation, in the body frame, applied through the pelvis's parent.
+    if (Math.abs(yawDeg) > 1e-3 || Math.abs(rollDeg) > 1e-3) {
+      _e.set(0, yawDeg * wgt * Math.PI / 180, rollDeg * wgt * Math.PI / 180, 'YZX');
+      _qA.setFromEuler(_e);
+      readBone(b.hips.parent, _pC, _qP);
+      applyDelta(b.hips, _qA, _qP);
+    }
+    // Translation: build the offset in the body frame, convert to the parent's
+    // local space as a delta (same trick the feet layer uses for pelvisFollow).
+    if (Math.abs(swayX) > 1e-4 || Math.abs(bobY) > 1e-4) {
+      _off.set(swayX * wgt, bobY * wgt, 0);
+      posOf(b.hips, _v); _w.copy(_v).add(_off);
+      _m.copy(b.hips.parent.matrixWorld).invert();
+      _v.applyMatrix4(_m); _w.applyMatrix4(_m);
+      b.hips.position.add(_w.sub(_v));
+    }
+    // Shoulders oppose the pelvis, or the whole torso reads as a lurch.
+    if (hasSpine && Math.abs(counterDeg) > 1e-3) {
+      _e.set(0, counterDeg * wgt * Math.PI / 180, 0, 'YZX');
+      _qB.setFromEuler(_e);
+      readBone(b.spineHi.parent, _pC, _qP);
+      applyDelta(b.spineHi, _qB, _qP);
+    }
+  }
+
   function apply(ctx) {
     if (!bones || !wrap) return;
     save();
+    refresh();
+    hipsLayer(ctx);
     refresh();
     legsLayer(ctx);
     spineLayer(ctx);
