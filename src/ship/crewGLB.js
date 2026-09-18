@@ -29,16 +29,21 @@ export { POSE };
 // original Meshy idle leaned 6 deg and hung the arms out, which is what the
 // posture corrector below was compensating for.
 export const CREW_GLB = {
-  // The crew are the Matrix cast now, built from Christian's own asset drop.
-  // Neo, Morpheus and the walking woman arrived as STATIC meshes, so each is
-  // skinned to the Mixamo skeleton out of mr-man-walking.fbx (that file's walk
-  // is the one clip in the drop authored by a human) and its bones renamed to
-  // the names crewPose.js binds. The woman in the red dress was not in the
-  // drop and is generated on the same 24-joint rig the earlier crew used.
+  // The crew are the Matrix cast. All four are generated and auto-rigged onto
+  // the SAME 24-joint skeleton, which is the only reason they behave.
+  //
+  // The obvious route was to skin the static Neo and Morpheus meshes from the
+  // asset drop onto a donor Mixamo rig by hand. That was tried and abandoned:
+  // hand-skinned characters exported lying down, then upside down once that
+  // was corrected, then 74x oversized because a skinned mesh's geometry can
+  // sit in a space its own node transform does not describe - and baking that
+  // out broke the skin binding so the mesh covered only the head. Four
+  // failures, all invisible until the figure was on screen. The generated rig
+  // was correct the first time and every time after. Do not re-litigate this.
   Sean: { walk: '/crew/neo.glb', idle: '/crew/sean2_idle.glb', work: '/crew/sean2_work.glb' },
   Muse: { walk: '/crew/reddress.glb', idle: '/crew/muse2_idle.glb', work: '/crew/muse2_work.glb' },
-  Scrappy: { walk: '/crew/morpheus.glb', idle: '/crew/scrappy2_idle.glb', work: '/crew/scrappy2_work.glb' },
-  Slate: { walk: '/crew/lady.glb', idle: '/crew/slate2_idle.glb', work: '/crew/slate2_work.glb' },
+  Scrappy: { walk: '/crew/trinity.glb', idle: '/crew/scrappy2_idle.glb', work: '/crew/scrappy2_work.glb' },
+  Slate: { walk: '/crew/morpheus.glb', idle: '/crew/slate2_idle.glb', work: '/crew/slate2_work.glb' },
 };
 
 const FIGURE_HEIGHT = 34;   // logical units — must match crewModels' proportions
@@ -81,6 +86,13 @@ const GRADE = { saturation: 0.95, exposure: 1.18, tint: [0.96, 0.98, 1.0], selfG
 // Arms: the clips are asymmetric (one arm hangs ~25 deg out, the other ~38),
 // so the tuck aims each upper arm at a TARGET hang angle instead of pulling
 // both by a fixed amount; armTuckMax caps how far a gesture gets flattened.
+// Bone heads end at the skull base and the ankle, so the skeleton measures
+// slightly shorter than the figure. Pads as a fraction of the bone span.
+const BONE_PAD = { crown: 0.055, foot: 0.02 };
+// Bone heads run ankle to skull base, so the skeleton measures a little
+// shorter than the silhouette. Every crew member is calibrated to this span,
+// which is what actually keeps them the same size as each other.
+const SKELETON_SPAN = 0.925;
 const POSTURE = { spineTau: 1.2 /* s, EMA on the spine direction */, armTargetRad: 9 * Math.PI / 180, armTuckMaxRad: 32 * Math.PI / 180, workLean: 0.03, walkLean: 0.04 };
 // Contact shadow ellipse (logical units, figure is FIGURE_HEIGHT tall).
 const SHADOW = { w: 30, h: 7.5, y: 0.4, opacity: 0.62 };
@@ -207,6 +219,8 @@ export function createCrewFigure({ name, color, future = false }) {
   const ownedMaterials = [];
   const postureBones = {};
   let postureWrap = null;
+  let calibrateWrap = null;   // set on load, cleared once the figure is sized
+  let calibrateModel = null;
   const spineEMA = new THREE.Vector3(0, 1, 0);
   let armTuckWeight = 1;   // eased to 0 while walking so the arm swing survives
   const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _q = new THREE.Quaternion(), _qp = new THREE.Quaternion(), _m = new THREE.Matrix4();
@@ -224,6 +238,37 @@ export function createCrewFigure({ name, color, future = false }) {
   // frame. Both this tuck and that layer write leftArm / rightArm, so they are
   // faded against each other — the tuck hands the shoulders over as the reach
   // ramps in, instead of the two stacking on one bone and over-rotating it.
+  // Size the figure from its skeleton, once, on the first frame where the
+  // skeleton is actually posed.
+  //
+  // Every bind-pose measurement lies for at least one of these rigs. A skinned
+  // mesh's geometry can sit in a space its own node transform does not
+  // describe: measured in the scene, the Mixamo-rigged crew came in 74x the
+  // size of the generated one from identical 1.81 m sources, which is why Neo
+  // filled both decks. Measuring at LOAD does not work either - before the
+  // first mixer update the bones still sit at their raw node transforms and
+  // the span reads 0. So measure here, after the clips have written a pose,
+  // and correct once.
+  const _cal = new THREE.Vector3();
+  function calibrate() {
+    if (!calibrateWrap || !postureWrap || !calibrateModel) return;
+    const bones = [];
+    calibrateModel.traverse((o) => { if (o.isBone) bones.push(o); });
+    if (bones.length < 8) { calibrateWrap = null; return; }
+    postureWrap.updateWorldMatrix(true, true);
+    let lo = Infinity, hi = -Infinity;
+    for (const b of bones) { const y = b.getWorldPosition(_cal).y; if (y < lo) lo = y; if (y > hi) hi = y; }
+    const measured = hi - lo;
+    if (!(measured > 1e-3)) return;            // not posed yet; try again next frame
+    calibrateWrap.scale.multiplyScalar((FIGURE_HEIGHT * SKELETON_SPAN) / measured);
+    postureWrap.updateWorldMatrix(true, true);
+    let lo2 = Infinity;
+    for (const b of bones) { const y = b.getWorldPosition(_cal).y; if (y < lo2) lo2 = y; }
+    // Bone heads stop at the ankle, so drop the sole a little below the lowest bone.
+    calibrateWrap.position.y -= rig.worldToLocal(_cal.set(0, lo2, 0)).y - FIGURE_HEIGHT * BONE_PAD.foot;
+    calibrateWrap = null;
+  }
+
   function correctPosture(dt, walking, armBusy = 0) {
     const b = postureBones;
     if (!postureWrap || !b.hips || !b.head) return;
@@ -265,7 +310,9 @@ export function createCrewFigure({ name, color, future = false }) {
       if (disposed) return;
       const model = walkGltf.scene;
 
-      // Normalize: feet at y=0, centered, FIGURE_HEIGHT units tall.
+      // Normalize: feet at y=0, centered, FIGURE_HEIGHT units tall. This is a
+      // first guess only; calibrate() below re-sizes from the posed skeleton,
+      // because a bind-pose box cannot be trusted across asset pipelines.
       const box = new THREE.Box3().setFromObject(model);
       const size = box.getSize(new THREE.Vector3());
       const s = FIGURE_HEIGHT / (size.y || 1);
@@ -330,6 +377,9 @@ export function createCrewFigure({ name, color, future = false }) {
       pose.bind(model, postureWrap);
 
       rig.add(postureWrap);
+
+      calibrateWrap = wrap; calibrateModel = model;   // sized on the first animated frame, see calibrate()
+
       // Swap: procedural stand-in out, real character + our tag/light in.
       group.remove(proc.group);
       proc.dispose();
@@ -428,6 +478,7 @@ export function createCrewFigure({ name, color, future = false }) {
     }
     pose.restore();   // undo last frame's procedural deltas before the clips write
     mixer?.update(dt);
+    if (calibrateWrap) calibrate();
     correctPosture(dt, anim === 'walk' || anim === 'climb', pose.armReachWeight());
     // Procedural layers, same order every frame: legs, spine, arms, head.
     poseCtx.dt = dt; poseCtx.time = time; poseCtx.anim = anim; poseCtx.speed = speed;
