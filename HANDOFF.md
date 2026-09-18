@@ -1,5 +1,52 @@
 # Vantus Handoff Brief
 
+## 2026-09-17 (night) — crew rebuilt on one auto-rigged skeleton; versioned asset names. Pushed through 86bb306.
+
+**Read this before touching the crew again.** Two rules came out of tonight, both paid for.
+
+**Rule 1: never hand-skin a static mesh onto a donor rig.** The Neo and
+Morpheus zips are static meshes. Skinning them onto the Mixamo rig in Blender
+failed four separate ways, each invisible until the figure was on screen:
+exported lying on their backs; upside down once that was corrected; 74x
+oversized because a skinned mesh's geometry can sit in a space its own node
+transform does not describe (skeleton 0..1.81, mesh box straddling zero at
++/-1); and baking the armature scale to fix THAT invalidated the skin binding
+so the mesh collapsed onto the head. The generate-then-auto-rig route
+(`image_to_3d` with `enable_rigging`, `pose_mode: a-pose`, `should_texture:
+true`, `animation_action_id: 30`) was correct the first time and every time
+after. All four crew now come from it, on the identical 24-joint rig
+`crewPose.js` binds: Neo (Sean), blonde red dress (Muse), woman in black
+(Scrappy), Morpheus (Slate).
+
+**Rule 2: bump the filename when a GLB is regenerated.** Files are
+`/crew/<name>-r2.glb`, `/sentinel/head-r2.glb`. A replaced asset under the
+SAME name is served stale by browsers and the Netlify CDN, so new code runs
+against an old broken mesh. That is exactly the picture Christian was sent:
+a figure folded 70 deg at the waist, another twisted 90 deg at the torso. The
+harness could not reproduce either at 883 frames of forced full-rate
+simulation, flown into the same stations; the raw work clip bends ~20 deg,
+the pose layers are clamped far below that, and restore/apply does not
+accumulate. Stale mesh under new calibration is the one thing that produces
+it. If a crew member ever looks bent double again, check the filename before
+the code.
+
+**Sizing.** `calibrate()` in `crewGLB.js` sizes each figure from its posed
+skeleton on the first animated frame - measuring at LOAD reads a span of 0
+because the bones still sit at their raw node transforms before the first
+mixer update. Bind-pose boxes are not trusted anywhere any more.
+
+**Walk.** All four carry the human-authored walk retargeted from
+`mr-man-walking.fbx` (`scratchpad/work/retarget.py`: 22/22 bones, rotation
+only, no hips translation). Checks before install: bind bbox unchanged, head
+above hips, knees ~103-170, elbows ~128-168. The library `Casual_Walk` barely
+swung the arms.
+
+**Harness tricks that finally gave ground truth.** Override
+`window.requestAnimationFrame` with a setTimeout(0) shim to run ~120 fps under
+Playwright's 1 fps throttle; `__selectStation(id)` flies in (Slate lives at
+`qc`, Scrappy at `intel`, Muse `foundry`, Sean `cockpit`); measure hips->head
+lean per rig from the skeleton, not from a screenshot.
+
 ## 2026-09-17 (late) — Christian's asset drop becomes the crew and the sentinel. Pushed through c06d4d0.
 
 Fifteen zips of Matrix and Fallout assets. The rule that came out of it: **use
