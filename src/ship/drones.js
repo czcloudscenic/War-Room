@@ -15,7 +15,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 // (Tripo text-to-3D) replace the primitive head and cylinder segments when
 // they load; the primitives stay as the stand-in and as the fallback. Both
 // are loaded once and cloned per machine / per segment.
-const PART_URLS = { head: '/sentinel/head.glb', tentacle: '/sentinel/tentacle.glb' };
+const PART_URLS = { head: '/sentinel/head-r2.glb', tentacle: '/sentinel/tentacle.glb' };
 const partCache = new Map();
 function loadPart(key) {
   if (!partCache.has(key)) {

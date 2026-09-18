@@ -29,6 +29,11 @@ export { POSE };
 // original Meshy idle leaned 6 deg and hung the arms out, which is what the
 // posture corrector below was compensating for.
 export const CREW_GLB = {
+  // Filenames carry a revision. A replaced asset under the SAME name is served
+  // stale by browsers and the Netlify CDN, so new code runs against an old
+  // broken mesh and the figure comes out bent double for no reason visible in
+  // the source. Bump the suffix whenever a file is regenerated.
+  //
   // The crew are the Matrix cast. All four are generated and auto-rigged onto
   // the SAME 24-joint skeleton, which is the only reason they behave.
   //
@@ -40,10 +45,10 @@ export const CREW_GLB = {
   // out broke the skin binding so the mesh covered only the head. Four
   // failures, all invisible until the figure was on screen. The generated rig
   // was correct the first time and every time after. Do not re-litigate this.
-  Sean: { walk: '/crew/neo.glb', idle: '/crew/sean2_idle.glb', work: '/crew/sean2_work.glb' },
-  Muse: { walk: '/crew/reddress.glb', idle: '/crew/muse2_idle.glb', work: '/crew/muse2_work.glb' },
-  Scrappy: { walk: '/crew/trinity.glb', idle: '/crew/scrappy2_idle.glb', work: '/crew/scrappy2_work.glb' },
-  Slate: { walk: '/crew/morpheus.glb', idle: '/crew/slate2_idle.glb', work: '/crew/slate2_work.glb' },
+  Sean: { walk: '/crew/neo-r2.glb', idle: '/crew/sean2_idle.glb', work: '/crew/sean2_work.glb' },
+  Muse: { walk: '/crew/reddress-r2.glb', idle: '/crew/muse2_idle.glb', work: '/crew/muse2_work.glb' },
+  Scrappy: { walk: '/crew/trinity-r2.glb', idle: '/crew/scrappy2_idle.glb', work: '/crew/scrappy2_work.glb' },
+  Slate: { walk: '/crew/morpheus-r2.glb', idle: '/crew/slate2_idle.glb', work: '/crew/slate2_work.glb' },
 };
 
 const FIGURE_HEIGHT = 34;   // logical units — must match crewModels' proportions
