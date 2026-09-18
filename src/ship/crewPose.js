@@ -7,8 +7,14 @@
 //
 //   1. head look-at      neck 30% / head 70% toward a target, clamped, eased
 //   2. foot planting     two-bone analytic IK per leg onto a ground function
-//   3. console reach     two-bone IK on each arm to a console plane while working
+//   3. console reach     two-bone IK on each arm to a point off its own shoulder
 //   4. lean and recoil   spine pitch into velocity + a damped spring on impacts
+//
+// Every two-bone solve runs inside anatomical joint limits (POSE.limits): a
+// soft reach ceiling, a clamped hinge angle, a hinge DIRECTION taken from the
+// limb's rest pose at bind time, and a cone on the root ball joint. Without
+// them the IK could drive an elbow straight or backwards, which shears the
+// skinned sleeve off the forearm and is what "not one solid figure" looks like.
 //
 // Everything is computed in the BODY frame: origin at the feet, +y up, +z the
 // way the model faces, FIGURE_HEIGHT units tall. That is the frame just inside
@@ -38,12 +44,27 @@ export const POSE = {
     minShift: 0.05,       // ignore ground offsets smaller than this (flat floor)
     maxShift: 12,         // never chase a ground more than this away
     pelvisFollow: 1,      // hips follow the lower foot so the legs can reach
+    // A standing leg is legitimately near-straight: because the chord of a
+    // two-bone chain goes flat near full length, 0.99 of the chain is still
+    // 16 deg of knee flex, while the 0.92 that suits an arm would be a visible
+    // squat that lifts the feet off the deck. The knee's shear guard is the
+    // hinge-direction clamp plus kneeMinDeg below, not a short leg.
+    maxExtend: 0.99,
   },
   reach: {
-    weight: 0.7, height: 0.34, ahead: 9, spread: 9,
-    bobHz: 3, bobAmp: 1.5,
+    weight: 0.7,
+    // The hand target is measured from that arm's OWN shoulder as a share of
+    // its chain length (upper arm + forearm), NOT in figure units. The old
+    // console point (0.34 of stature, 9 ahead) sits about 1.7 arm-lengths from
+    // the shoulder of a 34-unit figure, so every working frame ended pinned at
+    // maxExtend with the elbow locked dead straight — which is where a skinned
+    // sleeve visibly comes apart from the forearm. sqrt(drop^2+ahead^2+out^2)
+    // = 0.83, comfortably inside maxExtend even at the top of the typing bob,
+    // so the elbow keeps a working bend at all times.
+    drop: 0.55, ahead: 0.62, out: 0.05,
+    bobHz: 3, bobAmp: 0.035,   // typing bob, also a share of the arm length
     ease: 0.4,            // seconds to fade in / out around the work state
-    maxExtend: 0.97,      // fraction of the arm length a target may pull to
+    maxExtend: 0.90,      // fraction of the arm length a target may pull to
   },
   // ── The pelvis (added 2026-09-17) ──────────────────────────────────────
   // The oldest bug in the ship: nothing ever drove the Hips bone, so a
@@ -72,6 +93,28 @@ export const POSE = {
   },
   lean: { weight: 1, maxDeg: 6, speedRef: 30, tau: 0.2 },
   recoil: { weight: 1, hz: 2.4, damping: 0.35, kick: 0.9, maxDeg: 18, headDip: 0.6 },
+  // ── Anatomical joint limits (added 2026-09-17) ──────────────────────────
+  // "They're still not one solid figure": in close-up the sleeve and the
+  // forearm came apart at the elbow. The skin weights are clean — it was the
+  // IK driving joints into poses a body cannot hold. A joint at (or a hair
+  // past) 180 deg shears the skinned mesh at the joint, and nothing in the
+  // solver said which WAY a hinge may fold, so a target behind the hand could
+  // hinge an elbow backwards. Every two-bone solve now runs inside:
+  //   maxExtend   how far along the chain a target may pull, eased so the last
+  //               stretch is asymptotic and the limb never snaps straight
+  //   bend range  the middle joint's angle away from straight, clamped both ways
+  //   cone        the root ball joint, clamped about its REST direction, so no
+  //               single frame can swing a limb behind the torso
+  //   pole        the hinge DIRECTION, taken from the limb's own rest bend
+  //               (derived once at bind time, never per frame)
+  limits: {
+    elbowMinDeg: 6, elbowMaxDeg: 150,   // bend away from straight, degrees
+    kneeMinDeg: 6, kneeMaxDeg: 150,     // (a knee's bend is backwards by definition
+                                        //  of the pole: the knee itself points forward)
+    shoulderConeDeg: 90, hipConeDeg: 60,  // root ball joint, from its rest direction
+    poleMaxDeg: 75,     // how far the clip's own bend may stray from the rest hinge
+    easeFrom: 0.85,     // share of the reach window where the soft stretch starts
+  },
 };
 
 const DEG = Math.PI / 180;
@@ -89,6 +132,7 @@ const _qr = new THREE.Quaternion(), _qk = new THREE.Quaternion();
 const _s = new THREE.Vector3();
 const _d = new THREE.Vector3(), _dir = new THREE.Vector3(), _ab = new THREE.Vector3(), _perp = new THREE.Vector3();
 const _nb = new THREE.Vector3(), _nc = new THREE.Vector3(), _tgt = new THREE.Vector3();
+const _ref = new THREE.Vector3(), _t = new THREE.Vector3(), _pS = new THREE.Vector3();
 const _u1 = new THREE.Vector3(), _u2 = new THREE.Vector3();
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _off = new THREE.Vector3();
 const _m = new THREE.Matrix4();
@@ -132,13 +176,82 @@ function applyDelta(bone, qDelta, qParent) {
   bone.quaternion.premultiply(_qd);
 }
 
-// Two-bone analytic IK (law of cosines in the plane of a-b-c).
+// Force the angle between unit `v` and unit `ref` into [acos(cosHi), acos(cosLo)]
+// (cosLo <= cosHi). v is rotated inside the v/ref plane, so a bend hint that
+// started perpendicular to the chain stays perpendicular to it. When v is
+// exactly opposite ref that plane is undefined and v snaps to ref.
+function clampAngle(v, ref, cosLo, cosHi) {
+  const c = clamp(v.dot(ref), -1, 1);
+  if (c >= cosLo && c <= cosHi) return v;
+  const want = c < cosLo ? cosLo : cosHi;
+  _t.copy(v).addScaledVector(ref, -c);
+  if (_t.lengthSq() < 1e-10) return v.copy(ref);
+  _t.normalize();
+  return v.copy(ref).multiplyScalar(want).addScaledVector(_t, Math.sqrt(Math.max(0, 1 - want * want)));
+}
+
+// Base of the triangle (l1, l2) whose apex — the middle joint — opens to theta.
+const chord = (l1, l2, theta) => Math.sqrt(Math.max(1e-9, l1 * l1 + l2 * l2 - 2 * l1 * l2 * Math.cos(theta)));
+
+// Asymptotic ceiling: below easeFrom * cap nothing changes, above it the last
+// stretch compresses and never actually arrives. A hard clamp is what made a
+// reaching arm SNAP to straight and hold there; this makes it ease and stop short.
+function softMax(d, cap, easeFrom) {
+  const s = cap * easeFrom;
+  if (d <= s) return d;
+  const span = Math.max(1e-6, cap - s);
+  return s + span * Math.tanh((d - s) / span);
+}
+
+// Per-limb constants derived ONCE at bind time from the rest pose (see limbRest):
+//   pole     which side the middle joint already sits on (the hinge direction)
+//   restDir  the root bone's rest direction, centre of its ball-joint cone
+// Live angle limits are read from POSE each solve so they stay tunable.
+const _lim = { maxExtend: 1, bendMin: 0, bendMax: Math.PI, coneCos: -1, poleCos: -1, easeFrom: 0.85 };
+function limitsFor(kind) {
+  const L = POSE.limits;
+  const arm = kind === 'arm';
+  _lim.maxExtend = clamp(Number(arm ? POSE.reach.maxExtend : POSE.feet.maxExtend) || 0.9, 0.1, 0.999);
+  _lim.bendMin = clamp(arm ? L.elbowMinDeg : L.kneeMinDeg, 0, 90) * DEG;
+  _lim.bendMax = clamp(arm ? L.elbowMaxDeg : L.kneeMaxDeg, _lim.bendMin / DEG + 1, 179) * DEG;
+  _lim.coneCos = Math.cos(clamp(arm ? L.shoulderConeDeg : L.hipConeDeg, 1, 180) * DEG);
+  _lim.poleCos = Math.cos(clamp(L.poleMaxDeg, 1, 180) * DEG);
+  _lim.easeFrom = clamp(L.easeFrom, 0.1, 0.99);
+  return _lim;
+}
+
+// Rest-pose facts for one two-bone chain, in the body frame. Called from bind()
+// only: the hinge direction must NOT be re-derived per frame, or a frame that
+// already broke the joint would teach the solver that broken is correct.
+function limbRest(a, b, c, fallbackPole) {
+  if (!a || !b || !c) return null;
+  const pA = new THREE.Vector3(), pB = new THREE.Vector3(), pC = new THREE.Vector3();
+  posOf(a, pA); posOf(b, pB); posOf(c, pC);
+  const l1 = pA.distanceTo(pB), l2 = pB.distanceTo(pC);
+  if (l1 < 1e-5 || l2 < 1e-5) return null;
+  const restDir = pB.clone().sub(pA).normalize();
+  const pole = fallbackPole.clone().normalize();
+  const ac = pC.clone().sub(pA);
+  if (ac.lengthSq() > 1e-8) {
+    ac.normalize();
+    const perp = pB.clone().sub(pA);
+    perp.addScaledVector(ac, -perp.dot(ac));
+    // Accept the rig's own bend only if it is a real offset AND it agrees with
+    // anatomy; a rig modelled dead straight (or with noise at the joint) falls
+    // back to the constant.
+    if (perp.length() > 0.02 * l1 && perp.clone().normalize().dot(pole) > 0) pole.copy(perp.normalize());
+  }
+  return { pole, restDir, l1, l2 };
+}
+
+// Two-bone analytic IK (law of cosines in the plane of a-b-c), inside the
+// joint limits above.
 //   a: root bone (hip / shoulder), b: mid (knee / elbow), c: end (ankle / wrist)
-//   target: body-frame point for c; w: blend 0..1; pole: bend hint used only
-//   when the chain is straight; offset: body-frame shift already applied to the
-//   chain's root (hips moved) but not yet in the matrices.
-function solveTwoBone(a, b, c, target, w, pole, offset, maxExtend) {
-  if (w <= 0 || !a || !b || !c || !a.parent) return;
+//   target: body-frame point for c; w: blend 0..1; limb: limbRest() record;
+//   offset: body-frame shift already applied to the chain's root (hips moved)
+//   but not yet in the matrices; lim: limitsFor() record.
+function solveTwoBone(a, b, c, target, w, limb, offset, lim) {
+  if (w <= 0 || !a || !b || !c || !a.parent || !limb) return;
   readBone(a.parent, _v, _qP);
   readBone(a, _pA, _qA); _pA.add(offset);
   posOf(b, _pB).add(offset);
@@ -149,31 +262,53 @@ function solveTwoBone(a, b, c, target, w, pole, offset, maxExtend) {
   let d = _d.length();
   if (d < 1e-4) return;
   _dir.copy(_d).multiplyScalar(1 / d);
-  d = clamp(d, Math.abs(l1 - l2) + 1e-3, (l1 + l2) * maxExtend);
-  // Bend plane: keep the clip's own knee / elbow side; fall back to the pole
-  // when the limb is straight and the plane is undefined.
+  // Reach window. The far end is the tighter of maxExtend and the minimum
+  // bend; the near end is the maximum bend (an elbow cannot fold flat).
+  const near = Math.max(Math.abs(l1 - l2) + 1e-3, chord(l1, l2, Math.PI - lim.bendMax));
+  const far = Math.max(near + 1e-3, Math.min((l1 + l2) * lim.maxExtend, chord(l1, l2, Math.PI - lim.bendMin)));
+  d = softMax(d, far, lim.easeFrom);
+  if (d < near) d = near;
+  // Bend plane. Start from the clip's own knee / elbow side, then clamp that
+  // to the rest hinge direction: the clip may choose within poleMaxDeg, it may
+  // never fold the joint the other way. When the rest hinge is parallel to the
+  // reach direction the hinge axis is genuinely undefined (reaching straight
+  // along the elbow's own axis) and the clip's side stands.
   _ab.subVectors(_pB, _pA);
+  _ref.copy(limb.pole).addScaledVector(_dir, -limb.pole.dot(_dir));
+  const refOk = _ref.lengthSq() > 1e-6;
+  if (refOk) _ref.normalize();
   _perp.copy(_ab).addScaledVector(_dir, -_ab.dot(_dir));
-  if (_perp.lengthSq() < 1e-4 * l1 * l1) _perp.copy(pole).addScaledVector(_dir, -pole.dot(_dir));
-  if (_perp.lengthSq() < 1e-8) return;
-  _perp.normalize();
+  if (_perp.lengthSq() < 1e-6 * l1 * l1) { if (!refOk) return; _perp.copy(_ref); }
+  else { _perp.normalize(); if (refOk) clampAngle(_perp, _ref, lim.poleCos, 1); }
   const cosA = clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1);
   const sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA));
-  _nb.copy(_pA).addScaledVector(_dir, l1 * cosA).addScaledVector(_perp, l1 * sinA);
-  // Root bone: swing the current a->b onto a->newB.
+  // Root bone: swing the current a->b onto the solved direction, then hold the
+  // ball joint inside its cone so a limb can never swing behind the torso.
+  _u2.copy(_dir).multiplyScalar(cosA).addScaledVector(_perp, sinA).normalize();
+  clampAngle(_u2, limb.restDir, lim.coneCos, 1);
   _u1.copy(_ab).normalize();
-  _u2.subVectors(_nb, _pA).normalize();
   _q1.setFromUnitVectors(_u1, _u2);
   if (w < 1) _q1.slerp(IDENT, 1 - w);
   applyDelta(a, _q1, _qP);
   // Where the chain now is (rigid under q1), without re-reading matrices.
   _nb.copy(_ab).applyQuaternion(_q1).add(_pA);
   _nc.subVectors(_pC, _pB).applyQuaternion(_q1).add(_nb);
-  // Mid bone: swing b->c onto b->target (the reach-clamped target).
+  // Mid bone: swing b->c onto b->target (the reach-clamped target), with the
+  // joint angle itself clamped — the cone above can leave the chain unable to
+  // close on the target, and without this the hinge would take up the slack by
+  // going straight.
   _tgt.copy(_pA).addScaledVector(_dir, d);
-  _u1.subVectors(_nc, _nb).normalize();
-  _u2.subVectors(_tgt, _nb).normalize();
-  if (_u1.lengthSq() < 0.5 || _u2.lengthSq() < 0.5) return;
+  _u1.subVectors(_nc, _nb);
+  _u2.subVectors(_tgt, _nb);
+  if (_u1.lengthSq() < 1e-10 || _u2.lengthSq() < 1e-10) return;
+  _u1.normalize(); _u2.normalize();
+  _ref.subVectors(_pA, _nb);
+  if (_ref.lengthSq() > 1e-10) {
+    _ref.normalize();
+    // Interior angle at the middle joint, between b->a and b->c: allowed range
+    // is [PI - bendMax, PI - bendMin], and cos runs the other way.
+    clampAngle(_u2, _ref, Math.cos(Math.PI - lim.bendMin), Math.cos(Math.PI - lim.bendMax));
+  }
   _q2.setFromUnitVectors(_u1, _u2);
   if (w < 1) _q2.slerp(IDENT, 1 - w);
   _qB.copy(_q1).multiply(_qA);            // a's new body-frame rotation = b's parent
@@ -187,6 +322,9 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
   let bones = null;
   let wrap = null;            // posture wrap: root of the body frame
   let hasSpine = false, hasHead = false, hasLegs = false, hasArms = false;
+  // Rest-pose facts per limb, derived once in bind(): hinge direction and the
+  // centre of the root ball joint's cone.
+  const limbs = { lArm: null, rArm: null, lLeg: null, rLeg: null };
 
   // xorshift32 — deterministic ambient glances per crew member.
   let rs = (seed >>> 0) || 1;
@@ -229,6 +367,21 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
       && b.lLeg.parent === b.lUpLeg && b.lFoot.parent === b.lLeg && b.rLeg.parent === b.rUpLeg && b.rFoot.parent === b.rLeg);
     hasArms = !!(b.lArm && b.lFore && b.lHand && b.rArm && b.rFore && b.rHand
       && b.lFore.parent === b.lArm && b.lHand.parent === b.lFore && b.rFore.parent === b.rArm && b.rHand.parent === b.rFore);
+    // Joint limits: measure the rest pose ONCE, in the body frame. Which way a
+    // knee or an elbow folds is a fact about the rig, not about this frame's
+    // target, so it is read here and never again.
+    limbs.lArm = limbs.rArm = limbs.lLeg = limbs.rLeg = null;
+    if (wrap) {
+      refresh();
+      if (hasArms) {
+        limbs.lArm = limbRest(b.lArm, b.lFore, b.lHand, POLE_ELBOW_L);
+        limbs.rArm = limbRest(b.rArm, b.rFore, b.rHand, POLE_ELBOW_R);
+      }
+      if (hasLegs) {
+        limbs.lLeg = limbRest(b.lUpLeg, b.lLeg, b.lFoot, POLE_KNEE);
+        limbs.rLeg = limbRest(b.rUpLeg, b.rLeg, b.rFoot, POLE_KNEE);
+      }
+    }
   }
 
   // Recompute the subtree's matrixWorld with the posture wrap as the root, so
@@ -300,13 +453,14 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
     // Once the pelvis moves, BOTH feet need solving (the flat-ground foot must
     // stay put while the hips drop past it).
     const shifted = Math.abs(_off.y) > 1e-4;
+    const lim = limitsFor('leg');
     if (shifted || Math.abs(gyL) >= P.minShift) {
       posOf(b.lFoot, footTarget); footTarget.y += gyL;
-      solveTwoBone(b.lUpLeg, b.lLeg, b.lFoot, footTarget, w, POLE_KNEE, _off, 0.999);
+      solveTwoBone(b.lUpLeg, b.lLeg, b.lFoot, footTarget, w, limbs.lLeg, _off, lim);
     }
     if (shifted || Math.abs(gyR) >= P.minShift) {
       posOf(b.rFoot, footTarget); footTarget.y += gyR;
-      solveTwoBone(b.rUpLeg, b.rLeg, b.rFoot, footTarget, w, POLE_KNEE, _off, 0.999);
+      solveTwoBone(b.rUpLeg, b.rLeg, b.rFoot, footTarget, w, limbs.rLeg, _off, lim);
     }
   }
 
@@ -335,21 +489,31 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
     applyDelta(b.spineHi, _q1, _qB);
   }
 
+  // The hand target hangs off that arm's OWN shoulder, in arm-lengths, so it is
+  // reachable by construction on every character and the elbow never has to
+  // lock out to get there. `side` is +1 for the body's left (+x).
+  function reachHand(out, a, limb, side, bob) {
+    const P = POSE.reach;
+    const len = limb.l1 + limb.l2;
+    posOf(a, _pS);
+    out.set(_pS.x + side * P.out * len, _pS.y - (P.drop + bob) * len, _pS.z + P.ahead * len);
+  }
+
   function armsLayer(ctx) {
     const P = POSE.reach;
     const dt = ctx.dt;
     const want = ctx.anim === 'work' ? 1 : 0;
     reachRamp = clamp(reachRamp + (want > reachRamp ? 1 : -1) * dt / Math.max(1e-3, P.ease), 0, 1);
     const w = smooth(reachRamp) * P.weight;
-    if (!hasArms || w <= 0.001) return;
+    if (!hasArms || w <= 0.001 || !limbs.lArm || !limbs.rArm) return;
     const b = bones;
-    const y = P.height * figureHeight;
     const bob = Math.sin(2 * Math.PI * P.bobHz * ctx.time + ctx.phase) * P.bobAmp;
-    handL.set(P.spread, y + bob, P.ahead);
-    handR.set(-P.spread, y - bob, P.ahead);
+    const lim = limitsFor('arm');
     _off.set(0, 0, 0);
-    solveTwoBone(b.lArm, b.lFore, b.lHand, handL, w, POLE_ELBOW_L, _off, P.maxExtend);
-    solveTwoBone(b.rArm, b.rFore, b.rHand, handR, w, POLE_ELBOW_R, _off, P.maxExtend);
+    reachHand(handL, b.lArm, limbs.lArm, 1, bob);
+    solveTwoBone(b.lArm, b.lFore, b.lHand, handL, w, limbs.lArm, _off, lim);
+    reachHand(handR, b.rArm, limbs.rArm, -1, -bob);
+    solveTwoBone(b.rArm, b.rFore, b.rHand, handR, w, limbs.rArm, _off, lim);
   }
 
   function headLayer(ctx) {
@@ -512,5 +676,10 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
     headLayer(ctx);
   }
 
-  return { bind, restore, apply, setLookTarget, setGroundFn, impulse };
+  // How strongly the reach layer owns the arms this frame, 0..1. crewGLB's
+  // correctPosture() tucks the same upper-arm bones; it fades its tuck out by
+  // this, so exactly one layer writes a shoulder at a time.
+  function armReachWeight() { return POSE.reach.weight > 0 ? smooth(reachRamp) : 0; }
+
+  return { bind, restore, apply, setLookTarget, setGroundFn, impulse, armReachWeight };
 }

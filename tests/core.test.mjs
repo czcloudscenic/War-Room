@@ -9,7 +9,7 @@ import { commandDigest } from '../src/core/commandDigest.js';
 import siteAudit from '../netlify/functions/_lib/siteAudit.js';
 import { scoreWarmth, WARM_MIN } from '../src/core/warmth.js';
 import leadCapture from '../netlify/functions/_lib/leadCapture.js';
-import { computeBars, computeIncidents, computeMorale } from '../src/core/shipStations.js';
+import { computeBars, computeIncidents, computeMorale, rushState, RUSH_ACTION, ACTION_STATION, RUSH_COOLDOWN_MS } from '../src/core/shipStations.js';
 import * as THREE from 'three';
 import { createPoseLayers, POSE } from '../src/ship/crewPose.js';
 
@@ -240,6 +240,168 @@ t('commandDigest returns tiers object', digest && typeof digest === 'object');
   for (let i = 0; i < 400; i++) { pose3.restore(); pose3.apply(ctxFor('idle', 0.05)); }   // ~20 s: at least one swap
   const rollB = new THREE.Euler().setFromQuaternion(rig3.hips.quaternion, 'YZX').z;
   t('hips: the weighted leg swaps over time', Math.sign(rollB) !== Math.sign(rollA) || Math.abs(rollB - rollA) > 0.01);
+}
+
+/* ── shipStations.js: Rush (docs/SHIP-GAME-RULES.md §Rush) ── */
+{
+  const minsAgo = (m) => new Date(NOW - m * 60000).toISOString();
+  t('rush: ready when the station has never run its action', rushState('qc', [], NOW).ready === true);
+  t('rush: no prior receipt means no cooldown and no last run',
+    rushState('qc', [], NOW).cooldownMsLeft === 0 && rushState('qc', [], NOW).lastRushTs === null);
+
+  const justNow = [{ ts: minsAgo(3), action_key: 'qc_review', result_status: 'success' }];
+  const inside = rushState('qc', justNow, NOW);
+  t('rush: not ready inside the 10-minute cooldown', inside.ready === false);
+  t('rush: cooldown counts down (7 min left after 3)', Math.round(inside.cooldownMsLeft / 60000) === 7);
+
+  t('rush: ready again after the cooldown elapses',
+    rushState('qc', [{ ts: minsAgo(11), action_key: 'qc_review', result_status: 'success' }], NOW).ready === true);
+  t('rush: a failed run burns the cooldown too',
+    rushState('qc', [{ ts: minsAgo(2), action_key: 'qc_review', result_status: 'failed' }], NOW).ready === false);
+  t('rush: another station\'s receipts do not hold this one back',
+    rushState('qc', [{ ts: minsAgo(1), action_key: 'muse_write_content', result_status: 'success' }], NOW).ready === true);
+  t('rush: the newest receipt at the station sets the clock',
+    rushState('qc', [{ ts: minsAgo(30), action_key: 'qc_review' }, { ts: minsAgo(1), action_key: 'qc_review' }], NOW).cooldownMsLeft > RUSH_COOLDOWN_MS - 2 * 60000);
+  t('rush: every rush action belongs to the station it is offered on',
+    Object.entries(RUSH_ACTION).every(([id, cfg]) => ACTION_STATION[cfg.action] === id));
+}
+
+/* ── crewPose joint limits: "they're still not one solid figure" ──
+   The skin weights are clean (measured off all four crew GLBs); what tore the
+   mesh at a joint was our own IK driving the elbow dead straight and hinging it
+   whichever way the target implied. These run the same synthetic Mixamo rig as
+   the hips block, with the small rest bends a real rig has: the knee already
+   points forward, the elbow already points back. Those rest offsets are where
+   the solver derives the hinge direction, once, at bind. Host loop is
+   restore() then apply() — apply alone compounds deltas. */
+{
+  const makeRig = () => {
+    const bone = (name, x, y, z) => { const b = new THREE.Bone(); b.name = name; b.position.set(x, y, z); return b; };
+    const root = new THREE.Object3D();
+    const hips = bone('Hips', 0, 53, 0);
+    const sp = bone('Spine', 0, 8, 0), sp1 = bone('Spine01', 0, 8, 0), sp2 = bone('Spine02', 0, 8, 0);
+    const neck = bone('neck', 0, 8, 0), head = bone('Head', 0, 6, 0);
+    hips.add(sp); sp.add(sp1); sp1.add(sp2); sp2.add(neck); neck.add(head);
+    const leg = (side, sx) => {
+      // knee carried 2 units FORWARD of the hip-ankle line: a real rest bend
+      const up = bone(side + 'UpLeg', sx, -4, 0), lo = bone(side + 'Leg', 0, -24, 2), ft = bone(side + 'Foot', 0, -24, -2);
+      up.add(lo); lo.add(ft); hips.add(up); return { up, lo, ft };
+    };
+    const L = leg('Left', 5), R = leg('Right', -5);
+    const arm = (side, sx) => {
+      // elbow carried 1.5 units BACK of the shoulder-wrist line
+      const a = bone(side + 'Arm', sx, 0, 0), f = bone(side + 'ForeArm', 0, -12, -1.5), h = bone(side + 'Hand', 0, -11, 1.5);
+      a.add(f); f.add(h); sp2.add(a); return { a, f, h };
+    };
+    const LA = arm('Left', 8), RA = arm('Right', -8);
+    root.add(hips); root.updateMatrixWorld(true);
+    return { root, hips, L, R, LA, RA };
+  };
+  const ctxFor = (anim, dt) => ({ dt, time: 1, anim, speed: 0, phase: 0, group: new THREE.Object3D(), rig: new THREE.Object3D(), scale: 1 });
+  const run = (pose, anim, n) => { for (let i = 0; i < n; i++) { pose.restore(); pose.apply(ctxFor(anim, 0.05)); } };
+  const wp = (o) => o.getWorldPosition(new THREE.Vector3());
+  // Which side of the root->end line the middle joint sits on (unit vector).
+  const bendSide = (a, b, c) => {
+    const pa = wp(a), pb = wp(b), pc = wp(c);
+    const ac = pc.clone().sub(pa).normalize();
+    const ab = pb.clone().sub(pa);
+    return ab.addScaledVector(ac, -ab.dot(ac)).normalize();
+  };
+  // Interior angle at the middle joint, degrees. 180 = dead straight = the pose
+  // that shears a sleeve off a forearm.
+  const jointDeg = (a, b, c) => { const pb = wp(b); return wp(a).sub(pb).angleTo(wp(c).sub(pb)) * 180 / Math.PI; };
+  const chainLen = (l) => l.f.position.length() + l.h.position.length();
+
+  const savedW = POSE.reach.weight, savedAhead = POSE.reach.ahead, savedDrop = POSE.reach.drop, savedFeetW = POSE.feet.weight;
+  POSE.reach.weight = 1;   // measure the limits themselves, not the blend
+
+  // 1. A target the arm cannot possibly reach must NOT lock the elbow out.
+  {
+    const rig = makeRig();
+    const pose = createPoseLayers({ figureHeight: 100, seed: 7 });
+    pose.bind(rig.root, rig.root);
+    POSE.reach.ahead = 5; POSE.reach.drop = 2;   // 5.4 arm-lengths away
+    run(pose, 'work', 60);
+    rig.root.updateMatrixWorld(true);
+    const len = chainLen(rig.LA);
+    t('reach: an unreachable target never pulls the arm past maxExtend',
+      wp(rig.LA.a).distanceTo(wp(rig.LA.h)) <= POSE.reach.maxExtend * len + 1e-6);
+    t('reach: an unreachable target never straightens the elbow to the limit',
+      jointDeg(rig.LA.a, rig.LA.f, rig.LA.h) < 180 - POSE.limits.elbowMinDeg);
+    POSE.reach.ahead = savedAhead; POSE.reach.drop = savedDrop;
+  }
+
+  // 2. A clip that throws the elbow up and forward (the "broken arm" look) is
+  //    folded back onto the hinge side the rest pose declared.
+  {
+    const rig = makeRig();
+    const pose = createPoseLayers({ figureHeight: 100, seed: 8 });
+    pose.bind(rig.root, rig.root);          // hinge derived from the clean rest pose
+    rig.RA.f.position.set(0, -2, 12);       // ...then the clip inverts the elbow
+    rig.root.updateMatrixWorld(true);
+    run(pose, 'work', 60);
+    rig.root.updateMatrixWorld(true);
+    const side = bendSide(rig.RA.a, rig.RA.f, rig.RA.h);
+    t('reach: an inverted elbow is pushed back behind the arm line', side.z < 0);
+    t('reach: an inverted elbow ends below the arm line, not above it', side.y < 0);
+    t('reach: the recovered elbow still respects the bend limit',
+      jointDeg(rig.RA.a, rig.RA.f, rig.RA.h) < 180 - POSE.limits.elbowMinDeg);
+  }
+
+  // 3. A knee bends backwards only: the knee joint itself may never travel
+  //    behind the hip-ankle line, however the clip or the ground asks.
+  {
+    const rig = makeRig();
+    const pose = createPoseLayers({ figureHeight: 100, seed: 9 });
+    pose.bind(rig.root, rig.root);
+    // a clip that folds the knee the wrong way: the joint travels BEHIND the
+    // hip-ankle line, which is a leg bending forwards at the knee
+    rig.L.lo.position.set(0.8, -24, -2.5); rig.L.ft.position.set(0, -24, 2.5);
+    rig.root.updateMatrixWorld(true);
+    pose.setGroundFn((x) => (x > 0 ? 6 : 0));   // step up under the left foot only
+    run(pose, 'idle', 60);
+    rig.root.updateMatrixWorld(true);
+    t('feet: a knee folded forwards is pushed back to bending backwards',
+      bendSide(rig.L.up, rig.L.lo, rig.L.ft).z > 0.2);
+    t('feet: the knee never straightens past the limit',
+      jointDeg(rig.L.up, rig.L.lo, rig.L.ft) < 180 - POSE.limits.kneeMinDeg);
+  }
+
+  // 4. Weight 0 on either limb layer is a true no-op.
+  {
+    const rig = makeRig();
+    const pose = createPoseLayers({ figureHeight: 100, seed: 10 });
+    pose.bind(rig.root, rig.root);
+    pose.setGroundFn((x) => (x > 0 ? 6 : 0));
+    POSE.reach.weight = 0; POSE.feet.weight = 0;
+    const watched = [rig.LA.a, rig.LA.f, rig.RA.a, rig.L.up, rig.L.lo, rig.R.up];
+    const before = watched.map((b) => b.quaternion.clone());
+    run(pose, 'work', 40);
+    t('joint limits: weight 0 leaves every arm and leg bone untouched',
+      watched.every((b, i) => b.quaternion.angleTo(before[i]) < 1e-9));
+    POSE.reach.weight = 1; POSE.feet.weight = savedFeetW;
+  }
+
+  // 5. The shoulder is a cone about its rest direction: no frame may swing the
+  //    arm behind the torso, and the elbow must not straighten out to make up
+  //    the distance the cone just refused.
+  {
+    const rig = makeRig();
+    const pose = createPoseLayers({ figureHeight: 100, seed: 11 });
+    pose.bind(rig.root, rig.root);
+    POSE.reach.ahead = -1.5; POSE.reach.drop = -1.2;   // up and behind the shoulder
+    run(pose, 'work', 60);
+    rig.root.updateMatrixWorld(true);
+    const restDir = new THREE.Vector3(0, -12, -1.5).normalize();
+    const armDir = wp(rig.LA.f).sub(wp(rig.LA.a)).normalize();
+    t('reach: the shoulder never swings the arm outside its cone',
+      armDir.angleTo(restDir) <= (POSE.limits.shoulderConeDeg + 0.5) * Math.PI / 180);
+    t('reach: a cone-clamped shoulder does not straighten the elbow instead',
+      jointDeg(rig.LA.a, rig.LA.f, rig.LA.h) < 180 - POSE.limits.elbowMinDeg);
+    POSE.reach.ahead = savedAhead; POSE.reach.drop = savedDrop;
+  }
+
+  POSE.reach.weight = savedW; POSE.reach.ahead = savedAhead; POSE.reach.drop = savedDrop; POSE.feet.weight = savedFeetW;
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

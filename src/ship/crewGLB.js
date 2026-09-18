@@ -203,10 +203,15 @@ export function createCrewFigure({ name, color, future = false }) {
   // average, and counter-rotate the wrap (pivot = feet) so the mean posture is
   // upright. Then pull each upper arm toward the body by a fixed angle in the
   // model frame, converted into the bone's local space so the forearm follows.
-  function correctPosture(dt, walking) {
+  // armBusy 0..1: how much the reach layer (crewPose) owns the upper arms this
+  // frame. Both this tuck and that layer write leftArm / rightArm, so they are
+  // faded against each other — the tuck hands the shoulders over as the reach
+  // ramps in, instead of the two stacking on one bone and over-rotating it.
+  function correctPosture(dt, walking, armBusy = 0) {
     const b = postureBones;
     if (!postureWrap || !b.hips || !b.head) return;
-    armTuckWeight += ((walking ? 0 : 1) - armTuckWeight) * Math.min(1, dt * 6);
+    const tuckWant = (walking ? 0 : 1) * (1 - Math.min(1, Math.max(0, armBusy)));
+    armTuckWeight += (tuckWant - armTuckWeight) * Math.min(1, dt * 6);
     // Measure the spine in the BODY's own frame (inside the correction group,
     // so the current correction is factored out). That vector is the clip's
     // raw lean; the correction is SET, never accumulated, as the rotation that
@@ -406,7 +411,7 @@ export function createCrewFigure({ name, color, future = false }) {
     }
     pose.restore();   // undo last frame's procedural deltas before the clips write
     mixer?.update(dt);
-    correctPosture(dt, anim === 'walk' || anim === 'climb');
+    correctPosture(dt, anim === 'walk' || anim === 'climb', pose.armReachWeight());
     // Procedural layers, same order every frame: legs, spine, arms, head.
     poseCtx.dt = dt; poseCtx.time = time; poseCtx.anim = anim; poseCtx.speed = speed;
     poseCtx.scale = hostScale; poseCtx.lookAt = sprite?.lookAt || null;
