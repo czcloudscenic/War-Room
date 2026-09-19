@@ -7,9 +7,9 @@
 - **Pushed:** `09b6567` finish-line checklist, `17d5400` `STRESS-TEST.md` rewritten for the full client loop (email is live), `b142d98` standing stance, `b82176a` ship wiring.
 - **Stance (`src/ship/crewPose.js`, `POSE.stance`, `stanceLayer`):** while standing, feet pull in to the rig's own hip spacing (x1.05), the pelvis rises until the legs use 0.988 of their length, the knee hinge is forced body-forward (the A-pose rest bend leans outward, that WAS the bow), the foot keeps the clip's flat sole. Sideways axis is read from the hip joints, never assumed to be x. No re-rig, no new GLBs, no filename bumps. `window.__POSE` is a dev-only live tuning handle. The pause note's open bug below is CLOSED.
 - **Wiring:** `ops_assign` logs as Sean (was "Unknown", moved nobody). `growth_brief` maps to Intel. `sentinel_*` maps to Finance Core with no crew (Sentinel is not in the canon roster). Guard test fails if a dispatch action has no station or no crew.
-- **Held locally, NOT pushed (main is 2 ahead):** App.jsx slice C part 1 (trailing mounts into `ui/AppRoutes.jsx`). Waits for a logged-in route sweep. To push ship-only commits past it, cherry-pick onto a temp branch from origin/main, push that to main, then `git rebase --autostash origin/main`.
+- **App.jsx slice C part 1 pushed** (trailing mounts into `ui/AppRoutes.jsx`), verified with the new login-free sweep `tests/routes-sweep.html` (26 of 26 routes mount on empty data; run it after every route move). Part 2 (realtime and data loaders into hooks) still open.
 - **BLOCKED on Christian:** the automation browser has no Vantus session (Google sign-in only). M1 stress pass, M2 agent check and M3 Stripe check all need it. Six console items are listed in FINISH-LINE.md.
-- **Next:** login, then route sweep and push slice C, then M1 from step 0.
+- **Next:** login, then M1 from step 0. Without a login: slice C part 2, then M5 (Setup folds into the workspace).
 
 ## 2026-09-18 — state check only. Infra verified healthy; no code touched. THE WORK IS THE PAUSE NOTE DIRECTLY BELOW.
 
