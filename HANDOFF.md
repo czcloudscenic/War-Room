@@ -1,5 +1,15 @@
 # Vantus Handoff Brief
 
+## PAUSED 2026-09-18 ~20:00 PT by Christian. Pick up HERE: M1 stress pass, step 1. Everything is pushed.
+
+**State of the M1 pass (`STRESS-TEST.md`, failure log at the bottom):**
+- Step 0 Onboard is DONE on prod. Client **ZZ Stress Test** exists (slug `zz-stress-test`, approval rule client, primary email cz@cloudscenic.com, retainer $1,000 active, 2 revisions). Add client, live grid update, Open to workspace, all 8 workspace tabs, and persistence all passed.
+- Three ZZ items exist: `ZZ: Copy gate` (now Need Copy Approval), `ZZ: Content gate` (now Need Content Approval), `ZZ: internal-only` (Ready For Copy Creation). Realtime insert and update both showed in Deliverables with no refresh.
+- **Gotcha, not a bug:** I created those items by direct database insert, which skips the app's own create path. The app stamps each new item with `approval_mode` from the client's rule (`App.jsx:419`); mine have the default `internal`, so NO approval email fired when they hit the gates. To test the live email and one-click links in step 3, first set `approval_mode = 'client'` on the two gate items (or recreate them through the Pipeline "add" button), then move them out of and back into the gate.
+- Three failures found so far, all fixed: (1) low, Google sign-in style blocked by our content security policy, still open and harmless; (2) HIGH, a tab that spans a deploy white-screened the whole app on its first visit to an unloaded page, fixed `bc29da1` (`src/ui/lazyRoute.jsx`: reload once on a stale code file, plus a page error boundary); (3) med, workspace Activity tab asked `agent_events` for `created_at` (the column is `ts`), so receipts never showed, fixed in this commit, needs a prod look.
+- **How to drive prod:** Christian is signed in to the Playwright browser window (tab 0). Token is in `localStorage` under the key containing `auth-token`; the public Supabase key is the JWT in the bundle whose payload says `role: anon` (the first JWT in the bundle is NOT it). Every deploy makes that tab reload once on its next page change; that is the fix working.
+- **Next:** step 1 (portal: invite a personal Gmail Christian owns, approve it, sign in from a private window), then steps 2 to 10. Then M3 Stripe, slice C part 2, M5 to M8. Clean up ZZ and the 5 Muse test ideas on CloudScenic when the pass is done.
+
 ## 2026-09-18 (evening) — finish-line block started; bow-legged stance FIXED in code; ship wiring gaps closed.
 
 **Read `docs/FINISH-LINE.md` first.** It replaces the pause note below as the working order. The ship is frozen except by Christian's explicit call.

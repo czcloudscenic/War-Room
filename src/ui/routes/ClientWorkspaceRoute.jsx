@@ -283,12 +283,14 @@ function ActivityTab({ clientId }) {
     let dead = false;
     (async () => {
       const [ev, au] = await Promise.all([
-        sb.from("agent_events").select("id, agent_name, action_key, result_status, result_summary, created_at").eq("client_id", clientId).order("created_at", { ascending: false }).limit(30),
+        // agent_events stamps `ts`, not `created_at` (asking for created_at is a 400,
+        // which left this tab saying "no activity" for every client until 9/18).
+        sb.from("agent_events").select("id, agent_name, action_key, result_status, result_summary, ts").eq("client_id", clientId).order("ts", { ascending: false }).limit(30),
         sb.from("audit_log").select("id, entity_type, field, actor_email, actor_kind, reason, created_at").eq("client_id", clientId).order("created_at", { ascending: false }).limit(30),
       ]);
       if (dead) return;
       const merged = [
-        ...(ev.data || []).map(r => ({ kind: "agent", ts: r.created_at, who: r.agent_name, what: r.result_summary || r.action_key, status: r.result_status })),
+        ...(ev.data || []).map(r => ({ kind: "agent", ts: r.ts, who: r.agent_name, what: r.result_summary || r.action_key, status: r.result_status })),
         ...(au.data || []).map(r => ({ kind: "audit", ts: r.created_at, who: r.actor_email || r.actor_kind, what: r.reason || `${r.entity_type}${r.field ? `.${r.field}` : ""} changed` })),
       ].sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, 40);
       setRows(merged);
