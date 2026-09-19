@@ -1,5 +1,15 @@
 # Vantus Handoff Brief
 
+## 2026-09-18 — state check only. Infra verified healthy; no code touched. THE WORK IS THE PAUSE NOTE DIRECTLY BELOW.
+
+Verified live rather than assumed, nothing changed:
+
+- **Supabase is UP** — `wjcstqqihtebkpyuacop` resolves and a `clients` read returns 200. The 9/10 entry warned it auto-pauses after ~7 idle days and 8 have passed, so the risk did NOT fire: the nine scheduled functions re-registered on 9/10 are touching the database daily and keeping it warm. That is the mitigation working, not the underlying free-tier setting being fixed — **the plan decision is still open.**
+- **Prod matches the repo** — live commit `26c2b05`, state ready, published 2026-09-18 02:49, team `cloudscenic`. `origin/main` is `26c2b05`. Local is 0/0 with origin.
+- **`usevantus.com` 200.** Working tree clean apart from the usual `.netlify/` zips and untracked `deno.lock` — do not commit those.
+
+No entry written for the 9/10-9/17 ship work: that session documented itself in the entries below (crew rebuilt on one auto-rigged skeleton, real walk retargeting, pelvis/hip drive, joint limits, the game layer, switchback stairs, versioned asset names). This note exists only so the next reader knows the infrastructure was checked on 9/18 and is sound.
+
 ## PAUSED 2026-09-17 ~19:50 — pick up HERE. Pushed through 72e9cc7, tree clean.
 
 **Open bug: crew stand bow-legged.** Christian's last two screenshots (Trinity
