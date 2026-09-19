@@ -13,7 +13,9 @@
 
 [[redirects]]
   from = "/api/agent-action"
-  to = "/.netlify/functions/agent-action"
+  # Streaming front door (keeps slow agent replies alive past the 30 s gateway
+  # limit). Rollback: point this back at /.netlify/functions/agent-action.
+  to = "/.netlify/functions/agent-action-stream"
   status = 200
 
 [[redirects]]
