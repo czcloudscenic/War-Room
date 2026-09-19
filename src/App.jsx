@@ -18,19 +18,14 @@ import { auditDiff } from './core/audit.js';
 import { snapshotVersion } from './core/versions.js';
 import { CREATIVE_FIELDS } from './core/truth.js';
 import { DEFAULT_APPS, loadApps } from './apps/apps.config.js';
-import AppPlaceholder from './ui/shared/AppPlaceholder.jsx';
 import ClientPortal from './ui/client/ClientPortal.jsx';
 import AppRoutes from './ui/AppRoutes.jsx';
 import { useAuthSession, ADMIN_EMAILS, activeContentCutoff } from './core/useAuthSession.js';
 
 // ── Extracted UI components (Phase 3) ──
-import AppsPage from './ui/apps/AppsPage.jsx';
 import EditContentModal from './ui/pipeline/EditContentModal.jsx';
 import LoginScreen from './ui/layout/LoginScreen.jsx';
-import SettingsPage from './ui/settings/SettingsPage.jsx';
 import AddClientModal from './ui/clients/AddClientModal.jsx';
-import AgentsRoute from './ui/routes/AgentsRoute.jsx';
-import ContentRoute from './ui/routes/ContentRoute.jsx';
 
 // ── Sidebar group icons (16px stroke glyphs, one per NAV group) ──
 const NAV_GROUP_GLYPHS = {
@@ -57,9 +52,6 @@ const NavChevron = ({ open }) => (
   </svg>
 );
 
-const SkillsPage = React.lazy(() => import('./apps/skills/SkillsPage.jsx'));
-const TeamBroadcast = React.lazy(() => import('./ui/agents/TeamBroadcast.jsx'));
-const IdeaEngineRoute = React.lazy(() => import('./ui/routes/IdeaEngineRoute.jsx'));
 
 // Warm the lazy route chunks in the background after first paint so navigating
 // between pages is instant (no per-click chunk fetch + Suspense flash). Keeps the
@@ -1117,46 +1109,12 @@ try {
     <React.Suspense fallback={<div style={{ padding:48,color:'rgba(255,255,255,0.4)',fontSize:13 }}>Loading…</div>}>
 
     {/* DASHBOARD */}
-    {/* PRIMARY ROUTES — table extracted to ui/AppRoutes.jsx (slice B, 8/26) */}
+    {/* ALL ROUTES — table lives in ui/AppRoutes.jsx (slice B 8/26, trailing mounts slice C 9/18) */}
     <AppRoutes
       activeNav={activeNav} agents={agents} aiEnabled={aiEnabled} clientContent={clientContent} clients={clients} content={content} currentClient={currentClient} isMobile={isMobile} isOpsAdmin={isOpsAdmin} liveCount={liveCount} role={role} selectedAgent={selectedAgent}
       switchClient={switchClient} teamMembers={teamMembers} userEmail={userEmail} userId={userId} workspaceClientId={workspaceClientId} setActiveNav={setActiveNav} setAddClientOpen={setAddClientOpen} setEditingClient={setEditingClient} setEditingItem={setEditingItem} setIsNewItem={setIsNewItem} setSelectedAgent={setSelectedAgent} setWorkspaceClientId={setWorkspaceClientId}
+      activePlatform={activePlatform} apps={apps} handleAddNew={handleAddNew} handleIgIdeas={handleIgIdeas} handleMuseWrite={handleMuseWrite} igIdeasLoading={igIdeasLoading} igItems={igItems} setActivePlatform={setActivePlatform} toggleApp={toggleApp} ttItems={ttItems} ytItems={ytItems}
     />
-
-    {/* AGENTS */}
-    {activeNav === "agents" && (
-      <AgentsRoute agents={agents} content={content} currentClient={currentClient} />
-    )}
-
-    {/* CONTENT (unified: Instagram / TikTok / YouTube with tab switcher) */}
-    {activeNav === "content" && (
-      <ContentRoute
-        igItems={igItems}
-        ttItems={ttItems}
-        ytItems={ytItems}
-        activePlatform={activePlatform}
-        setActivePlatform={setActivePlatform}
-        isMobile={isMobile}
-        handleIgIdeas={handleIgIdeas}
-        igIdeasLoading={igIdeasLoading}
-        handleAddNew={handleAddNew}
-        setEditingItem={setEditingItem}
-        handleMuseWrite={handleMuseWrite}
-        currentClient={currentClient}
-      />
-    )}
-
-    {activeNav === "ideas" && <IdeaEngineRoute currentClient={currentClient} />}
-    {(activeNav === "chat" || activeNav === "broadcast") && <TeamBroadcast agents={agents} />}
-
-    {/* SKILLS */}
-    {activeNav === "skills" && <SkillsPage agents={agents} />}
-
-    {/* APPS */}
-    {activeNav === "apps" && <AppsPage apps={apps} toggleApp={toggleApp} />}
-    {activeNav === "settings" && <SettingsPage />}
-    {activeNav === "scrappy" && <AppPlaceholder label="Scraping Ops" desc="Live trend scraping from TikTok, IG, Reddit — powered by Scrappy." icon="◉" />}
-    {activeNav === "automation" && <AppPlaceholder label="Automation Center" desc="Scheduled agent workflows, n8n triggers, and pipeline automation." icon="⚡" />}
 
     </React.Suspense>
   </div>

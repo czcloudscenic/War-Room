@@ -3,8 +3,16 @@ import React from 'react';
 // ── AppRoutes (extracted from App.jsx, 2026-08-26 decomposition slice B) ─────
 // The route-mount table for the 20 primary destinations. Pure JSX move: every
 // identifier the mounts reference arrives as a prop from Vantus (App.jsx). The
-// trailing mounts (agents / content pipeline / ideas / apps / settings) stay in
-// App.jsx for a later slice — they carry the content-editing handler wiring.
+// trailing mounts (agents / content pipeline / ideas / apps / settings) joined
+// on 2026-09-18 (slice C); their content-editing handlers arrive as props too.
+import AppPlaceholder from './shared/AppPlaceholder.jsx';
+import AppsPage from './apps/AppsPage.jsx';
+import SettingsPage from './settings/SettingsPage.jsx';
+import AgentsRoute from './routes/AgentsRoute.jsx';
+import ContentRoute from './routes/ContentRoute.jsx';
+const SkillsPage = React.lazy(() => import('../apps/skills/SkillsPage.jsx'));
+const TeamBroadcast = React.lazy(() => import('./agents/TeamBroadcast.jsx'));
+const IdeaEngineRoute = React.lazy(() => import('./routes/IdeaEngineRoute.jsx'));
 const ApprovalsRoute = React.lazy(() => import('./routes/ApprovalsRoute.jsx'));
 const BillingRoute = React.lazy(() => import('./routes/BillingRoute.jsx'));
 const CalendarRoute = React.lazy(() => import('./routes/CalendarRoute.jsx'));
@@ -26,7 +34,7 @@ const ShipRoute = React.lazy(() => import('./routes/ShipRoute.jsx'));
 const SoftwareOpsRoute = React.lazy(() => import('./routes/SoftwareOpsRoute.jsx'));
 const VaultRoute = React.lazy(() => import('./routes/VaultRoute.jsx'));
 
-export default function AppRoutes({ activeNav, agents, aiEnabled, clientContent, clients, content, currentClient, isMobile, isOpsAdmin, liveCount, role, selectedAgent, switchClient, teamMembers, userEmail, userId, workspaceClientId, setActiveNav, setAddClientOpen, setEditingClient, setEditingItem, setIsNewItem, setSelectedAgent, setWorkspaceClientId }) {
+export default function AppRoutes({ activeNav, agents, aiEnabled, clientContent, clients, content, currentClient, isMobile, isOpsAdmin, liveCount, role, selectedAgent, switchClient, teamMembers, userEmail, userId, workspaceClientId, setActiveNav, setAddClientOpen, setEditingClient, setEditingItem, setIsNewItem, setSelectedAgent, setWorkspaceClientId, activePlatform, apps, handleAddNew, handleIgIdeas, handleMuseWrite, igIdeasLoading, igItems, setActivePlatform, toggleApp, ttItems, ytItems }) {
   return (
     <>
       {activeNav === "dashboard" && (
@@ -159,6 +167,41 @@ export default function AppRoutes({ activeNav, agents, aiEnabled, clientContent,
       {activeNav === "dynasty" && isOpsAdmin && (
         <SoftwareOpsRoute />
       )}
+
+      {/* AGENTS */}
+      {activeNav === "agents" && (
+        <AgentsRoute agents={agents} content={content} currentClient={currentClient} />
+      )}
+
+      {/* CONTENT (unified: Instagram / TikTok / YouTube with tab switcher) */}
+      {activeNav === "content" && (
+        <ContentRoute
+          igItems={igItems}
+          ttItems={ttItems}
+          ytItems={ytItems}
+          activePlatform={activePlatform}
+          setActivePlatform={setActivePlatform}
+          isMobile={isMobile}
+          handleIgIdeas={handleIgIdeas}
+          igIdeasLoading={igIdeasLoading}
+          handleAddNew={handleAddNew}
+          setEditingItem={setEditingItem}
+          handleMuseWrite={handleMuseWrite}
+          currentClient={currentClient}
+        />
+      )}
+
+      {activeNav === "ideas" && <IdeaEngineRoute currentClient={currentClient} />}
+      {(activeNav === "chat" || activeNav === "broadcast") && <TeamBroadcast agents={agents} />}
+
+      {/* SKILLS */}
+      {activeNav === "skills" && <SkillsPage agents={agents} />}
+
+      {/* APPS */}
+      {activeNav === "apps" && <AppsPage apps={apps} toggleApp={toggleApp} />}
+      {activeNav === "settings" && <SettingsPage />}
+      {activeNav === "scrappy" && <AppPlaceholder label="Scraping Ops" desc="Live trend scraping from TikTok, IG, Reddit — powered by Scrappy." icon="◉" />}
+      {activeNav === "automation" && <AppPlaceholder label="Automation Center" desc="Scheduled agent workflows, n8n triggers, and pipeline automation." icon="⚡" />}
     </>
   );
 }
