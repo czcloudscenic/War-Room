@@ -35,11 +35,15 @@ export const stationById = (id) => STATIONS.find(s => s.id === id) || STATIONS[S
 export const ACTION_STATION = {
   sean_briefing: 'cockpit', ops_assign: 'cockpit',
   scrappy_research: 'intel', scrappy_hook_analysis: 'intel', scrappy_muse_collab: 'intel', cid_build_brief: 'intel',
+  growth_brief: 'intel',                      // the Growth audit narrative is research: Scrappy, at Intel
   muse_write_content: 'foundry', muse_from_brief: 'foundry', muse_ig_ideas: 'foundry', muse_idea_list: 'foundry',
   muse_film_brief: 'foundry', cid_ab_variations: 'foundry', intel_generate_ideas: 'foundry', intel_set_idea_status: 'foundry',
   muse_generate_calendar: 'pipeline', muse_save_calendar: 'pipeline',
   qc_review: 'qc',
   scrappy_analyze_performance: 'analytics', intel_score_content: 'analytics',
+  // Scope Sentinel protects the money. It has no crew member yet (not in the
+  // canon roster), so its receipts light Finance Core without moving anyone.
+  sentinel_classify: 'finance', sentinel_decide: 'finance',
 };
 
 // Canonical roster (spec §10 — names are canon). eventName ties a crew member

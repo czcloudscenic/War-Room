@@ -9,7 +9,8 @@ import { commandDigest } from '../src/core/commandDigest.js';
 import siteAudit from '../netlify/functions/_lib/siteAudit.js';
 import { scoreWarmth, WARM_MIN } from '../src/core/warmth.js';
 import leadCapture from '../netlify/functions/_lib/leadCapture.js';
-import { computeBars, computeIncidents, computeMorale, rushState, RUSH_ACTION, ACTION_STATION, RUSH_COOLDOWN_MS } from '../src/core/shipStations.js';
+import { computeBars, computeIncidents, computeMorale, rushState, RUSH_ACTION, ACTION_STATION, RUSH_COOLDOWN_MS, ROSTER } from '../src/core/shipStations.js';
+import fs from 'node:fs';
 import * as THREE from 'three';
 import { createPoseLayers, POSE } from '../src/ship/crewPose.js';
 
@@ -497,6 +498,22 @@ t('commandDigest returns tiers object', digest && typeof digest === 'object');
   for (let i = 0; i < 80; i++) { wk.pose.restore(); wk.pose.apply(ctxFor('walk')); }
   t('stance: walking legs are untouched', Math.abs(measure(wk).gap - wkBefore.gap) < 1e-3);
   POSE.hips.weight = sw;
+}
+
+/* ── ship wiring: every real agent action lands somewhere on the ship ── */
+{
+  const src = fs.readFileSync(new URL('../netlify/functions/agent-action.js', import.meta.url), 'utf8');
+  const shared = fs.readFileSync(new URL('../netlify/functions/agent-action/_shared.js', import.meta.url), 'utf8');
+  const actions = [...src.matchAll(/case "([a-z_]+)":/g)].map(m => m[1]);
+  const prefixMap = Object.fromEntries([...shared.slice(shared.indexOf('AGENT_PREFIX_MAP'), shared.indexOf('function deriveAgentName')).matchAll(/(\w+): "(\w+)"/g)].map(m => [m[1], m[2]]));
+  const crewNames = new Set(ROSTER.filter(r => !r.future).map(r => r.eventName));
+  t('wiring: the dispatch table was actually read', actions.length >= 20);
+  const noStation = actions.filter(a => !ACTION_STATION[a]);
+  t('wiring: every agent action maps to a station (' + noStation.join(',') + ')', noStation.length === 0);
+  const noCrew = actions.filter(a => { const n = prefixMap[a.split('_')[0]]; return n !== 'Sentinel' && !crewNames.has(n); });
+  t('wiring: every agent action is logged under a crew member the ship knows (' + noCrew.join(',') + ')', noCrew.length === 0);
+  const rushMissing = Object.values(RUSH_ACTION).map(r => r.action).filter(a => !actions.includes(a));
+  t('wiring: every Rush button calls an action that exists (' + rushMissing.join(',') + ')', rushMissing.length === 0);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

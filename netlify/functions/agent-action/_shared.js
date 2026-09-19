@@ -35,6 +35,7 @@ const AGENT_PREFIX_MAP = {
   qc: "QC",
   intel: "Scrappy", // Content Intel (Studio port) is analyst work — Scrappy's domain
   sentinel: "Sentinel", // Scope Sentinel — first operational agent (Phase D)
+  ops: "Sean", // AI Assign is the commander handing out work; logged as "Unknown" until 9/18, which moved nobody on the ship
   growth: "Scrappy", // Growth brief writer narrates the deterministic audit — research is Scrappy's domain
 };
 function deriveAgentName(actionKey) {
