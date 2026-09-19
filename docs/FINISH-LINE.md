@@ -52,3 +52,5 @@ Total: about 35 hours of build.
 ## Log
 
 - 2026-09-18: list written. Starting M1.
+- 2026-09-18: M1 script done (`STRESS-TEST.md` now covers the full loop, email treated as live, pushed). The run itself is BLOCKED on a login: the automation browser has no Vantus session and sign-in is Google only, so Christian signs in once in that browser window. First failure logged (row 1, low).
+- 2026-09-18: M4 part 1 done locally (trailing route mounts moved into `ui/AppRoutes.jsx`, App.jsx 1,192 to 1,150 lines, build and 93 tests pass, every prop checked). NOT pushed: it waits for the logged-in route sweep. Part 2 (realtime and data loaders into hooks) also waits for a browser, since realtime cannot be proven by a build.
