@@ -3,7 +3,9 @@
 > Working doc. Mirrors the **Bugs & Roadmap** tab in `architecture-map.html`.
 > Check items off as you fix them. Keep this file current — it's the single source of truth for "what's left."
 
-**Snapshot:** 2026-08-26 · **Total open:** 5 bugs + 7 fixes
+**Snapshot:** 2026-09-18 · **Total open:** 5 bugs + 7 fixes (nothing here moved 8/26 to 9/18; that stretch was all ship work)
+
+> **2026-09-18: the ship is FROZEN and `docs/FINISH-LINE.md` is now the working order.** Fixes #7 and #10 are cut for this block. This file stays the bug and fix ledger; FINISH-LINE.md says what gets done and in what order.
 
 ```
 🔴 High:   1    │   ✅ Done 8/22:  client workspace SHIPPED (Open-button bug dead) ·
