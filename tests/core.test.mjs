@@ -376,13 +376,13 @@ t('commandDigest returns tiers object', digest && typeof digest === 'object');
     // The pelvis layer owns a thigh counter-rotation of its own now, so it is
     // silenced too: this block is about the LIMB layers being true no-ops.
     const savedHipsW = POSE.hips.weight;
-    POSE.reach.weight = 0; POSE.feet.weight = 0; POSE.hips.weight = 0;
+    POSE.reach.weight = 0; POSE.feet.weight = 0; POSE.hips.weight = 0; POSE.stance.weight = 0;
     const watched = [rig.LA.a, rig.LA.f, rig.RA.a, rig.L.up, rig.L.lo, rig.R.up];
     const before = watched.map((b) => b.quaternion.clone());
     run(pose, 'work', 40);
     t('joint limits: weight 0 leaves every arm and leg bone untouched',
       watched.every((b, i) => b.quaternion.angleTo(before[i]) < 1e-9));
-    POSE.reach.weight = 1; POSE.feet.weight = savedFeetW; POSE.hips.weight = savedHipsW;
+    POSE.reach.weight = 1; POSE.feet.weight = savedFeetW; POSE.hips.weight = savedHipsW; POSE.stance.weight = 1;
   }
 
   // 4b. The pelvis tilts and turns UNDER the legs. Hips is the root bone, so a
@@ -397,7 +397,7 @@ t('commandDigest returns tiers object', digest && typeof digest === 'object');
       return b.sub(a).normalize();
     };
     const savedFeet = POSE.feet.weight, savedReach = POSE.reach.weight;
-    POSE.feet.weight = 0; POSE.reach.weight = 0;       // isolate the pelvis
+    POSE.feet.weight = 0; POSE.reach.weight = 0; POSE.stance.weight = 0;   // isolate the pelvis (the stance layer re-plants the feet on purpose)
     const rigOn = makeRig();
     const poseOn = createPoseLayers({ figureHeight: 100, seed: 12 });
     poseOn.bind(rigOn.root, rigOn.root);
@@ -411,7 +411,7 @@ t('commandDigest returns tiers object', digest && typeof digest === 'object');
     POSE.hips.weight = 0;
     run(poseOff, 'idle', 120);
     const dirOff = thighDir(rigOff);
-    POSE.hips.weight = 1; POSE.feet.weight = savedFeet; POSE.reach.weight = savedReach;
+    POSE.hips.weight = 1; POSE.feet.weight = savedFeet; POSE.reach.weight = savedReach; POSE.stance.weight = 1;
     t('hips: standing contrapposto actually moves the pelvis', pelvisMoved > 1e-3);
     t('hips: the thigh keeps its world direction while the pelvis rolls under it',
       dirOn.angleTo(dirOff) < 1e-6);
@@ -437,6 +437,66 @@ t('commandDigest returns tiers object', digest && typeof digest === 'object');
   }
 
   POSE.reach.weight = savedW; POSE.reach.ahead = savedAhead; POSE.reach.drop = savedDrop; POSE.feet.weight = savedFeetW;
+}
+
+/* ── crewPose stance: the bow-legged idle (2026-09-18) ── */
+{
+  const bone = (name, x, y, z) => { const b = new THREE.Bone(); b.name = name; b.position.set(x, y, z); return b; };
+  const makeRig = (splay) => {
+    const root = new THREE.Object3D();
+    const hips = bone('Hips', 0, 50, 0);
+    const sp = bone('Spine', 0, 8, 0), sp1 = bone('Spine01', 0, 8, 0), sp2 = bone('Spine02', 0, 8, 0);
+    const neck = bone('neck', 0, 8, 0), head = bone('Head', 0, 6, 0);
+    hips.add(sp); sp.add(sp1); sp1.add(sp2); sp2.add(neck); neck.add(head);
+    const leg = (side, sx) => {
+      const up = bone(side + 'UpLeg', sx, -4, 0), lo = bone(side + 'Leg', 0, -24, 0.4), ft = bone(side + 'Foot', 0, -24, -0.4);
+      up.add(lo); lo.add(ft); hips.add(up); return { up, lo, ft };
+    };
+    const L = leg('Left', 5), R = leg('Right', -5);
+    root.add(hips); root.updateMatrixWorld(true);
+    const pose = createPoseLayers({ figureHeight: 100, seed: 21 });
+    pose.bind(root, root);                       // bind on the straight rest pose
+    // The library idle: thighs thrown out, knees bent back in, soles flat.
+    L.up.rotation.z = splay; L.lo.rotation.z = -splay * 0.8; L.ft.rotation.z = -splay * 0.2;
+    R.up.rotation.z = -splay; R.lo.rotation.z = splay * 0.8; R.ft.rotation.z = splay * 0.2;
+    root.updateMatrixWorld(true);
+    return { root, hips, L, R, pose };
+  };
+  const ctxFor = (anim) => ({ dt: 0.05, time: 1, anim, speed: anim === 'walk' ? 46 : 0, group: new THREE.Object3D(), rig: new THREE.Object3D(), scale: 1 });
+  const wp = (b) => new THREE.Vector3().setFromMatrixPosition(b.matrixWorld);
+  const knee = (leg) => { const a = wp(leg.up), k = wp(leg.lo), f = wp(leg.ft); return a.sub(k).angleTo(f.sub(k)) * 180 / Math.PI; };
+  const measure = (rig) => {
+    rig.root.updateMatrixWorld(true);
+    const fl = wp(rig.L.ft), fr = wp(rig.R.ft);
+    const sole = new THREE.Vector3(0, 1, 0).applyQuaternion(rig.L.ft.getWorldQuaternion(new THREE.Quaternion()));
+    return { gap: Math.abs(fl.x - fr.x), kneeL: knee(rig.L), footY: fl.y, footYR: fr.y, soleUp: sole.y, kneeFwd: wp(rig.L.lo).z };
+  };
+
+  const rig = makeRig(0.6);
+  const before = measure(rig);
+  for (let i = 0; i < 80; i++) { rig.pose.restore(); rig.pose.apply(ctxFor('idle')); }
+  const after = measure(rig);
+  if (process.env.STANCE_DEBUG) console.log(before, after);
+  t('stance: the fixture really is bow-legged (gap > 25% of stature)', before.gap > 25);
+  t('stance: standing feet come in to a natural gap (<= 12.5% of stature)', after.gap <= 12.5 && after.gap > 8);
+  t('stance: the legs straighten instead of squatting (knee > 160 deg)', after.kneeL > 160 && after.kneeL > before.kneeL);
+  t('stance: the feet stay on the deck (within 1% of stature)', Math.abs(after.footY - before.footY) < 1 && Math.abs(after.footYR - before.footY) < 1);
+  t('stance: the sole stays flat (clip orientation kept)', Math.abs(after.soleUp - before.soleUp) < 1e-3);
+  t('stance: the knee hinges forward, not sideways', after.kneeFwd > 0.2);
+
+  // A clip that already stands naturally is left alone.
+  const ok = makeRig(0.004);
+  const okBefore = measure(ok);
+  for (let i = 0; i < 80; i++) { ok.pose.restore(); ok.pose.apply(ctxFor('idle')); }
+  t('stance: a natural stance keeps its own gap', Math.abs(measure(ok).gap - okBefore.gap) < 0.6);
+
+  // Walking owns its own legs: the stance layer must stay out.
+  const wk = makeRig(0.6);
+  const sw = POSE.hips.weight; POSE.hips.weight = 0;
+  const wkBefore = measure(wk);
+  for (let i = 0; i < 80; i++) { wk.pose.restore(); wk.pose.apply(ctxFor('walk')); }
+  t('stance: walking legs are untouched', Math.abs(measure(wk).gap - wkBefore.gap) < 1e-3);
+  POSE.hips.weight = sw;
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

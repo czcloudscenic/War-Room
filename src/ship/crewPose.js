@@ -51,6 +51,21 @@ export const POSE = {
     // hinge-direction clamp plus kneeMinDeg below, not a short leg.
     maxExtend: 0.99,
   },
+  // ── Standing stance (added 2026-09-18) ─────────────────────────────────
+  // "Bow-legged": the library idle clip stands with its feet 26-27% of stature
+  // apart, thighs splayed 33-38 deg and knees bent outward. A person stands
+  // with about a tenth of their height between the ankles. While standing
+  // (idle or work) the feet are pulled in under the hip joints, the pelvis rises until the
+  // legs are near straight, the knees hinge FORWARD rather than along the
+  // clip's outward bend, and each foot keeps the flat sole the clip gave it.
+  stance: {
+    weight: 1,
+    gapOverHips: 1.05,    // ankle-to-ankle gap as a multiple of the hip-joint spacing (feet under the hips,
+                          // about a tenth of stature); measured off the rig, so it holds at any scale. Narrower clips are left alone
+    straight: 0.988,      // how much of its length a standing leg uses: knee about 162 deg (the clip's 154 deg is 0.975)
+    maxLift: 0.05,        // the pelvis never rises more than this share of stature
+    tau: 0.3,             // ease in / out around walking, seconds
+  },
   reach: {
     weight: 0.7,
     // The hand target is measured from that arm's OWN shoulder as a share of
@@ -116,6 +131,9 @@ export const POSE = {
     easeFrom: 0.85,     // share of the reach window where the soft stretch starts
   },
 };
+
+// Dev-only handle so the harness can tune weights live.
+if (typeof window !== 'undefined' && import.meta.env?.DEV) window.__POSE = POSE;
 
 const DEG = Math.PI / 180;
 const IDENT = new THREE.Quaternion();
@@ -217,6 +235,8 @@ function limitsFor(kind) {
   _lim.coneCos = Math.cos(clamp(arm ? L.shoulderConeDeg : L.hipConeDeg, 1, 180) * DEG);
   _lim.poleCos = Math.cos(clamp(L.poleMaxDeg, 1, 180) * DEG);
   _lim.easeFrom = clamp(L.easeFrom, 0.1, 0.99);
+  _lim.poleToRest = 0;
+  _lim.poleDir = null;
   return _lim;
 }
 
@@ -280,6 +300,14 @@ function solveTwoBone(a, b, c, target, w, limb, offset, lim) {
   _perp.copy(_ab).addScaledVector(_dir, -_ab.dot(_dir));
   if (_perp.lengthSq() < 1e-6 * l1 * l1) { if (!refOk) return; _perp.copy(_ref); }
   else { _perp.normalize(); if (refOk) clampAngle(_perp, _ref, lim.poleCos, 1); }
+  // A caller that is CORRECTING the clip's bend plane (the standing stance)
+  // pulls the hinge toward the rest direction instead of trusting the clip.
+  if (lim.poleToRest > 0) {
+    // lim.poleDir, when given, is the anatomical hinge for this solve (a knee
+    // points where the body faces); otherwise the rig's own rest bend.
+    if (lim.poleDir) { _ref.copy(lim.poleDir).addScaledVector(_dir, -lim.poleDir.dot(_dir)); if (_ref.lengthSq() > 1e-6) { _ref.normalize(); _perp.lerp(_ref, Math.min(1, lim.poleToRest)).normalize(); } }
+    else if (refOk) _perp.lerp(_ref, Math.min(1, lim.poleToRest)).normalize();
+  }
   const cosA = clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1);
   const sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA));
   // Root bone: swing the current a->b onto the solved direction, then hold the
@@ -395,7 +423,11 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
   }
 
   // Pelvis state: eased stride signals plus the standing weight-shift clock.
-  const hipS = { u: 0, lift: 0, side: 1, sideEased: 1, nextShift: 2 };
+  const hipS = { u: 0, lift: 0, side: 1, sideEased: 1, nextShift: 2, swayX: 0 };
+  const stanceFwd = new THREE.Vector3(0, 0, 1);
+  let stanceW = 0;          // eased 0..1: how much the standing stance owns the legs
+  const footL = new THREE.Vector3(), footR = new THREE.Vector3();
+  const footQL = new THREE.Quaternion(), footQR = new THREE.Quaternion();
 
   // ── Host API ────────────────────────────────────────────────────────────────
   // Target is in the frame the figure's group.position lives in (the host's
@@ -420,6 +452,81 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
   }
 
   // ── Layers ──────────────────────────────────────────────────────────────────
+  // Put a bone back on a body-frame orientation after its parents moved.
+  function setBodyQuat(bone, qBody) {
+    readBone(bone.parent, _v, _qP);
+    bone.quaternion.copy(_qP.invert().multiply(qBody));
+  }
+
+  // Standing stance. Runs after the pelvis layer, so the feet it plants are
+  // the clip's feet with the pelvis sway taken back out: the body settles over
+  // a foot, the foot does not slide with it. Returns true when it owned the
+  // legs this frame.
+  function stanceLayer(ctx) {
+    const S = POSE.stance;
+    const standing = ctx.anim !== 'walk' && ctx.anim !== 'climb';
+    const dt = Math.max(0, Math.min(0.1, ctx.dt || 0.016));
+    stanceW += ((standing ? 1 : 0) - stanceW) * (1 - Math.exp(-dt / Math.max(1e-3, S.tau)));
+    const w = smooth(clamp(stanceW, 0, 1)) * clamp(S.weight, 0, 1);
+    if (!hasLegs || w < 1e-3 || !limbs.lLeg || !limbs.rLeg) return false;
+    const b = bones;
+    posOf(b.hips, _pA);
+    const height = Math.max(1e-3, _pA.y / 0.53);
+    readBone(b.lFoot, footL, footQL); readBone(b.rFoot, footR, footQR);
+    footL.x -= hipS.swayX; footR.x -= hipS.swayX;
+    // Lateral axis read off the rig itself (hip joint to hip joint, flattened):
+    // the posture wrap may carry a turn, so "sideways" is not assumed to be x.
+    posOf(b.lUpLeg, _pB); posOf(b.rUpLeg, _pC);
+    _ab.subVectors(_pB, _pC); _ab.y = 0;
+    const hipGap = _ab.length();
+    if (hipGap < 1e-4) _ab.set(1, 0, 0); else _ab.multiplyScalar(1 / hipGap);
+    _d.subVectors(footL, footR);
+    const gap = _d.dot(_ab), want = Math.max(hipGap, 0.06 * height) * S.gapOverHips;
+    if (Math.abs(gap) > want) {
+      const pull = (Math.abs(gap) - want) / 2 * Math.sign(gap);
+      footL.addScaledVector(_ab, -pull); footR.addScaledVector(_ab, pull);
+    }
+    // Pelvis lift: the rise that brings the SHORTER-reaching leg to `straight`
+    // of its length, so neither leg is ever asked to over-extend.
+    let lift = Infinity;
+    for (let i = 0; i < 2; i++) {
+      const up = i ? b.rUpLeg : b.lUpLeg, tgt = i ? footR : footL, limb = i ? limbs.rLeg : limbs.lLeg;
+      posOf(up, _pB);
+      const reach = (limb.l1 + limb.l2) * S.straight;
+      const hx = tgt.x - _pB.x, hz = tgt.z - _pB.z;
+      const v2 = reach * reach - hx * hx - hz * hz;
+      if (v2 <= 0) { lift = 0; break; }
+      lift = Math.min(lift, Math.sqrt(v2) - (_pB.y - tgt.y));
+    }
+    lift = clamp(Number.isFinite(lift) ? lift : 0, 0, S.maxLift * height) * w;
+    _off.set(0, 0, 0);
+    if (lift > 1e-4 && b.hips.parent) {
+      _m.copy(b.hips.parent.matrixWorld).invert();
+      posOf(b.hips, _v); _w.copy(_v); _w.y += lift;
+      _v.applyMatrix4(_m); _w.applyMatrix4(_m);
+      b.hips.position.add(_w.sub(_v));
+      _off.set(0, lift, 0);
+    }
+    const lim = limitsFor('leg');
+    // Forward = left x up. A rig bound in an A-pose carries an outward lean in
+    // its rest bend, and that lean is the bow in bow-legged.
+    stanceFwd.set(0, 1, 0).cross(_ab).negate().normalize();
+    lim.poleToRest = w; lim.poleDir = stanceFwd;
+    // The target is already inside the leg's length by construction (`straight`),
+    // so the soft stretch that protects a REACHING limb must not shorten it here:
+    // that lifts the feet off the deck and leaves the knees bent.
+    lim.easeFrom = 0.999;
+    solveTwoBone(b.lUpLeg, b.lLeg, b.lFoot, footL, w, limbs.lLeg, _off, lim);
+    solveTwoBone(b.rUpLeg, b.rLeg, b.rFoot, footR, w, limbs.rLeg, _off, lim);
+    lim.poleToRest = 0; lim.poleDir = null;
+    // The leg swung in, which would roll the sole off the deck: the foot keeps
+    // the orientation the clip gave it.
+    refresh();
+    setBodyQuat(b.lFoot, footQL); setBodyQuat(b.rFoot, footQR);
+    refresh();
+    return true;
+  }
+
   function legsLayer(ctx) {
     const P = POSE.feet;
     const w = P.weight * (ctx.anim === 'walk' ? P.walkWeight : ctx.anim === 'climb' ? P.climbWeight : 1);
@@ -599,6 +706,7 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
 
     const walking = ctx.anim === 'walk' || ctx.anim === 'climb';
     let yawDeg = 0, rollDeg = 0, swayX = 0, bobY = 0, counterDeg = 0;
+    hipS.swayX = 0;
 
     if (walking) {
       // Stride phase straight off the feet: no clip times, no assumptions.
@@ -661,6 +769,7 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
     // local space as a delta (same trick the feet layer uses for pelvisFollow).
     if (Math.abs(swayX) > 1e-4 || Math.abs(bobY) > 1e-4) {
       _off.set(swayX * wgt, bobY * wgt, 0);
+      hipS.swayX = swayX * wgt;
       posOf(b.hips, _v); _w.copy(_v).add(_off);
       _m.copy(b.hips.parent.matrixWorld).invert();
       _v.applyMatrix4(_m); _w.applyMatrix4(_m);
@@ -681,6 +790,7 @@ export function createPoseLayers({ figureHeight = 34, seed = 1 } = {}) {
     refresh();
     hipsLayer(ctx);
     refresh();
+    stanceLayer(ctx);
     legsLayer(ctx);
     spineLayer(ctx);
     refresh();
