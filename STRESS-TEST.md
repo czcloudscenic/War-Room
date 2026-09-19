@@ -1,10 +1,26 @@
-# Feature-pack stress test — team script (2026-07-29)
+# Full-loop stress test (rewritten 2026-09-18, was the 7/29 feature-pack script)
 
-Everything below is **LIVE on usevantus.com** (commits `46c4d6b`…`260c4b1`, migrations applied 7/29). A disposable client **ZZ Stress Test** is seeded with three items so you can start immediately. Break things on ZZ, not on Dynasty/Parlour/VitalLyfe.
+Runs a disposable client through the whole loop on **usevantus.com**: onboard, scope, content and approvals, work, bill, report. This is finish-line item M1 in `docs/FINISH-LINE.md`. Log every failure in the table at the bottom, fix it, re-run that step.
 
-> **Email caveat:** `RESEND_API_KEY` is still empty in prod, so every email (one-click approval links, cap alerts, stuck digests, intake alerts) is a **dry-run log line** in the Netlify function logs instead of a real send. Bells, Slack, tokens, and all state changes work regardless. Paste the real key to test the emails themselves.
+> **EMAIL IS LIVE.** The Resend key is set in production, so every send is real. The disposable client **ZZ Stress Test** must carry only addresses Christian owns (primary email and portal invite). Never point it at a client address. Break things on ZZ, not on Dynasty, Parlour or VitalLyfe.
+
+> The 7/29 ZZ fixture was deleted on 8/21. Step 0 recreates it.
 
 ---
+
+## 0 · Onboard (new, never tested end to end)
+
+1. **Clients → Add client** → name `ZZ Stress Test`, primary email = an inbox Christian owns, approval mode = client.
+- [ ] The client appears in the grid without a refresh, and **Open** lands on its workspace (7 tabs), not the dashboard.
+- [ ] Every workspace tab renders with an honest empty state (no fake zeros, no crash, no console errors).
+- [ ] The Dashboard activation checklist now lists ZZ's missing setup (retainer, facts, recipients) as next actions.
+2. **Setup → Retainers & scope → ZZ**: set a retainer, included revisions = 2, a weekly cadence, a report recipient.
+- [ ] Values persist after reload and show in the workspace Scope tab.
+- [ ] The activation score moves.
+3. **Scope** page: add one manual scope entry for ZZ (Fix #12 path).
+- [ ] It lands in the register with the right classification and shows in the monthly roll-up.
+4. Create three content items for ZZ: "ZZ: Copy gate", "ZZ: Content gate", and one titled "internal-only" kept out of client view.
+- [ ] They show in Pipeline, Ledger, Calendar (once dated) and Runway as the same rows.
 
 ## 1 · Client portal (the big one)
 
@@ -34,7 +50,7 @@ Expect:
 
 ## 3 · One-click email approvals
 
-Requires the Resend key. Once pasted:
+The Resend key is live, so these are real emails to ZZ's primary address:
 - [ ] Move a ZZ item into an approval gate → client email arrives with **Approve / Request changes** buttons.
 - [ ] Clicking a button opens a **confirmation page** — verify nothing changed yet (email scanners prefetch links; GET must be inert).
 - [ ] Confirm → decision recorded; the OTHER button's link now says "Already recorded" (single-use, sibling invalidated).
@@ -68,12 +84,41 @@ The cron runs daily 16:00 UTC. The ZZ items will start tripping it after 3 days 
 
 ---
 
+## 8 · Bill (new)
+
+Needs Stripe proven first (finish-line M3). Until then, test the manual path only.
+- [ ] **Billing**: ZZ shows with its retainer; MRR and the margin tile include it.
+- [ ] Create a $1 invoice for ZZ → it appears in Stripe → pay it → the local row flips to **paid** with no refresh trick.
+- [ ] Void a second $1 invoice → the local row flips to void.
+- [ ] **Profitability**: ZZ's revenue minus hard costs renders; adding a hard cost moves the number.
+
+## 9 · Report (new)
+
+- [ ] **Reports**: generate ZZ's monthly report; numbers match the Ledger (delivered counts) and nothing is fabricated when data is missing.
+- [ ] The monthly send (`send-monthly-reports`) dry-run lists ZZ with the recipient set in step 0 and no one else's address.
+- [ ] **Client Analytics**: ZZ row renders with no connected accounts (honest empty state).
+
+## 10 · The other destinations (smoke)
+
+- [ ] **Approvals** inbox shows the ZZ gate items with Approve, Edit, Reject working.
+- [ ] **Decision log**: add a decision on ZZ, it shows in decision debt until answered.
+- [ ] **Vault**: add a ZZ secret, it is masked by default and the view is audit-logged.
+- [ ] **Growth**: scrape, audit, brief, convert on one test prospect; convert creates the client record once, not twice. Note every rough edge here for finish-line M8.
+- [ ] **Agents**: with credits loaded, one action per agent returns a real result and writes a receipt (finish-line M2).
+- [ ] Every sidebar destination opens with zero console errors on desktop and at phone width.
+
 ## When you're done
 
-Tell the Vantus agent to clean up: archive/delete **ZZ Stress Test** (cascades its items, comments, tokens, intake rows) and finally archive **QC Test Kitchen** (the 7/3 fixture — its stuck test item is already tripping the bottleneck cron, correctly but noisily).
+Tell the Vantus agent to clean up: archive/delete **ZZ Stress Test** (cascades its items, comments, tokens, intake rows) and the Stripe test customer.
 
 ## Known-not-bugs
 
-- Emails logging `[email dry-run]` — Resend key is empty, expected.
 - Notification bell only shows for the currently selected client (it's client-scoped by design).
 - Dynasty audit rows from the Software OPS tab show actor "Admin" — known tradeoff, owned by the dynasty-leads repo.
+- The ship route is frozen (see `docs/FINISH-LINE.md`); visual issues there are not logged here.
+
+## Failure log
+
+| # | Date | Step | What happened | Fix (commit) | Re-verified |
+|---|------|------|---------------|--------------|-------------|
+| 1 | 9/18 | login page | Console error: Google's sign-in script is blocked from adding an inline style by our content security policy (the browser rule list of what a page may load). Sign-in button still renders. Low. | open | |
