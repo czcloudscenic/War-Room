@@ -1,4 +1,5 @@
 import React from 'react';
+import { lazyRoute, RouteErrorBoundary } from './lazyRoute.jsx';
 
 // ── AppRoutes (extracted from App.jsx, 2026-08-26 decomposition slice B) ─────
 // The route-mount table for the 20 primary destinations. Pure JSX move: every
@@ -10,33 +11,33 @@ import AppsPage from './apps/AppsPage.jsx';
 import SettingsPage from './settings/SettingsPage.jsx';
 import AgentsRoute from './routes/AgentsRoute.jsx';
 import ContentRoute from './routes/ContentRoute.jsx';
-const SkillsPage = React.lazy(() => import('../apps/skills/SkillsPage.jsx'));
-const TeamBroadcast = React.lazy(() => import('./agents/TeamBroadcast.jsx'));
-const IdeaEngineRoute = React.lazy(() => import('./routes/IdeaEngineRoute.jsx'));
-const ApprovalsRoute = React.lazy(() => import('./routes/ApprovalsRoute.jsx'));
-const BillingRoute = React.lazy(() => import('./routes/BillingRoute.jsx'));
-const CalendarRoute = React.lazy(() => import('./routes/CalendarRoute.jsx'));
-const ClientAnalyticsRoute = React.lazy(() => import('./routes/ClientAnalyticsRoute.jsx'));
-const ClientWorkspaceRoute = React.lazy(() => import('./routes/ClientWorkspaceRoute.jsx'));
+const SkillsPage = lazyRoute(() => import('../apps/skills/SkillsPage.jsx'));
+const TeamBroadcast = lazyRoute(() => import('./agents/TeamBroadcast.jsx'));
+const IdeaEngineRoute = lazyRoute(() => import('./routes/IdeaEngineRoute.jsx'));
+const ApprovalsRoute = lazyRoute(() => import('./routes/ApprovalsRoute.jsx'));
+const BillingRoute = lazyRoute(() => import('./routes/BillingRoute.jsx'));
+const CalendarRoute = lazyRoute(() => import('./routes/CalendarRoute.jsx'));
+const ClientAnalyticsRoute = lazyRoute(() => import('./routes/ClientAnalyticsRoute.jsx'));
+const ClientWorkspaceRoute = lazyRoute(() => import('./routes/ClientWorkspaceRoute.jsx'));
 import ClientsRoute from './routes/ClientsRoute.jsx';
-const ContentIntelRoute = React.lazy(() => import('./routes/ContentIntelRoute.jsx'));
+const ContentIntelRoute = lazyRoute(() => import('./routes/ContentIntelRoute.jsx'));
 import DashboardRoute from './routes/DashboardRoute.jsx';
-const DecisionLogRoute = React.lazy(() => import('./truth/DecisionLogRoute.jsx'));
-const GrowthRoute = React.lazy(() => import('./routes/GrowthRoute.jsx'));
-const LedgerRoute = React.lazy(() => import('./routes/LedgerRoute.jsx'));
-const OperationsRoute = React.lazy(() => import('./routes/OperationsRoute.jsx'));
-const ProfitabilityRoute = React.lazy(() => import('./routes/ProfitabilityRoute.jsx'));
-const ReportsRoute = React.lazy(() => import('./routes/ReportsRoute.jsx'));
-const RunwayRoute = React.lazy(() => import('./routes/RunwayRoute.jsx'));
-const ScopeRoute = React.lazy(() => import('./routes/ScopeRoute.jsx'));
-const SetupRoute = React.lazy(() => import('./routes/SetupRoute.jsx'));
-const ShipRoute = React.lazy(() => import('./routes/ShipRoute.jsx'));
-const SoftwareOpsRoute = React.lazy(() => import('./routes/SoftwareOpsRoute.jsx'));
-const VaultRoute = React.lazy(() => import('./routes/VaultRoute.jsx'));
+const DecisionLogRoute = lazyRoute(() => import('./truth/DecisionLogRoute.jsx'));
+const GrowthRoute = lazyRoute(() => import('./routes/GrowthRoute.jsx'));
+const LedgerRoute = lazyRoute(() => import('./routes/LedgerRoute.jsx'));
+const OperationsRoute = lazyRoute(() => import('./routes/OperationsRoute.jsx'));
+const ProfitabilityRoute = lazyRoute(() => import('./routes/ProfitabilityRoute.jsx'));
+const ReportsRoute = lazyRoute(() => import('./routes/ReportsRoute.jsx'));
+const RunwayRoute = lazyRoute(() => import('./routes/RunwayRoute.jsx'));
+const ScopeRoute = lazyRoute(() => import('./routes/ScopeRoute.jsx'));
+const SetupRoute = lazyRoute(() => import('./routes/SetupRoute.jsx'));
+const ShipRoute = lazyRoute(() => import('./routes/ShipRoute.jsx'));
+const SoftwareOpsRoute = lazyRoute(() => import('./routes/SoftwareOpsRoute.jsx'));
+const VaultRoute = lazyRoute(() => import('./routes/VaultRoute.jsx'));
 
 export default function AppRoutes({ activeNav, agents, aiEnabled, clientContent, clients, content, currentClient, isMobile, isOpsAdmin, liveCount, role, selectedAgent, switchClient, teamMembers, userEmail, userId, workspaceClientId, setActiveNav, setAddClientOpen, setEditingClient, setEditingItem, setIsNewItem, setSelectedAgent, setWorkspaceClientId, activePlatform, apps, handleAddNew, handleIgIdeas, handleMuseWrite, igIdeasLoading, igItems, setActivePlatform, toggleApp, ttItems, ytItems }) {
   return (
-    <>
+    <RouteErrorBoundary key={activeNav}>
       {activeNav === "dashboard" && (
         <DashboardRoute
           isMobile={isMobile}
@@ -202,6 +203,6 @@ export default function AppRoutes({ activeNav, agents, aiEnabled, clientContent,
       {activeNav === "settings" && <SettingsPage />}
       {activeNav === "scrappy" && <AppPlaceholder label="Scraping Ops" desc="Live trend scraping from TikTok, IG, Reddit — powered by Scrappy." icon="◉" />}
       {activeNav === "automation" && <AppPlaceholder label="Automation Center" desc="Scheduled agent workflows, n8n triggers, and pipeline automation." icon="⚡" />}
-    </>
+    </RouteErrorBoundary>
   );
 }

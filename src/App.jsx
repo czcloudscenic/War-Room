@@ -72,6 +72,14 @@ function prefetchRoutes() {
   import('./ui/routes/RunwayRoute.jsx');
   import('./ui/agents/TeamBroadcast.jsx');
   import('./apps/skills/SkillsPage.jsx');
+  // Added 9/18: pages missing from the warm list were the ones that white-screened
+  // after a deploy (their chunk was first requested long after the build changed).
+  import('./ui/routes/ClientWorkspaceRoute.jsx');
+  import('./ui/routes/GrowthRoute.jsx');
+  import('./ui/routes/CalendarRoute.jsx');
+  import('./ui/routes/ScopeRoute.jsx');
+  import('./ui/routes/ProfitabilityRoute.jsx');
+  import('./ui/routes/SoftwareOpsRoute.jsx');
 }
 
 //  ROOT APP WRAPPER
