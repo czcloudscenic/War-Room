@@ -1,4 +1,8 @@
 const { TAVILY_KEY, SB_HEADERS, REST, sbGet, sbPatch, ai } = require("../_shared");
+// Lives with Scrappy (it reads the synced posts he analyses). Was called here
+// without being imported, so muse_ig_ideas, muse_idea_list and one more path
+// threw "getSyncedDigest is not defined" on every run.
+const { getSyncedDigest } = require("./scrappy");
 
 async function muse_write_content(payload, brand) {
   const { itemId, itemTitle, pillar, format, description, fieldToUpdate = "caption" } = payload;

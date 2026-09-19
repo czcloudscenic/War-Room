@@ -276,9 +276,14 @@ Base your analysis on real patterns that perform well in this brand's space and 
   const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-opus-5", max_tokens: 4096, messages: [{ role: "user", content: prompt }] }),
+    // effort "low": Opus 5 thinks by default, and at the default effort this
+    // long-JSON answer ran past Netlify's 30 s function limit (504 on 9/18).
+    // Pattern recall, not deep reasoning, so low effort keeps the model and
+    // cuts the wait.
+    body: JSON.stringify({ model: "claude-opus-5", max_tokens: 4096, output_config: { effort: "low" }, messages: [{ role: "user", content: prompt }] }),
   });
   const aiData = await aiRes.json();
+  if (!aiRes.ok) throw new Error(`Anthropic ${aiRes.status} ${aiData.error?.type || ""}: ${aiData.error?.message || ""}`);
   const raw = aiData.content?.find?.((b) => b.type === "text")?.text || "{}";
 
   let parsed;
@@ -461,4 +466,4 @@ One posts entry per WINNER${bottom.length ? ", one lostPosts entry per [low] pos
 // AI Operations Manager — parse a raw task dump, score priority, and assign each
 // task to the best-fit team member by skill (the capability matrix).
 
-module.exports = { scrappy_research, scrappy_muse_collab, scrappy_hook_analysis, scrappy_analyze_performance };
+module.exports = { scrappy_research, scrappy_muse_collab, scrappy_hook_analysis, scrappy_analyze_performance, getSyncedDigest };
